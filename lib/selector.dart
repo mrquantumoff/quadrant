@@ -10,31 +10,45 @@ class Selector extends StatefulWidget {
 }
 
 class _SelectorState extends State<Selector> {
-  @override
-  Widget build(BuildContext context) {
-    List<DropdownMenuEntry> items = [];
-
-    void updateItems() {
-      var newItemsString = getModpacks();
-      List<DropdownMenuEntry> newItems = [];
-      for (var newItemString in newItemsString) {
-        newItems
-            .add(DropdownMenuEntry(label: newItemString, value: newItemString));
-      }
-      setState(() {
-        items = newItems;
-      });
+  final TextEditingController colorController = TextEditingController();
+  List<DropdownMenuEntry<String>> modpackOptions = [];
+  String? selectedModpack;
+  bool areButtonsActive = true;
+  void updateOptions() {
+    var newItemsString = getModpacks();
+    List<DropdownMenuEntry<String>> newItems = [];
+    for (var newItemString in newItemsString) {
+      newItems.add(
+        DropdownMenuEntry(value: newItemString, label: newItemString),
+      );
     }
 
-    updateItems();
+    setState(() {
+      modpackOptions = newItems;
+    });
+  }
 
+  @override
+  void initState() {
+    super.initState();
+    updateOptions();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       children: [
         // Selector
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 0),
           child: DropdownMenu(
-            dropdownMenuEntries: items,
+            dropdownMenuEntries: modpackOptions,
+            controller: TextEditingController(),
+            onSelected: (value) {
+              selectedModpack = value;
+            },
+            enabled: areButtonsActive,
+            hintText: AppLocalizations.of(context)!.modpack,
           ),
         ),
 
@@ -48,7 +62,43 @@ class _SelectorState extends State<Selector> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: areButtonsActive
+                      ? () {
+                          setState(
+                            () {
+                              areButtonsActive = false;
+                            },
+                          );
+                          bool res = applyModpack(selectedModpack);
+                          if (res) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(AppLocalizations.of(context)!
+                                    .setModpackSuccess),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(AppLocalizations.of(context)!
+                                    .setModpackFailed),
+                              ),
+                            );
+                          }
+                          setState(
+                            () {
+                              areButtonsActive = true;
+                            },
+                          );
+                        }
+                      : () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(AppLocalizations.of(context)!
+                                  .buttonsAreDisabled),
+                            ),
+                          );
+                        },
                   child: Padding(
                     padding: const EdgeInsets.all(15),
                     child: Row(
@@ -69,7 +119,43 @@ class _SelectorState extends State<Selector> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: areButtonsActive
+                      ? () {
+                          setState(
+                            () {
+                              areButtonsActive = false;
+                            },
+                          );
+                          bool res = clearModpack();
+                          if (res) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(AppLocalizations.of(context)!
+                                    .setModpackSuccess),
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(AppLocalizations.of(context)!
+                                    .setModpackFailed),
+                              ),
+                            );
+                          }
+                          setState(
+                            () {
+                              areButtonsActive = true;
+                            },
+                          );
+                        }
+                      : () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(AppLocalizations.of(context)!
+                                  .buttonsAreDisabled),
+                            ),
+                          );
+                        },
                   child: Padding(
                     padding: const EdgeInsets.all(15),
                     child: Row(
@@ -90,7 +176,9 @@ class _SelectorState extends State<Selector> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    updateOptions();
+                  },
                   child: Padding(
                     padding: const EdgeInsets.all(15),
                     child: Row(

@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
+
 Directory getMinecraftFolder() {
   String userHome =
       Platform.environment['HOME'] ?? Platform.environment['USERPROFILE']!;
@@ -19,9 +21,49 @@ List<String> getModpacks() {
   List<String> modpacks = [];
   for (var entity
       in modpackFolder.listSync(recursive: false, followLinks: false)) {
-    if (entity.statSync().type == FileSystemEntityType.directory) {
+    if (entity.statSync().type == FileSystemEntityType.directory &&
+        !(entity.path.endsWith("modpacks/free") ||
+            entity.path.endsWith("modpacks\\free"))) {
       modpacks.add(entity.path.split("/").last.split("\\").last);
     }
   }
   return modpacks;
+}
+
+bool applyModpack(String? modpack) {
+  var minecraftFolder = getMinecraftFolder();
+
+  if (modpack == null) return false;
+
+  Directory modpackFolder =
+      Directory("${minecraftFolder.path}/modpacks/$modpack");
+  if (!modpackFolder.existsSync()) return false;
+
+  Directory modsFolder = Directory("${minecraftFolder.path}/mods");
+  if (modsFolder.existsSync()) {
+    try {
+      modsFolder.deleteSync(recursive: true);
+    } catch (e) {
+      debugPrint("Error ${e.toString()}");
+      return false;
+    }
+  }
+  try {
+    Link(modsFolder.path).createSync(modpackFolder.path, recursive: true);
+  } catch (e) {
+    debugPrint("Error ${e.toString()}");
+    return false;
+  }
+  return true;
+}
+
+bool clearModpack() {
+  Directory minecraftFolder = getMinecraftFolder();
+  Directory freeModpacks = Directory("${minecraftFolder.path}/modpacks/free");
+  try {
+    freeModpacks.createSync(recursive: true);
+    return applyModpack("free");
+  } catch (e) {
+    return false;
+  }
 }
