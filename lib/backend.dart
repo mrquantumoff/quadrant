@@ -67,3 +67,20 @@ bool clearModpack() {
     return false;
   }
 }
+
+void openModpacksFolder() {
+  if (Platform.isLinux) {
+    Process.runSync("xdg-open", ["."],
+        workingDirectory: "${getMinecraftFolder().path}/modpacks",
+        runInShell: true);
+  } else if (Platform.isWindows) {
+    Process.runSync("explorer", ["."],
+        workingDirectory:
+            "${getMinecraftFolder().path.replaceAll("/", "\\")}\\modpacks",
+        runInShell: true);
+  } else {
+    Process.runSync("open", ["."],
+        workingDirectory: "${getMinecraftFolder().path}/modpacks",
+        runInShell: true);
+  }
+}
