@@ -37,7 +37,7 @@ jobs:
         run: |
           flutter pub get
           flutter build macos
-          tar -czvf macOSBuild.tar.gz build/macos
+          tar -czvf macOSBuild.tar.gz build/macos/build/macos/Build/Products/Release/Minecraft\ Modpack\ Manager\ Reborn.app
       - name: Publish macOS
         if: matrix.platform == 'macos-latest'
         uses: softprops/action-gh-release@v1
