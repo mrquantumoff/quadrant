@@ -31,7 +31,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            .\windows-build\mcmodpackmanager_reborn.msix
+            ./windows-build/mcmodpackmanager_reborn.msix
       - name: Build on macOS
         if: matrix.platform == 'macos-latest'
         run: |
