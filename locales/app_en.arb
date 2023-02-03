@@ -21,6 +21,6 @@
     "downloadFail": "Your download failed",
     "overwriteQuestion": "Overwrite?",
     "overwriteQuestionText": "Modpack with the same name exists, do you want to overwrite it?",
-    "language": "Language",
+    "language": "Language (Will require a relaunch)",
     "settings": "Settings"
 }
