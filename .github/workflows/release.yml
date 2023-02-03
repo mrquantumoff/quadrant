@@ -1,0 +1,48 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.7.1'
+          channel: 'stable'
+      - name: Build on windows
+        if: matrix.platform == 'windows-latest'
+        run: |
+          flutter pub get
+          flutter pub run msix:create
+      - name: Upload MSIX package to github releases
+        if: matrix.platform == 'windows-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            .\build\windows\runner\Release\mcmodpackmanager_reborn.msix
+      - name: Build on macOS
+        if: matrix.platform = "macos-latest"
+        run: |
+          flutter pub get
+          flutter build macos
+          tar -czvf macOSBuild.tar.gz build/macos
+      - name: Publish macOS
+        if: matrix.platform = "macos-latest"
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            macOSBuild.tar.gz
+            LICENSE
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
