@@ -5,10 +5,9 @@
 * Applying modpacks
 * Clearing modpacks
 * Reloading modpacks in the list
-* Opening modpacks folder on windows (I'm not sure about linux and macOS)
-
-## TODO:
+* Opening modpacks folder
 * Installing modpacks using .mcmodpackref
 
-![Screenshot](https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/Screenshots/Screenshot%202023-02-03%20112742.png)
-![Screenshot](https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/Screenshots/Screenshot%202023-02-03%20112802.png)
+# Will be available on Flathub and Microsoft Store soon
+
+## Warning: Some features may not work properly on macOS, since I don't have a Mac and I can't test the app on it. If you have one and you know how to code, please submit a pr.

@@ -2,9 +2,11 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/install_modpack_button.dart';
 import 'package:mcmodpackmanager_reborn/selector.dart';
 import 'package:mcmodpackmanager_reborn/open_modpacks_folder.dart';
+import 'package:mcmodpackmanager_reborn/settings.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -12,6 +14,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
+  await GetStorage.init();
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
   WindowOptions windowOptions = WindowOptions(
       size: const Size(1024, 576),
@@ -67,13 +70,39 @@ class ThemeProvider extends StatefulWidget {
 
 class _ThemeProviderState extends State<ThemeProvider> {
   bool shouldUseMaterial3 = true;
+
+  late String locale;
+
+  @override
+  void initState() {
+    super.initState();
+    setLocale(GetStorage().read("locale") ?? "en");
+    debugPrint("Initiated $locale");
+  }
+
+  void setLocale(String value) {
+    for (var loc in AppLocalizations.supportedLocales) {
+      if (loc.languageCode == value) {
+        GetStorage().write("locale", value);
+        setState(() {
+          locale = value;
+          debugPrint("Locale set");
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: const MinecraftModpackManager(),
+      locale: Locale.fromSubtags(languageCode: locale),
+      defaultTransition: Transition.rightToLeft,
+      home: MinecraftModpackManager(
+        setLocale: setLocale,
+      ),
       darkTheme: ThemeData.from(
         useMaterial3: shouldUseMaterial3,
         colorScheme: (widget.darkTheme ?? const ColorScheme.dark()),
@@ -87,7 +116,9 @@ class _ThemeProviderState extends State<ThemeProvider> {
 }
 
 class MinecraftModpackManager extends StatefulWidget {
-  const MinecraftModpackManager({super.key});
+  const MinecraftModpackManager({super.key, required this.setLocale});
+
+  final Function(String locale) setLocale;
 
   @override
   State<MinecraftModpackManager> createState() =>
@@ -98,6 +129,13 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.productName),
+      ),
+      endDrawer: Drawer(
+          child: Settings(
+        setLocale: widget.setLocale,
+      )),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,

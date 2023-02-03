@@ -20,5 +20,7 @@
     "downloadSuccess": "Modpack installed successfully",
     "downloadFail": "Your download failed",
     "overwriteQuestion": "Overwrite?",
-    "overwriteQuestionText": "Modpack with the same name exists, do you want to overwrite it?"
+    "overwriteQuestionText": "Modpack with the same name exists, do you want to overwrite it?",
+    "language": "Language",
+    "settings": "Settings"
 }
