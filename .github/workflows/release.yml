@@ -32,7 +32,7 @@ jobs:
           files: |
             .\build\windows\runner\Release\mcmodpackmanager_reborn.msix
       - name: Build on macOS
-        if: matrix.platform == "macos-latest"
+        if: matrix.platform == 'macos-latest'
         run: |
           flutter pub get
           flutter build macos
