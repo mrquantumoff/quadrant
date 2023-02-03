@@ -1,0 +1,7 @@
+[Desktop]
+Type=Application
+Exec=mcmodpackmanager_reborn
+Terminal=false
+Categories=Utility;
+Name=Minecraft Modpack Manager Reborn
+Icon=dev.mrquantumoff.mcmodpackmanager
