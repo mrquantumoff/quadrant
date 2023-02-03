@@ -49,7 +49,7 @@ jobs:
       - name: Build on Linux
         if: matrix.platform == 'ubuntu-latest'
         run: |
-          sudo apt install meson clang build-essential
+          sudo apt install meson clang build-essential cmake
           flutter pub get
           flutter build linux
           tar -czvf GNULinuxBuild.tar.gz ./build/linux/x64/release/bundle
