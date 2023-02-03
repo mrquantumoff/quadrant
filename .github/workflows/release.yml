@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, windows-latest]
+        platform: [macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout repository
@@ -25,7 +25,7 @@ jobs:
         run: |
           flutter pub get
           flutter pub run msix:create --output-path windows-build
-      - name: Upload MSIX package to github releases
+      - name: Upload the Microsoft Store MSIX package (Won't work if you install the app manually)
         if: matrix.platform == 'windows-latest'
         uses: softprops/action-gh-release@v1
         with:
@@ -38,7 +38,7 @@ jobs:
           flutter pub get
           flutter build macos
           tar -czvf macOSBuild.tar.gz build/macos/Build/Products/Release/Minecraft\ Modpack\ Manager\ Reborn.app
-      - name: Publish macOS
+      - name: Upload the macOS build
         if: matrix.platform == 'macos-latest'
         uses: softprops/action-gh-release@v1
         with:
@@ -46,3 +46,17 @@ jobs:
           files: |
             macOSBuild.tar.gz
             LICENSE
+      - name: Build on Linux
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sudo apt install meson clang build-essential
+          flutter pub get
+          flutter build linux
+          tar -czvf GNULinuxBuild.tar.gz ./build/linux/x64/release/bundle
+      - name: Upload the GNU/Linux build
+        if: matrix.platform == 'ubuntu-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            GNULinuxBuild.tar.gz      
