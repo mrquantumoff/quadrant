@@ -9,5 +9,6 @@
     "setModpackSuccess": "Modpack set successfully",
     "setModpackFailed": "Modpack set failed",
     "buttonsAreDisabled": "Buttons are disabled right now",
-    "openModpacksFolder": "Open modpacks folder"
+    "openModpacksFolder": "Open modpacks folder",
+    "installModpacks": "Install modpacks"
 }

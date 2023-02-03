@@ -2,6 +2,7 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:mcmodpackmanager_reborn/install_modpack.dart';
 import 'package:mcmodpackmanager_reborn/selector.dart';
 import 'package:mcmodpackmanager_reborn/open_modpacks_folder.dart';
 import 'package:window_manager/window_manager.dart';
@@ -103,7 +104,8 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager> {
                 ),
               ),
               const Selector(),
-              const OpenModpacksFolder()
+              const OpenModpacksFolder(),
+              const ModpackInstaller()
             ],
           )
         ],
