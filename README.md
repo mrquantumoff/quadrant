@@ -1,16 +1,14 @@
-# mcmodpackmanager_reborn
+# Minecraft Modpack Manager Reborn (Beta)
+### WIP: This rewrite isn't 100% complete (yet)
 
-A new Flutter project.
+## Working features:
+* Applying modpacks
+* Clearing modpacks
+* Reloading modpacks in the list
+* Opening modpacks folder on windows (I'm not sure about linux and macOS)
 
-## Getting Started
+## TODO:
+* Installing modpacks using .mcmodpackref
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+![Screenshot](https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/Screenshots/Screenshot%202023-02-03%20112742.png)
+![Screenshot](https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/Screenshots/Screenshot%202023-02-03%20112802.png)
