@@ -45,6 +45,11 @@ dependencies:
   ffi: ^2.0.1
   window_manager: ^0.3.0
   package_info_plus: ^3.0.2
+  file_picker: ^5.2.5
+  http: ^0.13.5
+  path_provider: ^2.0.12
+  archive: ^3.3.6
+  flutter_platform_alert: ^0.3.0
 
 dev_dependencies:
   flutter_test:

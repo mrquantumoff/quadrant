@@ -10,5 +10,15 @@
     "setModpackFailed": "Modpack set failed",
     "buttonsAreDisabled": "Buttons are disabled right now",
     "openModpacksFolder": "Open modpacks folder",
-    "installModpacks": "Install modpacks"
+    "installModpacks": "Install modpacks",
+    "referenceFile": "Install your modpacks using a reference file",
+    "manualInput": "Install your modpacks using a custom name and url",
+    "installError": "Failed to install your modpack. Please ensure that you have selected a modpack with the correct extension.",
+    "name": "Name",
+    "download": "Download",
+    "downloadIsAlreadyInProgress": "A download is already in progress",
+    "downloadSuccess": "Modpack installed successfully",
+    "downloadFail": "Your download failed",
+    "overwriteQuestion": "Overwrite?",
+    "overwriteQuestionText": "Modpack with the same name exists, do you want to overwrite it?"
 }

@@ -2,9 +2,11 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:mcmodpackmanager_reborn/install_modpack.dart';
+import 'package:mcmodpackmanager_reborn/backend.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/install_modpack_button.dart';
 import 'package:mcmodpackmanager_reborn/selector.dart';
 import 'package:mcmodpackmanager_reborn/open_modpacks_folder.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -24,6 +26,15 @@ void main() async {
     await windowManager.show();
     await windowManager.focus();
   });
+
+  var tempDir = await getTemporaryDirectory();
+
+  for (var file in tempDir.listSync()) {
+    if (file.path.split("/").last.split("\\").last.startsWith("modpack-") &&
+        file.path.endsWith(".zip")) {
+      file.delete();
+    }
+  }
 
   runApp(const MyApp());
 }

@@ -25,7 +25,10 @@ class _OpenModpacksFolderState extends State<OpenModpacksFolder> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
-            children: [Text(AppLocalizations.of(context)!.openModpacksFolder)],
+            children: [
+              const Icon(Icons.folder),
+              Text("  ${AppLocalizations.of(context)!.openModpacksFolder}")
+            ],
           ),
         ),
       ),
