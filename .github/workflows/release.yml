@@ -29,6 +29,7 @@ jobs:
         if: matrix.platform == 'windows-latest'
         uses: softprops/action-gh-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             .\build\windows\runner\Release\mcmodpackmanager_reborn.msix
       - name: Build on macOS
@@ -41,8 +42,7 @@ jobs:
         if: matrix.platform == 'macos-latest'
         uses: softprops/action-gh-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             macOSBuild.tar.gz
             LICENSE
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
