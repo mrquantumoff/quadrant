@@ -26,6 +26,7 @@ jobs:
           flutter pub get
           flutter pub run msix:create --output-path windows-build
       - name: Compress Windows build to .zip
+        if: matrix.platform == 'windows-latest'
         uses: vimtor/action-zip@v1.1
           files: ./build/windows/runner/Release
           recursive: true
