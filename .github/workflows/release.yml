@@ -25,12 +25,19 @@ jobs:
         run: |
           flutter pub get
           flutter pub run msix:create --output-path windows-build
-      - name: Upload the Microsoft Store MSIX package (Won't work if you install the app manually)
+      - name: Compress Windows build to .zip
+        uses: vimtor/action-zip@v1.1
+          files: ./build/windows/runner/Release
+          recursive: true
+          dest: WindowsBuild.zip
+
+      - name: Upload the Windows MSIX package and .zip build
         if: matrix.platform == 'windows-latest'
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
+            ./WindowsBuild.zip
             ./windows-build/mcmodpackmanager_reborn.msix
       - name: Build on macOS
         if: matrix.platform == 'macos-latest'
