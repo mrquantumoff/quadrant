@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -76,7 +78,7 @@ class _ThemeProviderState extends State<ThemeProvider> {
   @override
   void initState() {
     super.initState();
-    setLocale(GetStorage().read("locale") ?? "en");
+    setLocale(GetStorage().read("locale") ?? "native");
     debugPrint("Initiated $locale");
   }
 
@@ -88,6 +90,12 @@ class _ThemeProviderState extends State<ThemeProvider> {
           locale = value;
           debugPrint("Locale set");
         });
+        return;
+      }
+      if (value=="native") {
+        final String defaultLocale = Platform.localeName.split("_").first; // Returns locale string in the form 'en_US'
+        debugPrint("System locale is \"$defaultLocale\"");
+        setLocale(defaultLocale);
       }
     }
   }
