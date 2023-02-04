@@ -134,6 +134,7 @@ Future<void> installModpack(
         shouldReturn = clickedButton == AlertButton.noButton;
         if (shouldReturn) {
           await saveFile.delete(recursive: true);
+          setAreButtonsEnabled(true);
           displayErrorSnackBar();
           return;
         }

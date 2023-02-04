@@ -32,6 +32,7 @@ class _SettingsState extends State<Settings> {
         children: [
           DrawerHeader(child: Text(AppLocalizations.of(context)!.settings)),
           DropdownMenu(
+            width: 275,
             controller: _controller,
             label: Text(AppLocalizations.of(context)!.language),
             dropdownMenuEntries: const [
