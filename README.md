@@ -1,4 +1,4 @@
-# Minecraft Modpack Manager Reborn (RC)
+# Minecraft Modpack Manager Reborn
 ## Working features:
 * Applying modpacks
 * Clearing modpacks
