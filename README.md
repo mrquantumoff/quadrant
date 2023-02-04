@@ -1,6 +1,4 @@
-# Minecraft Modpack Manager Reborn (Beta)
-### WIP: This rewrite isn't 100% complete (yet)
-
+# Minecraft Modpack Manager Reborn (RC)
 ## Working features:
 * Applying modpacks
 * Clearing modpacks
