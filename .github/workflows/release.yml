@@ -28,6 +28,7 @@ jobs:
       - name: Compress Windows build to .zip
         if: matrix.platform == 'windows-latest'
         uses: vimtor/action-zip@v1.1
+        with:
           files: ./build/windows/runner/Release
           recursive: true
           dest: WindowsBuild.zip
