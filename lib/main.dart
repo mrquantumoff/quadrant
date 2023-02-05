@@ -92,8 +92,10 @@ class _ThemeProviderState extends State<ThemeProvider> {
         });
         return;
       }
-      if (value=="native") {
-        final String defaultLocale = Platform.localeName.split("_").first; // Returns locale string in the form 'en_US'
+      if (value == "native") {
+        final String defaultLocale = Platform.localeName
+            .split("_")
+            .first; // Returns locale string in the form 'en_US'
         debugPrint("System locale is \"$defaultLocale\"");
         setLocale(defaultLocale);
       }

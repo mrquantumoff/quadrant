@@ -38,7 +38,9 @@ class _SettingsState extends State<Settings> {
             dropdownMenuEntries: [
               const DropdownMenuEntry(value: "en", label: "English"),
               const DropdownMenuEntry(value: "uk", label: "Українська"),
-              DropdownMenuEntry(value: "native", label: AppLocalizations.of(context)!.systemLocale),
+              DropdownMenuEntry(
+                  value: "native",
+                  label: AppLocalizations.of(context)!.systemLocale),
             ],
             onSelected: (value) async {
               debugPrint("Selected value: ${value ?? "en"}");

@@ -96,7 +96,8 @@ Future<void> installModpack(
     String overwriteQ,
     String overwriteQText,
     Function displayErrorSnackBar,
-    Function displaySuccessSnackbar) async {
+    Function displaySuccessSnackbar,
+    Function(double speed) setDownloadSpeed) async {
   setAreButtonsEnabled(false);
   final sep = Platform.isWindows ? "\\" : "/";
   try {
@@ -105,7 +106,6 @@ Future<void> installModpack(
     String name = modpackName;
     var response = await Client().send(request);
     List<int> chunks = [];
-
     File saveFile =
         File("${(await getTemporaryDirectory()).path}${sep}modpack-$name.zip");
     debugPrint(saveFile.path);
@@ -114,9 +114,19 @@ Future<void> installModpack(
     }
     await saveFile.create(recursive: true);
     int contentLength = response.contentLength ?? 1;
+    DateTime startContentDownloadTime = DateTime.now();
     response.stream.listen((List<int> newBytes) {
       chunks.addAll(newBytes);
       final downloadedLength = chunks.length;
+      DateTime contentDownloadTime = DateTime.now();
+      double dlSpeed = double.parse(((chunks.length /
+                  contentDownloadTime
+                      .difference(startContentDownloadTime)
+                      .inSeconds) /
+              1000000 *
+              0.875)
+          .toStringAsFixed(2));
+      setDownloadSpeed(dlSpeed);
       setProgressValue(downloadedLength.toDouble() / contentLength);
     }).onDone(() async {
       setProgressValue(1);
