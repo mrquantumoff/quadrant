@@ -264,6 +264,7 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                     value: progressValue,
                   ),
                   Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
                     child: Text("$downloadSpeed MB/s"),
                   ),
                 ],
