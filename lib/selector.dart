@@ -48,6 +48,7 @@ class _SelectorState extends State<Selector> {
               selectedModpack = value;
             },
             enabled: areButtonsActive,
+            width: 420,
             hintText: AppLocalizations.of(context)!.modpack,
           ),
         ),

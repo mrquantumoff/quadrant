@@ -127,3 +127,5 @@ msix_config:
   store: true
   languages: en-us, uk-ua
   capabilities: internetClient, broadFileSystemAccess
+flutter_intl:
+  enabled: true
