@@ -10,7 +10,7 @@
 
 
 ### [Available on Flathub](https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager)
-### [Available on Microsoft Store](https://www.microsoft.com/store/apps/9NLT70M0TVD0)
+### [Available on Microsoft Store](ms-windows-store://pdp/?productid=9NLT70M0TVD0)
 
 > ### Warning: If your mods folder is not symlinked to modpacks/<anything> your mods folder will be deleted after you apply/clear your modpack.
 > #### Warning: Some features may not work properly on macOS, since I don't have a Mac and I can't test the app on it. If you have one and you know how to code, please submit a pr.
