@@ -265,7 +265,8 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                   ),
                   Container(
                     margin: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text("${AppLocalizations.of(context)!.speed}: $downloadSpeed MB/s"),
+                    child: Text(
+                        "${AppLocalizations.of(context)!.speed}: $downloadSpeed MB/s"),
                   ),
                 ],
               ),

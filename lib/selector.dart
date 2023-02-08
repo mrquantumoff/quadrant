@@ -14,6 +14,7 @@ class _SelectorState extends State<Selector> {
   List<DropdownMenuEntry<String>> modpackOptions = [];
   String? selectedModpack;
   bool areButtonsActive = true;
+
   void updateOptions() {
     var newItemsString = getModpacks();
     List<DropdownMenuEntry<String>> newItems = [];
@@ -74,6 +75,7 @@ class _SelectorState extends State<Selector> {
                           if (res) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
+                                duration: const Duration(seconds: 1),
                                 content: Text(AppLocalizations.of(context)!
                                     .setModpackSuccess),
                               ),
@@ -81,6 +83,7 @@ class _SelectorState extends State<Selector> {
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
+                                duration: const Duration(seconds: 1),
                                 content: Text(AppLocalizations.of(context)!
                                     .setModpackFailed),
                               ),
@@ -95,6 +98,7 @@ class _SelectorState extends State<Selector> {
                       : () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
+                              duration: const Duration(seconds: 1),
                               content: Text(AppLocalizations.of(context)!
                                   .buttonsAreDisabled),
                             ),
@@ -131,6 +135,7 @@ class _SelectorState extends State<Selector> {
                           if (res) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
+                                duration: const Duration(seconds: 1),
                                 content: Text(AppLocalizations.of(context)!
                                     .setModpackSuccess),
                               ),
@@ -138,6 +143,7 @@ class _SelectorState extends State<Selector> {
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
+                                duration: const Duration(seconds: 1),
                                 content: Text(AppLocalizations.of(context)!
                                     .setModpackFailed),
                               ),
@@ -152,6 +158,7 @@ class _SelectorState extends State<Selector> {
                       : () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
+                              duration: const Duration(seconds: 1),
                               content: Text(AppLocalizations.of(context)!
                                   .buttonsAreDisabled),
                             ),

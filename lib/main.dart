@@ -63,6 +63,7 @@ class _MyAppState extends State<MyApp> {
 class ThemeProvider extends StatefulWidget {
   const ThemeProvider(
       {super.key, required this.darkTheme, required this.lightTheme});
+
   final ColorScheme? darkTheme;
   final ColorScheme? lightTheme;
 
