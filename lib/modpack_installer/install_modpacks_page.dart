@@ -17,7 +17,7 @@ class ModpackInstallerPage extends StatefulWidget {
 }
 
 class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
-  double progressValue = 0.0;
+  late double progressValue;
   TextEditingController _controller = TextEditingController();
   TextEditingController _controller2 = TextEditingController();
   bool areButtonsEnabled = false;
@@ -28,6 +28,8 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
     _controller.dispose();
     _controller2.dispose();
     super.dispose();
+    downloadSpeed = 0.0;
+    progressValue = 0.0;
   }
 
   @override
@@ -36,6 +38,7 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
     _controller = TextEditingController();
     _controller2 = TextEditingController();
     downloadSpeed = 0.0;
+    progressValue = 0.0;
     areButtonsEnabled = true;
   }
 

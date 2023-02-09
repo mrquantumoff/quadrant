@@ -21,8 +21,9 @@
     "downloadFail": "Your download failed",
     "overwriteQuestion": "Overwrite?",
     "overwriteQuestionText": "Modpack with the same name exists, do you want to overwrite it?",
-    "language": "Language (Will require a relaunch)",
+    "language": "Language",
     "settings": "Settings",
     "systemLocale": "System locale",
-    "speed":"Speed"
+    "speed":"Speed",
+    "someSettingsRequireReload": "Some settings require a relaunch"
 }

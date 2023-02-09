@@ -144,9 +144,10 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager> {
         title: Text(AppLocalizations.of(context)!.productName),
       ),
       endDrawer: Drawer(
-          child: Settings(
-        setLocale: widget.setLocale,
-      )),
+        child: Settings(
+          setLocale: widget.setLocale,
+        ),
+      ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,

@@ -30,7 +30,17 @@ class _SettingsState extends State<Settings> {
       margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
       child: ListView(
         children: [
-          DrawerHeader(child: Text(AppLocalizations.of(context)!.settings)),
+          DrawerHeader(
+            child: Column(
+              children: [
+                Text(AppLocalizations.of(context)!.settings),
+                Text(
+                  AppLocalizations.of(context)!.someSettingsRequireReload,
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+          ),
           DropdownMenu(
             width: 275,
             controller: _controller,
