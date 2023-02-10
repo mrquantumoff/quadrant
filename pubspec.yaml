@@ -36,7 +36,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.5
   flutter_platform_widgets: ^3.0.0
-  dynamic_color: ^1.6.0
+  dynamic_color: ^1.6.2
   get: ^4.6.5
   get_storage: ^2.0.3
   flutter_localizations:
@@ -44,7 +44,7 @@ dependencies:
   intl: any
   ffi: ^2.0.1
   window_manager: ^0.3.0
-  package_info_plus: ^3.0.2
+  package_info_plus: ^3.0.3
   file_picker: ^5.2.5
   http: ^0.13.5
   path_provider: ^2.0.12
@@ -54,15 +54,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
   flutter_lints: ^2.0.1
-  flutter_launcher_icons: "^0.11.0"
-  msix: ^3.7.0
+  msix: ^3.8.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -108,15 +101,15 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
 
-flutter_icons:
-  windows:
-    generate: true
-    image_path: assets/icons/logo.ico
-    icon_size: 128
-  macos:
-    generate: true
-    image_path: assets/icons/logohalf.png
-    icon_size: 256
+# flutter_icons:
+#   windows:
+#     generate: true
+#     image_path: assets/icons/logo.ico
+#     icon_size: 128
+#   macos:
+#     generate: true
+#     image_path: assets/icons/logohalf.png
+#     icon_size: 256
 msix_config:
   display_name: MC Modpack Manager
   publisher_display_name: MrQuantumOFF (Demir Yerli)
