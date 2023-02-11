@@ -49,6 +49,8 @@ jobs:
           flutter pub get
           flutter build macos
           tar -czvf macOSBuild.tar.gz build/macos/Build/Products/Release/Minecraft\ Modpack\ Manager\ Reborn.app
+          # For future use
+          # pkgbuild --install-location /Applications --component "./build/macos/Build/Products/Release/Minecraft Modpack Manager Reborn.app" ./mcmodpackmanagerMacOS.pkg --identifier dev.mrquantumoff.mcmodpackmanager
       - name: Upload the macOS build
         if: matrix.platform == 'macos-latest'
         uses: softprops/action-gh-release@v1
@@ -71,4 +73,4 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            GNULinuxBuild.tar.gz      
+            GNULinuxBuild.tar.gz
