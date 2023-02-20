@@ -75,17 +75,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             GNULinuxBuild.tar.gz
-      - name: Install Snapcraft
-        uses: samuelmeuli/action-snapcraft@v1
-        with:
-          snapcraft_token: ${{ secrets.SNAPCRAFT_TOKEN }}
-          skip_install: false #
       - name: Build the snap
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sed -i "s/SNAP_VERSION/$(git describe --tags --abbrev=0)/g"
           snapcraft -v
           mv *.snap mcmodpackmanager.snap
+          echo ${{ secrets.SNAPCRAFT_TOKEN }} >> "login.txt"
+          snapcraft login --with login.txt
           snapcraft upload mcmodpackmanager.snap
       - name: Upload the snap
         if: matrix.platform == 'ubuntu-latest'
