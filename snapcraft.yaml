@@ -16,7 +16,8 @@ architectures:
 layout:
   /usr/share/icons/hicolor/256x256/apps/dev.mrquantumoff.mcmodpackmanager.png:
     bind-file: $SNAP/usr/share/icons/hicolor/256x256/apps/dev.mrquantumoff.mcmodpackmanager.png
-
+  ~/.minecraft:
+    symlink: $SNAP_DATA/minecraft
 parts:
   desktop-metadata:
     plugin: nil
@@ -35,6 +36,8 @@ parts:
   mcmodpackmanager:
     build-packages:
       - wget
+    build-snaps:
+      - flutter
     plugin: nil
     override-build: |
         wget https://github.com/mrquantumoff/mcmodpackmanager_reborn/releases/download/v6.5.0/GNULinuxBuild.tar.gz
@@ -44,7 +47,7 @@ parts:
 apps:
   mcmodpackmanager:
     desktop: usr/share/applications/dev.mrquantumoff.mcmodpackmanager.desktop
-    command: SNAP_RUNTIME=1 mcmodpackmanager/mcmodpackmanager_reborn
+    command: mcmodpackmanager/mcmodpackmanager_reborn
     common-id: dev.mrquantumoff.mcmodpackmanager
     environment:
      SNAP_RUNTIME: 1

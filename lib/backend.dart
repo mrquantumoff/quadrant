@@ -8,7 +8,9 @@ import 'package:flutter_platform_alert/flutter_platform_alert.dart';
 Directory getMinecraftFolder() {
   String userHome =
       Platform.environment['HOME'] ?? Platform.environment['USERPROFILE']!;
-  if (Platform.isLinux) {
+  if (Platform.isLinux && Platform.environment["SNAP_RUNTIME"] == "1") {
+    return Directory("/var/minecraft");
+  } else if (Platform.isLinux) {
     return Directory("$userHome/.minecraft");
   } else if (Platform.isMacOS) {
     return Directory("$userHome/Library/Application Support/minecraft");

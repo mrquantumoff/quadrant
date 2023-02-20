@@ -109,14 +109,13 @@ class _ThemeProviderState extends State<ThemeProvider> {
         ((Platform.environment["SNAP_RUNTIME"] == "1" ||
                 const int.fromEnvironment("SNAP_RUNTIME") == 1) &&
             // ignore: prefer_interpolation_to_compose_strings
-            (!Directory(Platform.environment['HOME']! + "/minecraft")
-                .existsSync()));
+            (!Directory("/var/minecraft").existsSync()));
     debugPrint("Is snapd runtime: $isSnap");
     if (isSnap) {
       await FlutterPlatformAlert.showAlert(
         windowTitle: "Snapd runtime",
         text:
-            "Whoa, you're using the app via snapd! please run \"ln -s ~/.minecraft ~/minecraft\" in order for the app to run properly!",
+            "Whoa, you're using the app via snapd! please run \"sudo ln -s ~/.minecraft /var/minecraft\" in order for the app to run properly!",
         alertStyle: AlertButtonStyle.ok,
         iconStyle: IconStyle.warning,
       );
