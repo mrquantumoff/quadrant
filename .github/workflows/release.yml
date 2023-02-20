@@ -79,7 +79,7 @@ jobs:
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo snap install snapcraft --classic
-          sed -i "s/SNAP_VERSION/$(git describe --tags --abbrev=0)/g"
+          sed -i "s/SNAP_VERSION/$(git describe --tags --abbrev=0)/g" snapcraft.yaml
           snapcraft -v
           mv *.snap mcmodpackmanager.snap
           echo ${{ secrets.SNAPCRAFT_TOKEN }} >> "login.txt"
