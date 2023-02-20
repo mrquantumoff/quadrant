@@ -24,11 +24,12 @@ parts:
     build-packages:
       - wget
     source: 'https://github.com/mrquantumoff/mcmodpackmanager_reborn.git'
+    source-tag: v6.4.1
     override-build: |
       mkdir -p usr/share/metainfo
       mkdir -p $SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/256x256/apps
       mkdir -p $SNAPCRAFT_PART_INSTALL/usr/share/applications
-      mv *.metainfo.xml /usr/share/metainfo
+      mv dev.mrquantumoff.mcmodpackmanager.metainfo.xml /usr/share/metainfo
       mv assets/icons/logohalf.png $SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/256x256/apps/dev.mrquantumoff.mcmodpackmanager.png
       mv dev.mrquantumoff.mcmodpackmanager.desktop $SNAPCRAFT_PART_INSTALL/usr/share/applications/dev.mrquantumoff.mcmodpackmanager.desktop
     parse-info: [usr/share/metainfo/dev.mrquantumoff.mcmodpackmanager.metainfo.xml]
