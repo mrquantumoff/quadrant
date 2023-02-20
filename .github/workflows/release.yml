@@ -80,6 +80,7 @@ jobs:
         run: |
           sudo snap install snapcraft --classic
           sed -i "s/SNAP_VERSION/$(git describe --tags --abbrev=0)/g" snapcraft.yaml
+          sudo usermod -aG lxd $(whoami)
           snapcraft -v
           mv *.snap mcmodpackmanager.snap
           echo ${{ secrets.SNAPCRAFT_TOKEN }} >> "login.txt"
