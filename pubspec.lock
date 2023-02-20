@@ -13,10 +13,10 @@ packages:
     dependency: transitive
     description:
       name: args
-      sha256: "139d809800a412ebb26a3892da228b2d0ba36f0ef5d9a82166e5e52ec8d61611"
+      sha256: "4cab82a83ffef80b262ddedf47a0a8e56ee6fbf7fe21e6e768b02792034dd440"
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.2"
+    version: "2.4.0"
   async:
     dependency: transitive
     description:
@@ -233,10 +233,10 @@ packages:
     dependency: transitive
     description:
       name: image
-      sha256: "3686865febd85c57a632d87a0fb1f0a8a9ef602fdb68d909c3e9aa29ec70fd24"
+      sha256: "483a389d6ccb292b570c31b3a193779b1b0178e7eb571986d9a49904b6861227"
       url: "https://pub.dev"
     source: hosted
-    version: "4.0.13"
+    version: "4.0.15"
   intl:
     dependency: "direct main"
     description:
@@ -289,10 +289,10 @@ packages:
     dependency: "direct dev"
     description:
       name: msix
-      sha256: "03ba3b6e82d576593adbfc71243f8c165c97bee9ffd7e5c462eb0b2d83bfc3fd"
+      sha256: b09203311ed6b21f61f06add7003d8a95a54763735898cee6b9cfbd01989bfaf
       url: "https://pub.dev"
     source: hosted
-    version: "3.8.0"
+    version: "3.8.1"
   package_config:
     dependency: transitive
     description:
@@ -353,10 +353,10 @@ packages:
     dependency: transitive
     description:
       name: path_provider_linux
-      sha256: ab0987bf95bc591da42dffb38c77398fc43309f0b9b894dcc5d6f40c4b26c379
+      sha256: "2e32f1640f07caef0d3cb993680f181c79e54a3827b997d5ee221490d131fbd9"
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.7"
+    version: "2.1.8"
   path_provider_platform_interface:
     dependency: transitive
     description:
@@ -518,10 +518,10 @@ packages:
     dependency: transitive
     description:
       name: xdg_directories
-      sha256: bd512f03919aac5f1313eb8249f223bacf4927031bf60b02601f81f687689e86
+      sha256: ee1505df1426458f7f60aac270645098d318a8b4766d85fde75f76f2e21807d1
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.0+3"
+    version: "1.0.0"
   xml:
     dependency: transitive
     description:

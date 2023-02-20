@@ -26,7 +26,8 @@ jobs:
         if: matrix.platform == 'windows-latest'
         run: |
           flutter pub get
-          flutter pub run msix:create --output-path windows-build
+          flutter build windows --split-debug-info --obfuscate
+          flutter pub run msix:create --build-windows false --output-path windows-build
       - name: Compress Windows build to .zip
         if: matrix.platform == 'windows-latest'
         uses: vimtor/action-zip@v1.1
@@ -47,7 +48,7 @@ jobs:
         if: matrix.platform == 'macos-latest'
         run: |
           flutter pub get
-          flutter build macos
+          flutter build macos --split-debug-info --obfuscate
           tar -czvf macOSBuild.tar.gz build/macos/Build/Products/Release/Minecraft\ Modpack\ Manager\ Reborn.app
           # For future use
           # pkgbuild --install-location /Applications --component "./build/macos/Build/Products/Release/Minecraft Modpack Manager Reborn.app" ./mcmodpackmanagerMacOS.pkg --identifier dev.mrquantumoff.mcmodpackmanager
@@ -63,9 +64,9 @@ jobs:
         if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt update
-          sudo apt install meson clang build-essential cmake curl file git unzip xz-utils zip libglu1-mesa ninja-build pkg-config libgtk-3-dev
+          sudo apt install snapd meson clang build-essential cmake curl file git unzip xz-utils zip libglu1-mesa ninja-build pkg-config libgtk-3-dev
           flutter pub get
-          flutter build linux
+          flutter build linux --split-debug-info --obfuscate
           tar -czvf GNULinuxBuild.tar.gz ./build/linux/x64/release/bundle
       - name: Upload the GNU/Linux build
         if: matrix.platform == 'ubuntu-latest'
@@ -74,3 +75,22 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             GNULinuxBuild.tar.gz
+      - name: Install Snapcraft
+        uses: samuelmeuli/action-snapcraft@v1
+        with:
+          snapcraft_token: ${{ secrets.SNAPCRAFT_TOKEN }}
+          skip_install: false #
+      - name: Build the snap
+        if: matrix.platform == 'ubuntu-latest'
+        run: |
+          sed -i "s/SNAP_VERSION/$(git describe --tags --abbrev=0)/g"
+          snapcraft -v
+          mv *.snap mcmodpackmanager.snap
+          snapcraft upload mcmodpackmanager.snap
+      - name: Upload the snap
+        if: matrix.platform == 'ubuntu-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            mcmodpackmanager.snap
