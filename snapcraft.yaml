@@ -13,10 +13,27 @@ confinement: classic # use 'strict' once you have the right plugs and slots
 architectures:
   - build-on: amd64
 
+layout:
+  /usr/share/icons/hicolor/256x256/apps/dev.mrquantumoff.mcmodpackmanager.png:
+    bind-file: $SNAP/usr/share/icons/hicolor/256x256/apps/dev.mrquantumoff.mcmodpackmanager.png
+
+
 parts:
+  desktop-metadata:
+    plugin: nil
+    build-packages:
+      - wget
+    source: 'https://github.com/mrquantumoff/mcmodpackmanager_reborn.git'
+    override-build: |
+      mkdir -p usr/share/metainfo
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/256x256/apps
+      mkdir -p $SNAPCRAFT_PART_INSTALL/usr/share/applications
+      wget https://github.com/flathub/dev.mrquantumoff.mcmodpackmanager/raw/master/dev.mrquantumoff.mcmodpackmanager.metainfo.xml
+      mv *.metainfo.xml /usr/share/metainfo
+      mv assets/icons/logohalf.png $SNAPCRAFT_PART_INSTALL/usr/share/icons/hicolor/256x256/apps/dev.mrquantumoff.mcmodpackmanager.png
+      mv dev.mrquantumoff.mcmodpackmanager.desktop $SNAPCRAFT_PART_INSTALL/usr/share/applications/dev.mrquantumoff.mcmodpackmanager.desktop
+    parse-info: [usr/share/metainfo/dev.mrquantumoff.mcmodpackmanager.metainfo.xml]
   mcmodpackmanager:
-    build-snaps:
-      - flutter
     build-packages:
       - wget
     plugin: nil
@@ -27,5 +44,6 @@ parts:
         cp -r build/linux/x64/release/bundle/* $SNAPCRAFT_PART_INSTALL/mcmodpackmanager
 apps:
   mcmodpackmanager:
+    desktop: usr/share/applications/dev.mrquantumoff.mcmodpackmanager.desktop
     command: mcmodpackmanager/mcmodpackmanager_reborn
     common-id: dev.mrquantumoff.mcmodpackmanager
