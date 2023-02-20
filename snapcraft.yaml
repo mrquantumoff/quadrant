@@ -16,7 +16,7 @@ architectures:
 layout:
   /usr/share/icons/hicolor/256x256/apps/dev.mrquantumoff.mcmodpackmanager.png:
     bind-file: $SNAP/usr/share/icons/hicolor/256x256/apps/dev.mrquantumoff.mcmodpackmanager.png
-  ~/.minecraft:
+  /var/minecraft:
     symlink: $SNAP_DATA/minecraft
 parts:
   desktop-metadata:
