@@ -8,7 +8,7 @@ description: |
   NOTE: This app and its developer are not affiliated with Mojang Studios.
 
 grade: stable # must be 'stable' to release into candidate/stable channels
-confinement: strict # use 'strict' once you have the right plugs and slots
+confinement: classic # use 'strict' once you have the right plugs and slots
 
 architectures:
   - build-on: amd64
@@ -50,12 +50,4 @@ apps:
     command: mcmodpackmanager/mcmodpackmanager_reborn
     common-id: dev.mrquantumoff.mcmodpackmanager
     environment:
-     SNAP_RUNTIME: 1
-    extensions: [gnome]
-    plugs:
-    - desktop
-    - desktop-legacy
-    - wayland
-    - x11
-    - network
-    - home
+     SNAP_RUNTIME: 0
