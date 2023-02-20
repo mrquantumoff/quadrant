@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_platform_alert/flutter_platform_alert.dart';
 import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage/get_storage.dart';
@@ -103,8 +104,29 @@ class _ThemeProviderState extends State<ThemeProvider> {
     }
   }
 
+  Future<void> snapCheck(BuildContext context) async {
+    bool isSnap = Platform.isLinux &&
+        ((Platform.environment["SNAP_RUNTIME"] == "1" ||
+                const int.fromEnvironment("SNAP_RUNTIME") == 1) &&
+            // ignore: prefer_interpolation_to_compose_strings
+            (!Directory(Platform.environment['HOME']! + "/minecraft")
+                .existsSync()));
+    debugPrint("Is snapd runtime: $isSnap");
+    if (isSnap) {
+      await FlutterPlatformAlert.showAlert(
+        windowTitle: "Snapd runtime",
+        text:
+            "Whoa, you're using the app via snapd! please run \"ln -s ~/.minecraft ~/minecraft\" in order for the app to run properly!",
+        alertStyle: AlertButtonStyle.ok,
+        iconStyle: IconStyle.warning,
+      );
+      exit(1);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    snapCheck(context).then((value) => null);
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
