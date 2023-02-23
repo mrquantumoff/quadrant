@@ -21,7 +21,9 @@ plugs:
   dot-minecraft:
     interface: personal-files
     write:
-    - $HOME/.minecraft
+    - $HOME/.minecraft/modpacks
+    - $HOME/.minecraft/mods
+    - $HOME/.minecraft/resourcepacks
 parts:
   desktop-metadata:
     plugin: nil
