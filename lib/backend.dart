@@ -119,13 +119,19 @@ Future<void> installModpack(
       chunks.addAll(newBytes);
       final downloadedLength = chunks.length;
       DateTime contentDownloadTime = DateTime.now();
-      double dlSpeed = ((chunks.length /
-              contentDownloadTime
-                  .difference(startContentDownloadTime)
-                  .inSeconds) /
-          1000000 *
-          0.875);
-      setDownloadSpeed(dlSpeed);
+      try {
+        double dlSpeed = ((chunks.length /
+                contentDownloadTime
+                    .difference(startContentDownloadTime)
+                    .inSeconds) /
+            1000000 *
+            0.875);
+        String dlSpeedString =
+            "${dlSpeed.toString().split(".").first}.${dlSpeed.toString().split(".").last.characters.elementAt(0)}${dlSpeed.toString().split(".").last.characters.elementAt(1)}";
+        setDownloadSpeed(double.parse(dlSpeedString));
+      } catch (e) {
+        debugPrint("Error while calculating download speed");
+      }
       setProgressValue(downloadedLength.toDouble() / contentLength);
     }).onDone(() async {
       setProgressValue(1);

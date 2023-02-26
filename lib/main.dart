@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_platform_alert/flutter_platform_alert.dart';
 import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage/get_storage.dart';
