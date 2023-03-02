@@ -12,6 +12,9 @@
 ### [Available on Flathub](https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager)
 ### [Available on Microsoft Store](https://www.microsoft.com/store/apps/9NLT70M0TVD0)
 
+#### [Available on Snap Store*](https://snapcraft.io/mcmodpackmanager)
+
 > ## ENABLE Developer mode on windows, or else the app won't work!
 > ### Warning: If your mods folder is not symlinked to modpacks/<anything> your mods folder will be deleted after you apply/clear your modpack.
 > #### Warning: Some features may not work properly on macOS, since I don't have a Mac and I can't test the app on it. If you have one and you know how to code, please submit a pr.
+> #### *With the snap store you may need to symlink the snap user data `.minecraft` folder to `~/.minecraft`.
