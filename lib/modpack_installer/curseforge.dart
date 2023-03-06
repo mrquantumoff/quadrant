@@ -13,11 +13,49 @@ class CurseForgePage extends StatefulWidget {
 class _CurseForgePageState extends State<CurseForgePage> {
   late TextEditingController searchFieldController;
   late List<Widget> searchResults;
+
+  void setSearchResults(List<Widget> newSearchResults) {
+    setState(() {
+      searchResults = newSearchResults;
+    });
+  }
+
+  final String apiKey =
+      const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
   @override
   void initState() {
+    searchFieldController = TextEditingController();
     super.initState();
     searchResults = [];
-    searchFieldController = TextEditingController();
+    http.get(
+        Uri.parse(
+            "https://api.curseforge.com/v1/mods/search?gameId=423&classId=6&pageSize=15&searchFilter=JEI"),
+        headers: {
+          "User-Agent": "MinecraftModpackManager",
+          "X-API-Key": const String.fromEnvironment("ETERNAL_API_KEY")
+              .replaceAll("\"", ""),
+        }).then(
+      (response) {
+        Map responseJson = json.decode(response.body);
+        List<Widget> widgets = [];
+        debugPrint("Getting mods");
+        for (var mod in responseJson["data"]) {
+          String name = mod["name"];
+          String summary = mod["summary"];
+          int modId = mod["id"];
+          String modIconUrl = mod["logo"]["url"];
+          widgets.add(
+            Mod(
+              description: summary,
+              name: name,
+              id: modId,
+              modIconUrl: modIconUrl,
+            ),
+          );
+        }
+        setSearchResults(widgets);
+      },
+    );
   }
 
   @override
@@ -48,16 +86,15 @@ class _CurseForgePageState extends State<CurseForgePage> {
                   ),
                   IconButton(
                       onPressed: () async {
-                        setState(() {
-                          searchResults = [const CircularProgressIndicator()];
-                        });
+                        if (searchFieldController.text.trim() == "") return;
+                        setSearchResults(
+                          searchResults = [const CircularProgressIndicator()],
+                        );
                         http.Response gamesResponse = await http.get(
                             Uri.parse("https://api.curseforge.com/v1/games"),
                             headers: {
                               "User-Agent": "MinecraftModpackManager",
-                              "X-Api-Key": const String.fromEnvironment(
-                                      "ETERNAL_API_KEY")
-                                  .replaceAll("\"", "")
+                              "X-API-Key": apiKey
                             });
                         int id = -1;
                         Map responseData = json.decode(gamesResponse.body);
@@ -65,42 +102,48 @@ class _CurseForgePageState extends State<CurseForgePage> {
                           if (game["name"].toString().toLowerCase() ==
                               "minecraft") {
                             id = game["id"];
-                            debugPrint("$id");
                           }
                         }
                         if (id == -1) {
                           return;
                         }
-                        http.Response response = await http.get(
-                            Uri.parse(
-                                "https://api.curseforge.com/v1/mods/search?gameId=$id?searchFilter=${searchFieldController.text}"),
-                            headers: {
-                              "User-Agent": "MinecraftModpackManager",
-                              "X-Api-Key": const String.fromEnvironment(
-                                      "ETERNAL_API_KEY")
-                                  .replaceAll("\"", "")
-                            });
+                        String searchText = Uri.encodeQueryComponent(
+                            searchFieldController.text.trim());
+                        debugPrint(searchText);
+                        Uri uri = Uri.parse(
+                          'https://api.curseforge.com/v1/mods/search?gameId=$id&classId=6&searchFilter=$searchText',
+                        );
+                        debugPrint(uri.toString());
+                        http.Response response = await http.get(uri, headers: {
+                          "User-Agent": "MinecraftModpackManager",
+                          "X-API-Key": apiKey,
+                        });
                         Map responseJson = json.decode(response.body);
                         List<Widget> widgets = [];
-
                         for (var mod in responseJson["data"]) {
-                          String name = mod["name"];
-                          String summary = mod["summary"];
-                          int modId = mod["id"];
-                          String modIconUrl = mod["logo"]["url"];
-                          widgets.add(
-                            Mod(
-                              description: summary,
-                              name: name,
-                              id: modId,
-                              modIconUrl: modIconUrl,
-                            ),
-                          );
-                          setState(() {
-                            debugPrint("Modified search results");
-                            searchResults = widgets;
-                          });
+                          try {
+                            String name = mod["name"];
+                            String summary = mod["summary"];
+                            int modId = mod["id"];
+                            String modIconUrl =
+                                "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
+                            try {
+                              modIconUrl = mod["logo"]["url"];
+                              // ignore: empty_catches
+                            } catch (e) {}
+                            widgets.add(
+                              Mod(
+                                description: summary,
+                                name: name,
+                                id: modId,
+                                modIconUrl: modIconUrl,
+                              ),
+                            );
+                          } catch (e) {
+                            debugPrint("$e");
+                          }
                         }
+                        setSearchResults(widgets);
                       },
                       icon: const Icon(Icons.search))
                 ],
@@ -151,6 +194,14 @@ class _ModState extends State<Mod> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
+              Container(
+                margin: const EdgeInsetsDirectional.only(start: 12, top: 6.5),
+                child: Image(
+                  image: NetworkImage(widget.modIconUrl),
+                  alignment: Alignment.centerRight,
+                  height: 84,
+                ),
+              ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.start,
@@ -171,14 +222,6 @@ class _ModState extends State<Mod> {
                     ),
                   ),
                 ],
-              ),
-              Container(
-                margin: const EdgeInsetsDirectional.only(start: 220, top: 6.5),
-                child: Image(
-                  image: NetworkImage(widget.modIconUrl),
-                  alignment: Alignment.centerRight,
-                  height: 84,
-                ),
               ),
             ],
           ),
