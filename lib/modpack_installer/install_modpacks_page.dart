@@ -26,11 +26,11 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
 
   @override
   void dispose() {
-    _controller.dispose();
-    _controller2.dispose();
     super.dispose();
     downloadSpeed = 0.0;
     progressValue = 0.0;
+    _controller.dispose();
+    _controller2.dispose();
   }
 
   @override

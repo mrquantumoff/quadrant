@@ -28,6 +28,9 @@
     "someSettingsRequireReload": "Для зміни деяких налаштувань буде потрібний перезапуск застосунку",
     "curseforge": "Встановити моди з curseforge",
     "searchForMods": "Шукайте моди",
-    "noEternalKey": "На жаль програма не бачить ключа до CurseForge Eternal API, це означає, що ви не можете встановлювати моди CurseForge."
-
+    "noEternalKey": "На жаль програма не бачить ключа до CurseForge Eternal API, це означає, що ви не можете встановлювати моди CurseForge.",
+    "choosePreferredAPI": "Оберіть ваш завантажник модів.",
+    "chooseVersion": "Оберіть версію гри.",
+    "chooseModpack": "Виберіть модпак в який потрібно встановити модпак.",
+    "noVersion": "Не знайдено потрібну версію моду."
 }
