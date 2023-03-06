@@ -30,9 +30,6 @@ void main() async {
     await windowManager.show();
     await windowManager.focus();
   });
-
-  debugPrint(
-      "ETERNAL_API_KEY: ${const String.fromEnvironment("ETERNAL_API_KEY")}");
   var tempDir = await getTemporaryDirectory();
 
   for (var file in tempDir.listSync()) {

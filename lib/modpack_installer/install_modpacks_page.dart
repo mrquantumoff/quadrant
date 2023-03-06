@@ -273,10 +273,19 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                               ),
                             );
                           }
-                        : () {
-                            Get.to(() => const CurseForgePage(),
-                                transition: Transition.rightToLeft);
-                          },
+                        : areButtonsEnabled
+                            ? () {
+                                Get.to(() => const CurseForgePage(),
+                                    transition: Transition.rightToLeft);
+                              }
+                            : () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(AppLocalizations.of(context)!
+                                        .downloadIsAlreadyInProgress),
+                                  ),
+                                );
+                              },
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Row(
