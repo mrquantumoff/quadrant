@@ -27,35 +27,6 @@ class _CurseForgePageState extends State<CurseForgePage> {
     searchFieldController = TextEditingController();
     super.initState();
     searchResults = [];
-    http.get(
-        Uri.parse(
-            "https://api.curseforge.com/v1/mods/search?gameId=423&classId=6&pageSize=15&searchFilter=JEI"),
-        headers: {
-          "User-Agent": "MinecraftModpackManager",
-          "X-API-Key": const String.fromEnvironment("ETERNAL_API_KEY")
-              .replaceAll("\"", ""),
-        }).then(
-      (response) {
-        Map responseJson = json.decode(response.body);
-        List<Widget> widgets = [];
-        debugPrint("Getting mods");
-        for (var mod in responseJson["data"]) {
-          String name = mod["name"];
-          String summary = mod["summary"];
-          int modId = mod["id"];
-          String modIconUrl = mod["logo"]["url"];
-          widgets.add(
-            Mod(
-              description: summary,
-              name: name,
-              id: modId,
-              modIconUrl: modIconUrl,
-            ),
-          );
-        }
-        setSearchResults(widgets);
-      },
-    );
   }
 
   @override
@@ -180,6 +151,8 @@ class Mod extends StatefulWidget {
 }
 
 class _ModState extends State<Mod> {
+  final String apiKey =
+      const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
   @override
   Widget build(BuildContext context) {
     String desc = widget.description.characters.length >= 48
@@ -188,6 +161,84 @@ class _ModState extends State<Mod> {
     return Container(
       margin: const EdgeInsets.all(12),
       child: InkWell(
+        onTap: () async {
+          Uri uri = Uri.parse(
+            'https://api.curseforge.com/v1/games/423/versions',
+          );
+          List<dynamic> vrs = json.decode((await http.get(
+            uri,
+            headers: {
+              "User-Agent": "MinecraftModpackManager",
+              "X-API-Key": apiKey,
+            },
+          ))
+              .body)["data"][0]["versions"];
+          List<double> versions = [];
+          for (var v in vrs) {
+            int dotCount = 0;
+            for (var c in v.toString().characters) {
+              if (c == ".") dotCount++;
+            }
+            if (dotCount == 3 &&
+                v.toString().replaceAll("Update ", "").startsWith("1.")) {
+              var finVerFormat = double.parse(
+                  "${v.toString().replaceAll("Update ", "").split(".").first}.${v.toString().replaceAll("Update ", "").split(".")[1]}");
+              if (!versions.contains(finVerFormat)) {
+                versions.add(finVerFormat);
+                versions.sort(
+                  (a, b) {
+                    if (double.parse(a.toString().split(".").last) >
+                        double.parse(b.toString().split(".").last)) {
+                      return 0;
+                    } else {
+                      return 1;
+                    }
+                  },
+                );
+              }
+            }
+          }
+          // double selectedVersion = 1.12;
+
+          List<DropdownMenuItem> versionItems = [];
+
+          for (var version in versions) {
+            versionItems.add(
+              DropdownMenuItem(
+                child: Text(
+                  version.toString(),
+                ),
+              ),
+            );
+          }
+
+          debugPrint("$versions");
+          // ignore: use_build_context_synchronously
+          showDialog(
+            context: context,
+            builder: (BuildContext context) => AlertDialog(
+              title: Text(AppLocalizations.of(context)!.installModpacks),
+              content: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButton(
+                    items: versionItems,
+                    onChanged: (value) {},
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton.icon(
+                  onPressed: () async {},
+                  icon: const Icon(Icons.file_download),
+                  label: Text(AppLocalizations.of(context)!.download),
+                )
+              ],
+            ),
+          );
+        },
         child: Card(
           elevation: 12,
           child: Row(
