@@ -49,3 +49,7 @@ app.*.map.json
 
 # Snap related
 *.snap
+
+# VSCode related
+.vscode/
+.vscode/launch.json
