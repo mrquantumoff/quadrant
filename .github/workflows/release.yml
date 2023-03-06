@@ -26,7 +26,7 @@ jobs:
         if: matrix.platform == 'windows-latest'
         run: |
           flutter pub get
-          flutter pub run msix:create --output-path windows-build --windows-build-args --split-debug-info --obfuscate --dart-define ETERNAL_API_KEY=$ETERNAL_KEY
+          flutter pub run msix:create --output-path windows-build --windows-build-args " --split-debug-info --obfuscate --dart-define ETERNAL_API_KEY=$ETERNAL_KEY"
         env:
           ETERNAL_KEY: ${{ secrets.ETERNAL_API_KEY }}
       - name: Compress Windows build to .zip
