@@ -8,6 +8,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/curseforge.dart';
 
 class ModpackInstallerPage extends StatefulWidget {
   const ModpackInstallerPage({super.key});
@@ -254,6 +255,37 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                     children: [
                       const Icon(Icons.keyboard_alt_outlined),
                       Text("  ${AppLocalizations.of(context)!.manualInput}"),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.all(12),
+              child: ElevatedButton(
+                onPressed:
+                    (const String.fromEnvironment("ETERNAL_API_KEY") == "")
+                        ? () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    AppLocalizations.of(context)!.noEternalKey),
+                              ),
+                            );
+                          }
+                        : () {
+                            Get.to(() => const CurseForgePage(),
+                                transition: Transition.rightToLeft);
+                          },
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.download_sharp),
+                      Text("  ${AppLocalizations.of(context)!.curseforge}"),
                     ],
                   ),
                 ),

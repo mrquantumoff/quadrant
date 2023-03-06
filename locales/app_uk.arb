@@ -10,7 +10,7 @@
     "setModpackFailed": "Помилка при встановленні модпаку",
     "buttonsAreDisabled": "Кнопки на данний момент вимкнуто",
     "openModpacksFolder": "Відкрити теку модпаків",
-    "installModpacks": "Встановити модпаки",
+    "installModpacks": "Встановити моди",
     "referenceFile": "Встановити через референсний файл",
     "manualInput": "Встановити вказавши свої данні",
     "installError": "Помилка при встановленні модпаку. Перевірте чи ви використовуєте правильне розширення файлу.",
@@ -25,5 +25,9 @@
     "settings": "Налаштування",
     "systemLocale": "Мова системи",
     "speed": "Швидкість",
-    "someSettingsRequireReload": "Для зміни деяких налаштувань буде потрібний перезапуск застосунку"
+    "someSettingsRequireReload": "Для зміни деяких налаштувань буде потрібний перезапуск застосунку",
+    "curseforge": "Встановити моди з curseforge",
+    "searchForMods": "Шукайте моди",
+    "noEternalKey": "На жаль програма не бачить ключа до CurseForge Eternal API, це означає, що ви не можете встановлювати моди CurseForge."
+
 }
