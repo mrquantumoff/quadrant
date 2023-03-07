@@ -34,6 +34,11 @@
   </keywords>
   <releases>
 
+    <release date="2023-03-07" version="7.0.0">
+      <description>
+        <p>Add curseforge mods download option</p>
+      </description>
+    </release>
     <release date="2023-02-26" version="6.5.3">
     </release>
 
