@@ -51,7 +51,6 @@ jobs:
           tar -czvf macOSBuild.tar.gz build/macos/Build/Products/Release/Minecraft\ Modpack\ Manager\ Reborn.app
           # For future use
           # pkgbuild --install-location /Applications --component "./build/macos/Build/Products/Release/Minecraft Modpack Manager Reborn.app" ./mcmodpackmanagerMacOS.pkg --identifier dev.mrquantumoff.mcmodpackmanager
-        env:
       - name: Upload the macOS build
         if: matrix.platform == 'macos-latest'
         uses: softprops/action-gh-release@v1
