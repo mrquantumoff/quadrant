@@ -33,5 +33,7 @@
     "chooseVersion": "Choose a Minecraft version.",
     "chooseModpack": "Choose a modpack for the mod to be installed",
     "noVersion": "No matching version has been found.",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "search": "Search",
+    "free": "Free modpacks"
 }

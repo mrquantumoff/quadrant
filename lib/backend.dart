@@ -17,7 +17,7 @@ Directory getMinecraftFolder() {
   }
 }
 
-List<String> getModpacks() {
+List<String> getModpacks({bool hideFree = true}) {
   getMinecraftFolder().createSync(recursive: true);
   Directory modpackFolder = Directory("${getMinecraftFolder().path}/modpacks");
   modpackFolder.createSync(recursive: true);
@@ -25,8 +25,9 @@ List<String> getModpacks() {
   for (var entity
       in modpackFolder.listSync(recursive: false, followLinks: false)) {
     if (entity.statSync().type == FileSystemEntityType.directory &&
-        !(entity.path.endsWith("modpacks/free") ||
-            entity.path.endsWith("modpacks\\free"))) {
+        (!(entity.path.endsWith("modpacks/free") ||
+                entity.path.endsWith("modpacks\\free")) ||
+            !hideFree)) {
       modpacks.add(entity.path.split("/").last.split("\\").last);
     }
   }
