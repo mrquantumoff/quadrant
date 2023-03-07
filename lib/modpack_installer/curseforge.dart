@@ -403,7 +403,7 @@ class _ModState extends State<Mod> {
                           final contentLength = streamedResponse.contentLength;
 
                           File modDestFile = File(
-                              "${getMinecraftFolder().path}//modpacks//$modpack/${mod.fileName}");
+                              "${getMinecraftFolder().path}/modpacks/$modpack/${mod.fileName}");
 
                           if (await modDestFile.exists()) {
                             modDestFile.delete();
