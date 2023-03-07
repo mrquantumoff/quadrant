@@ -38,7 +38,7 @@ dependencies:
   flutter_platform_widgets: ^3.0.0
   dynamic_color: ^1.6.2
   get: ^4.6.5
-  get_storage: ^2.0.3
+  get_storage: ^2.1.1
   flutter_localizations:
     sdk: flutter
   intl: any

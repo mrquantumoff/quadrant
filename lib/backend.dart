@@ -13,7 +13,7 @@ Directory getMinecraftFolder() {
   } else if (Platform.isMacOS) {
     return Directory("$userHome/Library/Application Support/minecraft");
   } else {
-    return Directory("$userHome/AppData/Roaming/.minecraft");
+    return Directory("$userHome\\AppData\\Roaming\\.minecraft");
   }
 }
 

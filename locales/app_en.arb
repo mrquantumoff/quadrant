@@ -17,7 +17,7 @@
     "name": "Name",
     "download": "Download",
     "downloadIsAlreadyInProgress": "A download is already in progress",
-    "downloadSuccess": "Modpack installed successfully",
+    "downloadSuccess": "Mod(s) installed successfully",
     "downloadFail": "Your download failed",
     "overwriteQuestion": "Overwrite?",
     "overwriteQuestionText": "Modpack with the same name exists, do you want to overwrite it?",
@@ -32,5 +32,6 @@
     "choosePreferredAPI": "Choose your preferred API (Forge/Fabric)",
     "chooseVersion": "Choose a Minecraft version.",
     "chooseModpack": "Choose a modpack for the mod to be installed",
-    "noVersion": "No matching version has been found."
+    "noVersion": "No matching version has been found.",
+    "cancel": "Cancel"
 }

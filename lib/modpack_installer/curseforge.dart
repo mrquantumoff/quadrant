@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -208,7 +210,7 @@ class ModFile {
       required this.fileDate});
   String downloadUrl = "";
   String fileName = "";
-  List<String> gameVersions = [];
+  List<dynamic> gameVersions = [];
   DateTime fileDate = DateTime.now();
 }
 
@@ -217,10 +219,12 @@ class _ModState extends State<Mod> {
   late TextEditingController apiFieldController;
   late TextEditingController modpackFieldController;
   late double progressValue;
+
   @override
   void initState() {
     super.initState();
     progressValue = 0;
+
     versionFieldController = TextEditingController();
     apiFieldController = TextEditingController();
     modpackFieldController = TextEditingController();
@@ -228,8 +232,6 @@ class _ModState extends State<Mod> {
 
   @override
   void dispose() {
-    // versionFieldController.dispose();
-    // apiFieldController.dispose();
     super.dispose();
     progressValue = 0;
   }
@@ -263,7 +265,7 @@ class _ModState extends State<Mod> {
             },
           ))
               .body)["data"][0]["versions"];
-          List<double> versions = [];
+          List<String> versions = [];
           for (var v in vrs) {
             int dotCount = 0;
             for (var c in v.toString().characters) {
@@ -271,14 +273,14 @@ class _ModState extends State<Mod> {
             }
             if (dotCount == 3 &&
                 v.toString().replaceAll("Update ", "").startsWith("1.")) {
-              var finVerFormat = double.parse(
-                  "${v.toString().replaceAll("Update ", "").split(".").first}.${v.toString().replaceAll("Update ", "").split(".")[1]}");
+              var finVerFormat =
+                  "${v.toString().replaceAll("Update ", "").split(".").first}.${v.toString().replaceAll("Update ", "").split(".")[1]}.${v.toString().replaceAll("Update ", "").split(".").last}";
               if (!versions.contains(finVerFormat)) {
                 versions.add(finVerFormat);
                 versions.sort(
                   (a, b) {
-                    if (double.parse(a.toString().split(".").last) >
-                        double.parse(b.toString().split(".").last)) {
+                    if (double.parse(a.toString().split(".")[1]) >
+                        double.parse(b.toString().split(".")[1])) {
                       return 0;
                     } else {
                       return 1;
@@ -305,43 +307,56 @@ class _ModState extends State<Mod> {
             );
           }
 
-          debugPrint("$versions");
-          // ignore: use_build_context_synchronously
           showDialog(
             context: context,
+            barrierDismissible: false,
             builder: (BuildContext context) => AlertDialog(
               title: Text(AppLocalizations.of(context)!.installModpacks),
               actions: [
                 TextButton.icon(
+                    onPressed: widget.areButttonsActive
+                        ? () {
+                            Get.back(closeOverlays: true);
+                            Get.back();
+                          }
+                        : () {},
+                    icon: const Icon(Icons.cancel),
+                    label: Text(AppLocalizations.of(context)!.cancel)),
+                TextButton.icon(
                   onPressed: widget.areButttonsActive
                       ? () async {
-                          debugPrint("Installing mods");
+                          String version = versionFieldController.value.text;
+                          String api = apiFieldController.value.text;
+                          String modpack = modpackFieldController.value.text;
+                          debugPrint(api);
+                          Uri getFilesUri = Uri.parse(
+                              "https://api.curseforge.com/v1/mods/${widget.id}/files?gameVersion=${version.trim()}&modLoaderType=${api.trim()}");
+                          debugPrint("Installing mods url: $getFilesUri");
                           widget.setAreButtonsActive(false);
-                          http.Response response = await http.get(
-                              Uri.parse(
-                                  "https://api.curseforge.com/v1/mods/${widget.id}/files?gameVersion=${versionFieldController.value.toString().trim()}&modLoaderType=${apiFieldController.value.toString().trim()}"),
-                              headers: {
-                                "User-Agent": "MinecraftModpackManager",
-                                "X-API-Key": apiKey,
-                              });
+                          http.Response response =
+                              await http.get(getFilesUri, headers: {
+                            "User-Agent": "MinecraftModpackManager",
+                            "X-API-Key": apiKey,
+                          });
                           Map responseJson = json.decode(response.body);
                           debugPrint(responseJson.toString());
                           List<ModFile> fileMod = [];
                           if ((responseJson["data"] as List<dynamic>) == []) {
                             widget.setAreButtonsActive(true);
-                            // ignore: use_build_context_synchronously
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  // ignore: use_build_context_synchronously
                                   AppLocalizations.of(context)!.noVersion,
                                 ),
                               ),
                             );
+                            Get.back(closeOverlays: true);
+                            Get.back();
                           }
+                          debugPrint(responseJson.toString());
                           for (var mod in responseJson["data"]) {
                             DateTime fileDate = DateTime.parse(mod["fileDate"]);
-                            List<String> gameVersions = mod["gameVersions"];
+                            List<dynamic> gameVersions = mod["gameVersions"];
                             String fileName = mod["fileName"];
                             String downloadUrl = mod["downloadUrl"];
 
@@ -355,9 +370,22 @@ class _ModState extends State<Mod> {
                             );
                           }
                           fileMod.sort(
-                            (a, b) => a.fileDate.compareTo(b.fileDate),
+                            (a, b) => b.fileDate.compareTo(a.fileDate),
                           );
-                          List<int> bytes = [];
+                          debugPrint(fileMod.toString());
+                          if (fileMod.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    AppLocalizations.of(context)!.noVersion),
+                              ),
+                            );
+                            widget.setAreButtonsActive(true);
+                            Get.back(closeOverlays: true);
+                            Get.back();
+
+                            return;
+                          }
                           var mod = fileMod[0];
                           // http.Response res = await http
                           //     .get(Uri.parse(mod.downloadUrl), headers: {
@@ -373,25 +401,38 @@ class _ModState extends State<Mod> {
                                       "MinecraftModpackManager", http.Client())
                                   .send(request);
                           final contentLength = streamedResponse.contentLength;
-                          var sep = Platform.isWindows ? "\\" : "/";
+
                           File modDestFile = File(
-                              "${getMinecraftFolder().path}$sep$modpackFieldController$sep${mod.fileName}");
+                              "${getMinecraftFolder().path}//modpacks//$modpack/${mod.fileName}");
+
                           if (await modDestFile.exists()) {
                             modDestFile.delete();
                           }
+                          debugPrint(modDestFile.path);
+                          List<int> bytes = [];
                           streamedResponse.stream.listen(
                             (List<int> newBytes) {
                               bytes.addAll(newBytes);
                               final downloadedLength = bytes.length;
                               setProgressValue(
                                   downloadedLength / (contentLength ?? 1));
+                              debugPrint(progressValue.toString());
                             },
                             onDone: () async {
-                              await modDestFile.writeAsBytes(bytes);
+                              await modDestFile.writeAsBytes(bytes,
+                                  flush: true);
                               setProgressValue(1);
+                              debugPrint("Downloaded");
                               widget.setAreButtonsActive(true);
-                              // Free the memory
-                              bytes = [];
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(AppLocalizations.of(context)!
+                                      .downloadSuccess),
+                                ),
+                              );
+                              Get.back(closeOverlays: true);
+                              Get.back();
                             },
                             onError: (e) {
                               debugPrint(e);
@@ -412,7 +453,6 @@ class _ModState extends State<Mod> {
                   Container(
                     margin: const EdgeInsets.symmetric(vertical: 12),
                     child: DropdownMenu(
-                      enabled: widget.areButttonsActive,
                       controller: versionFieldController,
                       dropdownMenuEntries: versionItems,
                       label: Text(AppLocalizations.of(context)!.chooseVersion),
@@ -422,13 +462,14 @@ class _ModState extends State<Mod> {
                   Container(
                     margin: const EdgeInsets.symmetric(vertical: 12),
                     child: DropdownMenu(
-                      enabled: widget.areButttonsActive,
                       label: Text(
                           AppLocalizations.of(context)!.choosePreferredAPI),
                       controller: apiFieldController,
                       dropdownMenuEntries: const [
-                        DropdownMenuEntry(label: "Fabric API", value: "Fabric"),
-                        DropdownMenuEntry(label: "Forge API", value: "Forge"),
+                        DropdownMenuEntry(label: "Fabric", value: "Fabric"),
+                        DropdownMenuEntry(label: "Forge", value: "Forge"),
+                        DropdownMenuEntry(label: "Quilt", value: "Quilt"),
+                        DropdownMenuEntry(label: "Rift", value: "Rift"),
                       ],
                       width: 240,
                     ),
@@ -436,14 +477,18 @@ class _ModState extends State<Mod> {
                   Container(
                     margin: const EdgeInsets.symmetric(vertical: 12),
                     child: DropdownMenu(
-                      enabled: widget.areButttonsActive,
                       label: Text(AppLocalizations.of(context)!.chooseModpack),
                       controller: modpackFieldController,
                       dropdownMenuEntries: modpackItems,
                       width: 240,
                     ),
                   ),
-                  CircularProgressIndicator(value: progressValue)
+                  Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    child: CircularProgressIndicator(
+                      value: progressValue,
+                    ),
+                  ),
                 ],
               ),
             ),
