@@ -26,7 +26,7 @@
     "systemLocale": "Мова системи",
     "speed": "Швидкість",
     "someSettingsRequireReload": "Для зміни деяких налаштувань буде потрібний перезапуск застосунку",
-    "curseforge": "Встановити моди з curseforge",
+    "curseforge": "Встановити моди з CurseForge",
     "searchForMods": "Шукайте моди",
     "noEternalKey": "На жаль програма не бачить ключа до CurseForge Eternal API, це означає, що ви не можете встановлювати моди CurseForge.",
     "choosePreferredAPI": "Оберіть ваш завантажник модів.",

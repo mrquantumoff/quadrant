@@ -26,7 +26,7 @@
     "systemLocale": "System locale",
     "speed":"Speed",
     "someSettingsRequireReload": "Some settings require a relaunch",
-    "curseforge": "Install mods from curseforge",
+    "curseforge": "Install mods from CurseForge",
     "searchForMods": "Search for mods",
     "noEternalKey": "The app wasn't compiled wit a CurseForge Eternal API key, this means that you can't install curseforge mods.",
     "choosePreferredAPI": "Choose your preferred API (Forge/Fabric)",
