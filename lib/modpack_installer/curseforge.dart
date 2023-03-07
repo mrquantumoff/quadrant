@@ -136,7 +136,7 @@ class _CurseForgePageState extends State<CurseForgePage> {
                           "X-API-Key": apiKey,
                         });
                         Map responseJson = json.decode(response.body);
-                        List<Widget> widgets = [];
+                        List<Mod> widgets = [];
                         for (var mod in responseJson["data"]) {
                           try {
                             String name = mod["name"];
@@ -144,6 +144,7 @@ class _CurseForgePageState extends State<CurseForgePage> {
                             int modId = mod["id"];
                             String modIconUrl =
                                 "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
+                            int downloadCount = mod["downloadCount"];
                             try {
                               modIconUrl = mod["logo"]["url"];
                               // ignore: empty_catches
@@ -156,12 +157,16 @@ class _CurseForgePageState extends State<CurseForgePage> {
                                 modIconUrl: modIconUrl,
                                 areButttonsActive: areButtonsEnabled,
                                 setAreButtonsActive: setAreButtonsEnabled,
+                                downloadCount: downloadCount,
                               ),
                             );
                           } catch (e) {
                             debugPrint("$e");
                           }
                         }
+                        widgets.sort((a, b) {
+                          return (a.downloadCount > b.downloadCount) ? 0 : 1;
+                        });
                         setSearchResults(widgets);
                       },
                       icon: const Icon(Icons.search))
@@ -189,11 +194,13 @@ class Mod extends StatefulWidget {
       required this.modIconUrl,
       required this.id,
       required this.areButttonsActive,
+      required this.downloadCount,
       required this.setAreButtonsActive});
 
   final String name;
   final String description;
   final String modIconUrl;
+  final int downloadCount;
   final int id;
   bool areButttonsActive;
   Function(bool) setAreButtonsActive;
@@ -514,9 +521,31 @@ class _ModState extends State<Mod> {
                 children: [
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 15),
-                    child: Text(
-                      widget.name,
-                      style: const TextStyle(fontSize: 32),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          widget.name,
+                          style: const TextStyle(fontSize: 32),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(left: 14, top: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              const Icon(Icons.download,
+                                  color: Colors.grey, size: 20),
+                              Text(
+                                widget.downloadCount.toString(),
+                                style: const TextStyle(
+                                    fontSize: 16, color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Container(
