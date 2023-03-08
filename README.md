@@ -6,7 +6,7 @@
 * #### Reloading modpacks in the list
 * #### Opening modpacks folder
 * #### Installing modpacks using .mcmodpackref
-* #### Installing mods (not modpacks) from curseforge
+* #### Installing mods and resourcepacks (not modpacks) from curseforge
 
 
 ### [Available on Flathub](https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager)
