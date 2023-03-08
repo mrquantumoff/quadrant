@@ -28,12 +28,14 @@
     "someSettingsRequireReload": "Some settings require a relaunch",
     "curseforge": "Install mods from CurseForge",
     "searchForMods": "Search for mods",
-    "noEternalKey": "The app wasn't compiled wit a CurseForge Eternal API key, this means that you can't install curseforge mods.",
+    "noEternalKey": "The app wasn't compiled with a valid CurseForge Eternal API key, this means that you can't install curseforge mods.",
     "choosePreferredAPI": "Choose your preferred API (Forge/Fabric)",
     "chooseVersion": "Choose a Minecraft version.",
     "chooseModpack": "Choose a modpack for the mod to be installed",
     "noVersion": "No matching version has been found.",
     "cancel": "Cancel",
     "search": "Search",
-    "free": "Free modpacks"
+    "free": "Free modpacks",
+    "mod": "Mod",
+    "resourcePack": "Resource pack"
 }

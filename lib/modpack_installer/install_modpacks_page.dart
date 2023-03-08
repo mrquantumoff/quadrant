@@ -2,7 +2,7 @@
 
 import 'dart:convert';
 import 'dart:io';
-
+import "package:http/http.dart" as http;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -263,29 +263,63 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
             Container(
               margin: const EdgeInsets.all(12),
               child: ElevatedButton(
-                onPressed:
-                    (const String.fromEnvironment("ETERNAL_API_KEY") == "")
-                        ? () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    AppLocalizations.of(context)!.noEternalKey),
-                              ),
+                onPressed: (const String.fromEnvironment("ETERNAL_API_KEY") ==
+                        "")
+                    ? () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                                AppLocalizations.of(context)!.noEternalKey),
+                          ),
+                        );
+                      }
+                    : areButtonsEnabled
+                        ? () async {
+                            const apiKey =
+                                String.fromEnvironment("ETERNAL_API_KEY");
+                            http.Response res = await http.get(
+                              Uri.parse("https://api.curseforge.com/v1/games"),
+                              headers: {
+                                "User-Agent": "MinecraftModpackManager",
+                                "X-API-Key": apiKey
+                              },
                             );
-                          }
-                        : areButtonsEnabled
-                            ? () {
-                                Get.to(() => const CurseForgePage(),
-                                    transition: Transition.rightToLeft);
+
+                            if (res.statusCode == 200) {
+                              var data = json.decode(res.body);
+                              bool isValid = false;
+                              for (var game in data["data"]) {
+                                if (game["id"] == 432) {
+                                  Get.to(() => const CurseForgePage(),
+                                      transition: Transition.rightToLeft);
+                                  isValid = true;
+                                }
                               }
-                            : () {
+                              if (!isValid) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(AppLocalizations.of(context)!
-                                        .downloadIsAlreadyInProgress),
+                                        .noEternalKey),
                                   ),
                                 );
-                              },
+                              }
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(AppLocalizations.of(context)!
+                                      .noEternalKey),
+                                ),
+                              );
+                            }
+                          }
+                        : () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(AppLocalizations.of(context)!
+                                    .downloadIsAlreadyInProgress),
+                              ),
+                            );
+                          },
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Row(

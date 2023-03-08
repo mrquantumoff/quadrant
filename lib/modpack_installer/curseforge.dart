@@ -10,6 +10,16 @@ import 'dart:convert';
 
 import 'package:mcmodpackmanager_reborn/backend.dart';
 
+enum ModSource { curseForge, modRinth }
+
+enum ModClass {
+  mod(6),
+  resourcePack(12);
+
+  const ModClass(this.value);
+  final int value;
+}
+
 class UserAgentClient extends http.BaseClient {
   final String userAgent;
   final http.Client _inner;
@@ -47,6 +57,53 @@ class _CurseForgePageState extends State<CurseForgePage> {
     setState(() {
       areButtonsEnabled = newAreButtonsEnabled;
     });
+  }
+
+  Future<List<Mod>> searchMods(String searchText, ModClass modsClass) async {
+    Uri uri = Uri.parse(
+      'https://api.curseforge.com/v1/mods/search?gameId=432&classId=${modsClass.value}&searchFilter=$searchText&sortOrder=desc',
+    );
+    debugPrint(uri.toString());
+    http.Response response = await http.get(uri, headers: {
+      "User-Agent": "MinecraftModpackManager",
+      "X-API-Key": apiKey,
+    });
+    Map responseJson = json.decode(response.body);
+    List<Mod> widgets = [];
+    for (var mod in responseJson["data"]) {
+      try {
+        String name = mod["name"];
+        String summary = mod["summary"];
+        int modId = mod["id"];
+
+        String modIconUrl =
+            "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
+        int downloadCount = mod["downloadCount"];
+        try {
+          modIconUrl = mod["logo"]["url"];
+          // ignore: empty_catches
+        } catch (e) {}
+        widgets.add(
+          Mod(
+            description: summary,
+            name: name,
+            id: modId,
+            modIconUrl: modIconUrl,
+            areButttonsActive: areButtonsEnabled,
+            setAreButtonsActive: setAreButtonsEnabled,
+            downloadCount: downloadCount,
+            source: ModSource.curseForge,
+            modClass: modsClass,
+          ),
+        );
+      } catch (e) {
+        debugPrint("$e");
+      }
+    }
+    widgets.sort((a, b) {
+      return (a.downloadCount > b.downloadCount) ? 0 : 1;
+    });
+    return widgets;
   }
 
   final String apiKey =
@@ -119,63 +176,15 @@ class _CurseForgePageState extends State<CurseForgePage> {
                               child: const LinearProgressIndicator())
                         ],
                       );
-                      http.Response gamesResponse = await http.get(
-                          Uri.parse("https://api.curseforge.com/v1/games"),
-                          headers: {
-                            "User-Agent": "MinecraftModpackManager",
-                            "X-API-Key": apiKey
-                          });
-                      int id = -1;
-                      Map responseData = json.decode(gamesResponse.body);
-                      for (var game in responseData["data"]) {
-                        if (game["name"].toString().toLowerCase() ==
-                            "minecraft") {
-                          id = game["id"];
-                        }
-                      }
-                      if (id == -1) {
-                        return;
-                      }
+
                       String searchText = Uri.encodeQueryComponent(
                           searchFieldController.text.trim());
                       debugPrint(searchText);
-                      Uri uri = Uri.parse(
-                        'https://api.curseforge.com/v1/mods/search?gameId=$id&classId=6&searchFilter=$searchText',
-                      );
-                      debugPrint(uri.toString());
-                      http.Response response = await http.get(uri, headers: {
-                        "User-Agent": "MinecraftModpackManager",
-                        "X-API-Key": apiKey,
-                      });
-                      Map responseJson = json.decode(response.body);
-                      List<Mod> widgets = [];
-                      for (var mod in responseJson["data"]) {
-                        try {
-                          String name = mod["name"];
-                          String summary = mod["summary"];
-                          int modId = mod["id"];
-                          String modIconUrl =
-                              "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
-                          int downloadCount = mod["downloadCount"];
-                          try {
-                            modIconUrl = mod["logo"]["url"];
-                            // ignore: empty_catches
-                          } catch (e) {}
-                          widgets.add(
-                            Mod(
-                              description: summary,
-                              name: name,
-                              id: modId,
-                              modIconUrl: modIconUrl,
-                              areButttonsActive: areButtonsEnabled,
-                              setAreButtonsActive: setAreButtonsEnabled,
-                              downloadCount: downloadCount,
-                            ),
-                          );
-                        } catch (e) {
-                          debugPrint("$e");
-                        }
-                      }
+                      List<Mod> mods =
+                          await searchMods(searchText, ModClass.mod);
+                      List<Mod> resourcePacks =
+                          await searchMods(searchText, ModClass.resourcePack);
+                      List<Mod> widgets = mods + resourcePacks;
                       widgets.sort((a, b) {
                         return (a.downloadCount > b.downloadCount) ? 0 : 1;
                       });
@@ -201,21 +210,26 @@ class _CurseForgePageState extends State<CurseForgePage> {
 
 // ignore: must_be_immutable
 class Mod extends StatefulWidget {
-  Mod(
-      {super.key,
-      required this.name,
-      required this.description,
-      required this.modIconUrl,
-      required this.id,
-      required this.areButttonsActive,
-      required this.downloadCount,
-      required this.setAreButtonsActive});
+  Mod({
+    super.key,
+    required this.name,
+    required this.description,
+    required this.modIconUrl,
+    required this.id,
+    required this.areButttonsActive,
+    required this.downloadCount,
+    required this.setAreButtonsActive,
+    required this.source,
+    required this.modClass,
+  });
 
   final String name;
   final String description;
   final String modIconUrl;
   final int downloadCount;
   final int id;
+  final ModSource source;
+  final ModClass modClass;
   bool areButttonsActive;
   Function(bool) setAreButtonsActive;
 
@@ -251,6 +265,16 @@ class _ModState extends State<Mod> {
     modpackFieldController = TextEditingController();
   }
 
+  String getModpackTypeString() {
+    if (widget.modClass == ModClass.mod) {
+      return AppLocalizations.of(context)!.mod;
+    } else if (widget.modClass == ModClass.resourcePack) {
+      return AppLocalizations.of(context)!.resourcePack;
+    } else {
+      return "Unknown";
+    }
+  }
+
   @override
   void dispose() {
     super.dispose();
@@ -268,9 +292,12 @@ class _ModState extends State<Mod> {
 
   @override
   Widget build(BuildContext context) {
-    String desc = widget.description.characters.length >= 48
+    String desc = widget.description.length >= 48
         ? widget.description.replaceRange(48, null, "...")
         : widget.description;
+    String displayName = widget.name.length >= 36
+        ? widget.name.replaceRange(36, null, "...")
+        : widget.name;
     return Container(
       margin: const EdgeInsets.all(12),
       child: InkWell(
@@ -351,8 +378,18 @@ class _ModState extends State<Mod> {
                           String api = apiFieldController.value.text;
                           String modpack = modpackFieldController.value.text;
                           debugPrint(api);
+                          if (version.endsWith(".0")) {
+                            debugPrint(version);
+                            version = version.replaceRange(
+                                version.length - 2, null, "");
+                            debugPrint(version);
+                          }
                           Uri getFilesUri = Uri.parse(
-                              "https://api.curseforge.com/v1/mods/${widget.id}/files?gameVersion=${version.trim()}&modLoaderType=${api.trim()}");
+                              "https://api.curseforge.com/v1/mods/${widget.id}/files?gameVersion=${version.trim()}&sortOrder=desc&modLoaderType=${api.trim()}");
+                          if (widget.modClass == ModClass.resourcePack) {
+                            getFilesUri = Uri.parse(
+                                "https://api.curseforge.com/v1/mods/${widget.id}/files?gameVersion=${version.trim()}&sortOrder=desc");
+                          }
                           debugPrint("Installing mods url: $getFilesUri");
                           widget.setAreButtonsActive(false);
                           http.Response response =
@@ -426,10 +463,14 @@ class _ModState extends State<Mod> {
 
                           File modDestFile = File(
                               "${getMinecraftFolder().path}/modpacks/$modpack/${mod.fileName}");
-
+                          if (widget.modClass == ModClass.resourcePack) {
+                            modDestFile = File(
+                                "${getMinecraftFolder().path}/resourcepacks/${mod.fileName}");
+                          }
                           if (await modDestFile.exists()) {
                             modDestFile.delete();
                           }
+                          await modDestFile.create(recursive: true);
                           debugPrint(modDestFile.path);
                           List<int> bytes = [];
                           streamedResponse.stream.listen(
@@ -494,6 +535,7 @@ class _ModState extends State<Mod> {
                         DropdownMenuEntry(label: "Rift", value: "Rift"),
                       ],
                       width: 240,
+                      enabled: widget.modClass == ModClass.mod,
                     ),
                   ),
                   Container(
@@ -503,6 +545,7 @@ class _ModState extends State<Mod> {
                       controller: modpackFieldController,
                       dropdownMenuEntries: modpackItems,
                       width: 240,
+                      enabled: widget.modClass == ModClass.mod,
                     ),
                   ),
                   Container(
@@ -541,7 +584,7 @@ class _ModState extends State<Mod> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
-                          widget.name,
+                          displayName,
                           style: const TextStyle(fontSize: 32),
                         ),
                         const Divider(thickness: 50),
@@ -556,7 +599,9 @@ class _ModState extends State<Mod> {
                               Text(
                                 widget.downloadCount.toString(),
                                 style: const TextStyle(
-                                    fontSize: 16, color: Colors.grey),
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ],
                           ),
@@ -565,11 +610,20 @@ class _ModState extends State<Mod> {
                     ),
                   ),
                   Container(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                    margin: const EdgeInsets.only(left: 18, right: 18, top: 8),
                     child: Text(
                       desc,
                       style: const TextStyle(color: Colors.grey, fontSize: 24),
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8, bottom: 8, left: 18),
+                    child: Text(
+                      getModpackTypeString(),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
                 ],

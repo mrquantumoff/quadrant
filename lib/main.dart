@@ -38,7 +38,8 @@ void main() async {
       file.delete();
     }
   }
-
+  debugPrint(
+      "Eternal API Key: ${const String.fromEnvironment("ETERNAL_API_KEY")}");
   runApp(const MyApp());
 }
 
