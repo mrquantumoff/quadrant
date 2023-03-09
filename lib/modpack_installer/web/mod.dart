@@ -8,6 +8,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:mcmodpackmanager_reborn/backend.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 
 import '../web_sources.dart';
 
@@ -122,7 +123,7 @@ class _ModState extends State<Mod> {
           List<dynamic> vrs = json.decode((await http.get(
             uri,
             headers: {
-              "User-Agent": "MinecraftModpackManager",
+              "User-Agent": await generateUserAgent(),
               "X-API-Key": apiKey,
             },
           ))
@@ -207,7 +208,7 @@ class _ModState extends State<Mod> {
                           widget.setAreButtonsActive(false);
                           http.Response response =
                               await http.get(getFilesUri, headers: {
-                            "User-Agent": "MinecraftModpackManager",
+                            "User-Agent": await generateUserAgent(),
                             "X-API-Key": apiKey,
                           });
                           Map responseJson = json.decode(response.body);
@@ -270,7 +271,7 @@ class _ModState extends State<Mod> {
                           );
                           final http.StreamedResponse streamedResponse =
                               await UserAgentClient(
-                                      "MinecraftModpackManager", http.Client())
+                                      await generateUserAgent(), http.Client())
                                   .send(request);
                           final contentLength = streamedResponse.contentLength;
 
