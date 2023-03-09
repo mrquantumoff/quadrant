@@ -36,6 +36,6 @@
     "cancel": "Cancel",
     "search": "Search",
     "free": "Free modpacks",
-    "mod": "Mod",
-    "resourcePack": "Resource pack"
+    "mod": "Mod from ",
+    "resourcePack": "Resource pack from "
 }

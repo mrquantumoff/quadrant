@@ -31,7 +31,7 @@ class ModFile {
   String downloadUrl = "";
   String fileName = "";
   List<dynamic> gameVersions = [];
-  DateTime fileDate = DateTime.now();
+  DateTime? fileDate = DateTime.now();
 }
 
 // ignore: must_be_immutable
@@ -53,7 +53,7 @@ class Mod extends StatefulWidget {
   final String description;
   final String modIconUrl;
   final int downloadCount;
-  final int id;
+  final String id;
   final ModSource source;
   final ModClass modClass;
   bool areButttonsActive;
@@ -81,9 +81,11 @@ class _ModState extends State<Mod> {
 
   String getModpackTypeString() {
     if (widget.modClass == ModClass.mod) {
-      return AppLocalizations.of(context)!.mod;
+      return AppLocalizations.of(context)!.mod +
+          widget.source.name.toLowerCase();
     } else if (widget.modClass == ModClass.resourcePack) {
-      return AppLocalizations.of(context)!.resourcePack;
+      return AppLocalizations.of(context)!.resourcePack +
+          widget.source.name.toLowerCase();
     } else {
       return "Unknown";
     }
@@ -192,130 +194,250 @@ class _ModState extends State<Mod> {
                           String api = apiFieldController.value.text;
                           String modpack = modpackFieldController.value.text;
                           debugPrint(api);
-                          if (version.endsWith(".0")) {
-                            debugPrint(version);
-                            version = version.replaceRange(
-                                version.length - 2, null, "");
-                            debugPrint(version);
-                          }
-                          Uri getFilesUri = Uri.parse(
-                              "https://api.curseforge.com/v1/mods/${widget.id}/files?gameVersion=${version.trim()}&sortOrder=desc&modLoaderType=${api.trim()}");
-                          if (widget.modClass == ModClass.resourcePack) {
-                            getFilesUri = Uri.parse(
-                                "https://api.curseforge.com/v1/mods/${widget.id}/files?gameVersion=${version.trim()}&sortOrder=desc");
-                          }
-                          debugPrint("Installing mods url: $getFilesUri");
-                          widget.setAreButtonsActive(false);
-                          http.Response response =
-                              await http.get(getFilesUri, headers: {
-                            "User-Agent": await generateUserAgent(),
-                            "X-API-Key": apiKey,
-                          });
-                          Map responseJson = json.decode(response.body);
-                          debugPrint(responseJson.toString());
-                          List<ModFile> fileMod = [];
-                          if ((responseJson["data"] as List<dynamic>) == []) {
-                            widget.setAreButtonsActive(true);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  AppLocalizations.of(context)!.noVersion,
-                                ),
-                              ),
-                            );
-                            Get.back(closeOverlays: true);
-                            Get.back();
-                          }
-                          debugPrint(responseJson.toString());
-                          for (var mod in responseJson["data"]) {
-                            DateTime fileDate = DateTime.parse(mod["fileDate"]);
-                            List<dynamic> gameVersions = mod["gameVersions"];
-                            String fileName = mod["fileName"];
-                            String downloadUrl = mod["downloadUrl"];
-
-                            fileMod.add(
-                              ModFile(
-                                fileDate: fileDate,
-                                gameVersions: gameVersions,
-                                fileName: fileName,
-                                downloadUrl: downloadUrl,
-                              ),
-                            );
-                          }
-                          fileMod.sort(
-                            (a, b) => b.fileDate.compareTo(a.fileDate),
-                          );
-                          debugPrint(fileMod.toString());
-                          if (fileMod.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    AppLocalizations.of(context)!.noVersion),
-                              ),
-                            );
-                            widget.setAreButtonsActive(true);
-                            Get.back(closeOverlays: true);
-                            Get.back();
-
-                            return;
-                          }
-                          var mod = fileMod[0];
-                          // http.Response res = await http
-                          //     .get(Uri.parse(mod.downloadUrl), headers: {
-                          //   "User-Agent": "MinecraftModpackManager",
-                          //   "X-API-Key": apiKey,
-                          // });
-                          var request = http.Request(
-                            "GET",
-                            Uri.parse(mod.downloadUrl),
-                          );
-                          final http.StreamedResponse streamedResponse =
-                              await UserAgentClient(
-                                      await generateUserAgent(), http.Client())
-                                  .send(request);
-                          final contentLength = streamedResponse.contentLength;
-
-                          File modDestFile = File(
-                              "${getMinecraftFolder().path}/modpacks/$modpack/${mod.fileName}");
-                          if (widget.modClass == ModClass.resourcePack) {
-                            modDestFile = File(
-                                "${getMinecraftFolder().path}/resourcepacks/${mod.fileName}");
-                          }
-                          if (await modDestFile.exists()) {
-                            modDestFile.delete();
-                          }
-                          await modDestFile.create(recursive: true);
-                          debugPrint(modDestFile.path);
-                          List<int> bytes = [];
-                          streamedResponse.stream.listen(
-                            (List<int> newBytes) {
-                              bytes.addAll(newBytes);
-                              final downloadedLength = bytes.length;
-                              setProgressValue(
-                                  downloadedLength / (contentLength ?? 1));
-                              debugPrint(progressValue.toString());
-                            },
-                            onDone: () async {
-                              await modDestFile.writeAsBytes(bytes,
-                                  flush: true);
-                              setProgressValue(1);
-                              debugPrint("Downloaded");
+                          if (widget.source == ModSource.curseForge) {
+                            if (version.endsWith(".0")) {
+                              debugPrint(version);
+                              version = version.replaceRange(
+                                  version.length - 2, null, "");
+                              debugPrint(version);
+                            }
+                            Uri getFilesUri = Uri.parse(
+                                "https://api.curseforge.com/v1/mods/${widget.id}/files?gameVersion=${version.trim()}&sortOrder=desc&modLoaderType=${api.trim()}");
+                            if (widget.modClass == ModClass.resourcePack) {
+                              getFilesUri = Uri.parse(
+                                  "https://api.curseforge.com/v1/mods/${widget.id}/files?gameVersion=${version.trim()}&sortOrder=desc");
+                            }
+                            debugPrint("Installing mods url: $getFilesUri");
+                            widget.setAreButtonsActive(false);
+                            http.Response response =
+                                await http.get(getFilesUri, headers: {
+                              "User-Agent": await generateUserAgent(),
+                              "X-API-Key": apiKey,
+                            });
+                            Map responseJson = json.decode(response.body);
+                            debugPrint(responseJson.toString());
+                            List<ModFile> fileMod = [];
+                            if ((responseJson["data"] as List<dynamic>) == []) {
                               widget.setAreButtonsActive(true);
-
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(AppLocalizations.of(context)!
-                                      .downloadSuccess),
+                                  content: Text(
+                                    AppLocalizations.of(context)!.noVersion,
+                                  ),
                                 ),
                               );
                               Get.back(closeOverlays: true);
                               Get.back();
-                            },
-                            onError: (e) {
-                              debugPrint(e);
-                            },
-                            cancelOnError: true,
-                          );
+                            }
+                            debugPrint(responseJson.toString());
+                            for (var mod in responseJson["data"]) {
+                              DateTime fileDate =
+                                  DateTime.parse(mod["fileDate"]);
+                              List<dynamic> gameVersions = mod["gameVersions"];
+                              String fileName = mod["fileName"];
+                              String downloadUrl = mod["downloadUrl"];
+
+                              fileMod.add(
+                                ModFile(
+                                  fileDate: fileDate,
+                                  gameVersions: gameVersions,
+                                  fileName: fileName,
+                                  downloadUrl: downloadUrl,
+                                ),
+                              );
+                            }
+                            fileMod.sort(
+                              (a, b) => b.fileDate!.compareTo(a.fileDate!),
+                            );
+                            debugPrint(fileMod.toString());
+                            if (fileMod.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      AppLocalizations.of(context)!.noVersion),
+                                ),
+                              );
+                              widget.setAreButtonsActive(true);
+                              Get.back(closeOverlays: true);
+                              Get.back();
+
+                              return;
+                            }
+                            var mod = fileMod[0];
+                            // http.Response res = await http
+                            //     .get(Uri.parse(mod.downloadUrl), headers: {
+                            //   "User-Agent": "MinecraftModpackManager",
+                            //   "X-API-Key": apiKey,
+                            // });
+                            var request = http.Request(
+                              "GET",
+                              Uri.parse(mod.downloadUrl),
+                            );
+                            final http.StreamedResponse streamedResponse =
+                                await UserAgentClient(await generateUserAgent(),
+                                        http.Client())
+                                    .send(request);
+                            final contentLength =
+                                streamedResponse.contentLength;
+
+                            File modDestFile = File(
+                                "${getMinecraftFolder().path}/modpacks/$modpack/${mod.fileName}");
+                            if (widget.modClass == ModClass.resourcePack) {
+                              modDestFile = File(
+                                  "${getMinecraftFolder().path}/resourcepacks/${mod.fileName}");
+                            }
+                            if (await modDestFile.exists()) {
+                              modDestFile.delete();
+                            }
+                            await modDestFile.create(recursive: true);
+                            debugPrint(modDestFile.path);
+                            List<int> bytes = [];
+                            streamedResponse.stream.listen(
+                              (List<int> newBytes) {
+                                bytes.addAll(newBytes);
+                                final downloadedLength = bytes.length;
+                                setProgressValue(
+                                    downloadedLength / (contentLength ?? 1));
+                                debugPrint(progressValue.toString());
+                              },
+                              onDone: () async {
+                                await modDestFile.writeAsBytes(bytes,
+                                    flush: true);
+                                setProgressValue(1);
+                                debugPrint("Downloaded");
+                                widget.setAreButtonsActive(true);
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(AppLocalizations.of(context)!
+                                        .downloadSuccess),
+                                  ),
+                                );
+                                Get.back(closeOverlays: true);
+                                Get.back();
+                              },
+                              onError: (e) {
+                                debugPrint(e);
+                              },
+                              cancelOnError: true,
+                            );
+                          } else {
+                            Uri getFilesUri = Uri.parse(
+                                "https://api.modrinth.com/v2/project/${widget.id}/version?loaders=[\"${api.toLowerCase()}\"]&game_versions=[\"$version\"]&featured=true");
+                            if (widget.modClass == ModClass.resourcePack) {
+                              getFilesUri = Uri.parse(
+                                  "https://api.modrinth.com/v2/project/${widget.id}/version&game_versions=[\"$version\"]&featured=true");
+                            }
+                            debugPrint("Installing mods url: $getFilesUri");
+                            widget.setAreButtonsActive(false);
+                            http.Response response =
+                                await http.get(getFilesUri, headers: {
+                              "User-Agent": await generateUserAgent(),
+                            });
+                            dynamic responseJson = json.decode(response.body);
+                            debugPrint(responseJson.toString());
+                            List<ModFile> fileMod = [];
+                            if (responseJson == []) {
+                              widget.setAreButtonsActive(true);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(context)!.noVersion,
+                                  ),
+                                ),
+                              );
+                              Get.back(closeOverlays: true);
+                              Get.back();
+                            }
+                            debugPrint(responseJson.toString());
+                            Map map = Map.fromIterable(
+                                responseJson[0] as List<dynamic>);
+                            for (var mod in (map["files"])) {
+                              bool primary = mod["primary"];
+                              if (!primary) {
+                                continue;
+                              }
+                              String fileName = mod["filename"];
+                              String downloadUrl = mod["url"];
+
+                              fileMod.add(
+                                ModFile(
+                                  fileDate: null,
+                                  gameVersions: [],
+                                  fileName: fileName,
+                                  downloadUrl: downloadUrl,
+                                ),
+                              );
+                            }
+
+                            debugPrint(fileMod.toString());
+                            if (fileMod.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      AppLocalizations.of(context)!.noVersion),
+                                ),
+                              );
+                              widget.setAreButtonsActive(true);
+                              Get.back(closeOverlays: true);
+                              Get.back();
+
+                              return;
+                            }
+                            var mod = fileMod[0];
+                            var request = http.Request(
+                              "GET",
+                              Uri.parse(mod.downloadUrl),
+                            );
+                            final http.StreamedResponse streamedResponse =
+                                await UserAgentClient(await generateUserAgent(),
+                                        http.Client())
+                                    .send(request);
+                            final contentLength =
+                                streamedResponse.contentLength;
+
+                            File modDestFile = File(
+                                "${getMinecraftFolder().path}/modpacks/$modpack/${mod.fileName}");
+                            if (widget.modClass == ModClass.resourcePack) {
+                              modDestFile = File(
+                                  "${getMinecraftFolder().path}/resourcepacks/${mod.fileName}");
+                            }
+                            if (await modDestFile.exists()) {
+                              modDestFile.delete();
+                            }
+                            await modDestFile.create(recursive: true);
+                            debugPrint(modDestFile.path);
+                            List<int> bytes = [];
+                            streamedResponse.stream.listen(
+                              (List<int> newBytes) {
+                                bytes.addAll(newBytes);
+                                final downloadedLength = bytes.length;
+                                setProgressValue(
+                                    downloadedLength / (contentLength ?? 1));
+                                debugPrint(progressValue.toString());
+                              },
+                              onDone: () async {
+                                await modDestFile.writeAsBytes(bytes,
+                                    flush: true);
+                                setProgressValue(1);
+                                debugPrint("Downloaded");
+                                widget.setAreButtonsActive(true);
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(AppLocalizations.of(context)!
+                                        .downloadSuccess),
+                                  ),
+                                );
+                                Get.back(closeOverlays: true);
+                                Get.back();
+                              },
+                              onError: (e) {
+                                debugPrint(e);
+                              },
+                              cancelOnError: true,
+                            );
+                          }
                         }
                       : () {},
                   icon: const Icon(Icons.file_download),

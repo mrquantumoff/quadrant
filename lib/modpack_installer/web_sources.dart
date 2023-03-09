@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 import 'dart:convert';
 import 'web/mod.dart';
 
@@ -46,47 +47,90 @@ class _CurseForgePageState extends State<CurseForgePage> {
     });
   }
 
-  Future<List<Mod>> searchMods(String searchText, ModClass modsClass) async {
-    Uri uri = Uri.parse(
-      'https://api.curseforge.com/v1/mods/search?gameId=432&classId=${modsClass.value}&searchFilter=$searchText&sortOrder=desc',
-    );
-    debugPrint(uri.toString());
-    http.Response response = await http.get(uri, headers: {
-      "User-Agent": "MinecraftModpackManager",
-      "X-API-Key": apiKey,
-    });
-    Map responseJson = json.decode(response.body);
+  Future<List<Mod>> searchMods(
+      String searchText, ModClass modsClass, ModSource modSource) async {
     List<Mod> widgets = [];
-    for (var mod in responseJson["data"]) {
-      try {
-        String name = mod["name"];
-        String summary = mod["summary"];
-        int modId = mod["id"];
 
-        String modIconUrl =
-            "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
-        int downloadCount = mod["downloadCount"];
+    if (modSource == ModSource.curseForge) {
+      Uri uri = Uri.parse(
+        'https://api.curseforge.com/v1/mods/search?gameId=432&classId=${modsClass.value}&searchFilter=$searchText&sortOrder=desc',
+      );
+      debugPrint(uri.toString());
+      http.Response response = await http.get(uri, headers: {
+        "User-Agent": await generateUserAgent(),
+        "X-API-Key": apiKey,
+      });
+      Map responseJson = json.decode(response.body);
+      for (var mod in responseJson["data"]) {
         try {
-          modIconUrl = mod["logo"]["url"];
-          // ignore: empty_catches
-        } catch (e) {}
+          String name = mod["name"];
+          String summary = mod["summary"];
+          int modId = mod["id"];
+
+          String modIconUrl =
+              "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
+          int downloadCount = mod["downloadCount"];
+          try {
+            modIconUrl = mod["logo"]["url"];
+            // ignore: empty_catches
+          } catch (e) {}
+          widgets.add(
+            Mod(
+              description: summary,
+              name: name,
+              id: modId.toString(),
+              modIconUrl: modIconUrl,
+              areButttonsActive: areButtonsEnabled,
+              setAreButtonsActive: setAreButtonsEnabled,
+              downloadCount: downloadCount,
+              source: ModSource.curseForge,
+              modClass: modsClass,
+            ),
+          );
+        } catch (e) {
+          debugPrint("$e");
+        }
+      }
+    } else {
+      String modType = modsClass.name.toLowerCase();
+
+      Uri uri = Uri.parse(
+        'https://api.modrinth.com/v2/search?query=$searchText&limit=50&facets=[["project_type:$modType"]]',
+      );
+      http.Response response = await http.get(uri, headers: {
+        "User-Agent": await generateUserAgent(),
+        "X-API-Key": apiKey,
+      });
+      Map responseJson = json.decode(response.body);
+      for (var mod in responseJson["hits"]) {
+        String name = mod["title"];
+        String desc = mod["description"];
+        int downloadCount = mod["downloads"];
+        String id = mod["project_id"];
+        String icon =
+            "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
+        // Not all mods have icons
+        try {
+          icon = mod["icon_url"];
+        } catch (e) {
+          debugPrint("$e");
+        }
         widgets.add(
           Mod(
-            description: summary,
+            description: desc,
             name: name,
-            id: modId,
-            modIconUrl: modIconUrl,
+            id: id,
+            modIconUrl: icon,
             areButttonsActive: areButtonsEnabled,
             setAreButtonsActive: setAreButtonsEnabled,
             downloadCount: downloadCount,
-            source: ModSource.curseForge,
+            source: ModSource.modRinth,
             modClass: modsClass,
           ),
         );
-      } catch (e) {
-        debugPrint("$e");
       }
     }
+
     widgets.sort((a, b) {
       return (a.downloadCount > b.downloadCount) ? 0 : 1;
     });
@@ -167,11 +211,20 @@ class _CurseForgePageState extends State<CurseForgePage> {
                       String searchText = Uri.encodeQueryComponent(
                           searchFieldController.text.trim());
                       debugPrint(searchText);
-                      List<Mod> mods =
-                          await searchMods(searchText, ModClass.mod);
-                      List<Mod> resourcePacks =
-                          await searchMods(searchText, ModClass.resourcePack);
-                      List<Mod> widgets = mods + resourcePacks;
+                      List<Mod> mods = await searchMods(
+                          searchText, ModClass.mod, ModSource.curseForge);
+                      List<Mod> resourcePacks = await searchMods(searchText,
+                          ModClass.resourcePack, ModSource.curseForge);
+                      List<Mod> modsModrinth = await searchMods(
+                          searchText, ModClass.mod, ModSource.modRinth);
+                      List<Mod> resourcePacksModrinth = await searchMods(
+                          searchText,
+                          ModClass.resourcePack,
+                          ModSource.modRinth);
+                      List<Mod> widgets = mods +
+                          resourcePacks +
+                          modsModrinth +
+                          resourcePacksModrinth;
                       widgets.sort((a, b) {
                         return (a.downloadCount > b.downloadCount) ? 0 : 1;
                       });
