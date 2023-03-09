@@ -8,6 +8,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web_sources.dart';
 
 class ModpackInstallerPage extends StatefulWidget {
@@ -280,7 +281,7 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                             http.Response res = await http.get(
                               Uri.parse("https://api.curseforge.com/v1/games"),
                               headers: {
-                                "User-Agent": "MinecraftModpackManager",
+                                "User-Agent": await generateUserAgent(),
                                 "X-API-Key": apiKey
                               },
                             );
