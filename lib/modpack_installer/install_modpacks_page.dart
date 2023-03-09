@@ -8,7 +8,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
-import 'package:mcmodpackmanager_reborn/modpack_installer/curseforge.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web_sources.dart';
 
 class ModpackInstallerPage extends StatefulWidget {
   const ModpackInstallerPage({super.key});
@@ -328,7 +328,7 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(Icons.download_sharp),
-                      Text("  ${AppLocalizations.of(context)!.curseforge}"),
+                      Text("  ${AppLocalizations.of(context)!.web}"),
                     ],
                   ),
                 ),
