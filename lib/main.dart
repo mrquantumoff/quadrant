@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/install_modpack_button.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 import 'package:mcmodpackmanager_reborn/selector.dart';
 import 'package:mcmodpackmanager_reborn/open_modpacks_folder.dart';
 import 'package:mcmodpackmanager_reborn/settings.dart';
@@ -38,6 +39,9 @@ void main() async {
       file.delete();
     }
   }
+
+  debugPrint(await generateUserAgent());
+
   debugPrint(
       "Eternal API Key: ${const String.fromEnvironment("ETERNAL_API_KEY")}");
   runApp(const MyApp());

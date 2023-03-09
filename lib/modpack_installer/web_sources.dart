@@ -33,7 +33,7 @@ class CurseForgePage extends StatefulWidget {
 class _CurseForgePageState extends State<CurseForgePage> {
   late TextEditingController searchFieldController;
   late List<Widget> searchResults;
-  late bool areButtonsEnabled;
+  bool areButtonsEnabled = true;
 
   void setSearchResults(List<Widget> newSearchResults) {
     setState(() {
@@ -80,8 +80,7 @@ class _CurseForgePageState extends State<CurseForgePage> {
               name: name,
               id: modId.toString(),
               modIconUrl: modIconUrl,
-              areButttonsActive: areButtonsEnabled,
-              setAreButtonsActive: setAreButtonsEnabled,
+              setAreParentButtonsActive: setAreButtonsEnabled,
               downloadCount: downloadCount,
               source: ModSource.curseForge,
               modClass: modsClass,
@@ -121,8 +120,7 @@ class _CurseForgePageState extends State<CurseForgePage> {
             name: name,
             id: id,
             modIconUrl: icon,
-            areButttonsActive: areButtonsEnabled,
-            setAreButtonsActive: setAreButtonsEnabled,
+            setAreParentButtonsActive: setAreButtonsEnabled,
             downloadCount: downloadCount,
             source: ModSource.modRinth,
             modClass: modsClass,
@@ -141,7 +139,6 @@ class _CurseForgePageState extends State<CurseForgePage> {
       const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
   @override
   void initState() {
-    areButtonsEnabled = true;
     searchFieldController = TextEditingController();
     super.initState();
     searchResults = [];
