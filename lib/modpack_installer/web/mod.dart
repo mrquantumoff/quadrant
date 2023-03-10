@@ -334,10 +334,10 @@ class _ModState extends State<Mod> {
                               );
                             } else {
                               Uri getFilesUri = Uri.parse(
-                                  "https://api.modrinth.com/v2/project/${widget.id}/version?loaders=[\"${api.toLowerCase()}\"]&game_versions=[\"$version\"]&featured=true");
+                                  "https://api.modrinth.com/v2/project/${widget.id}/version?loaders=[\"${api.toLowerCase()}\"]&game_versions=[\"$version\"]");
                               if (widget.modClass == ModClass.resourcePack) {
                                 getFilesUri = Uri.parse(
-                                    "https://api.modrinth.com/v2/project/${widget.id}/version&game_versions=[\"$version\"]&featured=true");
+                                    "https://api.modrinth.com/v2/project/${widget.id}/version?game_versions=[\"$version\"]");
                               }
                               debugPrint("Installing mods url: $getFilesUri");
                               setAreButtonsActive(false);
