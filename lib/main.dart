@@ -42,8 +42,6 @@ void main() async {
 
   debugPrint(await generateUserAgent());
 
-  debugPrint(
-      "Eternal API Key: ${const String.fromEnvironment("ETERNAL_API_KEY")}");
   runApp(const MyApp());
 }
 
