@@ -34,9 +34,16 @@
   </keywords>
   <releases>
 
+    <release date="2023-03-10" version="7.4.0">
+      <description>
+        <p>Enhance minecraft version sorting massively.</p>
+      </description>
+    </release>
+
     <release date="2023-03-10" version="7.3.0">
       <description>
-        <p>Add Modrinth mod and resourcepack support, enhance minecraft version sorting.</p>
+        <p>Add
+          Modrinth mod and resourcepack support, enhance minecraft version sorting.</p>
       </description>
     </release>
 
