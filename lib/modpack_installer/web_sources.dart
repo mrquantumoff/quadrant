@@ -23,14 +23,14 @@ class UserAgentClient extends http.BaseClient {
   }
 }
 
-class CurseForgePage extends StatefulWidget {
-  const CurseForgePage({super.key});
+class WebSourcesPage extends StatefulWidget {
+  const WebSourcesPage({super.key});
 
   @override
-  State<CurseForgePage> createState() => _CurseForgePageState();
+  State<WebSourcesPage> createState() => _WebSourcesPageState();
 }
 
-class _CurseForgePageState extends State<CurseForgePage> {
+class _WebSourcesPageState extends State<WebSourcesPage> {
   late TextEditingController searchFieldController;
   late List<Widget> searchResults;
   bool areButtonsEnabled = true;

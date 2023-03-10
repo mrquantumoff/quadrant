@@ -291,7 +291,7 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                               bool isValid = false;
                               for (var game in data["data"]) {
                                 if (game["id"] == 432) {
-                                  Get.to(() => const CurseForgePage(),
+                                  Get.to(() => const WebSourcesPage(),
                                       transition: Transition.rightToLeft);
                                   isValid = true;
                                 }
