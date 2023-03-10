@@ -34,21 +34,30 @@
   </keywords>
   <releases>
 
+    <release date="2023-03-10" version="7.3.0">
+      <description>
+        <p>Add Modrinth mod and resourcepack support, enhance minecraft version sorting.</p>
+      </description>
+    </release>
+
     <release date="2023-03-08" version="7.2.0">
       <description>
-        <p>Add CurseForge resource pack support and enhance the modpack search</p>
+        <p>Add
+          CurseForge resource pack support and enhance the modpack search</p>
       </description>
     </release>
 
     <release date="2023-03-07" version="7.1.0">
       <description>
-        <p>Show CurseForge download numbers and enhance the ui</p>
+        <p>Show
+          CurseForge download numbers and enhance the ui</p>
       </description>
     </release>
 
     <release date="2023-03-07" version="7.0.0">
       <description>
-        <p>Add curseforge mods download option</p>
+        <p>Add
+          curseforge mods download option</p>
       </description>
     </release>
     <release date="2023-02-26" version="6.5.3">
@@ -82,7 +91,8 @@
 
     <release date="2023-02-06" version="6.1.1">
       <description>
-        <p>Add download speed</p>
+        <p>Add
+          download speed</p>
       </description>
     </release>
 
