@@ -126,29 +126,19 @@ class _ModState extends State<Mod> {
         borderRadius: BorderRadius.circular(12),
         onTap: () async {
           Uri uri = Uri.parse(
-            'https://api.curseforge.com/v1/games/423/versions',
+            'https://api.modrinth.com/v2/tag/game_version',
           );
           List<dynamic> vrs = json.decode((await http.get(
             uri,
             headers: {
               "User-Agent": await generateUserAgent(),
-              "X-API-Key": apiKey,
             },
           ))
-              .body)["data"][0]["versions"];
+              .body);
           List<String> versions = [];
           for (var v in vrs) {
-            int dotCount = 0;
-            for (var c in v.toString().characters) {
-              if (c == ".") dotCount++;
-            }
-            if (dotCount == 3 &&
-                v.toString().replaceAll("Update ", "").startsWith("1.")) {
-              var finVerFormat =
-                  "${v.toString().replaceAll("Update ", "").split(".").first}.${v.toString().replaceAll("Update ", "").split(".")[1]}.${v.toString().replaceAll("Update ", "").split(".").last}";
-              if (!versions.contains(finVerFormat)) {
-                versions.add(finVerFormat);
-              }
+            if (v["version_type"] == "release") {
+              versions.add(v["version"].toString());
             }
           }
           List<DropdownMenuEntry> versionItems = [];
@@ -200,12 +190,7 @@ class _ModState extends State<Mod> {
                             String version = versionFieldController.value.text;
                             String api = apiFieldController.value.text;
                             String modpack = modpackFieldController.value.text;
-                            if (version.endsWith(".0")) {
-                              debugPrint(version);
-                              version = version.replaceRange(
-                                  version.length - 2, null, "");
-                              debugPrint(version);
-                            }
+
                             debugPrint(api);
                             if (widget.source == ModSource.curseForge) {
                               Uri getFilesUri = Uri.parse(
