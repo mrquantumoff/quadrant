@@ -11,8 +11,6 @@ class ModpackInstaller extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12),
-      // width: 165,
-      // height: 40,
       child: ElevatedButton(
           child: Padding(
             padding: const EdgeInsets.all(15),
