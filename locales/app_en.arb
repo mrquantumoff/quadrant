@@ -37,5 +37,8 @@
     "search": "Search",
     "free": "Free modpacks",
     "mod": "Mod from ",
-    "resourcePack": "Resource pack from "
+    "resourcePack": "Resource pack from ",
+    "currentVersion": "Installed version is ",
+    "latestVersion": "Latest version is ",
+    "openLatestRelease": "Open the latest release"
 }

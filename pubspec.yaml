@@ -2,7 +2,7 @@ name: mcmodpackmanager_reborn
 description: Manage your modpacks with ease!
 publish_to: 'none'
 
-version: 7.4.0+0
+version: 7.5.0+0
 
 environment:
   sdk: '>=2.19.0 <3.0.0'
@@ -26,12 +26,13 @@ dependencies:
   path_provider: ^2.0.13
   archive: ^3.3.6
   flutter_platform_alert: ^0.3.0
+  url_launcher: ^6.1.10
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.1
-  msix: ^3.8.2
+  msix: ^3.9.1
   flutter_launcher_icons: ^0.12.0
 flutter:
   generate: true
@@ -55,7 +56,7 @@ msix_config:
   publisher_display_name: MrQuantumOFF (Demir Yerli)
   publisher: CN=010914FC-8843-4963-A3FE-E3E06E6D9F53
   identity_name: 58734MrQuantumOFFDemirYer.MinecraftModpackManagerR
-  msix_version: 7.4.0.0
+  msix_version: 7.5.0.0
   logo_path: .\assets\icons\logo.png
   store: true
   languages: en-us, uk-ua

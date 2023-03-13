@@ -143,15 +143,7 @@ class _ModState extends State<Mod> {
           }
           List<DropdownMenuEntry> versionItems = [];
           List<DropdownMenuEntry> modpackItems = [];
-          versions.sort(
-            (a, b) {
-              debugPrint(a.replaceRange(0, 2, ""));
-              bool res = double.parse(a.replaceRange(0, 2, "")) >
-                  double.parse(b.replaceRange(0, 2, ""));
-              return res ? 1 : 0;
-            },
-          );
-          versions = versions.reversed.toList();
+
           for (var version in versions) {
             versionItems.add(
               DropdownMenuEntry(label: version.toString(), value: version),
@@ -258,11 +250,7 @@ class _ModState extends State<Mod> {
                                 return;
                               }
                               var mod = fileMod[0];
-                              // http.Response res = await http
-                              //     .get(Uri.parse(mod.downloadUrl), headers: {
-                              //   "User-Agent": "MinecraftModpackManager",
-                              //   "X-API-Key": apiKey,
-                              // });
+
                               var request = http.Request(
                                 "GET",
                                 Uri.parse(mod.downloadUrl),

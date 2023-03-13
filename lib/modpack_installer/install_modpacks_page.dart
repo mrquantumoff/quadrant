@@ -276,8 +276,9 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                       }
                     : areButtonsEnabled
                         ? () async {
-                            const apiKey =
-                                String.fromEnvironment("ETERNAL_API_KEY");
+                            final String apiKey =
+                                const String.fromEnvironment("ETERNAL_API_KEY")
+                                    .replaceAll("\"", "");
                             http.Response res = await http.get(
                               Uri.parse("https://api.curseforge.com/v1/games"),
                               headers: {

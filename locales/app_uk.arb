@@ -37,5 +37,9 @@
     "search": "Шукати",
     "free": "Вільний модпак",
     "mod": "Мод з ",
-    "resourcePack": "Набір ресурсів з "
+    "resourcePack": "Набір ресурсів з ",
+    "currentVersion": "Встановлена весрія - ",
+    "latestVersion": "Остання весрія - ",
+    "openLatestRelease": "Відкрити останню версію"
+
 }
