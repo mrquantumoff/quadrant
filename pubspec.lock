@@ -224,11 +224,12 @@ packages:
   get_storage:
     dependency: "direct main"
     description:
-      name: get_storage
-      sha256: "39db1fffe779d0c22b3a744376e86febe4ade43bf65e06eab5af707dc84185a2"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.1.1"
+      path: "."
+      ref: "v2.2.1"
+      resolved-ref: "4354ccc6151ee4cc1ab935256b992542b5987e00"
+      url: "https://github.com/mrquantumoff/get_storage.git"
+    source: git
+    version: "2.2.0"
   http:
     dependency: "direct main"
     description:
