@@ -223,7 +223,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                           modsModrinth +
                           resourcePacksModrinth;
                       widgets.sort((a, b) {
-                        return (a.downloadCount > b.downloadCount) ? 0 : 1;
+                        return b.downloadCount.compareTo(a.downloadCount);
                       });
                       setSearchResults(widgets);
                     },
