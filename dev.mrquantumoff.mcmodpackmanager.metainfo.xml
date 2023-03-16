@@ -34,9 +34,16 @@
   </keywords>
   <releases>
 
+    <release date="2023-03-16" version="7.5.1">
+      <description>
+        <p>Enhance search result sorting algorithm</p>
+      </description>
+    </release>
+
     <release date="2023-03-13" version="7.5.0">
       <description>
-        <p>Enhance minecraft version sorting massively, add update checking</p>
+        <p>Enhance
+          minecraft version sorting massively, add update checking</p>
       </description>
     </release>
 
