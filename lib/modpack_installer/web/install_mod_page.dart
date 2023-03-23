@@ -132,8 +132,8 @@ class _InstallModPageState extends State<InstallModPage> {
               ),
             ),
             Container(
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              child: CircularProgressIndicator(
+              margin: const EdgeInsets.symmetric(horizontal: 48, vertical: 12),
+              child: LinearProgressIndicator(
                 value: progressValue,
               ),
             ),
@@ -141,10 +141,24 @@ class _InstallModPageState extends State<InstallModPage> {
               onPressed: areButttonsActive
                   ? () async {
                       if (areButttonsActive) {
+                        setAreButtonsActive(false);
+
                         String version = versionFieldController.value.text;
                         String api = apiFieldController.value.text;
                         String modpack = modpackFieldController.value.text;
-
+                        if (version.trim() == "" ||
+                            api.trim() == "" ||
+                            modpack.trim() == "") {
+                          setAreButtonsActive(true);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                AppLocalizations.of(context)!.noVersion,
+                              ),
+                            ),
+                          );
+                          return;
+                        }
                         debugPrint(api);
                         if (widget.source == ModSource.curseForge) {
                           Uri getFilesUri = Uri.parse(
@@ -154,7 +168,6 @@ class _InstallModPageState extends State<InstallModPage> {
                                 "https://api.curseforge.com/v1/mods/${widget.mod.id}/files?gameVersion=${version.trim()}&sortOrder=desc");
                           }
                           debugPrint("Installing mods url: $getFilesUri");
-                          setAreButtonsActive(false);
                           http.Response response =
                               await http.get(getFilesUri, headers: {
                             "User-Agent": await generateUserAgent(),
