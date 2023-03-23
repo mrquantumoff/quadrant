@@ -34,9 +34,16 @@
   </keywords>
   <releases>
 
+    <release date="2023-03-23" version="7.6.0">
+      <description>
+        <p>Fix a few bugs and move mod installation dialog to its own page</p>
+      </description>
+    </release>
+
     <release date="2023-03-16" version="7.5.1">
       <description>
-        <p>Enhance search result sorting algorithm</p>
+        <p>Enhance
+          search result sorting algorithm</p>
       </description>
     </release>
 
