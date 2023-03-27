@@ -3,13 +3,7 @@
     {
       "size" : "256x256",
       "idiom" : "mac",
-      "filename" : "logohalf.png",
-      "scale" : "1x"
-    },
-    {
-      "size" : "500x500",
-      "idiom" : "mac",
-      "filename" : "logo.png",
+      "filename" : "logo256.png",
       "scale" : "1x"
     }
   ],
