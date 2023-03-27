@@ -34,6 +34,12 @@
   </keywords>
   <releases>
 
+    <release date="2023-03-27" version="7.6.1">
+      <description>
+        <p>Fix a few bugs</p>
+      </description>
+    </release>
+
     <release date="2023-03-23" version="7.6.0">
       <description>
         <p>Fix a few bugs and move mod installation dialog to its own page</p>
