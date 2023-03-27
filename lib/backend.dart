@@ -44,21 +44,30 @@ bool applyModpack(String? modpack) {
   if (!modpackFolder.existsSync()) return false;
 
   Directory modsFolder = Directory("${minecraftFolder.path}/mods");
+  Link link = Link(modsFolder.path);
+
   if (modsFolder.existsSync()) {
     try {
-      modsFolder.deleteSync(recursive: true);
+      link.updateSync(
+        modpackFolder.path,
+      );
+      return true;
+    } catch (e) {
+      debugPrint("Error ${e.toString()}");
+      return false;
+    }
+  } else {
+    try {
+      link.createSync(
+        modpackFolder.path,
+        recursive: true,
+      );
+      return true;
     } catch (e) {
       debugPrint("Error ${e.toString()}");
       return false;
     }
   }
-  try {
-    Link(modsFolder.path).createSync(modpackFolder.path, recursive: true);
-  } catch (e) {
-    debugPrint("Error ${e.toString()}");
-    return false;
-  }
-  return true;
 }
 
 bool clearModpack() {
