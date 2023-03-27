@@ -46,10 +46,24 @@ bool applyModpack(String? modpack) {
   Directory modsFolder = Directory("${minecraftFolder.path}/mods");
   Link link = Link(modsFolder.path);
 
-  if (modsFolder.existsSync()) {
+  if (modsFolder.existsSync() &&
+      modsFolder.resolveSymbolicLinksSync() != modsFolder.path) {
     try {
       link.updateSync(
         modpackFolder.path,
+      );
+      return true;
+    } catch (e) {
+      debugPrint("Error ${e.toString()}");
+      return false;
+    }
+  } else if (modsFolder.existsSync()) {
+    modsFolder.deleteSync(recursive: true);
+
+    try {
+      link.createSync(
+        modpackFolder.path,
+        recursive: true,
       );
       return true;
     } catch (e) {
