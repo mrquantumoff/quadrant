@@ -68,7 +68,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
           int modId = mod["id"];
 
           String modIconUrl =
-              "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
+              "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.jpg";
           int downloadCount = mod["downloadCount"];
           try {
             modIconUrl = mod["logo"]["url"];

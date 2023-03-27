@@ -43,7 +43,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/icons/logo.png
+    - assets/icons/logo256.png
 
 flutter_icons:
   windows:
