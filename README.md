@@ -1,5 +1,11 @@
-# Minecraft Modpack Manager Reborn
+<div align="center">
+
+<img src="https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logotext.svg" height=256 />
+
 > An easy way to manage your modpacks, written in Dart and Flutter
+
+</div>
+
 ### Working features:
 * #### Applying modpacks
 * #### Clearing modpacks
