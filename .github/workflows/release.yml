@@ -23,6 +23,7 @@ jobs:
       - name: Generate locales
         run: flutter gen-l10n
       - name: Install NSIS
+        if: matrix.platform == 'windows-latest'
         uses: repolevedavaj/install-nsis@v1.0.0
       - name: Build on windows
         if: matrix.platform == 'windows-latest'
