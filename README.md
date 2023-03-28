@@ -4,6 +4,7 @@
 
 > An easy way to manage your modpacks, written in Dart and Flutter
 
+</div>
 
 ### Working features:
 * #### Applying modpacks
@@ -13,6 +14,7 @@
 * #### Installing modpacks using .mcmodpackref
 * #### Installing mods and resourcepacks (not modpacks) from curseforge/modrinth
 
+<div align="center">
 
 
 ### [Available on Flathub](https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager)
@@ -20,9 +22,11 @@
 
 ### [Grab the latest build manually (macOS/Linux/Windows)](https://github.com/mrquantumoff/mcmodpackmanager_reborn/releases/latest)
 
+</div>
+
 > ## *ENABLE Developer mode on windows, or else the app won't work!
 > ### Warning: If your mods folder is not symlinked to modpacks/<anything> your mods folder will be deleted after you apply/clear your modpack.
 > #### Warning: Some features may not work properly on macOS, since I don't have a Mac and I can't test the app on it. If you have one and you know how to code, please submit a pr.
 > Why can't I include modpacks from curseforge? Although I do have API access to curseforge modpack API, I cannot completely install everything from a modpack, since many modpacks tend to overwrite some of minecraft's settings and/or install external resource packs. I do not wish to deal with that.
 
-</div>
+
