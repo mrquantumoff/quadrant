@@ -233,11 +233,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "v2.2.1"
-      resolved-ref: "4354ccc6151ee4cc1ab935256b992542b5987e00"
+      ref: "v2.2.2"
+      resolved-ref: cbfdbb777d9b46347cfe9d8f76ca7d0d9673ce9a
       url: "https://github.com/mrquantumoff/get_storage.git"
     source: git
-    version: "2.2.0"
+    version: "2.2.2"
   http:
     dependency: "direct main"
     description:
