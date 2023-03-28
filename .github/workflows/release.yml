@@ -22,11 +22,15 @@ jobs:
           channel: 'stable'
       - name: Generate locales
         run: flutter gen-l10n
+      - name: Install NSIS
+        uses: repolevedavaj/install-nsis@v1.0.0
       - name: Build on windows
         if: matrix.platform == 'windows-latest'
         run: |
           flutter pub get
-          flutter pub run msix:create --output-path windows-build --windows-build-args ' --split-debug-info --obfuscate --dart-define ETERNAL_API_KEY=${{ secrets.ETERNAL_API_KEY }} --dart-define GITHUB_RELEASE_KEY=${{ secrets.RELEASE_TOKEN }} --release'
+          flutter pub run msix:create --output-path windows-build --windows-build-args ' --split-debug-info --obfuscate --dart-define ETERNAL_API_KEY=${{ secrets.ETERNAL_API_KEY }} --dart-define MS_STORE_BUILD=true --dart-define GITHUB_RELEASE_KEY=${{ secrets.RELEASE_TOKEN }} --release'
+          flutter build windows --split-debug-info --obfuscate --dart-define ETERNAL_API_KEY=${{ secrets.ETERNAL_API_KEY }} --dart-define GITHUB_RELEASE_KEY=${{ secrets.RELEASE_TOKEN }} --release
+          makensis installer.nsi
       - name: Compress Windows build to .zip
         if: matrix.platform == 'windows-latest'
         uses: vimtor/action-zip@v1.1
@@ -43,6 +47,8 @@ jobs:
           files: |
             ./WindowsBuild.zip
             ./windows-build/mcmodpackmanager_reborn.msix
+            ./MCModpackManagerSetup.exe
+
       - name: Build on macOS
         if: matrix.platform == 'macos-latest'
         run: |
