@@ -154,6 +154,7 @@ class _ModState extends State<Mod> {
                   image: NetworkImage(widget.modIconUrl),
                   alignment: Alignment.centerRight,
                   height: 84,
+                  width: 84,
                 ),
               ),
               Column(

@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -14,19 +14,30 @@ import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+String isOfficial() {
+  final String apiKey = const String.fromEnvironment("ETERNAL_API_KEY")
+      .replaceAll("\"", "")
+      .trim();
+  if (apiKey == "") {
+    return "CurseForge/Modrinth disabled";
+  }
+  return "CurseForge/Modrinth enabled";
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
   await GetStorage.init();
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
   WindowOptions windowOptions = WindowOptions(
-      size: const Size(1024, 576),
+      size: const Size(1280, 720),
       center: false,
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.normal,
       minimumSize: const Size(1024, 576),
       fullScreen: false,
-      title: "Minecraft Modpack Manager Reborn v${packageInfo.version}");
+      title:
+          "Minecraft Modpack Manager Reborn v${packageInfo.version} (${isOfficial()})");
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
@@ -143,8 +154,8 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.productName),
-      ),
+          // title: Text(AppLocalizations.of(context)!.productName),
+          ),
       endDrawer: Drawer(
         child: Settings(
           setLocale: widget.setLocale,
@@ -160,11 +171,18 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager> {
             children: [
               Container(
                 margin: const EdgeInsets.only(bottom: 15),
-                child: Text(
-                  AppLocalizations.of(context)!.productName,
-                  style: const TextStyle(fontSize: 24),
+                child: SvgPicture.asset(
+                  "assets/icons/logo.svg",
+                  height: 128,
                 ),
               ),
+              // Container(
+              //   margin: const EdgeInsets.only(bottom: 15),
+              //   child: Text(
+              //     AppLocalizations.of(context)!.productName,
+              //     style: const TextStyle(fontSize: 24),
+              //   ),
+              // ),
               const Selector(),
               const OpenModpacksFolder(),
               const ModpackInstaller()

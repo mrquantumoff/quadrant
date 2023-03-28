@@ -68,10 +68,15 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
           int modId = mod["id"];
 
           String modIconUrl =
-              "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.jpg";
+              "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
           int downloadCount = mod["downloadCount"];
           try {
-            modIconUrl = mod["logo"]["url"];
+            String mModIconUrl = mod["logo"]["url"].toString().trim();
+            if (mModIconUrl == "") {
+              throw Exception("No proper icon");
+            }
+            Uri.parse(mModIconUrl);
+            modIconUrl = mModIconUrl;
             // ignore: empty_catches
           } catch (e) {}
           widgets.add(
@@ -107,13 +112,19 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
         int downloadCount = mod["downloads"];
         String id = mod["project_id"];
         String icon =
-            "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
+            "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo256.png";
         // Not all mods have icons
+
         try {
-          icon = mod["icon_url"];
-        } catch (e) {
-          debugPrint("$e");
-        }
+          String mModIconUrl = mod["icon_url"].toString().trim();
+          if (mModIconUrl == "") {
+            throw Exception("No proper icon");
+          }
+          Uri.parse(mModIconUrl);
+          icon = mModIconUrl;
+          // ignore: empty_catches
+        } catch (e) {}
+
         widgets.add(
           Mod(
             description: desc,
