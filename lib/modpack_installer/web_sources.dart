@@ -53,12 +53,10 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
 
     if (modSource == ModSource.curseForge) {
       String rawUri =
-          'https://api.curseforge.com/v1/mods/search?gameId=432&searchFilter=$searchText&sortOrder=desc';
+          'https://api.curseforge.com/v1/mods/search?gameId=432&searchFilter=$searchText&sortOrder=desc&classId=${modsClass.value}';
 
       if (modsClass == ModClass.shaderPack) {
         rawUri = '$rawUri&categoryId=4547';
-      } else {
-        rawUri = '$rawUri&classId=${modsClass.value}';
       }
       Uri uri = Uri.parse(rawUri);
       debugPrint(uri.toString());
