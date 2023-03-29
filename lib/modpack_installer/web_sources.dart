@@ -52,9 +52,15 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     List<Mod> widgets = [];
 
     if (modSource == ModSource.curseForge) {
-      Uri uri = Uri.parse(
-        'https://api.curseforge.com/v1/mods/search?gameId=432&classId=${modsClass.value}&searchFilter=$searchText&sortOrder=desc',
-      );
+      String rawUri =
+          'https://api.curseforge.com/v1/mods/search?gameId=432&searchFilter=$searchText&sortOrder=desc';
+
+      if (modsClass == ModClass.shaderPack) {
+        rawUri = '$rawUri&categoryId=4547';
+      } else {
+        rawUri = '$rawUri&classId=${modsClass.value}';
+      }
+      Uri uri = Uri.parse(rawUri);
       debugPrint(uri.toString());
       http.Response response = await http.get(uri, headers: {
         "User-Agent": await generateUserAgent(),
@@ -71,7 +77,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
           int downloadCount = mod["downloadCount"];
           try {
-            String mModIconUrl = mod["logo"]["url"].toString().trim();
+            String mModIconUrl = mod["logo"]["thumbnailUrl"].toString().trim();
             if (mModIconUrl == "") {
               throw Exception("No proper icon");
             }
@@ -97,6 +103,8 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
       }
     } else {
       String modType = modsClass.name.toLowerCase();
+      modType = modType.replaceAll("shaderpack", "shader");
+      debugPrint(modType);
 
       Uri uri = Uri.parse(
         'https://api.modrinth.com/v2/search?query=$searchText&limit=50&facets=[["project_type:$modType"]]',
@@ -223,16 +231,22 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                           searchText, ModClass.mod, ModSource.curseForge);
                       List<Mod> resourcePacks = await searchMods(searchText,
                           ModClass.resourcePack, ModSource.curseForge);
+                      List<Mod> shaderPacks = await searchMods(searchText,
+                          ModClass.shaderPack, ModSource.curseForge);
                       List<Mod> modsModrinth = await searchMods(
                           searchText, ModClass.mod, ModSource.modRinth);
                       List<Mod> resourcePacksModrinth = await searchMods(
                           searchText,
                           ModClass.resourcePack,
                           ModSource.modRinth);
+                      List<Mod> shaderPacksModrinth = await searchMods(
+                          searchText, ModClass.shaderPack, ModSource.modRinth);
                       List<Mod> widgets = mods +
                           resourcePacks +
                           modsModrinth +
-                          resourcePacksModrinth;
+                          resourcePacksModrinth +
+                          shaderPacksModrinth +
+                          shaderPacks;
                       widgets.sort((a, b) {
                         return b.downloadCount.compareTo(a.downloadCount);
                       });

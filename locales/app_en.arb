@@ -38,6 +38,7 @@
     "free": "Free modpacks",
     "mod": "Mod from ",
     "resourcePack": "Resource pack from ",
+    "shaderPack": "Shaders from ",
     "currentVersion": "Installed version is ",
     "latestVersion": "Latest version is ",
     "openLatestRelease": "Open the latest release"

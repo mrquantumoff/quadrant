@@ -147,8 +147,8 @@ class _InstallModPageState extends State<InstallModPage> {
                         String api = apiFieldController.value.text;
                         String modpack = modpackFieldController.value.text;
                         if (version.trim() == "" ||
-                            api.trim() == "" ||
-                            modpack.trim() == "") {
+                            ((api.trim() == "" || modpack.trim() == "") &&
+                                widget.modClass == ModClass.mod)) {
                           setAreButtonsActive(true);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -163,7 +163,8 @@ class _InstallModPageState extends State<InstallModPage> {
                         if (widget.source == ModSource.curseForge) {
                           Uri getFilesUri = Uri.parse(
                               "https://api.curseforge.com/v1/mods/${widget.mod.id}/files?gameVersion=${version.trim()}&sortOrder=desc&modLoaderType=${api.trim()}");
-                          if (widget.modClass == ModClass.resourcePack) {
+                          if (widget.modClass == ModClass.resourcePack ||
+                              widget.modClass == ModClass.shaderPack) {
                             getFilesUri = Uri.parse(
                                 "https://api.curseforge.com/v1/mods/${widget.mod.id}/files?gameVersion=${version.trim()}&sortOrder=desc");
                           }
@@ -234,6 +235,9 @@ class _InstallModPageState extends State<InstallModPage> {
                           if (widget.modClass == ModClass.resourcePack) {
                             modDestFile = File(
                                 "${getMinecraftFolder().path}/resourcepacks/${mod.fileName}");
+                          } else if (widget.modClass == ModClass.shaderPack) {
+                            modDestFile = File(
+                                "${getMinecraftFolder().path}/shaderpacks/${mod.fileName}");
                           }
                           if (await modDestFile.exists()) {
                             modDestFile.delete();
@@ -271,7 +275,8 @@ class _InstallModPageState extends State<InstallModPage> {
                         } else {
                           Uri getFilesUri = Uri.parse(
                               "https://api.modrinth.com/v2/project/${widget.mod.id}/version?loaders=[\"${api.toLowerCase()}\"]&game_versions=[\"$version\"]");
-                          if (widget.modClass == ModClass.resourcePack) {
+                          if (widget.modClass == ModClass.resourcePack ||
+                              widget.modClass == ModClass.shaderPack) {
                             getFilesUri = Uri.parse(
                                 "https://api.modrinth.com/v2/project/${widget.mod.id}/version?game_versions=[\"$version\"]");
                           }
@@ -346,6 +351,9 @@ class _InstallModPageState extends State<InstallModPage> {
                           if (widget.modClass == ModClass.resourcePack) {
                             modDestFile = File(
                                 "${getMinecraftFolder().path}/resourcepacks/${mod.fileName}");
+                          } else if (widget.modClass == ModClass.shaderPack) {
+                            modDestFile = File(
+                                "${getMinecraftFolder().path}/shaderpacks/${mod.fileName}");
                           }
                           if (await modDestFile.exists()) {
                             modDestFile.delete();

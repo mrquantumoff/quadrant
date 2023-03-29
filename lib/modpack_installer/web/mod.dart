@@ -13,7 +13,8 @@ enum ModSource { curseForge, modRinth }
 
 enum ModClass {
   mod(6),
-  resourcePack(12);
+  resourcePack(12),
+  shaderPack(4546);
 
   const ModClass(this.value);
   final int value;
@@ -73,6 +74,9 @@ class _ModState extends State<Mod> {
           widget.source.name.toLowerCase();
     } else if (widget.modClass == ModClass.resourcePack) {
       return AppLocalizations.of(context)!.resourcePack +
+          widget.source.name.toLowerCase();
+    } else if (widget.modClass == ModClass.shaderPack) {
+      return AppLocalizations.of(context)!.shaderPack +
           widget.source.name.toLowerCase();
     } else {
       return "Unknown";
