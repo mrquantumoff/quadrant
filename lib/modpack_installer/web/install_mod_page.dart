@@ -175,7 +175,6 @@ class _InstallModPageState extends State<InstallModPage> {
                             "X-API-Key": apiKey,
                           });
                           Map responseJson = json.decode(response.body);
-                          debugPrint(responseJson.toString());
                           List<ModFile> fileMod = [];
                           if ((responseJson["data"] as List<dynamic>) == []) {
                             setAreButtonsActive(true);
@@ -187,21 +186,25 @@ class _InstallModPageState extends State<InstallModPage> {
                               ),
                             );
                           }
-                          debugPrint(responseJson.toString());
                           for (var mod in responseJson["data"]) {
-                            DateTime fileDate = DateTime.parse(mod["fileDate"]);
-                            List<dynamic> gameVersions = mod["gameVersions"];
-                            String fileName = mod["fileName"];
-                            String downloadUrl = mod["downloadUrl"];
+                            try {
+                              DateTime fileDate =
+                                  DateTime.parse(mod["fileDate"]);
+                              List<dynamic> gameVersions = mod["gameVersions"];
+                              String fileName = mod["fileName"];
+                              String downloadUrl = mod["downloadUrl"];
 
-                            fileMod.add(
-                              ModFile(
-                                fileDate: fileDate,
-                                gameVersions: gameVersions,
-                                fileName: fileName,
-                                downloadUrl: downloadUrl,
-                              ),
-                            );
+                              fileMod.add(
+                                ModFile(
+                                  fileDate: fileDate,
+                                  gameVersions: gameVersions,
+                                  fileName: fileName,
+                                  downloadUrl: downloadUrl,
+                                ),
+                              );
+                            } catch (e) {
+                              debugPrint("No download url found");
+                            }
                           }
                           fileMod.sort(
                             (a, b) => b.fileDate!.compareTo(a.fileDate!),
