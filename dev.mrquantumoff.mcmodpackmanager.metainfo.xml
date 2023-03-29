@@ -34,9 +34,16 @@
   </keywords>
   <releases>
 
+    <release date="2023-03-30" version="7.8.0">
+      <description>
+        <p>Modrinth and (partially) CurseForge SHADER SUPPORT and bug fixes</p>
+      </description>
+    </release>
+
     <release date="2023-03-28" version="7.7.0">
       <description>
-        <p>Redesign the logo and fix a few bugs</p>
+        <p>Redesign the
+          logo and fix a few bugs</p>
       </description>
     </release>
 
