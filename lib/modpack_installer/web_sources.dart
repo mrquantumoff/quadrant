@@ -83,12 +83,14 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
             modIconUrl = mModIconUrl;
             // ignore: empty_catches
           } catch (e) {}
+          String slug = mod["slug"];
           widgets.add(
             Mod(
               description: summary,
               name: name,
               id: modId.toString(),
               modIconUrl: modIconUrl,
+              slug: slug,
               setAreParentButtonsActive: setAreButtonsEnabled,
               downloadCount: downloadCount,
               source: ModSource.curseForge,
@@ -117,6 +119,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
         String desc = mod["description"];
         int downloadCount = mod["downloads"];
         String id = mod["project_id"];
+        String slug = mod["slug"];
         String icon =
             "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo256.png";
         // Not all mods have icons
@@ -136,6 +139,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
             description: desc,
             name: name,
             id: id,
+            slug: slug,
             modIconUrl: icon,
             setAreParentButtonsActive: setAreButtonsEnabled,
             downloadCount: downloadCount,
@@ -255,6 +259,9 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                   )
                 ],
               ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 15),
             ),
             Expanded(
               child: ListView(

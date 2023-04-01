@@ -41,5 +41,6 @@
     "shaderPack": "Shaders from ",
     "currentVersion": "Installed version is ",
     "latestVersion": "Latest version is ",
-    "openLatestRelease": "Open the latest release"
+    "openLatestRelease": "Open the latest release",
+    "openInTheWeb": "Open in the web"
 }

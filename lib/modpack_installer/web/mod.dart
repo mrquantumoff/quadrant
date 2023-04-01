@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:mcmodpackmanager_reborn/backend.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/install_mod_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 enum ModSource { curseForge, modRinth }
 
@@ -44,6 +45,7 @@ class Mod extends StatefulWidget {
     required this.setAreParentButtonsActive,
     required this.source,
     required this.modClass,
+    required this.slug,
   });
 
   final String name;
@@ -53,6 +55,7 @@ class Mod extends StatefulWidget {
   final String id;
   final ModSource source;
   final ModClass modClass;
+  final String slug;
   Function(bool) setAreParentButtonsActive;
 
   @override
@@ -99,127 +102,201 @@ class _ModState extends State<Mod> {
     String displayName = widget.name.length >= 36
         ? widget.name.replaceRange(36, null, "...")
         : widget.name;
-    return Container(
-      margin: const EdgeInsets.all(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () async {
-          Uri uri = Uri.parse(
-            'https://api.modrinth.com/v2/tag/game_version',
-          );
-          List<dynamic> vrs = json.decode((await http.get(
-            uri,
-            headers: {
-              "User-Agent": await generateUserAgent(),
-            },
-          ))
-              .body);
-          List<String> versions = [];
-          for (var v in vrs) {
-            if (v["version_type"] == "release") {
-              versions.add(v["version"].toString());
-            }
-          }
-          List<DropdownMenuEntry> versionItems = [];
-          List<DropdownMenuEntry> modpackItems = [];
-
-          for (var version in versions) {
-            versionItems.add(
-              DropdownMenuEntry(label: version.toString(), value: version),
-            );
-          }
-
-          List<String> modpacks = getModpacks(hideFree: false);
-
-          for (var modpack in modpacks) {
-            modpackItems.add(
-              DropdownMenuEntry(label: modpack, value: modpack),
-            );
-          }
-          Get.to(
-            () => InstallModPage(
-              versions: versionItems,
-              mod: widget,
-              modpacks: modpackItems,
-              source: widget.source,
-              modClass: widget.modClass,
-            ),
-          );
-        },
-        child: Card(
-          elevation: 12,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Container(
-                margin: const EdgeInsetsDirectional.only(start: 12, top: 6.5),
-                child: Image(
-                  image: NetworkImage(widget.modIconUrl),
-                  alignment: Alignment.centerRight,
-                  height: 84,
-                  width: 84,
+    return Column(
+      children: [
+        const Divider(
+          height: 1.5,
+          thickness: 1,
+        ),
+        Container(
+          margin: const EdgeInsets.all(12),
+          child: Card(
+            elevation: 12,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsetsDirectional.only(start: 12, top: 6.5),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(80),
+                    child: Image(
+                      image: NetworkImage(widget.modIconUrl),
+                      alignment: Alignment.centerRight,
+                      height: 84,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const CircularProgressIndicator();
+                      },
+                      width: 84,
+                    ),
+                  ),
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start,
-                children: [
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 15),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          displayName,
-                          style: const TextStyle(fontSize: 32),
-                        ),
-                        const Divider(thickness: 50),
-                        Container(
-                          margin: const EdgeInsets.only(left: 14, top: 12),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              const Icon(Icons.download,
-                                  color: Colors.grey, size: 20),
-                              Text(
-                                widget.downloadCount.toString(),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 15),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            displayName,
+                            style: const TextStyle(fontSize: 32),
+                          ),
+                          const Divider(thickness: 50),
+                          Container(
+                            margin: const EdgeInsets.only(left: 14, top: 12),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                const Icon(Icons.download,
+                                    color: Colors.grey, size: 20),
+                                Text(
+                                  widget.downloadCount.toString(),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      margin:
+                          const EdgeInsets.only(left: 18, right: 18, top: 8),
+                      child: Text(
+                        desc,
+                        style:
+                            const TextStyle(color: Colors.grey, fontSize: 24),
+                      ),
+                    ),
+                    Container(
+                      margin:
+                          const EdgeInsets.only(top: 8, bottom: 8, left: 18),
+                      child: Text(
+                        getModpackTypeString(),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 20),
+                          child: TextButton.icon(
+                            onPressed: () async {
+                              Uri uri = Uri.parse(
+                                'https://api.modrinth.com/v2/tag/game_version',
+                              );
+                              List<dynamic> vrs = json.decode((await http.get(
+                                uri,
+                                headers: {
+                                  "User-Agent": await generateUserAgent(),
+                                },
+                              ))
+                                  .body);
+                              List<String> versions = [];
+                              for (var v in vrs) {
+                                if (v["version_type"] == "release") {
+                                  versions.add(v["version"].toString());
+                                }
+                              }
+                              List<DropdownMenuEntry> versionItems = [];
+                              List<DropdownMenuEntry> modpackItems = [];
+
+                              for (var version in versions) {
+                                versionItems.add(
+                                  DropdownMenuEntry(
+                                      label: version.toString(),
+                                      value: version),
+                                );
+                              }
+
+                              List<String> modpacks =
+                                  getModpacks(hideFree: false);
+
+                              for (var modpack in modpacks) {
+                                modpackItems.add(
+                                  DropdownMenuEntry(
+                                      label: modpack, value: modpack),
+                                );
+                              }
+                              Get.to(
+                                () => InstallModPage(
+                                  versions: versionItems,
+                                  mod: widget,
+                                  modpacks: modpackItems,
+                                  source: widget.source,
+                                  modClass: widget.modClass,
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.file_download),
+                            label: Text(AppLocalizations.of(context)!.download),
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          child: TextButton.icon(
+                            onPressed: () async {
+                              final String slug = widget.slug;
+                              String rawUrl = "";
+                              String typeUrl = "";
+                              if (widget.source == ModSource.curseForge) {
+                                rawUrl =
+                                    "https://beta.curseforge.com/minecraft/";
+                                switch (widget.modClass) {
+                                  case ModClass.mod:
+                                    typeUrl = "mc-mods";
+                                    break;
+                                  case ModClass.resourcePack:
+                                    typeUrl = "texture-packs";
+                                    break;
+                                  case ModClass.shaderPack:
+                                    typeUrl = "customization";
+                                    break;
+                                }
+                              } else if (widget.source == ModSource.modRinth) {
+                                rawUrl = "https://modrinth.com";
+                                switch (widget.modClass) {
+                                  case ModClass.mod:
+                                    typeUrl = "mod";
+                                    break;
+                                  case ModClass.resourcePack:
+                                    typeUrl = "resourcepack";
+                                    break;
+                                  case ModClass.shaderPack:
+                                    typeUrl = "shader";
+                                    break;
+                                }
+                              }
+                              rawUrl = "$rawUrl/$typeUrl/$slug";
+                              Uri uri = Uri.parse(rawUrl);
+                              launchUrl(uri);
+                            },
+                            icon: const Icon(Icons.open_in_browser),
+                            label: Text(
+                                AppLocalizations.of(context)!.openInTheWeb),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(left: 18, right: 18, top: 8),
-                    child: Text(
-                      desc,
-                      style: const TextStyle(color: Colors.grey, fontSize: 24),
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 8, bottom: 8, left: 18),
-                    child: Text(
-                      getModpackTypeString(),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -41,6 +41,7 @@
     "shaderPack": "Шейдери з ",
     "currentVersion": "Встановлена весрія - ",
     "latestVersion": "Остання весрія - ",
-    "openLatestRelease": "Відкрити останню версію"
+    "openLatestRelease": "Відкрити останню версію",
+    "openInTheWeb": "Відкрити в інтернеті"
 
 }
