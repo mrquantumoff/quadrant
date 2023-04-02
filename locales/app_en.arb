@@ -42,5 +42,7 @@
     "currentVersion": "Installed version is ",
     "latestVersion": "Latest version is ",
     "openLatestRelease": "Open the latest release",
-    "openInTheWeb": "Open in the web"
+    "openInTheWeb": "Open in the web",
+    "overwriteMinecraftFolder": "Overwrite the Minecraft folder",
+    "resetMinecraftFolder": "Reset the Minecraft folder"
 }

@@ -134,7 +134,7 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                             displayErrorSnackBar();
                           }
 
-                          await installModpack(
+                          installModpack(
                               modpackref["downloadUrl"],
                               modpackref["name"],
                               setDownloadProgress,
@@ -219,7 +219,7 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                                   if (_controller.text == "" ||
                                       _controller2.text == "") return;
                                   Navigator.pop(context);
-                                  await installModpack(
+                                  installModpack(
                                       _controller2.text,
                                       _controller.text,
                                       setDownloadProgress,

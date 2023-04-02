@@ -253,7 +253,7 @@ class _ModState extends State<Mod> {
                               String typeUrl = "";
                               if (widget.source == ModSource.curseForge) {
                                 rawUrl =
-                                    "https://beta.curseforge.com/minecraft/";
+                                    "https://beta.curseforge.com/minecraft";
                                 switch (widget.modClass) {
                                   case ModClass.mod:
                                     typeUrl = "mc-mods";

@@ -1,11 +1,17 @@
 import 'dart:io';
 import 'package:archive/archive_io.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_platform_alert/flutter_platform_alert.dart';
 
-Directory getMinecraftFolder() {
+Directory getMinecraftFolder({bool onInit = false}) {
+  if (GetStorage().read("minecraftFolder") != null && !onInit) {
+    String res = GetStorage().read("minecraftFolder").toString();
+    return Directory(res);
+  }
   String userHome =
       Platform.environment['HOME'] ?? Platform.environment['USERPROFILE']!;
   if (Platform.isLinux) {
@@ -112,7 +118,7 @@ void openModpacksFolder() {
   }
 }
 
-Future<void> installModpack(
+void installModpack(
     String url,
     String modpackName,
     Function(double progress) setProgressValue,
@@ -189,4 +195,21 @@ Future<void> installModpack(
     displayErrorSnackBar();
     debugPrint(e.toString());
   }
+}
+
+void overwriteMinecraftFolder(Function() updateText) async {
+  String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+  if (selectedDirectory == null) {
+    return;
+  }
+  GetStorage().write("minecraftFolder", selectedDirectory);
+  updateText();
+}
+
+void clearMinecraftFolderOverwrite(Function() updateText) async {
+  GetStorage().write(
+    "minecraftFolder",
+    getMinecraftFolder(onInit: true).path,
+  );
+  updateText();
 }

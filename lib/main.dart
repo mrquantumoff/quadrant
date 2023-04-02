@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:mcmodpackmanager_reborn/backend.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/install_modpack_button.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 import 'package:mcmodpackmanager_reborn/selector.dart';
@@ -118,6 +119,12 @@ class _ThemeProviderState extends State<ThemeProvider> {
 
   @override
   Widget build(BuildContext context) {
+    if (GetStorage().read("minecraftFolder") == null) {
+      debugPrint("Mc folder is null");
+      GetStorage()
+          .write("minecraftFolder", getMinecraftFolder(onInit: true).path);
+    }
+
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -157,6 +164,7 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager> {
           // title: Text(AppLocalizations.of(context)!.productName),
           ),
       endDrawer: Drawer(
+        width: 350,
         child: Settings(
           setLocale: widget.setLocale,
         ),
