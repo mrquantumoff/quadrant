@@ -127,7 +127,7 @@ class _SettingsState extends State<Settings> {
                     onPressed: () =>
                         overwriteMinecraftFolder(updateMinecraftFolderText),
                     child: Text(
-                        AppLocalizations.of(context)!.overwriteMinecraftFolder),
+                        AppLocalizations.of(context)!.overrideMinecraftFolder),
                   ),
                 ),
                 Container(

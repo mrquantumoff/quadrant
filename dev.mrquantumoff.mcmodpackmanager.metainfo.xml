@@ -34,9 +34,17 @@
   </keywords>
   <releases>
 
+    <release date="2023-04-03" version="7.10.0">
+      <description>
+        <p>Redesign install mod page, make rounded mod icons optional, add an option to override
+          .minecraft</p>
+      </description>
+    </release>
+
     <release date="2023-04-01" version="7.9.0">
       <description>
-        <p>Some nice ui changes and a few UX improvements</p>
+        <p>Some
+          nice ui changes and a few UX improvements</p>
       </description>
     </release>
 

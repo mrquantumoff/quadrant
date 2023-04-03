@@ -83,7 +83,7 @@
     },
     "openLatestRelease": "Open the latest release",
     "openInTheWeb": "Open in the web",
-    "overwriteMinecraftFolder": "Overwrite the Minecraft folder",
+    "overrideMinecraftFolder": "Override the Minecraft folder",
     "resetMinecraftFolder": "Reset the Minecraft folder",
     "unknown": "Unknown",
     "clipIcons": "Clip the icons"

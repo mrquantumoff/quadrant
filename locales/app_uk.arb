@@ -83,7 +83,7 @@
     },
     "openLatestRelease": "Відкрити останню версію",
     "openInTheWeb": "Відкрити в інтернеті",
-    "overwriteMinecraftFolder": "Змінити .minecraft",
+    "overrideMinecraftFolder": "Змінити .minecraft",
     "resetMinecraftFolder": "Відновити .minecraft",
     "unknown": "Невідомо",
     "clipIcons": "Закругляти іконки"
