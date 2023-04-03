@@ -233,6 +233,7 @@ class _ModState extends State<Mod> {
                                       label: modpack, value: modpack),
                                 );
                               }
+
                               Get.to(
                                 () => InstallModPage(
                                   versions: versionItems,
