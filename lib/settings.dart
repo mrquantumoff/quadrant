@@ -17,6 +17,7 @@ class _SettingsState extends State<Settings> {
   late TextEditingController _controller;
   late String mcFolder;
   late String latestVersion;
+  bool clipButtons = GetStorage().read("clipIcons");
 
   @override
   void dispose() {
@@ -26,6 +27,13 @@ class _SettingsState extends State<Settings> {
   void updateMinecraftFolderText() {
     setState(() {
       mcFolder = getMinecraftFolder().path;
+    });
+  }
+
+  void setClipButtons(bool newValue) {
+    GetStorage().write("clipIcons", newValue);
+    setState(() {
+      clipButtons = newValue;
     });
   }
 
@@ -131,6 +139,21 @@ class _SettingsState extends State<Settings> {
                         AppLocalizations.of(context)!.resetMinecraftFolder),
                   ),
                 ),
+              ],
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            child: Row(
+              children: [
+                Container(
+                  margin: const EdgeInsetsDirectional.only(end: 12),
+                  child: Switch(
+                    value: clipButtons,
+                    onChanged: setClipButtons,
+                  ),
+                ),
+                Text(AppLocalizations.of(context)!.clipIcons),
               ],
             ),
           )

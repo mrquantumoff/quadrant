@@ -54,6 +54,10 @@ void main() async {
 
   debugPrint(await generateUserAgent());
 
+  if (GetStorage().read("clipIcons") == null) {
+    GetStorage().writeInMemory("clipIcons", true);
+  }
+
   runApp(const MyApp());
 }
 

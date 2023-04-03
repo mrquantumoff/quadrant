@@ -85,5 +85,6 @@
     "openInTheWeb": "Відкрити в інтернеті",
     "overwriteMinecraftFolder": "Змінити .minecraft",
     "resetMinecraftFolder": "Відновити .minecraft",
-    "unknown": "Невідомо"
+    "unknown": "Невідомо",
+    "clipIcons": "Закругляти іконки"
 }

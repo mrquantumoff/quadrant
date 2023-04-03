@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
 import "package:http/http.dart" as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -119,7 +120,8 @@ class _InstallModPageState extends State<InstallModPage> {
         children: [
           Center(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(80),
+              borderRadius: BorderRadius.circular(
+                  GetStorage().read("clipIcons") == true ? 80 : 0),
               child: Image(
                 image: NetworkImage(widget.mod.modIconUrl),
                 alignment: Alignment.centerRight,

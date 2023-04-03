@@ -85,5 +85,6 @@
     "openInTheWeb": "Open in the web",
     "overwriteMinecraftFolder": "Overwrite the Minecraft folder",
     "resetMinecraftFolder": "Reset the Minecraft folder",
-    "unknown": "Unknown"
+    "unknown": "Unknown",
+    "clipIcons": "Clip the icons"
 }

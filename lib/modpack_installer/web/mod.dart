@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:mcmodpackmanager_reborn/backend.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
@@ -122,7 +123,8 @@ class _ModState extends State<Mod> {
                 Container(
                   margin: const EdgeInsetsDirectional.only(start: 12, top: 6.5),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(80),
+                    borderRadius: BorderRadius.circular(
+                        GetStorage().read("clipIcons") == true ? 80 : 0),
                     child: Image(
                       image: NetworkImage(widget.modIconUrl),
                       alignment: Alignment.centerRight,
