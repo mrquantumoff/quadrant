@@ -224,6 +224,16 @@ Future<Map<String, String>> getReleaseInfo() async {
     "Authentication":
         "Bearer ${const String.fromEnvironment("GITHUB_RELEASE_KEY")}"
   };
+  try {
+    final result = await InternetAddress.lookup('example.com');
+    if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {}
+  } on SocketException catch (_) {
+    return {
+      "latestRelease": "v",
+      "currentRelease": "",
+      "url": "https://mrquantumoff.dev"
+    };
+  }
   Response latestReleaseResponse = await get(githubGet, headers: headers);
   List<dynamic> response = json.decode(latestReleaseResponse.body);
   Map latestRelease = response[0];
