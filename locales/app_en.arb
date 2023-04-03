@@ -36,11 +36,51 @@
     "cancel": "Cancel",
     "search": "Search",
     "free": "Free modpacks",
-    "mod": "Mod from ",
-    "resourcePack": "Resource pack from ",
-    "shaderPack": "Shaders from ",
-    "currentVersion": "Installed version is ",
-    "latestVersion": "Latest version is ",
+    "mod": "Mod from {source}",
+    "@mod": {
+        "placeholders": {
+            "source": {
+                "type": "String",
+                "example" : "CurseForge"
+            }
+        }
+    },
+    "resourcePack": "Resource pack from {source}",
+    "@resourcePack": {
+        "placeholders": {
+            "source": {
+                "type": "String",
+                "example" : "CurseForge"
+            }
+        }
+    },
+    "shaderPack": "Shaders from {source}",
+    "@shaderPack": {
+        "placeholders": {
+            "source": {
+                "type": "String",
+                "example" : "CurseForge"
+            }
+        }
+    },
+    "currentVersion": "Installed version is {version}",
+    "@currentVersion": {
+        "placeholders": {
+            "version": {
+                "type": "String",
+                "example" : "7.9.0"
+            }
+        }
+    },
+    "latestVersion": "Latest version is {version}",
+    "@latestVersion": {
+        "placeholders": {
+            "version": {
+                "type": "String",
+                "example" : "7.9.0"
+            }
+        }
+    },
     "openLatestRelease": "Open the latest release",
     "openInTheWeb": "Open in the web",
     "overwriteMinecraftFolder": "Overwrite the Minecraft folder",

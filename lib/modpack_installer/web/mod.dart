@@ -73,14 +73,17 @@ class _ModState extends State<Mod> {
 
   String getModpackTypeString() {
     if (widget.modClass == ModClass.mod) {
-      return AppLocalizations.of(context)!.mod +
-          widget.source.name.toLowerCase();
+      return AppLocalizations.of(context)!.mod(
+        widget.source.name.toLowerCase(),
+      );
     } else if (widget.modClass == ModClass.resourcePack) {
-      return AppLocalizations.of(context)!.resourcePack +
-          widget.source.name.toLowerCase();
+      return AppLocalizations.of(context)!.resourcePack(
+        widget.source.name.toLowerCase(),
+      );
     } else if (widget.modClass == ModClass.shaderPack) {
-      return AppLocalizations.of(context)!.shaderPack +
-          widget.source.name.toLowerCase();
+      return AppLocalizations.of(context)!.shaderPack(
+        widget.source.name.toLowerCase(),
+      );
     } else {
       return "Unknown";
     }

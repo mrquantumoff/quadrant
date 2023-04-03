@@ -107,11 +107,13 @@ class _SettingsState extends State<Settings> {
                   return Column(
                     children: [
                       Text(
-                        "${AppLocalizations.of(context)!.currentVersion}v${snapshot.data!["currentRelease"].toString()}",
+                        AppLocalizations.of(context)!.currentVersion(
+                            "v${snapshot.data!["currentRelease"].toString()}"),
                         style: const TextStyle(fontSize: 16),
                       ),
                       Text(
-                        "${AppLocalizations.of(context)!.latestVersion}${snapshot.data!["latestRelease"].toString()}",
+                        AppLocalizations.of(context)!.latestVersion(
+                            snapshot.data!["latestRelease"].toString()),
                         style: const TextStyle(fontSize: 16),
                       ),
                       Container(
