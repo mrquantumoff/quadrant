@@ -16,8 +16,8 @@
     "installError": "Modpack yüklenirken hata oluştu. Modack'i doğru uzantısı ile seçtiğinizden emin olun",
     "name": "İsim",
     "download": "Yükle",
-    "downloadIsAlreadyInProgress": "Yğkleme evam ediyor",
-    "downloadSuccess": "Mod(s) başarıyla yüklendi",
+    "downloadIsAlreadyInProgress": "Yükleme devam ediyor",
+    "downloadSuccess": "Mod(lar) başarıyla yüklendi",
     "downloadFail": "Yükleme başarısız",
     "overwriteQuestion": "Yeniden yazılsın mı?",
     "overwriteQuestionText": "Aynı isimde Modpack mevcut. Mevcut dosyanın üzerine kaydedilsin mi?",
@@ -35,7 +35,7 @@
     "noVersion": "Uyumlu bir versiyon bunumadı",
     "cancel": "Vazgeç",
     "search": "Ara",
-    "free": "Ücretsiz modpackler",
+    "free": "Özgür modpack",
     "mod": "Mod from ",
     "resourcePack": "Resource pack from ",
     "shaderPack": "Shaders from ",
@@ -44,5 +44,5 @@
     "openLatestRelease": "Son sürümü aç",
     "openInTheWeb": "Web üzerinden aç",
     "overwriteMinecraftFolder": "Minecraft klasörünü yeniden yaz",
-    "resetMinecraftFolder": "Minecraft klasörünü temizle"
+    "resetMinecraftFolder": "Minecraft klasörünü sıfırla"
 }
