@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
 
 class Selector extends StatefulWidget {
@@ -37,6 +38,15 @@ class _SelectorState extends State<Selector> {
 
   @override
   Widget build(BuildContext context) {
+    a() async {
+      var release = await getReleaseInfo();
+
+      GetStorage().writeInMemory("latestVersion", release["latestRelease"]);
+      GetStorage().writeInMemory("currentVersion", release["currentRelease"]);
+      GetStorage().writeInMemory("latestVersionUrl", release["url"]);
+    }
+
+    a();
     return Column(
       children: [
         // Selector

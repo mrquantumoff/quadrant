@@ -166,10 +166,13 @@ class _InstallModPageState extends State<InstallModPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SingleChildScrollView(
-                child: Text(
-                  desc,
-                  style: const TextStyle(fontSize: 24),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 256),
+                child: SingleChildScrollView(
+                  child: Text(
+                    desc,
+                    style: const TextStyle(fontSize: 24),
+                  ),
                 ),
               ),
               Container(

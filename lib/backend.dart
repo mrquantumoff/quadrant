@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_platform_alert/flutter_platform_alert.dart';
 
@@ -212,4 +214,24 @@ void clearMinecraftFolderOverwrite(Function() updateText) async {
     getMinecraftFolder(onInit: true).path,
   );
   updateText();
+}
+
+Future<Map<String, String>> getReleaseInfo() async {
+  Uri githubGet = Uri.parse(
+      "https://api.github.com/repos/mrquantumoff/mcmodpackmanager_reborn/releases");
+
+  Map<String, String> headers = {
+    "Authentication":
+        "Bearer ${const String.fromEnvironment("GITHUB_RELEASE_KEY")}"
+  };
+  Response latestReleaseResponse = await get(githubGet, headers: headers);
+  List<dynamic> response = json.decode(latestReleaseResponse.body);
+  Map latestRelease = response[0];
+  PackageInfo packageInfo = await PackageInfo.fromPlatform();
+
+  return {
+    "latestRelease": latestRelease["tag_name"],
+    "currentRelease": packageInfo.version,
+    "url": latestRelease["html_url"]
+  };
 }

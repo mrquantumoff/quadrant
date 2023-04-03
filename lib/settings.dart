@@ -1,10 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:get_storage/get_storage.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Settings extends StatefulWidget {
@@ -37,28 +34,6 @@ class _SettingsState extends State<Settings> {
     mcFolder = getMinecraftFolder().path;
     super.initState();
     _controller = TextEditingController();
-  }
-
-  Uri githubGet = Uri.parse(
-      "https://api.github.com/repos/mrquantumoff/mcmodpackmanager_reborn/releases");
-
-  Map<String, String> headers = {
-    "Authentication":
-        "Bearer ${const String.fromEnvironment("GITHUB_RELEASE_KEY")}"
-  };
-
-  Future<Map<String, String>> getReleaseInfo() async {
-    http.Response latestReleaseResponse =
-        await http.get(githubGet, headers: headers);
-    List<dynamic> response = json.decode(latestReleaseResponse.body);
-    Map latestRelease = response[0];
-    PackageInfo packageInfo = await PackageInfo.fromPlatform();
-
-    return {
-      "latestRelease": latestRelease["tag_name"],
-      "currentRelease": packageInfo.version,
-      "url": latestRelease["html_url"]
-    };
   }
 
   @override
@@ -98,47 +73,39 @@ class _SettingsState extends State<Settings> {
           ),
           Container(
             margin: const EdgeInsets.only(top: 12, bottom: 12),
-            child: FutureBuilder(
-              future: getReleaseInfo(),
-              builder: (ctx, snapshot) {
-                // Checking if future is resolved
-                if (snapshot.connectionState == ConnectionState.done &&
-                    snapshot.hasData) {
-                  return Column(
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.currentVersion(
-                            "v${snapshot.data!["currentRelease"].toString()}"),
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      Text(
-                        AppLocalizations.of(context)!.latestVersion(
-                            snapshot.data!["latestRelease"].toString()),
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.only(top: 12),
-                        child: TextButton.icon(
-                          onPressed: () {
-                            Uri uri = Uri.parse(snapshot.data!["url"]!);
-                            launchUrl(uri);
-                          },
-                          icon: const Icon(Icons.open_in_browser),
-                          label: Text(
-                            AppLocalizations.of(context)!.openLatestRelease,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                } else if (snapshot.connectionState == ConnectionState.done &&
-                    snapshot.hasError) {
-                  return Container();
-                } else {
-                  return const LinearProgressIndicator();
-                }
-              },
+            child: Column(
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.currentVersion(
+                    "v${GetStorage().read("currentVersion")}",
+                  ),
+                  style: const TextStyle(fontSize: 16),
+                ),
+                Text(
+                  AppLocalizations.of(context)!.latestVersion(
+                    GetStorage().read("latestVersion") ??
+                        AppLocalizations.of(context)!.unknown,
+                  ),
+                  style: const TextStyle(fontSize: 16),
+                ),
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  child: TextButton.icon(
+                    onPressed: () {
+                      Uri uri = Uri.parse(
+                        GetStorage().read("latestVersionUrl") ??
+                            AppLocalizations.of(context)!.unknown,
+                      );
+                      launchUrl(uri);
+                    },
+                    icon: const Icon(Icons.open_in_browser),
+                    label: Text(
+                      AppLocalizations.of(context)!.openLatestRelease,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Container(

@@ -184,13 +184,6 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager> {
                   height: 128,
                 ),
               ),
-              // Container(
-              //   margin: const EdgeInsets.only(bottom: 15),
-              //   child: Text(
-              //     AppLocalizations.of(context)!.productName,
-              //     style: const TextStyle(fontSize: 24),
-              //   ),
-              // ),
               const Selector(),
               const OpenModpacksFolder(),
               const ModpackInstaller()

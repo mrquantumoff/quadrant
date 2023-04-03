@@ -84,5 +84,6 @@
     "openLatestRelease": "Open the latest release",
     "openInTheWeb": "Open in the web",
     "overwriteMinecraftFolder": "Overwrite the Minecraft folder",
-    "resetMinecraftFolder": "Reset the Minecraft folder"
+    "resetMinecraftFolder": "Reset the Minecraft folder",
+    "unknown": "Unknown"
 }
