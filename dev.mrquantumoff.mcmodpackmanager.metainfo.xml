@@ -34,9 +34,17 @@
   </keywords>
   <releases>
 
+    <release date="2023-04-04" version="7.11.0">
+      <description>
+        <p>Added an option to filter your search results, the app now remembers your last modpack,
+          API, version preference when installing a bunch of mods in 1 session</p>
+      </description>
+    </release>
+
     <release date="2023-04-03" version="7.10.0">
       <description>
-        <p>Redesign install mod page, make rounded mod icons optional, add an option to override
+        <p>Redesigned the install mod page, rounded
+          mod icons are now optional, added an option to override
           .minecraft</p>
       </description>
     </release>
