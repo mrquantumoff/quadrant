@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 import 'dart:convert';
@@ -24,7 +25,9 @@ class UserAgentClient extends http.BaseClient {
 }
 
 class WebSourcesPage extends StatefulWidget {
-  const WebSourcesPage({super.key});
+  const WebSourcesPage({super.key, this.filterOn = false});
+
+  final bool filterOn;
 
   @override
   State<WebSourcesPage> createState() => _WebSourcesPageState();
@@ -58,6 +61,14 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
       if (modsClass == ModClass.shaderPack) {
         rawUri = '$rawUri&categoryId=4547';
       }
+
+      if (widget.filterOn) {
+        rawUri = '$rawUri&gameVersion=${GetStorage().read("lastUsedVersion")}';
+      }
+      if (widget.filterOn && modsClass == ModClass.mod) {
+        rawUri = '$rawUri&modLoaderType=${GetStorage().read("lastUsedAPI")}';
+      }
+
       Uri uri = Uri.parse(rawUri);
       debugPrint(uri.toString());
       http.Response response = await http.get(uri, headers: {
@@ -105,48 +116,60 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
       String modType = modsClass.name.toLowerCase();
       modType = modType.replaceAll("shaderpack", "shader");
       debugPrint(modType);
+      String facets = '["project_type:$modType"]';
 
+      if (widget.filterOn) {
+        facets =
+            '$facets, ["versions:${GetStorage().read("lastUsedVersion")}"]';
+      }
+      if (widget.filterOn && modsClass == ModClass.mod) {
+        facets = '$facets, ["categories:${GetStorage().read("lastUsedAPI")}"]';
+      }
+      String rawUri =
+          'https://api.modrinth.com/v2/search?query=$searchText&limit=50&facets=[$facets]';
       Uri uri = Uri.parse(
-        'https://api.modrinth.com/v2/search?query=$searchText&limit=50&facets=[["project_type:$modType"]]',
+        rawUri,
       );
       http.Response response = await http.get(uri, headers: {
         "User-Agent": await generateUserAgent(),
         "X-API-Key": apiKey,
       });
       Map responseJson = json.decode(response.body);
-      for (var mod in responseJson["hits"]) {
-        String name = mod["title"];
-        String desc = mod["description"];
-        int downloadCount = mod["downloads"];
-        String id = mod["project_id"];
-        String slug = mod["slug"];
-        String icon =
-            "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo256.png";
-        // Not all mods have icons
+      if (responseJson["hits"] != null) {
+        for (var mod in responseJson["hits"]) {
+          String name = mod["title"];
+          String desc = mod["description"];
+          int downloadCount = mod["downloads"];
+          String id = mod["project_id"];
+          String slug = mod["slug"];
+          String icon =
+              "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo256.png";
+          // Not all mods have icons
 
-        try {
-          String mModIconUrl = mod["icon_url"].toString().trim();
-          if (mModIconUrl == "") {
-            throw Exception("No proper icon");
-          }
-          Uri.parse(mModIconUrl);
-          icon = mModIconUrl;
-          // ignore: empty_catches
-        } catch (e) {}
+          try {
+            String mModIconUrl = mod["icon_url"].toString().trim();
+            if (mModIconUrl == "") {
+              throw Exception("No proper icon");
+            }
+            Uri.parse(mModIconUrl);
+            icon = mModIconUrl;
+            // ignore: empty_catches
+          } catch (e) {}
 
-        widgets.add(
-          Mod(
-            description: desc,
-            name: name,
-            id: id,
-            slug: slug,
-            modIconUrl: icon,
-            setAreParentButtonsActive: setAreButtonsEnabled,
-            downloadCount: downloadCount,
-            source: ModSource.modRinth,
-            modClass: modsClass,
-          ),
-        );
+          widgets.add(
+            Mod(
+              description: desc,
+              name: name,
+              id: id,
+              slug: slug,
+              modIconUrl: icon,
+              setAreParentButtonsActive: setAreButtonsEnabled,
+              downloadCount: downloadCount,
+              source: ModSource.modRinth,
+              modClass: modsClass,
+            ),
+          );
+        }
       }
     }
 
@@ -167,10 +190,10 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
 
   @override
   void dispose() {
+    super.dispose();
     areButtonsEnabled = false;
     searchFieldController.dispose();
     searchResults = [];
-    super.dispose();
   }
 
   @override

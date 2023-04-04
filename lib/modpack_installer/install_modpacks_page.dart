@@ -2,12 +2,14 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_platform_alert/flutter_platform_alert.dart';
 import "package:http/http.dart" as http;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/filter_mods.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web_sources.dart';
 
@@ -292,8 +294,26 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                               bool isValid = false;
                               for (var game in data["data"]) {
                                 if (game["id"] == 432) {
-                                  Get.to(() => const WebSourcesPage(),
-                                      transition: Transition.rightToLeft);
+                                  final clickedButton =
+                                      await FlutterPlatformAlert.showAlert(
+                                    windowTitle: AppLocalizations.of(context)!
+                                        .productName,
+                                    text: AppLocalizations.of(context)!
+                                        .filterModpacksQ,
+                                    alertStyle: AlertButtonStyle.yesNo,
+                                    iconStyle: IconStyle.question,
+                                  );
+                                  if (clickedButton == AlertButton.yesButton) {
+                                    Get.to(
+                                      () => const FilterMods(),
+                                      transition: Transition.rightToLeft,
+                                    );
+                                  } else {
+                                    Get.to(
+                                      () => const WebSourcesPage(),
+                                      transition: Transition.rightToLeft,
+                                    );
+                                  }
                                   isValid = true;
                                 }
                               }

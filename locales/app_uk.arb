@@ -36,13 +36,57 @@
     "cancel": "Відміна",
     "search": "Шукати",
     "free": "Вільний модпак",
-    "mod": "Мод з ",
-    "resourcePack": "Набір ресурсів з ",
-    "shaderPack": "Шейдери з ",
-    "currentVersion": "Встановлена весрія - ",
-    "latestVersion": "Остання весрія - ",
+    "mod": "Мод з {source}",
+    "@mod": {
+        "placeholders": {
+            "source": {
+                "type": "String",
+                "example" : "CurseForge"
+            }
+        }
+    },
+    "resourcePack": "Набір ресурсів з {source}",
+    "@resourcePack": {
+        "placeholders": {
+            "source": {
+                "type": "String",
+                "example" : "CurseForge"
+            }
+        }
+    },
+    "shaderPack": "Шейдери з {source}",
+    "@shaderPack": {
+        "placeholders": {
+            "source": {
+                "type": "String",
+                "example" : "CurseForge"
+            }
+        }
+    },
+    "currentVersion": "Встановлена весрія - {version}",
+    "@currentVersion": {
+        "placeholders": {
+            "version": {
+                "type": "String",
+                "example" : "7.9.0"
+            }
+        }
+    },
+    "latestVersion": "Остання весрія - {version}",
+    "@latestVersion": {
+        "placeholders": {
+            "version": {
+                "type": "String",
+                "example" : "7.9.0"
+            }
+        }
+    },
     "openLatestRelease": "Відкрити останню версію",
     "openInTheWeb": "Відкрити в інтернеті",
-    "overwriteMinecraftFolder": "Змінити .minecraft",
-    "resetMinecraftFolder": "Відновити .minecraft"
+    "overrideMinecraftFolder": "Змінити .minecraft",
+    "resetMinecraftFolder": "Відновити .minecraft",
+    "unknown": "Невідомо",
+    "clipIcons": "Закругляти іконки",
+    "filterModpacksQ": "Чи хочете ви відфільтрувати моди?"
+
 }

@@ -26,8 +26,7 @@ jobs:
         if: matrix.platform == 'windows-latest'
         run: |
           flutter pub get
-          flutter pub run msix:create --output-path windows-build --windows-build-args ' --split-debug-info --obfuscate --dart-define ETERNAL_API_KEY=${{ secrets.ETERNAL_API_KEY }} --dart-define MS_STORE_BUILD=true --dart-define GITHUB_RELEASE_KEY=${{ secrets.RELEASE_TOKEN }} --release'
-          flutter build windows --split-debug-info --obfuscate --dart-define ETERNAL_API_KEY=${{ secrets.ETERNAL_API_KEY }} --dart-define GITHUB_RELEASE_KEY=${{ secrets.RELEASE_TOKEN }} --release
+          flutter pub run msix:create --output-path windows-build --windows-build-args ' --split-debug-info --obfuscate --dart-define ETERNAL_API_KEY=${{ secrets.ETERNAL_API_KEY }} --dart-define GITHUB_RELEASE_KEY=${{ secrets.RELEASE_TOKEN }} --release'
       - name: Compress Windows build to .zip
         if: matrix.platform == 'windows-latest'
         uses: vimtor/action-zip@v1.1
