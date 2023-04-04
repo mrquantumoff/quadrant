@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import '../../backend.dart';
+import '../web_sources.dart';
 import 'generate_user_agent.dart';
 
 class FilterMods extends StatefulWidget {
@@ -130,6 +131,12 @@ class _FilterModsState extends State<FilterMods> {
                 GetStorage().writeInMemory("lastUsedVersion", version);
                 GetStorage().writeInMemory("lastUsedAPI", api);
                 GetStorage().writeInMemory("lastUsedModpack", modpack);
+                Get.to(
+                  () => const WebSourcesPage(
+                    filterOn: true,
+                  ),
+                  transition: Transition.downToUp,
+                );
               },
               icon: const Icon(Icons.search),
               label: Text(AppLocalizations.of(context)!.apply),

@@ -383,7 +383,6 @@ class _InstallModPageState extends State<InstallModPage> {
                                       final downloadedLength = bytes.length;
                                       setProgressValue(downloadedLength /
                                           (contentLength ?? 1));
-                                      debugPrint(progressValue.toString());
                                     },
                                     onDone: () async {
                                       await modDestFile.writeAsBytes(bytes,
