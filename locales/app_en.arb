@@ -86,5 +86,6 @@
     "overrideMinecraftFolder": "Override the Minecraft folder",
     "resetMinecraftFolder": "Reset the Minecraft folder",
     "unknown": "Unknown",
-    "clipIcons": "Clip the icons"
+    "clipIcons": "Clip the icons",
+    "filterModpacksQ": "Do you want to filter the mods?"
 }

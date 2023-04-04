@@ -197,6 +197,7 @@ class _InstallModPageState extends State<InstallModPage> {
                 child: DropdownMenu(
                   controller: versionFieldController,
                   dropdownMenuEntries: widget.versions,
+                  initialSelection: GetStorage().read("lastUsedVersion"),
                   label: Text(AppLocalizations.of(context)!.chooseVersion),
                   width: 840,
                 ),
@@ -213,6 +214,9 @@ class _InstallModPageState extends State<InstallModPage> {
                     DropdownMenuEntry(label: "Rift", value: "Rift"),
                   ],
                   width: 840,
+                  initialSelection: widget.modClass == ModClass.mod
+                      ? GetStorage().read("lastUsedAPI")
+                      : null,
                   enabled: widget.modClass == ModClass.mod,
                 ),
               ),
@@ -222,6 +226,9 @@ class _InstallModPageState extends State<InstallModPage> {
                   label: Text(AppLocalizations.of(context)!.chooseModpack),
                   controller: modpackFieldController,
                   dropdownMenuEntries: widget.modpacks,
+                  initialSelection: widget.modClass == ModClass.mod
+                      ? GetStorage().read("lastUsedModpack")
+                      : null,
                   width: 840,
                   enabled: widget.modClass == ModClass.mod,
                 ),
@@ -250,6 +257,12 @@ class _InstallModPageState extends State<InstallModPage> {
                                 String api = apiFieldController.value.text;
                                 String modpack =
                                     modpackFieldController.value.text;
+
+                                GetStorage()
+                                    .writeInMemory("lastUsedVersion", version);
+                                GetStorage().writeInMemory("lastUsedAPI", api);
+                                GetStorage()
+                                    .writeInMemory("lastUsedModpack", modpack);
                                 if (version.trim() == "" ||
                                     ((api.trim() == "" ||
                                             modpack.trim() == "") &&

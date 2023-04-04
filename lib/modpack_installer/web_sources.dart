@@ -24,7 +24,9 @@ class UserAgentClient extends http.BaseClient {
 }
 
 class WebSourcesPage extends StatefulWidget {
-  const WebSourcesPage({super.key});
+  const WebSourcesPage({super.key, this.filterOn = false});
+
+  final bool filterOn;
 
   @override
   State<WebSourcesPage> createState() => _WebSourcesPageState();
@@ -167,10 +169,10 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
 
   @override
   void dispose() {
+    super.dispose();
     areButtonsEnabled = false;
     searchFieldController.dispose();
     searchResults = [];
-    super.dispose();
   }
 
   @override
