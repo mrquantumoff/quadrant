@@ -20,13 +20,13 @@
 
 ### [Available on Flathub](https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager)
 
-### [Available on Microsoft Store\*](https://www.microsoft.com/store/apps/9NLT70M0TVD0)
+### [Available on Microsoft Store](https://www.microsoft.com/store/apps/9NLT70M0TVD0)
 
 ### [Grab the latest build manually (macOS/Linux/Windows)](https://github.com/mrquantumoff/mcmodpackmanager_reborn/releases/latest)
 
 </div>
 
-> ## \* If some of the app's functionality doesn't work properly, consider using the .zip build. I haven't figured out the reason why applying/clearing mods folder is not working properly with Microsoft Store, but I suspect it might be tied to your windows version.
+> ## \* If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the settings or reinstalling the app from microsoft store.
 >
 > ### Warning: If your mods folder is not symlinked to modpacks/<anything> your mods folder will be deleted after you apply/clear your modpack.
 >
