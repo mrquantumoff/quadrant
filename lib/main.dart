@@ -15,7 +15,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:protocol_handler/protocol_handler.dart';
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
   await GetStorage.init();
@@ -25,6 +25,13 @@ void main() async {
   // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
   if (Platform.isWindows || Platform.isMacOS) {
     await protocolHandler.register('curseforge');
+  } else {
+    // Linux can use arguments from the cli
+    for (String arg in args) {
+      if (arg.startsWith("curseforge://install")) {
+        GetStorage().writeInMemory("curseforgeArgument", arg);
+      }
+    }
   }
   WindowOptions windowOptions = const WindowOptions(
     size: Size(1280, 720),
@@ -196,6 +203,13 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
 
   @override
   Widget build(BuildContext context) {
+    if (GetStorage().read("curseforgeArgument") != null && Platform.isLinux) {
+      debugPrint("curseforge protocol received");
+      onProtocolUrlReceived(GetStorage().read("curseforgeArgument"));
+      debugPrint("curseforge protocol removed");
+      GetStorage().remove("curseforgeArgument");
+    }
+
     return Scaffold(
       appBar: AppBar(
           // title: Text(AppLocalizations.of(context)!.productName),
