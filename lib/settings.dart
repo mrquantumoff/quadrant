@@ -69,6 +69,7 @@ class _SettingsState extends State<Settings> {
               dropdownMenuEntries: [
                 const DropdownMenuEntry(value: "en", label: "English"),
                 const DropdownMenuEntry(value: "uk", label: "Українська"),
+                const DropdownMenuEntry(value: "tr", label: "Türkçe"),
                 DropdownMenuEntry(
                     value: "native",
                     label: AppLocalizations.of(context)!.systemLocale),

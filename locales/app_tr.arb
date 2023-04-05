@@ -1,0 +1,91 @@
+{
+    "productName": "Minecraft Modpack Manager (Reborn)",
+    "apply": "Uygula",
+    "clear": "Temizle",
+    "modpack": "Modpack",
+    "reload": "Yeniden Yükle",
+    "noOptions": "Seçenek yok",
+    "setModpackStatus": "Seçili Modpack durumu",
+    "setModpackSuccess": "Modpack başarıyla tanımlandı",
+    "setModpackFailed": "Modpack tanımlanamadı",
+    "buttonsAreDisabled": "Tuş etkin değil",
+    "openModpacksFolder": "Modpacks klasörünü aç",
+    "installModpacks": "Modiları yükle",
+    "referenceFile": "Referans dosyasını kullanarak modpackileri yükle",
+    "manualInput": "Özelleştirilmis isim ve URL kullanarak modpackileri yükle",
+    "installError": "Modpack yüklenirken hata oluştu. Modack'i doğru uzantısı ile seçtiğinizden emin olun",
+    "name": "İsim",
+    "download": "Yükle",
+    "downloadIsAlreadyInProgress": "Yükleme devam ediyor",
+    "downloadSuccess": "Mod(lar) başarıyla yüklendi",
+    "downloadFail": "Yükleme başarısız",
+    "overwriteQuestion": "Yeniden yazılsın mı?",
+    "overwriteQuestionText": "Aynı isimde Modpack mevcut. Mevcut dosyanın üzerine kaydedilsin mi?",
+    "language": "Dil",
+    "settings": "Ayarlar",
+    "systemLocale": "Sistem dili",
+    "speed":"Hız",
+    "someSettingsRequireReload": "Yeniden açmak için bazı ayarlar gerekli",
+    "web": "Modiları internetten yükle (CurseForge/Modrinth gibi)",
+    "searchForMods": "Mod'ları ara",
+    "noEternalKey": "Doğru CurseForge Eternal API anahtarı bulunamadığı için uygulama derlenemedi. Doğru anahtar olmadan modları CurseForge üzerinden yükleyemezsiniz",
+    "choosePreferredAPI": "Tercih edilen API seç (Forge/Fabric)",
+    "chooseVersion": "Minecraft versiyonunu seç",
+    "chooseModpack": "Modpack seç",
+    "noVersion": "Uyumlu bir versiyon bunumadı",
+    "cancel": "Vazgeç",
+    "search": "Ara",
+    "free": "Özgür modpack",
+    "mod": "{source}dan Mod",
+    "@mod": {
+        "placeholders": {
+            "source": {
+                "type": "String",
+                "example" : "CurseForge"
+            }
+        }
+    },
+    "resourcePack": "{source}dan kaynak paketi",
+    "@resourcePack": {
+        "placeholders": {
+            "source": {
+                "type": "String",
+                "example" : "CurseForge"
+            }
+        }
+    },
+    "shaderPack": "{source}dan gökgelendirme",
+    "@shaderPack": {
+        "placeholders": {
+            "source": {
+                "type": "String",
+                "example" : "CurseForge"
+            }
+        }
+    },
+    "currentVersion": "{version} versiyonu yüklendi",
+    "@currentVersion": {
+        "placeholders": {
+            "version": {
+                "type": "String",
+                "example" : "7.9.0"
+            }
+        }
+    },
+    "latestVersion": "En son versiyon {version}",
+    "@latestVersion": {
+        "placeholders": {
+            "version": {
+                "type": "String",
+                "example" : "7.9.0"
+            }
+        }
+    },
+    "openLatestRelease": "Son sürümü aç",
+    "openInTheWeb": "Web üzerinden aç",
+    "overrideMinecraftFolder": "Minecraft klasörünü yeniden yaz",
+    "resetMinecraftFolder": "Minecraft klasörünü sıfırla",
+    "unknown": "Bilinmeyen",
+    "clipIcons": "Yuvarlatılmış ikonlar?",
+    "filterModpacksQ": "Modiları filtrelemek istiyor musunuz?"
+}
