@@ -199,7 +199,9 @@ class _InstallModPageState extends State<InstallModPage> {
                 child: DropdownMenu(
                   controller: versionFieldController,
                   dropdownMenuEntries: widget.versions,
-                  initialSelection: GetStorage().read("lastUsedVersion"),
+                  initialSelection: widget.installFileId == null
+                      ? GetStorage().read("lastUsedVersion")
+                      : null,
                   label: Text(AppLocalizations.of(context)!.chooseVersion),
                   width: 840,
                   enabled: (widget.installFileId == null),
@@ -217,8 +219,10 @@ class _InstallModPageState extends State<InstallModPage> {
                     DropdownMenuEntry(label: "Rift", value: "Rift"),
                   ],
                   width: 840,
-                  initialSelection: widget.modClass == ModClass.mod
-                      ? GetStorage().read("lastUsedAPI")
+                  initialSelection: widget.installFileId == null
+                      ? widget.modClass == ModClass.mod
+                          ? GetStorage().read("lastUsedAPI")
+                          : null
                       : null,
                   enabled: (widget.modClass == ModClass.mod &&
                       widget.installFileId == null),
@@ -370,6 +374,9 @@ class _InstallModPageState extends State<InstallModPage> {
                                   }
                                   late ModFile mod;
                                   if (widget.installFileId != null) {
+                                    versionFieldController.text =
+                                        responseJson["data"]["gameVersions"][0];
+
                                     mod = ModFile(
                                       downloadUrl: responseJson["data"]
                                           ["downloadUrl"],
