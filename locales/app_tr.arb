@@ -83,6 +83,6 @@
     },
     "openLatestRelease": "Son sürümü aç",
     "openInTheWeb": "Web üzerinden aç",
-    "overwriteMinecraftFolder": "Minecraft klasörünü yeniden yaz",
+    "overrideMinecraftFolder": "Minecraft klasörünü yeniden yaz",
     "resetMinecraftFolder": "Minecraft klasörünü sıfırla"
 }
