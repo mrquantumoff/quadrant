@@ -84,5 +84,8 @@
     "openLatestRelease": "Son sürümü aç",
     "openInTheWeb": "Web üzerinden aç",
     "overrideMinecraftFolder": "Minecraft klasörünü yeniden yaz",
-    "resetMinecraftFolder": "Minecraft klasörünü sıfırla"
+    "resetMinecraftFolder": "Minecraft klasörünü sıfırla",
+    "unknown": "Bilinmeyen",
+    "clipIcons": "Yuvarlatılmış ikonlar?",
+    "filterModpacksQ": "Modiları filtrelemek istiyor musunuz?"
 }
