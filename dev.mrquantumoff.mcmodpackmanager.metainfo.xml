@@ -36,7 +36,14 @@
 
     <release date="2023-04-05" version="7.12.0">
       <description>
-        <p>Added support for curseforge protocol on windows/macOS (macOS is untested). Added Turkish
+        <p>Bug fixes for Linux</p>
+      </description>
+    </release>
+
+    <release date="2023-04-05" version="7.12.0">
+      <description>
+        <p>Added support for curseforge protocol on
+          windows/macOS (macOS is untested). Added Turkish
           locale.</p>
       </description>
     </release>

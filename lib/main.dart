@@ -23,7 +23,9 @@ void main() async {
 
   // Register a custom protocol
   // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
-  await protocolHandler.register('curseforge');
+  if (Platform.isWindows || Platform.isMacOS) {
+    await protocolHandler.register('curseforge');
+  }
   WindowOptions windowOptions = const WindowOptions(
     size: Size(1280, 720),
     center: false,
