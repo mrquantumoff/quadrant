@@ -2,12 +2,17 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:http/http.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/install_mod_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_platform_alert/flutter_platform_alert.dart';
+
+import 'modpack_installer/web/mod.dart';
 
 Directory getMinecraftFolder({bool onInit = false}) {
   if (GetStorage().read("minecraftFolder") != null && !onInit) {
@@ -134,9 +139,9 @@ void installModpack(
   final sep = Platform.isWindows ? "\\" : "/";
   try {
     Uri uri = Uri.parse(url);
-    var request = Request('GET', uri);
+    var request = http.Request('GET', uri);
     String name = modpackName;
-    var response = await Client().send(request);
+    var response = await http.Client().send(request);
     List<int> chunks = [];
     File saveFile =
         File("${(await getTemporaryDirectory()).path}${sep}modpack-$name.zip");
@@ -234,7 +239,8 @@ Future<Map<String, String>> getReleaseInfo() async {
       "url": "https://mrquantumoff.dev"
     };
   }
-  Response latestReleaseResponse = await get(githubGet, headers: headers);
+  http.Response latestReleaseResponse =
+      await http.get(githubGet, headers: headers);
   List<dynamic> response = json.decode(latestReleaseResponse.body);
   Map latestRelease = response[0];
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
@@ -244,4 +250,107 @@ Future<Map<String, String>> getReleaseInfo() async {
     "currentRelease": packageInfo.version,
     "url": latestRelease["html_url"]
   };
+}
+
+void installModByProtocol(int modId, int fileId) async {
+  final String apiKey =
+      const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
+  String id = modId.toString().trim();
+  String rawUri = "https://api.curseforge.com/v1/mods/$id";
+  http.Response res = await http.get(
+    Uri.parse(rawUri),
+    headers: {
+      "User-Agent": await generateUserAgent(),
+      "X-API-Key": apiKey,
+    },
+  );
+  debugPrint("Mod ID: $id\nFile ID: $fileId");
+  Map responseJson = json.decode(res.body);
+  Map mod = responseJson["data"];
+  String name = mod["name"];
+  String summary = mod["summary"];
+  String modIconUrl =
+      "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
+  int downloadCount = mod["downloadCount"];
+  try {
+    String mModIconUrl = mod["logo"]["thumbnailUrl"].toString().trim();
+    if (mModIconUrl == "") {
+      throw Exception("No proper icon");
+    }
+    Uri.parse(mModIconUrl);
+    modIconUrl = mModIconUrl;
+    // ignore: empty_catches
+  } catch (e) {}
+  String slug = mod["slug"];
+  List<dynamic> categories = mod["categories"];
+  late ModClass modClass;
+
+  /*
+  mod(6),
+  resourcePack(12),
+  shaderPack(4546);
+  */
+
+  for (Map category in categories) {
+    if (category["classId"] == 6) {
+      modClass = ModClass.mod;
+    } else if (category["classId"] == 12) {
+      modClass = ModClass.resourcePack;
+    } else if (category["classId"] == 4546) {
+      modClass = ModClass.resourcePack;
+    }
+  }
+  var finalMod = Mod(
+    description: summary,
+    name: name,
+    id: id,
+    modIconUrl: modIconUrl,
+    slug: slug,
+    setAreParentButtonsActive: (bool newValue) {},
+    downloadCount: downloadCount,
+    source: ModSource.curseForge,
+    modClass: modClass,
+  );
+  Uri uri = Uri.parse(
+    'https://api.modrinth.com/v2/tag/game_version',
+  );
+  List<dynamic> vrs = json.decode((await http.get(
+    uri,
+    headers: {
+      "User-Agent": await generateUserAgent(),
+    },
+  ))
+      .body);
+  List<String> versions = [];
+  for (var v in vrs) {
+    if (v["version_type"] == "release") {
+      versions.add(v["version"].toString());
+    }
+  }
+  List<DropdownMenuEntry> versionItems = [];
+  List<DropdownMenuEntry> modpackItems = [];
+
+  for (var version in versions) {
+    versionItems.add(
+      DropdownMenuEntry(label: version.toString(), value: version),
+    );
+  }
+
+  List<String> modpacks = getModpacks(hideFree: false);
+
+  for (var modpack in modpacks) {
+    modpackItems.add(
+      DropdownMenuEntry(label: modpack, value: modpack),
+    );
+  }
+  Get.to(
+    () => InstallModPage(
+      versions: versionItems,
+      mod: finalMod,
+      modpacks: modpackItems,
+      source: ModSource.curseForge,
+      modClass: modClass,
+      installFileId: fileId,
+    ),
+  );
 }

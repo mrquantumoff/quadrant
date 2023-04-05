@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   dynamic_color
   flutter_platform_alert
+  protocol_handler
   screen_retriever
   url_launcher_windows
   window_manager

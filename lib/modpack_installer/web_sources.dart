@@ -19,7 +19,7 @@ class UserAgentClient extends http.BaseClient {
   Future<http.StreamedResponse> send(http.BaseRequest request) {
     request.headers['user-agent'] = userAgent;
     request.headers['X-API-Key'] =
-        const String.fromEnvironment("ETERNAL_API_TOKEN").replaceAll("\"", "");
+        const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
     return _inner.send(request);
   }
 }

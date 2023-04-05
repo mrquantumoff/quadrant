@@ -31,6 +31,7 @@ dependencies:
   flutter_platform_alert: ^0.3.0
   url_launcher: ^6.1.10
   flutter_svg: ^2.0.4
+  protocol_handler: ^0.1.5
 
 dev_dependencies:
   flutter_test:

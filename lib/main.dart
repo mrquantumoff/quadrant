@@ -13,32 +13,25 @@ import 'package:mcmodpackmanager_reborn/open_modpacks_folder.dart';
 import 'package:mcmodpackmanager_reborn/settings.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:package_info_plus/package_info_plus.dart';
-
-String isOfficial() {
-  final String apiKey = const String.fromEnvironment("ETERNAL_API_KEY")
-      .replaceAll("\"", "")
-      .trim();
-  if (apiKey == "") {
-    return "CurseForge/Modrinth disabled";
-  }
-  return "CurseForge/Modrinth enabled";
-}
+import 'package:protocol_handler/protocol_handler.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
   await GetStorage.init();
-  PackageInfo packageInfo = await PackageInfo.fromPlatform();
-  WindowOptions windowOptions = WindowOptions(
-      size: const Size(1280, 720),
-      center: false,
-      skipTaskbar: false,
-      titleBarStyle: TitleBarStyle.normal,
-      minimumSize: const Size(1024, 576),
-      fullScreen: false,
-      title:
-          "Minecraft Modpack Manager Reborn v${packageInfo.version} (${isOfficial()})");
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Register a custom protocol
+  // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
+  await protocolHandler.register('curseforge');
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(1280, 720),
+    center: false,
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.normal,
+    minimumSize: Size(1024, 576),
+    fullScreen: false,
+  );
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
@@ -89,7 +82,7 @@ class ThemeProvider extends StatefulWidget {
   State<ThemeProvider> createState() => _ThemeProviderState();
 }
 
-class _ThemeProviderState extends State<ThemeProvider> {
+class _ThemeProviderState extends State<ThemeProvider> with ProtocolListener {
   bool shouldUseMaterial3 = true;
 
   late String locale;
@@ -97,8 +90,36 @@ class _ThemeProviderState extends State<ThemeProvider> {
   @override
   void initState() {
     super.initState();
+    protocolHandler.addListener(this);
+
     setLocale(GetStorage().read("locale") ?? "native");
     debugPrint("Initiated $locale");
+  }
+
+  @override
+  void dispose() {
+    protocolHandler.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void onProtocolUrlReceived(String url) {
+    String log = 'Url received: $url)';
+    debugPrint(log);
+    Uri uri = Uri.parse(url);
+    try {
+      // Example: curseforge://install?addonId=238222&fileId=4473386
+      int modId = int.parse(uri.queryParameters["addonId"]!);
+      int fileId = int.parse(uri.queryParameters["fileId"]!);
+      installModByProtocol(modId, fileId);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 1),
+          content: Text(AppLocalizations.of(context)!.downloadFail),
+        ),
+      );
+    }
   }
 
   void setLocale(String value) {
