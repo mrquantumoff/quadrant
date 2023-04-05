@@ -87,6 +87,7 @@
     "resetMinecraftFolder": "Відновити .minecraft",
     "unknown": "Невідомо",
     "clipIcons": "Закругляти іконки",
-    "filterModpacksQ": "Чи хочете ви відфільтрувати моди?"
+    "filterModpacksQ": "Чи хочете ви відфільтрувати моди?",
+    "unsupportedDownload": "Цей тип проєкту не підтримується."
 
 }

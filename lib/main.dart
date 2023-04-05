@@ -82,7 +82,7 @@ class ThemeProvider extends StatefulWidget {
   State<ThemeProvider> createState() => _ThemeProviderState();
 }
 
-class _ThemeProviderState extends State<ThemeProvider> with ProtocolListener {
+class _ThemeProviderState extends State<ThemeProvider> {
   bool shouldUseMaterial3 = true;
 
   late String locale;
@@ -90,36 +90,9 @@ class _ThemeProviderState extends State<ThemeProvider> with ProtocolListener {
   @override
   void initState() {
     super.initState();
-    protocolHandler.addListener(this);
 
     setLocale(GetStorage().read("locale") ?? "native");
     debugPrint("Initiated $locale");
-  }
-
-  @override
-  void dispose() {
-    protocolHandler.removeListener(this);
-    super.dispose();
-  }
-
-  @override
-  void onProtocolUrlReceived(String url) {
-    String log = 'Url received: $url)';
-    debugPrint(log);
-    Uri uri = Uri.parse(url);
-    try {
-      // Example: curseforge://install?addonId=238222&fileId=4473386
-      int modId = int.parse(uri.queryParameters["addonId"]!);
-      int fileId = int.parse(uri.queryParameters["fileId"]!);
-      installModByProtocol(modId, fileId);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          duration: const Duration(seconds: 1),
-          content: Text(AppLocalizations.of(context)!.downloadFail),
-        ),
-      );
-    }
   }
 
   void setLocale(String value) {
@@ -181,7 +154,44 @@ class MinecraftModpackManager extends StatefulWidget {
       _MinecraftModpackManagerState();
 }
 
-class _MinecraftModpackManagerState extends State<MinecraftModpackManager> {
+class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
+    with ProtocolListener {
+  @override
+  void dispose() {
+    protocolHandler.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    protocolHandler.addListener(this);
+  }
+
+  @override
+  void onProtocolUrlReceived(String url) {
+    String log = 'Url received: $url)';
+    debugPrint(log);
+    Uri uri = Uri.parse(url);
+    try {
+      // Example: curseforge://install?addonId=238222&fileId=4473386
+      int modId = int.parse(uri.queryParameters["addonId"]!);
+      int fileId = int.parse(uri.queryParameters["fileId"]!);
+      installModByProtocol(modId, fileId, protocolFail);
+    } catch (e) {
+      protocolFail();
+    }
+  }
+
+  void protocolFail() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 1),
+        content: Text(AppLocalizations.of(context)!.unsupportedDownload),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

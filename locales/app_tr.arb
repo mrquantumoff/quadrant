@@ -87,5 +87,7 @@
     "resetMinecraftFolder": "Minecraft klasörünü sıfırla",
     "unknown": "Bilinmeyen",
     "clipIcons": "Yuvarlatılmış ikonlar?",
-    "filterModpacksQ": "Modiları filtrelemek istiyor musunuz?"
+    "filterModpacksQ": "Modiları filtrelemek istiyor musunuz?",
+    "unsupportedDownload": "Bu tür bir proje desteklenmiyor."
+
 }
