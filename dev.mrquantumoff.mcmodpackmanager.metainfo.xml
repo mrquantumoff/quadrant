@@ -34,6 +34,12 @@
   </keywords>
   <releases>
 
+    <release date="2023-04-07" version="7.13.0">
+      <description>
+        <p>Add Linux protocol handler support and fix MS Store build.</p>
+      </description>
+    </release>
+
     <release date="2023-04-05" version="7.12.1">
       <description>
         <p>Bug fixes for Linux</p>
@@ -42,7 +48,8 @@
 
     <release date="2023-04-05" version="7.12.0">
       <description>
-        <p>Added support for curseforge protocol on
+        <p>Added
+          support for curseforge protocol on
           windows/macOS (macOS is untested). Added Turkish
           locale.</p>
       </description>
