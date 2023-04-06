@@ -249,7 +249,7 @@ Future<Map<String, String>> getReleaseInfo() async {
     "latestRelease": latestRelease,
     "currentRelease": packageInfo.version,
     "url":
-        "https://github.com/mrquantumoff/mcmodpackmanager_reborn/releases/tag/${latestRelease}"
+        "https://github.com/mrquantumoff/mcmodpackmanager_reborn/releases/tag/$latestRelease"
   };
 }
 
