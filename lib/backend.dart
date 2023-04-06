@@ -222,33 +222,34 @@ void clearMinecraftFolderOverwrite(Function() updateText) async {
 }
 
 Future<Map<String, String>> getReleaseInfo() async {
-  Uri githubGet = Uri.parse(
-      "https://api.github.com/repos/mrquantumoff/mcmodpackmanager_reborn/releases");
+  Uri apiLink = Uri.parse(
+      "https://mrquantumoff.dev/api/projects/getMinecraftModpackManagerLatestRelease");
 
   Map<String, String> headers = {
-    "Authentication":
-        "Bearer ${const String.fromEnvironment("GITHUB_RELEASE_KEY")}"
+    "User-Agent": await generateUserAgent(),
   };
   try {
-    final result = await InternetAddress.lookup('example.com');
+    final result = await InternetAddress.lookup('google.com');
     if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {}
   } on SocketException catch (_) {
     return {
       "latestRelease": "v",
       "currentRelease": "",
-      "url": "https://mrquantumoff.dev"
+      "url":
+          "https://mrquantumoff.dev/api/projects/getMinecraftModpackManagerLatestRelease"
     };
   }
   http.Response latestReleaseResponse =
-      await http.get(githubGet, headers: headers);
-  List<dynamic> response = json.decode(latestReleaseResponse.body);
-  Map latestRelease = response[0];
+      await http.get(apiLink, headers: headers);
+  Map response = json.decode(latestReleaseResponse.body);
+  dynamic latestRelease = response["release"].toString();
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
 
   return {
-    "latestRelease": latestRelease["tag_name"],
+    "latestRelease": latestRelease,
     "currentRelease": packageInfo.version,
-    "url": latestRelease["html_url"]
+    "url":
+        "https://github.com/mrquantumoff/mcmodpackmanager_reborn/releases/tag/${latestRelease}"
   };
 }
 
