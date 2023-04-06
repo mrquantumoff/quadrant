@@ -34,7 +34,7 @@
   </keywords>
   <releases>
 
-    <release date="2023-04-07" version="7.13.0">
+    <release date="2023-04-06" version="7.13.0">
       <description>
         <p>Add Linux protocol handler support and fix MS Store build.</p>
       </description>
