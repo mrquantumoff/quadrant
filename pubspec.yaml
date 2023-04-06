@@ -66,6 +66,5 @@ msix_config:
   logo_path: .\assets\icons\logo.ico
   store: true
   protocol-activation: curseforge
-  app-uri-handler-hosts: curseforge.com, beta.curseforge.com
   languages: en-us, uk-ua, tr-tr
   capabilities: internetClient, broadFileSystemAccess
