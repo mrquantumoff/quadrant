@@ -435,6 +435,8 @@ void collectUserInfo({bool saveToFile = false}) async {
   debugPrint(postBody);
 
   if (GetStorage().read("collectUserData") == true) {
+    //https://mrquantumoff.dev/api/v1/submitmcmodpackmanagerusageinfo
+    //http://localhost:3000/api/v1/submitmcmodpackmanagerusageinfo
     var result = await http.post(
       Uri.parse(
           "https://mrquantumoff.dev/api/v1/submitmcmodpackmanagerusageinfo"),
