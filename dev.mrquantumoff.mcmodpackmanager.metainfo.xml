@@ -33,10 +33,16 @@
     <keyword>Minecraft Modpack Manager</keyword>
   </keywords>
   <releases>
+    <release date="2023-04-07" version="7.14.1">
+      <description>
+        <p>Fix some bugs</p>
+      </description>
+    </release>
 
     <release date="2023-04-07" version="7.14.0">
       <description>
-        <p>Added completely OPT-IN data collection.</p>
+        <p>Added
+          completely OPT-IN data collection.</p>
       </description>
     </release>
 
