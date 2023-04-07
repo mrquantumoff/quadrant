@@ -18,7 +18,7 @@ class _SettingsState extends State<Settings> {
   late String mcFolder;
   late String latestVersion;
   bool clipButtons = GetStorage().read("clipIcons");
-
+  bool collectData = GetStorage().read("collectUserData");
   @override
   void dispose() {
     super.dispose();
@@ -34,6 +34,13 @@ class _SettingsState extends State<Settings> {
     GetStorage().write("clipIcons", newValue);
     setState(() {
       clipButtons = newValue;
+    });
+  }
+
+  void setCollectData(bool newValue) {
+    GetStorage().write("collectUserData", newValue);
+    setState(() {
+      collectData = newValue;
     });
   }
 
@@ -155,6 +162,23 @@ class _SettingsState extends State<Settings> {
                   ),
                 ),
                 Text(AppLocalizations.of(context)!.clipIcons),
+              ],
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            child: Row(
+              children: [
+                Container(
+                  margin: const EdgeInsetsDirectional.only(end: 12),
+                  child: Switch(
+                    value: collectData,
+                    onChanged: setCollectData,
+                  ),
+                ),
+                Text(
+                  AppLocalizations.of(context)!.dataCollectionQuestionShort,
+                ),
               ],
             ),
           )

@@ -20,7 +20,7 @@ void main(List<String> args) async {
   await windowManager.ensureInitialized();
   await GetStorage.init();
   WidgetsFlutterBinding.ensureInitialized();
-
+  dataCollectionInit();
   // Register a custom protocol
   // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
   if (Platform.isWindows || Platform.isMacOS) {
@@ -211,9 +211,7 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
     }
 
     return Scaffold(
-      appBar: AppBar(
-          // title: Text(AppLocalizations.of(context)!.productName),
-          ),
+      appBar: AppBar(),
       endDrawer: Drawer(
         width: 350,
         child: Settings(

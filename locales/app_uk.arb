@@ -88,6 +88,6 @@
     "unknown": "Невідомо",
     "clipIcons": "Закругляти іконки",
     "filterModpacksQ": "Чи хочете ви відфільтрувати моди?",
-    "unsupportedDownload": "Цей тип проєкту не підтримується."
-
+    "unsupportedDownload": "Цей тип проєкту не підтримується.",
+    "dataCollectionQuestionShort": "Збирання інформації"
 }

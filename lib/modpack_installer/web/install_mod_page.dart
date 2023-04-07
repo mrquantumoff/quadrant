@@ -271,6 +271,19 @@ class _InstallModPageState extends State<InstallModPage> {
                                 GetStorage().writeInMemory("lastUsedAPI", api);
                                 GetStorage()
                                     .writeInMemory("lastUsedModpack", modpack);
+                                if (widget.mod.source == ModSource.curseForge) {
+                                  GetStorage().write(
+                                      "curseForgeUsage",
+                                      (GetStorage().read("curseForgeUsage") ??
+                                              0) +
+                                          1);
+                                } else {
+                                  GetStorage().write(
+                                      "modrinthUsage",
+                                      (GetStorage().read("modrinthUsage") ??
+                                              0) +
+                                          1);
+                                }
                                 bool isNormalNoVersion =
                                     (version.trim() == "" ||
                                         ((api.trim() == "" ||

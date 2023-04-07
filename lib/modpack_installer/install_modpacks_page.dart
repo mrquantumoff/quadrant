@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_platform_alert/flutter_platform_alert.dart';
+import 'package:get_storage/get_storage.dart';
 import "package:http/http.dart" as http;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -135,7 +136,10 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                                   .contains("downloadUrl")) {
                             displayErrorSnackBar();
                           }
-
+                          GetStorage().write(
+                              "referenceFileUsage",
+                              (GetStorage().read("referenceFileUsage") ?? 0) +
+                                  1);
                           installModpack(
                               modpackref["downloadUrl"],
                               modpackref["name"],
@@ -221,6 +225,11 @@ class _ModpackInstallerPageState extends State<ModpackInstallerPage> {
                                   if (_controller.text == "" ||
                                       _controller2.text == "") return;
                                   Navigator.pop(context);
+                                  GetStorage().write(
+                                      "manualInputUsage",
+                                      (GetStorage().read("manualInputUsage") ??
+                                              0) +
+                                          1);
                                   installModpack(
                                       _controller2.text,
                                       _controller.text,

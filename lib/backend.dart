@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive_io.dart';
+import 'package:dart_ipify/dart_ipify.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -11,7 +13,6 @@ import 'package:mcmodpackmanager_reborn/modpack_installer/web/install_mod_page.d
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_platform_alert/flutter_platform_alert.dart';
-
 import 'modpack_installer/web/mod.dart';
 
 Directory getMinecraftFolder({bool onInit = false}) {
@@ -358,4 +359,89 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
   } catch (e) {
     fail();
   }
+}
+
+void dataCollectionInit() async {
+  if (GetStorage().read("collectUserData") == true) {
+    //  try {
+    collectUserInfo();
+    // }
+    // // ignore: empty_catches
+    // catch (e) {
+    //   debugPrint("Data collection failed: $e");
+    // }
+  } else if (GetStorage().read("collectUserData") == null) {
+    GetStorage().write("collectUserData", false);
+  }
+}
+
+void collectUserInfo() async {
+  /*
+    interface IAppInfo {
+      version: string;
+      os: string;
+      modrinthUsage: number;
+      curseforgeUsage: number;
+      referenceFileUsage: number;
+      manualInputUsage: number;
+      hardwareId: string;
+      date: string;
+      country: string;
+  }
+  */
+  debugPrint("Collecting user info");
+  PackageInfo packageInfo = await PackageInfo.fromPlatform();
+  final String version = packageInfo.version;
+  late final String os;
+  late final String machineId;
+  final deviceInfoPlugin = DeviceInfoPlugin();
+  if (Platform.isLinux) {
+    final linuxInfo = await deviceInfoPlugin.linuxInfo;
+    os = linuxInfo.prettyName;
+    machineId = linuxInfo.machineId ?? "unknown";
+  } else if (Platform.isWindows) {
+    final windowsInfo = await deviceInfoPlugin.windowsInfo;
+    os =
+        "Windows ${windowsInfo.majorVersion.toSigned(100)} ${windowsInfo.displayVersion}; build number: ${windowsInfo.buildNumber}";
+    machineId = windowsInfo.deviceId;
+  } else if (Platform.isMacOS) {
+    final macOSInfo = await deviceInfoPlugin.macOsInfo;
+    os = "MacOS ${macOSInfo.osRelease}";
+    machineId = macOSInfo.systemGUID!;
+  }
+  debugPrint("Current OS: $os");
+  var res = await http.get(
+    Uri.parse("https://api.iplocation.net/?ip=${await Ipify.ipv4()}"),
+  );
+  debugPrint("IP: ${await Ipify.ipv4()}");
+  Map responseJSON = json.decode(res.body);
+  final String country = responseJSON["country_name"] ?? "Unknown";
+  final int modrinthUsage = GetStorage().read("modrinthUsage") ?? 0;
+  final int curseForgeUsage = GetStorage().read("curseForgeUsage") ?? 0;
+  final int referenceFileUsage = GetStorage().read("referenceFileUsage") ?? 0;
+  final int manualInputUsage = GetStorage().read("manualInputUsage") ?? 0;
+  Map response = {
+    "version": version,
+    "os": os,
+    "modrinthUsage": modrinthUsage,
+    "curseForgeUsage": curseForgeUsage,
+    "referenceFileUsage": referenceFileUsage,
+    "manualInputUsage": manualInputUsage,
+    "hardwareId": machineId,
+    "date": DateTime.now().toUtc().toString(),
+    "country": country
+  };
+  String postBody = json.encode(response);
+  debugPrint(postBody);
+
+  var result = await http.post(
+    Uri.parse(
+        "https://mrquantumoff.dev/api/v1/submitmcmodpackmanagerusageinfo"),
+    headers: {"User-Agent": await generateUserAgent()},
+    body: postBody,
+  );
+  if (result.body.contains("Updated") || result.body.contains("Created")) {
+    GetStorage().write("lastDataSent", DateTime.now().toUtc().toString());
+  }
+  debugPrint(result.body);
 }

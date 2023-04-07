@@ -88,6 +88,6 @@
     "unknown": "Bilinmeyen",
     "clipIcons": "Yuvarlatılmış ikonlar?",
     "filterModpacksQ": "Modiları filtrelemek istiyor musunuz?",
-    "unsupportedDownload": "Bu tür bir proje desteklenmiyor."
-
+    "unsupportedDownload": "Bu tür bir proje desteklenmiyor.",
+    "dataCollectionQuestionShort": "Veri toplama"
 }
