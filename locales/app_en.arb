@@ -89,5 +89,6 @@
     "clipIcons": "Clip the icons",
     "filterModpacksQ": "Do you want to filter the mods?",
     "unsupportedDownload": "This download is not supported",
-    "dataCollectionQuestionShort": "Data collection"
+    "dataCollectionQuestionShort": "Data collection",
+    "collectData": "Collect data"
 }

@@ -89,5 +89,6 @@
     "clipIcons": "Yuvarlatılmış ikonlar?",
     "filterModpacksQ": "Modiları filtrelemek istiyor musunuz?",
     "unsupportedDownload": "Bu tür bir proje desteklenmiyor.",
-    "dataCollectionQuestionShort": "Veri toplama"
+    "dataCollectionQuestionShort": "Veri toplama",
+    "collectData": "Verileri kaydet"
 }

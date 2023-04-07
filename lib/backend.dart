@@ -375,7 +375,7 @@ void dataCollectionInit() async {
   }
 }
 
-void collectUserInfo() async {
+void collectUserInfo({bool saveToFile = false}) async {
   /*
     interface IAppInfo {
       version: string;
@@ -434,14 +434,24 @@ void collectUserInfo() async {
   String postBody = json.encode(response);
   debugPrint(postBody);
 
-  var result = await http.post(
-    Uri.parse(
-        "https://mrquantumoff.dev/api/v1/submitmcmodpackmanagerusageinfo"),
-    headers: {"User-Agent": await generateUserAgent()},
-    body: postBody,
-  );
-  if (result.body.contains("Updated") || result.body.contains("Created")) {
-    GetStorage().write("lastDataSent", DateTime.now().toUtc().toString());
+  if (GetStorage().read("collectUserData") == true) {
+    var result = await http.post(
+      Uri.parse(
+          "https://mrquantumoff.dev/api/v1/submitmcmodpackmanagerusageinfo"),
+      headers: {"User-Agent": await generateUserAgent()},
+      body: postBody,
+    );
+    if (result.body.contains("Updated") || result.body.contains("Created")) {
+      GetStorage().write("lastDataSent", DateTime.now().toUtc().toString());
+    }
+    debugPrint(result.body);
   }
-  debugPrint(result.body);
+  if (saveToFile) {
+    var filePickerResult =
+        await FilePicker.platform.saveFile(fileName: "userDataReport.json");
+    if (filePickerResult == null) return;
+    File saveFile = File(filePickerResult);
+    await saveFile.create(recursive: true);
+    await saveFile.writeAsString(postBody);
+  }
 }

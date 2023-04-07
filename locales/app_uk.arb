@@ -12,7 +12,7 @@
     "openModpacksFolder": "Відкрити теку модпаків",
     "installModpacks": "Встановити моди",
     "referenceFile": "Встановити через референсний файл",
-    "manualInput": "Встановити вказавши свої данні",
+    "manualInput": "Встановити вказавши свої дані",
     "installError": "Помилка при встановленні модпаку. Перевірте чи ви використовуєте правильне розширення файлу.",
     "name": "Назва",
     "download": "Скачати",
@@ -89,5 +89,6 @@
     "clipIcons": "Закругляти іконки",
     "filterModpacksQ": "Чи хочете ви відфільтрувати моди?",
     "unsupportedDownload": "Цей тип проєкту не підтримується.",
-    "dataCollectionQuestionShort": "Збирання інформації"
+    "dataCollectionQuestionShort": "Збирання інформації",
+    "collectData": "Зібрати дані"
 }

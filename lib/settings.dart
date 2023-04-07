@@ -181,6 +181,16 @@ class _SettingsState extends State<Settings> {
                 ),
               ],
             ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            child: TextButton.icon(
+              icon: const Icon(Icons.save),
+              onPressed: () => collectUserInfo(saveToFile: true),
+              label: Text(
+                AppLocalizations.of(context)!.collectData,
+              ),
+            ),
           )
         ],
       ),
