@@ -489,6 +489,7 @@ class _InstallModPageState extends State<InstallModPage> {
                                   try {
                                     if (responseJson[0]["files"] == null) {}
                                   } catch (e) {
+                                    debugPrint("Files are null");
                                     setAreButtonsActive(true);
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
@@ -502,10 +503,10 @@ class _InstallModPageState extends State<InstallModPage> {
                                     return;
                                   }
                                   for (var mod in (responseJson[0]["files"])) {
-                                    bool primary = mod["primary"];
-                                    if (!primary) {
-                                      continue;
-                                    }
+                                    // bool primary = mod["primary"];
+                                    // if (!primary) {
+                                    //   continue;
+                                    // }
                                     String fileName = mod["filename"];
                                     String downloadUrl = mod["url"];
 
