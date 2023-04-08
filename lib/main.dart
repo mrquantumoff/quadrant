@@ -94,7 +94,7 @@ class ThemeProvider extends StatefulWidget {
 class _ThemeProviderState extends State<ThemeProvider> {
   bool shouldUseMaterial3 = true;
 
-  late String locale;
+  String locale = GetStorage().read("locale") ?? "native";
 
   @override
   void initState() {
@@ -104,23 +104,32 @@ class _ThemeProviderState extends State<ThemeProvider> {
     debugPrint("Initiated $locale");
   }
 
-  void setLocale(String value) {
+  void setLocale(String value) async {
+    debugPrint((await getApplicationSupportDirectory()).path);
+    bool hasBeenSet = false;
     for (var loc in AppLocalizations.supportedLocales) {
-      if (loc.languageCode == value) {
+      if (loc.languageCode == value && value != "native") {
         GetStorage().write("locale", value);
         setState(() {
           locale = value;
           debugPrint("Locale set");
+          hasBeenSet = true;
         });
-        return;
       }
-      if (value == "native") {
-        final String defaultLocale = Platform.localeName
-            .split("_")
-            .first; // Returns locale string in the form 'en_US'
-        debugPrint("System locale is \"$defaultLocale\"");
-        setLocale(defaultLocale);
-      }
+    }
+    if (!hasBeenSet && value != "native") {
+      GetStorage().write("locale", "en");
+      setState(() {
+        locale = "en";
+        debugPrint("Locale set");
+        hasBeenSet = true;
+      });
+    } else if (value == "native") {
+      final String defaultLocale = Platform.localeName
+          .split("_")
+          .first; // Returns locale string in the form 'en_US'
+      debugPrint("System locale is \"$defaultLocale\"");
+      setLocale(defaultLocale);
     }
   }
 

@@ -389,71 +389,75 @@ void collectUserInfo({bool saveToFile = false}) async {
       country: string;
   }
   */
-  debugPrint("Collecting user info");
-  PackageInfo packageInfo = await PackageInfo.fromPlatform();
-  final String version = packageInfo.version;
-  late final String os;
-  late final String machineId;
-  final deviceInfoPlugin = DeviceInfoPlugin();
-  if (Platform.isLinux) {
-    final linuxInfo = await deviceInfoPlugin.linuxInfo;
-    os = linuxInfo.prettyName;
-    machineId = linuxInfo.machineId ?? "unknown";
-  } else if (Platform.isWindows) {
-    final windowsInfo = await deviceInfoPlugin.windowsInfo;
-    os =
-        "Windows ${windowsInfo.majorVersion.toSigned(100)} ${windowsInfo.displayVersion}; build number: ${windowsInfo.buildNumber}";
-    machineId = windowsInfo.deviceId;
-  } else if (Platform.isMacOS) {
-    final macOSInfo = await deviceInfoPlugin.macOsInfo;
-    os = "MacOS ${macOSInfo.osRelease}";
-    machineId = macOSInfo.systemGUID!;
-  }
-  debugPrint("Current OS: $os");
-  var res = await http.get(
-    Uri.parse("https://api.iplocation.net/?ip=${await Ipify.ipv4()}"),
-  );
-  debugPrint("IP: ${await Ipify.ipv4()}");
-  Map responseJSON = json.decode(res.body);
-  final String country = responseJSON["country_name"] ?? "Unknown";
-  final int modrinthUsage = GetStorage().read("modrinthUsage") ?? 0;
-  final int curseForgeUsage = GetStorage().read("curseForgeUsage") ?? 0;
-  final int referenceFileUsage = GetStorage().read("referenceFileUsage") ?? 0;
-  final int manualInputUsage = GetStorage().read("manualInputUsage") ?? 0;
-  Map response = {
-    "version": version,
-    "os": os,
-    "modrinthUsage": modrinthUsage,
-    "curseForgeUsage": curseForgeUsage,
-    "referenceFileUsage": referenceFileUsage,
-    "manualInputUsage": manualInputUsage,
-    "hardwareId": machineId,
-    "date": DateTime.now().toUtc().toString(),
-    "country": country
-  };
-  String postBody = json.encode(response);
-  debugPrint(postBody);
-
-  if (GetStorage().read("collectUserData") == true) {
-    //https://mrquantumoff.dev/api/v1/submitmcmodpackmanagerusageinfo
-    //http://localhost:3000/api/v1/submitmcmodpackmanagerusageinfo
-    var result = await http.post(
-      Uri.parse(
-          "https://mrquantumoff.dev/api/v1/submitmcmodpackmanagerusageinfo"),
-      headers: {"User-Agent": await generateUserAgent()},
-      body: postBody,
-    );
-    if (result.body.contains("Updated") || result.body.contains("Created")) {
-      GetStorage().write("lastDataSent", DateTime.now().toUtc().toString());
+  try {
+    debugPrint("Collecting user info");
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    final String version = packageInfo.version;
+    late final String os;
+    late final String machineId;
+    final deviceInfoPlugin = DeviceInfoPlugin();
+    if (Platform.isLinux) {
+      final linuxInfo = await deviceInfoPlugin.linuxInfo;
+      os = linuxInfo.prettyName;
+      machineId = linuxInfo.machineId ?? "unknown";
+    } else if (Platform.isWindows) {
+      final windowsInfo = await deviceInfoPlugin.windowsInfo;
+      os =
+          "Windows ${windowsInfo.majorVersion.toSigned(100)} ${windowsInfo.displayVersion}; build number: ${windowsInfo.buildNumber}";
+      machineId = windowsInfo.deviceId;
+    } else if (Platform.isMacOS) {
+      final macOSInfo = await deviceInfoPlugin.macOsInfo;
+      os = "MacOS ${macOSInfo.osRelease}";
+      machineId = macOSInfo.systemGUID!;
     }
-    debugPrint(result.body);
-  }
-  if (saveToFile) {
-    var filePickerResult =
-        await FilePicker.platform.saveFile(fileName: "userDataReport.json");
-    if (filePickerResult == null) return;
-    File saveFile = File(filePickerResult);
-    await saveFile.create(recursive: true);
-    await saveFile.writeAsString(postBody);
+    debugPrint("Current OS: $os");
+    var res = await http.get(
+      Uri.parse("https://api.iplocation.net/?ip=${await Ipify.ipv4()}"),
+    );
+    debugPrint("IP: ${await Ipify.ipv4()}");
+    Map responseJSON = json.decode(res.body);
+    final String country = responseJSON["country_name"] ?? "Unknown";
+    final int modrinthUsage = GetStorage().read("modrinthUsage") ?? 0;
+    final int curseForgeUsage = GetStorage().read("curseForgeUsage") ?? 0;
+    final int referenceFileUsage = GetStorage().read("referenceFileUsage") ?? 0;
+    final int manualInputUsage = GetStorage().read("manualInputUsage") ?? 0;
+    Map response = {
+      "version": version,
+      "os": os,
+      "modrinthUsage": modrinthUsage,
+      "curseForgeUsage": curseForgeUsage,
+      "referenceFileUsage": referenceFileUsage,
+      "manualInputUsage": manualInputUsage,
+      "hardwareId": machineId,
+      "date": DateTime.now().toUtc().toString(),
+      "country": country
+    };
+    String postBody = json.encode(response);
+    debugPrint(postBody);
+
+    if (GetStorage().read("collectUserData") == true) {
+      //https://mrquantumoff.dev/api/v1/submitmcmodpackmanagerusageinfo
+      //http://localhost:3000/api/v1/submitmcmodpackmanagerusageinfo
+      var result = await http.post(
+        Uri.parse(
+            "https://mrquantumoff.dev/api/v1/submitmcmodpackmanagerusageinfo"),
+        headers: {"User-Agent": await generateUserAgent()},
+        body: postBody,
+      );
+      if (result.body.contains("Updated") || result.body.contains("Created")) {
+        GetStorage().write("lastDataSent", DateTime.now().toUtc().toString());
+      }
+      debugPrint(result.body);
+    }
+    if (saveToFile) {
+      var filePickerResult =
+          await FilePicker.platform.saveFile(fileName: "userDataReport.json");
+      if (filePickerResult == null) return;
+      File saveFile = File(filePickerResult);
+      await saveFile.create(recursive: true);
+      await saveFile.writeAsString(postBody);
+    }
+  } catch (e) {
+    debugPrint("Failed to get user info ($e)");
   }
 }
