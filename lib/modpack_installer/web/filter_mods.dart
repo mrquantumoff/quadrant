@@ -1,13 +1,14 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
-import '../../backend.dart';
-import '../web_sources.dart';
-import 'generate_user_agent.dart';
+import 'package:mcmodpackmanager_reborn/backend.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web_sources.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 
 class FilterMods extends StatefulWidget {
   const FilterMods({super.key});
@@ -20,9 +21,13 @@ class _FilterModsState extends State<FilterMods> {
   late TextEditingController versionFieldController;
   late TextEditingController apiFieldController;
   late TextEditingController modpackFieldController;
-
+  late bool apiFieldEnabled;
+  late bool versionFieldEnabled;
   @override
   void initState() {
+    apiFieldEnabled = true;
+    versionFieldEnabled = true;
+
     versionFieldController = TextEditingController();
     apiFieldController = TextEditingController();
     modpackFieldController = TextEditingController();
@@ -97,6 +102,7 @@ class _FilterModsState extends State<FilterMods> {
                 controller: versionFieldController,
                 label: Text(AppLocalizations.of(context)!.chooseVersion),
                 width: 840,
+                enabled: versionFieldEnabled,
               ),
             ),
             Container(
@@ -111,6 +117,7 @@ class _FilterModsState extends State<FilterMods> {
                   DropdownMenuEntry(label: "Rift", value: "Rift"),
                 ],
                 width: 840,
+                enabled: apiFieldEnabled,
               ),
             ),
             Container(
@@ -120,9 +127,30 @@ class _FilterModsState extends State<FilterMods> {
                 controller: modpackFieldController,
                 label: Text(AppLocalizations.of(context)!.chooseModpack),
                 width: 840,
+                onSelected: (dynamic newValue) async {
+                  String value = newValue.toString().trim();
+                  Directory mcFolder = getMinecraftFolder();
+                  File config =
+                      File("${mcFolder.path}/modpacks/$value/modConfig.json");
+                  if (!(await config.exists())) {
+                    setState(() {
+                      apiFieldEnabled = true;
+                      versionFieldEnabled = true;
+                    });
+                    return;
+                  }
+                  String configJson = await config.readAsString();
+                  Map modpackConf = json.decode(configJson);
+                  setState(() {
+                    apiFieldController.text = modpackConf["modLoader"];
+                    versionFieldController.text = modpackConf["version"];
+                    apiFieldEnabled = false;
+                    versionFieldEnabled = false;
+                  });
+                },
               ),
             ),
-            OutlinedButton.icon(
+            TextButton.icon(
               onPressed: () async {
                 String version = versionFieldController.value.text;
                 String api = apiFieldController.value.text;

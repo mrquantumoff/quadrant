@@ -227,27 +227,24 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
           setLocale: widget.setLocale,
         ),
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(bottom: 15),
-                child: SvgPicture.asset(
-                  "assets/icons/logo.svg",
-                  height: 128,
-                ),
+      body: Center(
+        child: ListView(
+          // crossAxisAlignment: CrossAxisAlignment.center,
+          // mainAxisAlignment: MainAxisAlignment.center,
+          padding: const EdgeInsets.symmetric(vertical: 50),
+          children: [
+            Container(
+              margin: const EdgeInsets.only(bottom: 15),
+              child: SvgPicture.asset(
+                "assets/icons/logo.svg",
+                height: 128,
               ),
-              const Selector(),
-              const OpenModpacksFolder(),
-              const ModpackInstaller()
-            ],
-          )
-        ],
+            ),
+            const Selector(),
+            const OpenModpacksFolder(),
+            const ModpackInstaller()
+          ],
+        ),
       ),
     );
   }

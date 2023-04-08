@@ -3,7 +3,7 @@
     "apply": "Встановити модпак",
     "clear": "Очистити від модпаків",
     "modpack": "Модпак",
-    "reload": "Перезавантажити",
+    "reload": "Оновити список модпаків",
     "noOptions": "Немає варіантів",
     "setModpackStatus": "Статус обраного модпаку",
     "setModpackSuccess": "Модпак встановлено успішно.",
@@ -90,5 +90,8 @@
     "filterModpacksQ": "Чи хочете ви відфільтрувати моди?",
     "unsupportedDownload": "Цей тип проєкту не підтримується.",
     "dataCollectionQuestionShort": "Збирання інформації",
-    "collectData": "Зібрати дані"
+    "collectData": "Зібрати дані",
+    "createModpack": "Створити новий модпак",
+    "invalidData": "Дано не дійсні дані",
+    "update": "Оновити дані модпака"
 }

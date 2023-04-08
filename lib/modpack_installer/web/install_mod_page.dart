@@ -10,9 +10,9 @@ import 'package:get_storage/get_storage.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
 import "package:http/http.dart" as http;
 import 'package:url_launcher/url_launcher.dart';
-import '../web_sources.dart';
-import 'generate_user_agent.dart';
-import 'mod.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web_sources.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/mod.dart';
 
 class InstallModPage extends StatefulWidget {
   const InstallModPage({
@@ -41,11 +41,16 @@ class _InstallModPageState extends State<InstallModPage> {
   late TextEditingController versionFieldController;
   late TextEditingController apiFieldController;
   late TextEditingController modpackFieldController;
+  late bool apiFieldEnabled;
+  late bool versionFieldEnabled;
   late double progressValue;
   @override
   void initState() {
     super.initState();
     progressValue = 0;
+    apiFieldEnabled =
+        (widget.modClass == ModClass.mod && widget.installFileId == null);
+    versionFieldEnabled = (widget.installFileId == null);
     versionFieldController = TextEditingController();
     apiFieldController = TextEditingController();
     modpackFieldController = TextEditingController();
@@ -63,7 +68,7 @@ class _InstallModPageState extends State<InstallModPage> {
     areButttonsActive = false;
   }
 
-  setProgressValue(double newValue) {
+  void setProgressValue(double newValue) {
     setState(() {
       progressValue = newValue;
     });
@@ -204,7 +209,7 @@ class _InstallModPageState extends State<InstallModPage> {
                       : null,
                   label: Text(AppLocalizations.of(context)!.chooseVersion),
                   width: 840,
-                  enabled: (widget.installFileId == null),
+                  enabled: versionFieldEnabled,
                 ),
               ),
               Container(
@@ -224,8 +229,7 @@ class _InstallModPageState extends State<InstallModPage> {
                           ? GetStorage().read("lastUsedAPI")
                           : null
                       : null,
-                  enabled: (widget.modClass == ModClass.mod &&
-                      widget.installFileId == null),
+                  enabled: apiFieldEnabled,
                 ),
               ),
               Container(
@@ -239,6 +243,27 @@ class _InstallModPageState extends State<InstallModPage> {
                       : null,
                   width: 840,
                   enabled: widget.modClass == ModClass.mod,
+                  onSelected: (dynamic newValue) async {
+                    String value = newValue.toString().trim();
+                    Directory mcFolder = getMinecraftFolder();
+                    File config =
+                        File("${mcFolder.path}/modpacks/$value/modConfig.json");
+                    if (!(await config.exists())) {
+                      setState(() {
+                        apiFieldEnabled = true;
+                        versionFieldEnabled = true;
+                      });
+                      return;
+                    }
+                    String configJson = await config.readAsString();
+                    Map modpackConf = json.decode(configJson);
+                    setState(() {
+                      apiFieldController.text = modpackConf["modLoader"];
+                      versionFieldController.text = modpackConf["version"];
+                      apiFieldEnabled = false;
+                      versionFieldEnabled = false;
+                    });
+                  },
                 ),
               ),
               Container(

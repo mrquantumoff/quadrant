@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
+import 'package:mcmodpackmanager_reborn/modpack_creator/modpack_creator.dart';
 
 class Selector extends StatefulWidget {
   const Selector({super.key});
@@ -11,7 +13,8 @@ class Selector extends StatefulWidget {
 }
 
 class _SelectorState extends State<Selector> {
-  final TextEditingController colorController = TextEditingController();
+  final TextEditingController selectedModpackController =
+      TextEditingController();
   List<DropdownMenuEntry<String>> modpackOptions = [];
   String? selectedModpack;
   bool areButtonsActive = true;
@@ -38,7 +41,7 @@ class _SelectorState extends State<Selector> {
 
   @override
   Widget build(BuildContext context) {
-    a() async {
+    void a() async {
       var release = await getReleaseInfo();
 
       GetStorage().writeInMemory("latestVersion", release["latestRelease"]);
@@ -48,18 +51,21 @@ class _SelectorState extends State<Selector> {
 
     a();
     return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // Selector
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 0),
           child: DropdownMenu(
             dropdownMenuEntries: modpackOptions,
-            controller: TextEditingController(),
+            controller: selectedModpackController,
             onSelected: (value) {
               selectedModpack = value;
             },
             enabled: areButtonsActive,
-            width: 420,
+            width: 840,
             hintText: AppLocalizations.of(context)!.modpack,
           ),
         ),
@@ -194,9 +200,7 @@ class _SelectorState extends State<Selector> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 child: ElevatedButton(
-                  onPressed: () {
-                    updateOptions();
-                  },
+                  onPressed: updateOptions,
                   child: Padding(
                     padding: const EdgeInsets.all(15),
                     child: Row(
@@ -206,6 +210,70 @@ class _SelectorState extends State<Selector> {
                           child: Icon(Icons.refresh),
                         ),
                         Text(AppLocalizations.of(context)!.reload)
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 5),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    Get.to(
+                      () => ModpackCreator(
+                          modpack: selectedModpackController.text),
+                      transition: Transition.upToDown,
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Row(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(right: 5, left: 0),
+                          child: Icon(Icons.add),
+                        ),
+                        Text(AppLocalizations.of(context)!.createModpack)
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 5),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (selectedModpackController.text != "") {
+                      Get.to(
+                        () => ModpackCreator(
+                          modpack: selectedModpackController.text,
+                          update: true,
+                        ),
+                        transition: Transition.upToDown,
+                      );
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Row(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(right: 5, left: 0),
+                          child: Icon(Icons.change_circle),
+                        ),
+                        Text(AppLocalizations.of(context)!.update)
                       ],
                     ),
                   ),

@@ -12,26 +12,32 @@ class OpenModpacksFolder extends StatefulWidget {
 class _OpenModpacksFolderState extends State<OpenModpacksFolder> {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ElevatedButton(
-        onPressed: () {
-          debugPrint("Open Modpacks Folder pressed.");
-          openModpacksFolder();
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(15),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.folder),
-              Text("  ${AppLocalizations.of(context)!.openModpacksFolder}")
-            ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          child: ElevatedButton(
+            onPressed: () {
+              debugPrint("Open Modpacks Folder pressed.");
+              openModpacksFolder();
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(15),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.folder),
+                  Text("  ${AppLocalizations.of(context)!.openModpacksFolder}")
+                ],
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

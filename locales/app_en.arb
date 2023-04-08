@@ -3,7 +3,7 @@
     "apply": "Apply",
     "clear": "Clear",
     "modpack": "Modpack",
-    "reload": "Reload",
+    "reload": "Reload options",
     "noOptions": "No Options",
     "setModpackStatus": "Modpack selection status",
     "setModpackSuccess": "Modpack set successfully",
@@ -90,5 +90,8 @@
     "filterModpacksQ": "Do you want to filter the mods?",
     "unsupportedDownload": "This download is not supported",
     "dataCollectionQuestionShort": "Data collection",
-    "collectData": "Collect data"
+    "collectData": "Collect data",
+    "createModpack": "Create a new modpack",
+    "invalidData": "Invalid data",
+    "update": "Update"
 }

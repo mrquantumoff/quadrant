@@ -7,7 +7,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 import 'dart:convert';
-import 'web/mod.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/mod.dart';
 
 class UserAgentClient extends http.BaseClient {
   final String userAgent;

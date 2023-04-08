@@ -13,7 +13,7 @@ import 'package:mcmodpackmanager_reborn/modpack_installer/web/install_mod_page.d
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_platform_alert/flutter_platform_alert.dart';
-import 'modpack_installer/web/mod.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/mod.dart';
 
 Directory getMinecraftFolder({bool onInit = false}) {
   if (GetStorage().read("minecraftFolder") != null && !onInit) {

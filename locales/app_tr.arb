@@ -3,7 +3,7 @@
     "apply": "Uygula",
     "clear": "Temizle",
     "modpack": "Modpack",
-    "reload": "Yeniden Yükle",
+    "reload": "Seçenekleri yeniden yükle",
     "noOptions": "Seçenek yok",
     "setModpackStatus": "Seçili Modpack durumu",
     "setModpackSuccess": "Modpack başarıyla tanımlandı",
@@ -90,5 +90,8 @@
     "filterModpacksQ": "Modiları filtrelemek istiyor musunuz?",
     "unsupportedDownload": "Bu tür bir proje desteklenmiyor.",
     "dataCollectionQuestionShort": "Veri toplama",
-    "collectData": "Verileri kaydet"
+    "collectData": "Verileri kaydet",
+    "createModpack": "Yeni bir modpack yarat",
+    "invalidData": "Geçersiz veriler",
+    "update": "Güncelle"
 }
