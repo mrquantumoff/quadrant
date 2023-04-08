@@ -41,15 +41,6 @@ class _SelectorState extends State<Selector> {
 
   @override
   Widget build(BuildContext context) {
-    void a() async {
-      var release = await getReleaseInfo();
-
-      GetStorage().writeInMemory("latestVersion", release["latestRelease"]);
-      GetStorage().writeInMemory("currentVersion", release["currentRelease"]);
-      GetStorage().writeInMemory("latestVersionUrl", release["url"]);
-    }
-
-    a();
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
