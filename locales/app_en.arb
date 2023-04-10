@@ -93,5 +93,6 @@
     "collectData": "Collect data",
     "createModpack": "Create a new modpack",
     "invalidData": "Invalid data",
-    "update": "Update"
+    "update": "Update",
+    "clearModpackData": "Clear modpack data"
 }

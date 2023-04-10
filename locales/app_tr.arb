@@ -93,5 +93,6 @@
     "collectData": "Verileri kaydet",
     "createModpack": "Yeni bir modpack yarat",
     "invalidData": "Geçersiz veriler",
-    "update": "Güncelle"
+    "update": "Güncelle",
+    "clearModpackData": "Modpack'in verilerini temizle"
 }

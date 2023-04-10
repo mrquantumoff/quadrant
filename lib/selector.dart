@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
@@ -264,6 +266,41 @@ class _SelectorState extends State<Selector> {
                           child: Icon(Icons.change_circle),
                         ),
                         Text(AppLocalizations.of(context)!.update)
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 5),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (selectedModpackController.text != "") {
+                      File modpackConfigFile = File(
+                          "${getMinecraftFolder().path}/modpacks/${selectedModpackController.text}/modConfig.json");
+                      try {
+                        await modpackConfigFile.delete();
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text("$e"),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Row(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(right: 5, left: 0),
+                          child: Icon(Icons.delete),
+                        ),
+                        Text(AppLocalizations.of(context)!.clearModpackData)
                       ],
                     ),
                   ),
