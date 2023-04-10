@@ -34,6 +34,12 @@
   </keywords>
   <releases>
 
+    <release date="2023-04-10" version="7.15.0">
+      <description>
+        <p>Add an option to set modpack modloader and version.</p>
+      </description>
+    </release>
+
     <release date="2023-04-08" version="7.14.2">
       <description>
         <p>Fix critical bugs</p>
@@ -42,7 +48,8 @@
 
     <release date="2023-04-07" version="7.14.1">
       <description>
-        <p>Fix some bugs</p>
+        <p>Fix
+          some bugs</p>
       </description>
     </release>
 
