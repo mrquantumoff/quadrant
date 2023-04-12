@@ -224,7 +224,7 @@ void clearMinecraftFolderOverwrite(Function() updateText) async {
 
 Future<Map<String, String>> getReleaseInfo() async {
   Uri apiLink = Uri.parse(
-      "https://mrquantumoff.dev/api/projects/getMinecraftModpackManagerLatestRelease");
+      "https://api.mrquantumoff.dev/api/v1/getLatestMinecraftModpackManagerRelease");
 
   Map<String, String> headers = {
     "User-Agent": await generateUserAgent(),
@@ -237,7 +237,7 @@ Future<Map<String, String>> getReleaseInfo() async {
       "latestRelease": "v",
       "currentRelease": "",
       "url":
-          "https://mrquantumoff.dev/api/projects/getMinecraftModpackManagerLatestRelease"
+          "https://api.mrquantumoff.dev/api/v1/getLatestMinecraftModpackManagerRelease"
     };
   }
   http.Response latestReleaseResponse =
@@ -424,23 +424,22 @@ void collectUserInfo({bool saveToFile = false}) async {
     Map response = {
       "version": version,
       "os": os,
-      "modrinthUsage": modrinthUsage,
-      "curseForgeUsage": curseForgeUsage,
-      "referenceFileUsage": referenceFileUsage,
-      "manualInputUsage": manualInputUsage,
-      "hardwareId": machineId,
-      "date": DateTime.now().toUtc().toString(),
+      "modrinth_usage": modrinthUsage,
+      "curseforge_usage": curseForgeUsage,
+      "reference_file_usage": referenceFileUsage,
+      "manual_input_usage": manualInputUsage,
+      "hardware_id": machineId,
+      "date": DateTime.now().toUtc().toIso8601String(),
       "country": country
     };
     String postBody = json.encode(response);
     debugPrint(postBody);
 
     if (GetStorage().read("collectUserData") == true) {
-      //https://mrquantumoff.dev/api/v1/submitmcmodpackmanagerusageinfo
-      //http://localhost:3000/api/v1/submitmcmodpackmanagerusageinfo
+      //https://api.mrquantumoff.dev/api/v1/submitMinecraftModpackManagerUsageInfo
       var result = await http.post(
         Uri.parse(
-            "https://mrquantumoff.dev/api/v1/submitmcmodpackmanagerusageinfo"),
+            "https://api.mrquantumoff.dev/api/v1/submitMinecraftModpackManagerUsageInfo"),
         headers: {"User-Agent": await generateUserAgent()},
         body: postBody,
       );
