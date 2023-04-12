@@ -191,6 +191,23 @@ class _SettingsState extends State<Settings> {
                 AppLocalizations.of(context)!.collectData,
               ),
             ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            child: TextButton.icon(
+              icon: const Icon(Icons.open_in_browser),
+              onPressed: () async {
+                await launchUrl(
+                  Uri.parse(
+                      "https://mrquantumoff.dev/projects/mcmodpackmanager_reborn/analytics"),
+                );
+              },
+              label: Text(
+                AppLocalizations.of(context)!.viewPublicUsage(
+                  AppLocalizations.of(context)!.productName,
+                ),
+              ),
+            ),
           )
         ],
       ),

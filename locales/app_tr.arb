@@ -94,5 +94,6 @@
     "createModpack": "Yeni bir modpack yarat",
     "invalidData": "Geçersiz veriler",
     "update": "Güncelle",
-    "clearModpackData": "Modpack'in verilerini temizle"
+    "clearModpackData": "Modpack'in verilerini temizle",
+    "viewPublicUsage": "Herkese açık {productName} kullanımını görüntüleyin"
 }

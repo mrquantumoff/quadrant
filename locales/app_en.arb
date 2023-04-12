@@ -94,5 +94,13 @@
     "createModpack": "Create a new modpack",
     "invalidData": "Invalid data",
     "update": "Update",
-    "clearModpackData": "Clear modpack data"
+    "clearModpackData": "Clear modpack data",
+    "viewPublicUsage": "View public {productName} usage",
+    "@viewPublicUsage": {
+        "placeholders": {
+            "productName": {
+                "type": "String"
+            }
+        }
+    }
 }
