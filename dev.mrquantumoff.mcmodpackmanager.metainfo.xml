@@ -34,15 +34,23 @@
   </keywords>
   <releases>
 
+    <release date="2023-04-12" version="7.16.0">
+      <description>
+        <p>Use the new api.mrquantumoff.dev API written in Rust with Actix Web</p>
+      </description>
+    </release>
+
     <release date="2023-04-10" version="7.15.0">
       <description>
-        <p>Add an option to set modpack modloader and version.</p>
+        <p>Add
+          an option to set modpack modloader and version.</p>
       </description>
     </release>
 
     <release date="2023-04-08" version="7.14.2">
       <description>
-        <p>Fix critical bugs</p>
+        <p>Fix
+          critical bugs</p>
       </description>
     </release>
 
