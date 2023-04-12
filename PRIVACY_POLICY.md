@@ -4,18 +4,34 @@
 - By default this app does not collect your data. You can optionally let the app to collect analytics and diagnostics from your PC by going to the settings and explicitly enabling analytics and diagnostics. Meanwhile my [website](https://mrquantumoff.dev) is closed-source I can 100% guarantee that your data will not be sold to third parties. In the near future I will implement an API to view general analytics (they will not feature "date" and "hardwareId" fields) and diagnostics and your own analytics.
 - Why does the app need "hardwareId" and "date" fields? In order to not duplicate the same machine 100 times across the database and in order to remove super old data in the future.
 
-```typescript
-interface IAppInfo {
-  version: string;
-  os: string;
-  modrinthUsage: number;
-  curseforgeUsage: number;
-  referenceFileUsage: number;
-  manualInputUsage: number;
-  hardwareId: string;
-  date: string;
-  country: string;
+```rust
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AppInfo {
+    version: String,
+    os: String,
+    modrinth_usage: i32,
+    curseforge_usage: i32,
+    reference_file_usage: i32,
+    manual_input_usage: i32,
+    hardware_id: String,
+    date: String,
+    country: String,
 }
 ```
 
-This an example of which data is being collected.
+This an example of which data is being collected by the app and can be accessed with https://api.mrquantumoff.dev/api/v1/getusageinfo?hardware_id=YOURHARDWAREID.
+
+However, when someone is asking for general usage info (https://api.mrquantumoff.dev/api/v1/getusageinfo) without any query params, they can only get this struct
+
+```rust
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AppInfoAnonymous {
+    version: String,
+    os: String,
+    modrinth_usage: i32,
+    curseforge_usage: i32,
+    reference_file_usage: i32,
+    manual_input_usage: i32,
+    country: String,
+}
+```
