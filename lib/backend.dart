@@ -375,6 +375,33 @@ void dataCollectionInit() async {
   }
 }
 
+class MachineIdAndOS {
+  MachineIdAndOS({required this.machineId, required this.os});
+  String machineId;
+  String os;
+}
+
+Future<MachineIdAndOS> getMachineIdAndOs() async {
+  late final String machineId;
+  late final String os;
+  final deviceInfoPlugin = DeviceInfoPlugin();
+  if (Platform.isLinux) {
+    final linuxInfo = await deviceInfoPlugin.linuxInfo;
+    os = linuxInfo.prettyName;
+    machineId = linuxInfo.machineId ?? "unknown";
+  } else if (Platform.isWindows) {
+    final windowsInfo = await deviceInfoPlugin.windowsInfo;
+    os =
+        "Windows ${windowsInfo.majorVersion.toSigned(100)} ${windowsInfo.displayVersion}; build number: ${windowsInfo.buildNumber}";
+    machineId = windowsInfo.deviceId;
+  } else if (Platform.isMacOS) {
+    final macOSInfo = await deviceInfoPlugin.macOsInfo;
+    os = "MacOS ${macOSInfo.osRelease}";
+    machineId = macOSInfo.systemGUID!;
+  }
+  return MachineIdAndOS(machineId: machineId, os: os);
+}
+
 void collectUserInfo({bool saveToFile = false}) async {
   /*
     interface IAppInfo {
@@ -393,23 +420,12 @@ void collectUserInfo({bool saveToFile = false}) async {
     debugPrint("Collecting user info");
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     final String version = packageInfo.version;
-    late final String os;
-    late final String machineId;
-    final deviceInfoPlugin = DeviceInfoPlugin();
-    if (Platform.isLinux) {
-      final linuxInfo = await deviceInfoPlugin.linuxInfo;
-      os = linuxInfo.prettyName;
-      machineId = linuxInfo.machineId ?? "unknown";
-    } else if (Platform.isWindows) {
-      final windowsInfo = await deviceInfoPlugin.windowsInfo;
-      os =
-          "Windows ${windowsInfo.majorVersion.toSigned(100)} ${windowsInfo.displayVersion}; build number: ${windowsInfo.buildNumber}";
-      machineId = windowsInfo.deviceId;
-    } else if (Platform.isMacOS) {
-      final macOSInfo = await deviceInfoPlugin.macOsInfo;
-      os = "MacOS ${macOSInfo.osRelease}";
-      machineId = macOSInfo.systemGUID!;
-    }
+
+    MachineIdAndOS info = await getMachineIdAndOs();
+
+    final String os = info.os;
+    final String machineId = info.machineId;
+
     debugPrint("Current OS: $os");
     var res = await http.get(
       Uri.parse("https://api.iplocation.net/?ip=${await Ipify.ipv4()}"),

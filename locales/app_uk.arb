@@ -95,5 +95,6 @@
     "invalidData": "Дано не дійсні дані",
     "update": "Оновити дані модпака",
     "clearModpackData": "Очистити дані модпака",
-    "viewPublicUsage": "Переглянути загальнодоступне дані використання {productName}"
+    "viewPublicUsage": "Переглянути загальнодоступне дані використання {productName}",
+    "viewYourUsageData": "Переглянути власну аналітику"
 }

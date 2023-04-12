@@ -102,5 +102,6 @@
                 "type": "String"
             }
         }
-    }
+    },
+    "viewYourUsageData": "View your usage data"
 }

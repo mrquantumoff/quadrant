@@ -95,5 +95,6 @@
     "invalidData": "Geçersiz veriler",
     "update": "Güncelle",
     "clearModpackData": "Modpack'in verilerini temizle",
-    "viewPublicUsage": "Herkese açık {productName} kullanımını görüntüleyin"
+    "viewPublicUsage": "Herkese açık {productName} kullanımını görüntüleyin",
+    "viewYourUsageData": "Kendi verilerini görüntüleyin"
 }

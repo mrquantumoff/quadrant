@@ -208,6 +208,23 @@ class _SettingsState extends State<Settings> {
                 ),
               ),
             ),
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            child: TextButton.icon(
+              icon: const Icon(Icons.open_in_browser),
+              onPressed: () async {
+                MachineIdAndOS info = await getMachineIdAndOs();
+
+                await launchUrl(
+                  Uri.parse(
+                      "https://mrquantumoff.dev/projects/mcmodpackmanager_reborn/analytics/${info.machineId}"),
+                );
+              },
+              label: Text(
+                AppLocalizations.of(context)!.viewYourUsageData,
+              ),
+            ),
           )
         ],
       ),
