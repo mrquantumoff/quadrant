@@ -32,6 +32,7 @@ class _FilterModsState extends State<FilterMods> {
     apiFieldController = TextEditingController();
     modpackFieldController = TextEditingController();
     super.initState();
+    getModpacksList();
   }
 
   List<DropdownMenuEntry> versionItems = [];
@@ -79,7 +80,6 @@ class _FilterModsState extends State<FilterMods> {
 
   @override
   Widget build(BuildContext context) {
-    getModpacksList();
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
