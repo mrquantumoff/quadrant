@@ -38,6 +38,7 @@
 				<key> CFBundleURLSchemes</key>
 				<array>
 					<string>curseforge</string>
+					<string>mcmodpackmanager</string>
 				</array>
 			</dict>
 		</array>

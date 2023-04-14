@@ -25,6 +25,7 @@ void main(List<String> args) async {
   // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
   if (Platform.isWindows || Platform.isMacOS) {
     await protocolHandler.register('curseforge');
+    await protocolHandler.register('mcmodpackmanager');
   } else {
     // Linux can use arguments from the cli
     for (String arg in args) {

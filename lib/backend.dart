@@ -476,3 +476,20 @@ void collectUserInfo({bool saveToFile = false}) async {
     debugPrint("Failed to get user info ($e)");
   }
 }
+
+void deleteUsageInfo() async {
+  MachineIdAndOS info = await getMachineIdAndOs();
+
+  http.Response res = await http.delete(
+    Uri.parse(
+        "https://api.mrquantumoff.dev/api/v1/deleteUsageInfo?hardware_id=${info.machineId}"),
+    headers: {
+      "User-Agent": await generateUserAgent(),
+    },
+  );
+  if (res.statusCode == 200 && res.body.contains("DELETED")) {
+    return;
+  } else {
+    throw Exception("Failed to delete usage info");
+  }
+}

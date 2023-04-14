@@ -6,3 +6,4 @@ Categories=Utility;
 Name=Minecraft Modpack Manager Reborn
 Icon=dev.mrquantumoff.mcmodpackmanager
 MimeType=x-scheme-handler/curseforge;
+MimeType=x-scheme-handler/mcmodpackmanager;

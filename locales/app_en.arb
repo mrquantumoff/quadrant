@@ -1,107 +1,109 @@
 {
-    "productName": "Minecraft Modpack Manager (Reborn)",
-    "apply": "Apply",
-    "clear": "Clear",
-    "modpack": "Modpack",
-    "reload": "Reload options",
-    "noOptions": "No Options",
-    "setModpackStatus": "Modpack selection status",
-    "setModpackSuccess": "Modpack set successfully",
-    "setModpackFailed": "Modpack set failed",
-    "buttonsAreDisabled": "Buttons are disabled right now",
-    "openModpacksFolder": "Open modpacks folder",
-    "installModpacks": "Install mods",
-    "referenceFile": "Install your modpacks using a reference file",
-    "manualInput": "Install your modpacks using a custom name and url",
-    "installError": "Failed to install your modpack. Please ensure that you have selected a modpack with the correct extension.",
-    "name": "Name",
-    "download": "Download",
-    "downloadIsAlreadyInProgress": "A download is already in progress",
-    "downloadSuccess": "Mod(s) installed successfully",
-    "downloadFail": "Your download failed",
-    "overwriteQuestion": "Overwrite?",
-    "overwriteQuestionText": "Modpack with the same name exists, do you want to overwrite it?",
-    "language": "Language",
-    "settings": "Settings",
-    "systemLocale": "System locale",
-    "speed":"Speed",
-    "someSettingsRequireReload": "Some settings require a relaunch",
-    "web": "Install mods from the web (powered by CurseForge/Modrinth)",
-    "searchForMods": "Search for mods",
-    "noEternalKey": "The app wasn't compiled with a valid CurseForge Eternal API key, this means that you can't install mods powered by CurseForge.",
-    "choosePreferredAPI": "Choose your preferred API (Forge/Fabric)",
-    "chooseVersion": "Choose a Minecraft version.",
-    "chooseModpack": "Choose a modpack for the mod to be installed",
-    "noVersion": "No matching version has been found.",
-    "cancel": "Cancel",
-    "search": "Search",
-    "free": "Free modpacks",
-    "mod": "Mod from {source}",
-    "@mod": {
-        "placeholders": {
-            "source": {
-                "type": "String",
-                "example" : "CurseForge"
-            }
-        }
-    },
-    "resourcePack": "Resource pack from {source}",
-    "@resourcePack": {
-        "placeholders": {
-            "source": {
-                "type": "String",
-                "example" : "CurseForge"
-            }
-        }
-    },
-    "shaderPack": "Shaders from {source}",
-    "@shaderPack": {
-        "placeholders": {
-            "source": {
-                "type": "String",
-                "example" : "CurseForge"
-            }
-        }
-    },
-    "currentVersion": "Installed version is {version}",
-    "@currentVersion": {
-        "placeholders": {
-            "version": {
-                "type": "String",
-                "example" : "7.9.0"
-            }
-        }
-    },
-    "latestVersion": "Latest version is {version}",
-    "@latestVersion": {
-        "placeholders": {
-            "version": {
-                "type": "String",
-                "example" : "7.9.0"
-            }
-        }
-    },
-    "openLatestRelease": "Open the latest release",
-    "openInTheWeb": "Open in the web",
-    "overrideMinecraftFolder": "Override the Minecraft folder",
-    "resetMinecraftFolder": "Reset the Minecraft folder",
-    "unknown": "Unknown",
-    "clipIcons": "Clip the icons",
-    "filterModpacksQ": "Do you want to filter the mods?",
-    "unsupportedDownload": "This download is not supported",
-    "dataCollectionQuestionShort": "Data collection",
-    "collectData": "Collect data",
-    "createModpack": "Create a new modpack",
-    "invalidData": "Invalid data",
-    "update": "Update",
-    "clearModpackData": "Clear modpack data",
-    "viewPublicUsage": "View public {productName} usage",
-    "@viewPublicUsage": {
-        "placeholders": {
-            "productName": {
-                "type": "String"
-            }
-        }
-    },
-    "viewYourUsageData": "View your usage data"
+  "productName": "Minecraft Modpack Manager (Reborn)",
+  "apply": "Apply",
+  "clear": "Clear",
+  "modpack": "Modpack",
+  "reload": "Reload options",
+  "noOptions": "No Options",
+  "setModpackStatus": "Modpack selection status",
+  "setModpackSuccess": "Modpack set successfully",
+  "setModpackFailed": "Modpack set failed",
+  "buttonsAreDisabled": "Buttons are disabled right now",
+  "openModpacksFolder": "Open modpacks folder",
+  "installModpacks": "Install mods",
+  "referenceFile": "Install your modpacks using a reference file",
+  "manualInput": "Install your modpacks using a custom name and url",
+  "installError": "Failed to install your modpack. Please ensure that you have selected a modpack with the correct extension.",
+  "name": "Name",
+  "download": "Download",
+  "downloadIsAlreadyInProgress": "A download is already in progress",
+  "downloadSuccess": "Mod(s) installed successfully",
+  "downloadFail": "Your download failed",
+  "overwriteQuestion": "Overwrite?",
+  "overwriteQuestionText": "Modpack with the same name exists, do you want to overwrite it?",
+  "language": "Language",
+  "settings": "Settings",
+  "systemLocale": "System locale",
+  "speed": "Speed",
+  "someSettingsRequireReload": "Some settings require a relaunch",
+  "web": "Install mods from the web (powered by CurseForge/Modrinth)",
+  "searchForMods": "Search for mods",
+  "noEternalKey": "The app wasn't compiled with a valid CurseForge Eternal API key, this means that you can't install mods powered by CurseForge.",
+  "choosePreferredAPI": "Choose your preferred API (Forge/Fabric)",
+  "chooseVersion": "Choose a Minecraft version.",
+  "chooseModpack": "Choose a modpack for the mod to be installed",
+  "noVersion": "No matching version has been found.",
+  "cancel": "Cancel",
+  "search": "Search",
+  "free": "Free modpacks",
+  "mod": "Mod from {source}",
+  "@mod": {
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "CurseForge"
+      }
+    }
+  },
+  "resourcePack": "Resource pack from {source}",
+  "@resourcePack": {
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "CurseForge"
+      }
+    }
+  },
+  "shaderPack": "Shaders from {source}",
+  "@shaderPack": {
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "CurseForge"
+      }
+    }
+  },
+  "currentVersion": "Installed version is {version}",
+  "@currentVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "7.9.0"
+      }
+    }
+  },
+  "latestVersion": "Latest version is {version}",
+  "@latestVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "7.9.0"
+      }
+    }
+  },
+  "openLatestRelease": "Open the latest release",
+  "openInTheWeb": "Open in the web",
+  "overrideMinecraftFolder": "Override the Minecraft folder",
+  "resetMinecraftFolder": "Reset the Minecraft folder",
+  "unknown": "Unknown",
+  "clipIcons": "Clip the icons",
+  "filterModpacksQ": "Do you want to filter the mods?",
+  "unsupportedDownload": "This download is not supported",
+  "dataCollectionQuestionShort": "Data collection",
+  "collectData": "Collect data",
+  "createModpack": "Create a new modpack",
+  "invalidData": "Invalid data",
+  "update": "Update",
+  "clearModpackData": "Clear modpack data",
+  "viewPublicUsage": "View public {productName} usage",
+  "@viewPublicUsage": {
+    "placeholders": {
+      "productName": {
+        "type": "String"
+      }
+    }
+  },
+  "viewYourUsageData": "View your usage data",
+  "deleteYourUsageData": "Delete your usage data",
+  "failedToDeleteUsageInfo": "Failed to delete usage info"
 }

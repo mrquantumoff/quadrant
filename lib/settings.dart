@@ -225,7 +225,34 @@ class _SettingsState extends State<Settings> {
                 AppLocalizations.of(context)!.viewYourUsageData,
               ),
             ),
-          )
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            child: TextButton.icon(
+              icon: const Icon(Icons.delete_forever),
+              style: const ButtonStyle(
+                iconColor: MaterialStatePropertyAll<Color>(Colors.redAccent),
+              ),
+              onPressed: () {
+                try {
+                  deleteUsageInfo();
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(AppLocalizations.of(context)!
+                          .failedToDeleteUsageInfo),
+                    ),
+                  );
+                }
+              },
+              label: Text(
+                AppLocalizations.of(context)!.deleteYourUsageData,
+                style: const TextStyle(
+                  color: Colors.redAccent,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

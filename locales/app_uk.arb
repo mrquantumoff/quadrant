@@ -1,100 +1,102 @@
 {
-    "productName": "Менеджер Модпаків для Майнкрафту",
-    "apply": "Встановити модпак",
-    "clear": "Очистити від модпаків",
-    "modpack": "Модпак",
-    "reload": "Оновити список модпаків",
-    "noOptions": "Немає варіантів",
-    "setModpackStatus": "Статус обраного модпаку",
-    "setModpackSuccess": "Модпак встановлено успішно.",
-    "setModpackFailed": "Помилка при встановленні модпаку",
-    "buttonsAreDisabled": "Кнопки на данний момент вимкнуто",
-    "openModpacksFolder": "Відкрити теку модпаків",
-    "installModpacks": "Встановити моди",
-    "referenceFile": "Встановити через референсний файл",
-    "manualInput": "Встановити вказавши свої дані",
-    "installError": "Помилка при встановленні модпаку. Перевірте чи ви використовуєте правильне розширення файлу.",
-    "name": "Назва",
-    "download": "Скачати",
-    "downloadIsAlreadyInProgress": "Щось вже завантажується",
-    "downloadSuccess": "Моди встановлені успішно.",
-    "downloadFail": "Помилка при встановленні модпаку",
-    "overwriteQuestion": "Перезаписати?",
-    "overwriteQuestionText": "Модпак з таким ім'ям вже існує, чи ви хочете його перезаписати?",
-    "language": "Мова",
-    "settings": "Налаштування",
-    "systemLocale": "Мова системи",
-    "speed": "Швидкість",
-    "someSettingsRequireReload": "Для зміни деяких налаштувань буде потрібний перезапуск застосунку",
-    "web": "Встановити моди з інтернету (CurseForge/Modrinth)",
-    "searchForMods": "Шукайте моди",
-    "noEternalKey": "На жаль програма не бачить ключа до CurseForge Eternal API, це означає, що ви не можете встановлювати моди CurseForge.",
-    "choosePreferredAPI": "Оберіть ваш завантажник модів.",
-    "chooseVersion": "Оберіть версію гри.",
-    "chooseModpack": "Виберіть модпак.",
-    "noVersion": "Не знайдено потрібну версію моду.",
-    "cancel": "Відміна",
-    "search": "Шукати",
-    "free": "Вільний модпак",
-    "mod": "Мод з {source}",
-    "@mod": {
-        "placeholders": {
-            "source": {
-                "type": "String",
-                "example" : "CurseForge"
-            }
-        }
-    },
-    "resourcePack": "Набір ресурсів з {source}",
-    "@resourcePack": {
-        "placeholders": {
-            "source": {
-                "type": "String",
-                "example" : "CurseForge"
-            }
-        }
-    },
-    "shaderPack": "Шейдери з {source}",
-    "@shaderPack": {
-        "placeholders": {
-            "source": {
-                "type": "String",
-                "example" : "CurseForge"
-            }
-        }
-    },
-    "currentVersion": "Встановлена весрія - {version}",
-    "@currentVersion": {
-        "placeholders": {
-            "version": {
-                "type": "String",
-                "example" : "7.9.0"
-            }
-        }
-    },
-    "latestVersion": "Остання весрія - {version}",
-    "@latestVersion": {
-        "placeholders": {
-            "version": {
-                "type": "String",
-                "example" : "7.9.0"
-            }
-        }
-    },
-    "openLatestRelease": "Відкрити останню версію",
-    "openInTheWeb": "Відкрити в інтернеті",
-    "overrideMinecraftFolder": "Змінити .minecraft",
-    "resetMinecraftFolder": "Відновити .minecraft",
-    "unknown": "Невідомо",
-    "clipIcons": "Закругляти іконки",
-    "filterModpacksQ": "Чи хочете ви відфільтрувати моди?",
-    "unsupportedDownload": "Цей тип проєкту не підтримується.",
-    "dataCollectionQuestionShort": "Збирання інформації",
-    "collectData": "Зібрати дані",
-    "createModpack": "Створити новий модпак",
-    "invalidData": "Дано не дійсні дані",
-    "update": "Оновити дані модпака",
-    "clearModpackData": "Очистити дані модпака",
-    "viewPublicUsage": "Переглянути загальнодоступне дані використання {productName}",
-    "viewYourUsageData": "Переглянути власну аналітику"
+  "productName": "Менеджер Модпаків для Майнкрафту",
+  "apply": "Встановити модпак",
+  "clear": "Очистити від модпаків",
+  "modpack": "Модпак",
+  "reload": "Оновити список модпаків",
+  "noOptions": "Немає варіантів",
+  "setModpackStatus": "Статус обраного модпаку",
+  "setModpackSuccess": "Модпак встановлено успішно.",
+  "setModpackFailed": "Помилка при встановленні модпаку",
+  "buttonsAreDisabled": "Кнопки на данний момент вимкнуто",
+  "openModpacksFolder": "Відкрити теку модпаків",
+  "installModpacks": "Встановити моди",
+  "referenceFile": "Встановити через референсний файл",
+  "manualInput": "Встановити вказавши свої дані",
+  "installError": "Помилка при встановленні модпаку. Перевірте чи ви використовуєте правильне розширення файлу.",
+  "name": "Назва",
+  "download": "Скачати",
+  "downloadIsAlreadyInProgress": "Щось вже завантажується",
+  "downloadSuccess": "Моди встановлені успішно.",
+  "downloadFail": "Помилка при встановленні модпаку",
+  "overwriteQuestion": "Перезаписати?",
+  "overwriteQuestionText": "Модпак з таким ім'ям вже існує, чи ви хочете його перезаписати?",
+  "language": "Мова",
+  "settings": "Налаштування",
+  "systemLocale": "Мова системи",
+  "speed": "Швидкість",
+  "someSettingsRequireReload": "Для зміни деяких налаштувань буде потрібний перезапуск застосунку",
+  "web": "Встановити моди з інтернету (CurseForge/Modrinth)",
+  "searchForMods": "Шукайте моди",
+  "noEternalKey": "На жаль програма не бачить ключа до CurseForge Eternal API, це означає, що ви не можете встановлювати моди CurseForge.",
+  "choosePreferredAPI": "Оберіть ваш завантажник модів.",
+  "chooseVersion": "Оберіть версію гри.",
+  "chooseModpack": "Виберіть модпак.",
+  "noVersion": "Не знайдено потрібну версію моду.",
+  "cancel": "Відміна",
+  "search": "Шукати",
+  "free": "Вільний модпак",
+  "mod": "Мод з {source}",
+  "@mod": {
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "CurseForge"
+      }
+    }
+  },
+  "resourcePack": "Набір ресурсів з {source}",
+  "@resourcePack": {
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "CurseForge"
+      }
+    }
+  },
+  "shaderPack": "Шейдери з {source}",
+  "@shaderPack": {
+    "placeholders": {
+      "source": {
+        "type": "String",
+        "example": "CurseForge"
+      }
+    }
+  },
+  "currentVersion": "Встановлена весрія - {version}",
+  "@currentVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "7.9.0"
+      }
+    }
+  },
+  "latestVersion": "Остання весрія - {version}",
+  "@latestVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "7.9.0"
+      }
+    }
+  },
+  "openLatestRelease": "Відкрити останню версію",
+  "openInTheWeb": "Відкрити в інтернеті",
+  "overrideMinecraftFolder": "Змінити .minecraft",
+  "resetMinecraftFolder": "Відновити .minecraft",
+  "unknown": "Невідомо",
+  "clipIcons": "Закругляти іконки",
+  "filterModpacksQ": "Чи хочете ви відфільтрувати моди?",
+  "unsupportedDownload": "Цей тип проєкту не підтримується.",
+  "dataCollectionQuestionShort": "Збирання інформації",
+  "collectData": "Зібрати дані",
+  "createModpack": "Створити новий модпак",
+  "invalidData": "Дано не дійсні дані",
+  "update": "Оновити дані модпака",
+  "clearModpackData": "Очистити дані модпака",
+  "viewPublicUsage": "Переглянути загальнодоступне дані використання {productName}",
+  "viewYourUsageData": "Переглянути власну аналітику",
+  "failedToDeleteUsageInfo": "Помилка при видаленні даних",
+  "deleteYourUsageData": "Видаліть дані користування"
 }
