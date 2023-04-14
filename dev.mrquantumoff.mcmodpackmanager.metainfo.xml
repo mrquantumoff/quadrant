@@ -34,9 +34,16 @@
   </keywords>
   <releases>
 
+    <release date="2023-04-14" version="7.17.0">
+      <description>
+        <p>Add a few buttons in settings (related to data collection)</p>
+      </description>
+    </release>
+
     <release date="2023-04-12" version="7.16.0">
       <description>
-        <p>Use the new api.mrquantumoff.dev API written in Rust with Actix Web</p>
+        <p>Use
+          the new api.mrquantumoff.dev API written in Rust with Actix Web</p>
       </description>
     </release>
 
