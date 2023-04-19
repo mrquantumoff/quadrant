@@ -105,5 +105,6 @@
   },
   "viewYourUsageData": "View your usage data",
   "deleteYourUsageData": "Delete your usage data",
-  "failedToDeleteUsageInfo": "Failed to delete usage info"
+  "failedToDeleteUsageInfo": "Failed to delete usage info",
+  "dependencies": "Dependencies: "
 }

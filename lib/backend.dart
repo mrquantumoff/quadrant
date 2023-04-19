@@ -254,6 +254,76 @@ Future<Map<String, String>> getReleaseInfo() async {
   };
 }
 
+Future<Mod> getMod(String modId, ModSource source,
+    Function(bool val) setAreParentButtonsActive) async {
+  if (source == ModSource.curseForge) {
+    final String apiKey =
+        const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
+    http.Response res = await http.get(
+      Uri.parse("https://api.curseforge.com/v1/mods/$modId"),
+      headers: {
+        "User-Agent": await generateUserAgent(),
+        "X-API-Key": apiKey,
+      },
+    );
+
+    final resJSON = json.decode(res.body)["data"];
+
+    int modClassId = resJSON["classId"];
+
+    late ModClass modClass;
+
+    if (modClassId == 6) {
+      modClass = ModClass.mod;
+    } else if (modClassId == 12) {
+      modClass = ModClass.resourcePack;
+    } else {
+      modClass = ModClass.shaderPack;
+    }
+
+    return Mod(
+      name: resJSON["name"],
+      description: resJSON["summary"],
+      downloadCount: resJSON["downloadCount"],
+      modIconUrl: resJSON["logo"]["thumbnailUrl"],
+      id: resJSON["id"].toString(),
+      setAreParentButtonsActive: setAreParentButtonsActive,
+      slug: resJSON["slug"],
+      modClass: modClass,
+      source: ModSource.curseForge,
+    );
+  } else {
+    http.Response res = await http.get(
+      Uri.parse("https://api.modrinth.com/v2/project/$modId"),
+      headers: {
+        "User-Agent": await generateUserAgent(),
+      },
+    );
+
+    final resJSON = json.decode(res.body);
+    late ModClass modClass;
+    final modClassString = resJSON["project_type"];
+    if (modClassString == "mod") {
+      modClass = ModClass.mod;
+    } else if (modClassString == "resourcepack") {
+      modClass = ModClass.resourcePack;
+    } else {
+      modClass = ModClass.shaderPack;
+    }
+    return Mod(
+      name: resJSON["title"],
+      description: resJSON["description"],
+      modIconUrl: resJSON["icon_url"],
+      id: resJSON["id"],
+      downloadCount: resJSON["downloads"],
+      setAreParentButtonsActive: setAreParentButtonsActive,
+      source: ModSource.modRinth,
+      slug: resJSON["slug"],
+      modClass: modClass,
+    );
+  }
+}
+
 void installModByProtocol(int modId, int fileId, Function() fail) async {
   try {
     final String apiKey =

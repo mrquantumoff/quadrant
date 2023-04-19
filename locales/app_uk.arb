@@ -98,5 +98,6 @@
   "viewPublicUsage": "Переглянути загальнодоступне дані використання {productName}",
   "viewYourUsageData": "Переглянути власну аналітику",
   "failedToDeleteUsageInfo": "Помилка при видаленні даних",
-  "deleteYourUsageData": "Видаліть дані користування"
+  "deleteYourUsageData": "Видаліть дані користування",
+  "dependencies": "Залежності: "
 }

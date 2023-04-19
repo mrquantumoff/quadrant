@@ -98,5 +98,6 @@
   "viewPublicUsage": "Herkese açık {productName} kullanımını görüntüleyin",
   "viewYourUsageData": "Kendi verilerini görüntüleyin",
   "deleteYourUsageData": "Kullanım verileri sil",
-  "failedToDeleteUsageInfo": "Kullanım bilgileri silinemedi"
+  "failedToDeleteUsageInfo": "Kullanım bilgileri silinemedi",
+  "dependencies": "bağımlılıklar: "
 }
