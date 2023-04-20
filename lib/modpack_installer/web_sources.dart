@@ -196,6 +196,43 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     searchResults = [];
   }
 
+  void searchModsFunction() async {
+    if (searchFieldController.text.trim() == "") return;
+    setSearchResults(
+      searchResults = [
+        Container(
+            margin: const EdgeInsets.only(top: 50, left: 20, right: 20),
+            child: const LinearProgressIndicator())
+      ],
+    );
+
+    String searchText =
+        Uri.encodeQueryComponent(searchFieldController.text.trim());
+    debugPrint(searchText);
+    List<Mod> mods =
+        await searchMods(searchText, ModClass.mod, ModSource.curseForge);
+    List<Mod> resourcePacks = await searchMods(
+        searchText, ModClass.resourcePack, ModSource.curseForge);
+    List<Mod> shaderPacks =
+        await searchMods(searchText, ModClass.shaderPack, ModSource.curseForge);
+    List<Mod> modsModrinth =
+        await searchMods(searchText, ModClass.mod, ModSource.modRinth);
+    List<Mod> resourcePacksModrinth =
+        await searchMods(searchText, ModClass.resourcePack, ModSource.modRinth);
+    List<Mod> shaderPacksModrinth =
+        await searchMods(searchText, ModClass.shaderPack, ModSource.modRinth);
+    List<Mod> widgets = mods +
+        resourcePacks +
+        modsModrinth +
+        resourcePacksModrinth +
+        shaderPacksModrinth +
+        shaderPacks;
+    widgets.sort((a, b) {
+      return b.downloadCount.compareTo(a.downloadCount);
+    });
+    setSearchResults(widgets);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -237,49 +274,12 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                             hintText:
                                 AppLocalizations.of(context)!.searchForMods),
                         controller: searchFieldController,
+                        onSubmitted: (String val) => searchModsFunction(),
                       ),
                     ),
                   ),
                   TextButton.icon(
-                    onPressed: () async {
-                      if (searchFieldController.text.trim() == "") return;
-                      setSearchResults(
-                        searchResults = [
-                          Container(
-                              margin: const EdgeInsets.only(
-                                  top: 50, left: 20, right: 20),
-                              child: const LinearProgressIndicator())
-                        ],
-                      );
-
-                      String searchText = Uri.encodeQueryComponent(
-                          searchFieldController.text.trim());
-                      debugPrint(searchText);
-                      List<Mod> mods = await searchMods(
-                          searchText, ModClass.mod, ModSource.curseForge);
-                      List<Mod> resourcePacks = await searchMods(searchText,
-                          ModClass.resourcePack, ModSource.curseForge);
-                      List<Mod> shaderPacks = await searchMods(searchText,
-                          ModClass.shaderPack, ModSource.curseForge);
-                      List<Mod> modsModrinth = await searchMods(
-                          searchText, ModClass.mod, ModSource.modRinth);
-                      List<Mod> resourcePacksModrinth = await searchMods(
-                          searchText,
-                          ModClass.resourcePack,
-                          ModSource.modRinth);
-                      List<Mod> shaderPacksModrinth = await searchMods(
-                          searchText, ModClass.shaderPack, ModSource.modRinth);
-                      List<Mod> widgets = mods +
-                          resourcePacks +
-                          modsModrinth +
-                          resourcePacksModrinth +
-                          shaderPacksModrinth +
-                          shaderPacks;
-                      widgets.sort((a, b) {
-                        return b.downloadCount.compareTo(a.downloadCount);
-                      });
-                      setSearchResults(widgets);
-                    },
+                    onPressed: searchModsFunction,
                     icon: const Icon(Icons.search),
                     label: Text(AppLocalizations.of(context)!.search),
                   )
