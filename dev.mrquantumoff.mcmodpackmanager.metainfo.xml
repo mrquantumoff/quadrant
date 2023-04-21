@@ -2,7 +2,7 @@
 <component type="desktop-application">
   <id>dev.mrquantumoff.mcmodpackmanager</id>
   <metadata_license>MIT</metadata_license>
-  <project_license>BSD-2-Clause</project_license>
+  <project_license>MPL-2.0</project_license>
   <name>Minecraft Modpack Manager</name>
   <summary>Manage your modpacks with ease!</summary>
   <description>
@@ -16,7 +16,8 @@
     </p>
   </description>
   <url type="homepage">
-    https://github.com/mrquantumoff/mcmodpackmanager_reborn</url>
+    https://mrquantumoff.dev/projects/mcmodpackmanager_reborn
+  </url>
   <categories>
     <category>Game</category>
     <category>Utility</category>
