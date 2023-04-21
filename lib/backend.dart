@@ -452,24 +452,25 @@ class MachineIdAndOS {
 }
 
 Future<MachineIdAndOS> getMachineIdAndOs() async {
-  late final String machineId;
+  late final String machineIdUnencoded;
   late final String os;
   final deviceInfoPlugin = DeviceInfoPlugin();
   if (Platform.isLinux) {
     final linuxInfo = await deviceInfoPlugin.linuxInfo;
     os = linuxInfo.prettyName;
-    machineId = linuxInfo.machineId ?? "unknown";
+    machineIdUnencoded = linuxInfo.machineId ?? "unknown";
   } else if (Platform.isWindows) {
     final windowsInfo = await deviceInfoPlugin.windowsInfo;
     os =
         "Windows ${windowsInfo.majorVersion.toSigned(100)} ${windowsInfo.displayVersion}; build number: ${windowsInfo.buildNumber}";
-    machineId = windowsInfo.deviceId;
+    machineIdUnencoded = windowsInfo.deviceId;
   } else if (Platform.isMacOS) {
     final macOSInfo = await deviceInfoPlugin.macOsInfo;
     os = "MacOS ${macOSInfo.osRelease}";
-    machineId = macOSInfo.systemGUID!;
+    machineIdUnencoded = macOSInfo.systemGUID!;
   }
-  return MachineIdAndOS(machineId: machineId, os: os);
+  return MachineIdAndOS(
+      machineId: base64Url.encode(utf8.encode(machineIdUnencoded)), os: os);
 }
 
 void collectUserInfo({bool saveToFile = false}) async {
