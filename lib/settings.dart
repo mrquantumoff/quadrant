@@ -51,8 +51,19 @@ class _SettingsState extends State<Settings> {
     _controller = TextEditingController();
   }
 
+  void updateReleaseInfo() async {
+    try {
+      var release = await getReleaseInfo();
+
+      GetStorage().write("latestVersion", release["latestRelease"]);
+      GetStorage().write("currentVersion", release["currentRelease"]);
+      GetStorage().write("latestVersionUrl", release["url"]);
+    } catch (e) {}
+  }
+
   @override
   Widget build(BuildContext context) {
+    updateReleaseInfo();
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
       child: ListView(

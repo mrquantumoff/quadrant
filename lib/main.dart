@@ -61,14 +61,6 @@ void main(List<String> args) async {
     GetStorage().writeInMemory("clipIcons", true);
   }
 
-  try {
-    var release = await getReleaseInfo();
-
-    GetStorage().write("latestVersion", release["latestRelease"]);
-    GetStorage().write("currentVersion", release["currentRelease"]);
-    GetStorage().write("latestVersionUrl", release["url"]);
-  } catch (e) {}
-
   runApp(const MyApp());
 }
 
