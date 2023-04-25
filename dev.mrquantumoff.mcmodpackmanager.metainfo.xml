@@ -35,6 +35,12 @@
   </keywords>
   <releases>
 
+    <release date="2023-04-25" version="7.21.1">
+      <description>
+        <p>Fix a bug</p>
+      </description>
+    </release>
+
     <release date="2023-04-25" version="7.21.0">
       <description>
         <p>Fix a few bugs</p>
