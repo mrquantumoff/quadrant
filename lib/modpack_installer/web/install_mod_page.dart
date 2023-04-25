@@ -92,13 +92,23 @@ class _InstallModPageState extends State<InstallModPage> {
 
         final List<dynamic> dependencies = file["dependencies"];
         for (dynamic item in dependencies) {
-          mods.add(
-            await getMod(
-              item["modId"].toString(),
-              ModSource.curseForge,
-              setAreButtonsActive,
-            ),
-          );
+          bool doesContainTheMod = false;
+          for (var mod in mods) {
+            if (mod.id == item["modId"].toString()) {
+              doesContainTheMod = true;
+            }
+          }
+          if (!doesContainTheMod) {
+            debugPrint(item["modId"].toString());
+
+            mods.add(
+              await getMod(
+                item["modId"].toString(),
+                ModSource.curseForge,
+                setAreButtonsActive,
+              ),
+            );
+          }
         }
       }
     } else {
