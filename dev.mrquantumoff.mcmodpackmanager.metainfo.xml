@@ -35,6 +35,13 @@
   </keywords>
   <releases>
 
+    <release date="2023-04-25" version="7.21.0">
+      <description>
+        <p>Fix a few bugs</p>
+      </description>
+    </release>
+
+
     <release date="2023-04-21" version="7.20.0">
       <description>
         <p>Improve start time of the app</p>
