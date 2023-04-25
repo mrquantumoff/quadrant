@@ -244,6 +244,7 @@ class _ModState extends State<Mod> {
                                   source: widget.source,
                                   modClass: widget.modClass,
                                 ),
+                                preventDuplicates: false,
                               );
                             },
                             icon: const Icon(Icons.file_download),
