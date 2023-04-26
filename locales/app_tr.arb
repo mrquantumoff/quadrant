@@ -99,5 +99,6 @@
   "viewYourUsageData": "Kendi verilerini görüntüleyin",
   "deleteYourUsageData": "Kullanım verileri sil",
   "failedToDeleteUsageInfo": "Kullanım bilgileri silinemedi",
-  "dependencies": "bağımlılıklar: "
+  "dependencies": "bağımlılıklar: ",
+  "emptyDependencies": "Bugün şanslı gününüz, bu proje için bağımlılık yok"
 }

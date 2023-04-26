@@ -67,14 +67,14 @@ class _InstallModPageState extends State<InstallModPage> {
   }
 
   void getDeps() async {
-    List<Mod> newDeps = await getDependencies(
+    List<Widget> newDeps = await getDependencies(
         widget.mod, GetStorage().read("lastUsedVersion") ?? "");
     setState(() {
       dependencies = newDeps;
     });
   }
 
-  Future<List<Mod>> getDependencies(Mod mod, String modVersion) async {
+  Future<List<Widget>> getDependencies(Mod mod, String modVersion) async {
     List<Mod> mods = [];
 
     debugPrint("Getting dependencies");
@@ -126,6 +126,17 @@ class _InstallModPageState extends State<InstallModPage> {
         );
       }
     }
+    if (mods.isEmpty) {
+      return [
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 24),
+          child: Text(
+            AppLocalizations.of(context)!.emptyDependencies,
+            style: const TextStyle(fontSize: 24),
+          ),
+        )
+      ];
+    }
     return mods;
   }
 
@@ -173,7 +184,7 @@ class _InstallModPageState extends State<InstallModPage> {
   @override
   Widget build(BuildContext context) {
     void updateDependencies() async {
-      List<Mod> mods = await getDependencies(
+      List<Widget> mods = await getDependencies(
           widget.mod, dependencyVersionFieldController.text);
       setState(() {
         dependencies = mods;

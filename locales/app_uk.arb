@@ -99,5 +99,7 @@
   "viewYourUsageData": "Переглянути власну аналітику",
   "failedToDeleteUsageInfo": "Помилка при видаленні даних",
   "deleteYourUsageData": "Видаліть дані користування",
-  "dependencies": "Залежності: "
+  "dependencies": "Залежності: ",
+  "emptyDependencies": "Сьогодні ваш щасливий день, у цього проєкта немає залежностей"
+
 }

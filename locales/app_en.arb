@@ -106,5 +106,6 @@
   "viewYourUsageData": "View your usage data",
   "deleteYourUsageData": "Delete your usage data",
   "failedToDeleteUsageInfo": "Failed to delete usage info",
-  "dependencies": "Dependencies: "
+  "dependencies": "Dependencies: ",
+  "emptyDependencies": "It's your lucky day, there are no dependencies for this project"
 }
