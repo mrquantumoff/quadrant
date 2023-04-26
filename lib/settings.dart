@@ -51,18 +51,18 @@ class _SettingsState extends State<Settings> {
     _controller = TextEditingController();
   }
 
-  void updateReleaseInfo() async {
-    try {
-      var release = await getReleaseInfo();
-
-      GetStorage().write("latestVersion", release["latestRelease"]);
-      GetStorage().write("currentVersion", release["currentRelease"]);
-      GetStorage().write("latestVersionUrl", release["url"]);
-    } catch (e) {}
-  }
-
   @override
   Widget build(BuildContext context) {
+    void updateReleaseInfo() async {
+      try {
+        var release = await getReleaseInfo();
+
+        GetStorage().write("latestVersion", release["latestRelease"]);
+        GetStorage().write("currentVersion", release["currentRelease"]);
+        GetStorage().write("latestVersionUrl", release["url"]);
+      } catch (e) {}
+    }
+
     updateReleaseInfo();
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
@@ -225,12 +225,22 @@ class _SettingsState extends State<Settings> {
             child: TextButton.icon(
               icon: const Icon(Icons.open_in_browser),
               onPressed: () async {
-                MachineIdAndOS info = await getMachineIdAndOs();
+                if (GetStorage().read("collectUserData")) {
+                  MachineIdAndOS info = await getMachineIdAndOs();
 
-                await launchUrl(
-                  Uri.parse(
-                      "https://mrquantumoff.dev/projects/mcmodpackmanager_reborn/analytics/${info.machineId}"),
-                );
+                  await launchUrl(
+                    Uri.parse(
+                        "https://mrquantumoff.dev/projects/mcmodpackmanager_reborn/analytics/${info.machineId}"),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        AppLocalizations.of(context)!.invalidData,
+                      ),
+                    ),
+                  );
+                }
               },
               label: Text(
                 AppLocalizations.of(context)!.viewYourUsageData,

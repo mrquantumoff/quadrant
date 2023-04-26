@@ -117,10 +117,10 @@ packages:
     dependency: "direct main"
     description:
       name: device_info_plus
-      sha256: "435383ca05f212760b0a70426b5a90354fe6bd65992b3a5e27ab6ede74c02f5c"
+      sha256: "4fb13cf762bd84c4739eb7a5d8230f41493a749728dd2666ca259f7e4462eb2e"
       url: "https://pub.dev"
     source: hosted
-    version: "8.2.0"
+    version: "8.2.1"
   device_info_plus_platform_interface:
     dependency: transitive
     description:
@@ -165,10 +165,10 @@ packages:
     dependency: "direct main"
     description:
       name: file_picker
-      sha256: b85eb92b175767fdaa0c543bf3b0d1f610fe966412ea72845fe5ba7801e763ff
+      sha256: e6c7ad8e572379df86ea64ef0a5395889fba3954411d47ca021b888d79f8e798
       url: "https://pub.dev"
     source: hosted
-    version: "5.2.10"
+    version: "5.2.11"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -362,10 +362,10 @@ packages:
     dependency: "direct main"
     description:
       name: package_info_plus
-      sha256: cbff87676c352d97116af6dbea05aa28c4d65eb0f6d5677a520c11a69ca9a24d
+      sha256: de41e74b0ea9a3e524c68f35099af1fdeb4885625aeb277d2e01a42d6bd7b293
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.0"
+    version: "3.1.1"
   package_info_plus_platform_interface:
     dependency: transitive
     description:
@@ -434,10 +434,10 @@ packages:
     dependency: transitive
     description:
       name: path_provider_windows
-      sha256: f53720498d5a543f9607db4b0e997c4b5438884de25b0f73098cc2671a51b130
+      sha256: d3f80b32e83ec208ac95253e0cd4d298e104fbc63cb29c5c69edaed43b0c69d6
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.5"
+    version: "2.1.6"
   petitparser:
     dependency: transitive
     description:
@@ -663,18 +663,18 @@ packages:
     dependency: transitive
     description:
       name: win32
-      sha256: a6f0236dbda0f63aa9a25ad1ff9a9d8a4eaaa5012da0dc59d21afdb1dc361ca4
+      sha256: dd8f9344bc305ae2923e3d11a2a911d9a4e2c7dd6fe0ed10626d63211a69676e
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.4"
+    version: "4.1.3"
   win32_registry:
     dependency: transitive
     description:
       name: win32_registry
-      sha256: "66e78552f17501aced68fe77425b13156998f1bd3d58f1cd8cd0af2dbe4520e3"
+      sha256: "1c52f994bdccb77103a6231ad4ea331a244dbcef5d1f37d8462f713143b0bfae"
       url: "https://pub.dev"
     source: hosted
-    version: "1.0.2"
+    version: "1.1.0"
   window_manager:
     dependency: "direct main"
     description:
