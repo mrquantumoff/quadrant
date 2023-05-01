@@ -26,7 +26,7 @@
     <a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
         <img width="200" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
     </a>
-    <a href="ms-windows-store://pdp/?ProductId=9NLT70M0TVD0&mode=mini">
+    <a href="https://www.microsoft.com/store/apps/9NLT70M0TVD0">
         <img width="187" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
     </a>
 
