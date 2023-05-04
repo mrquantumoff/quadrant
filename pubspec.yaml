@@ -2,7 +2,7 @@ name: mcmodpackmanager_reborn
 description: Manage your modpacks with ease!
 publish_to: 'none'
 
-version: 7.21.1+0
+version: 8.0.0+0
 
 environment:
   sdk: '>=3.0.0-417.2.beta'

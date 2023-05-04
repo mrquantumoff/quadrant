@@ -60,7 +60,6 @@ void main(List<String> args) async {
   if (GetStorage().read("clipIcons") == null) {
     GetStorage().writeInMemory("clipIcons", true);
   }
-
   runApp(const MyApp());
 }
 
