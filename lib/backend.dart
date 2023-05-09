@@ -307,8 +307,10 @@ Future<Mod> getMod(String modId, ModSource source,
       modClass = ModClass.mod;
     } else if (modClassString == "resourcepack") {
       modClass = ModClass.resourcePack;
-    } else {
+    } else if (modClassString == "shader") {
       modClass = ModClass.shaderPack;
+    } else {
+      throw Exception("Unsupported Mod Type: $modClassString");
     }
     return Mod(
       name: resJSON["title"],

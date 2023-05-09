@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -8,11 +9,14 @@ import 'package:get_storage/get_storage.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/install_modpack_button.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/install_mod_page.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/mod.dart';
 import 'package:mcmodpackmanager_reborn/selector.dart';
 import 'package:mcmodpackmanager_reborn/open_modpacks_folder.dart';
 import 'package:mcmodpackmanager_reborn/settings.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
+import 'package:http/http.dart' as http;
 import 'package:protocol_handler/protocol_handler.dart';
 
 void main(List<String> args) async {
@@ -29,8 +33,9 @@ void main(List<String> args) async {
   } else {
     // Linux can use arguments from the cli
     for (String arg in args) {
-      if (arg.startsWith("curseforge://install")) {
-        GetStorage().writeInMemory("curseforgeArgument", arg);
+      if (arg.startsWith("curseforge://install") ||
+          arg.startsWith("mcmodpackmanager://")) {
+        GetStorage().writeInMemory("protocolArgument", arg);
       }
     }
   }
@@ -187,15 +192,65 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
   }
 
   @override
-  void onProtocolUrlReceived(String url) {
+  void onProtocolUrlReceived(String url) async {
     String log = 'Url received: $url)';
     debugPrint(log);
+
     Uri uri = Uri.parse(url);
     try {
-      // Example: curseforge://install?addonId=238222&fileId=4473386
-      int modId = int.parse(uri.queryParameters["addonId"]!);
-      int fileId = int.parse(uri.queryParameters["fileId"]!);
-      installModByProtocol(modId, fileId, protocolFail);
+      if (url.startsWith("curseforge://")) {
+        // Example: curseforge://install?addonId=238222&fileId=4473386
+        int modId = int.parse(uri.queryParameters["addonId"]!);
+        int fileId = int.parse(uri.queryParameters["fileId"]!);
+        installModByProtocol(modId, fileId, protocolFail);
+      } else if (url.startsWith("mcmodpackmanager://modrinthopen")) {
+        // Example: mcmodpackmanager://modrinthopen?id=AANobbMI
+        String id = uri.queryParameters["id"]!;
+        Mod mod = await getMod(id, ModSource.modRinth, (val) => null);
+        Uri vrsuri = Uri.parse(
+          'https://api.modrinth.com/v2/tag/game_version',
+        );
+        List<dynamic> vrs = json.decode((await http.get(
+          vrsuri,
+          headers: {
+            "User-Agent": await generateUserAgent(),
+          },
+        ))
+            .body);
+        List<String> versions = [];
+        for (var v in vrs) {
+          if (v["version_type"] == "release") {
+            versions.add(v["version"].toString());
+          }
+        }
+        List<DropdownMenuEntry> versionItems = [];
+        List<DropdownMenuEntry> modpackItems = [];
+
+        for (var version in versions) {
+          versionItems.add(
+            DropdownMenuEntry(label: version.toString(), value: version),
+          );
+        }
+
+        List<String> modpacks = getModpacks(hideFree: false);
+
+        for (var modpack in modpacks) {
+          modpackItems.add(
+            DropdownMenuEntry(label: modpack, value: modpack),
+          );
+        }
+        Get.to(
+          () => InstallModPage(
+            versions: versionItems,
+            mod: mod,
+            modpacks: modpackItems,
+            source: ModSource.modRinth,
+            modClass: mod.modClass,
+          ),
+          preventDuplicates: false,
+          transition: Transition.upToDown,
+        );
+      }
     } catch (e) {
       protocolFail();
     }
@@ -212,11 +267,11 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
 
   @override
   Widget build(BuildContext context) {
-    if (GetStorage().read("curseforgeArgument") != null && Platform.isLinux) {
+    if (GetStorage().read("protocolArgument") != null && Platform.isLinux) {
       debugPrint("curseforge protocol received");
-      onProtocolUrlReceived(GetStorage().read("curseforgeArgument"));
+      onProtocolUrlReceived(GetStorage().read("protocolArgument"));
       debugPrint("curseforge protocol removed");
-      GetStorage().remove("curseforgeArgument");
+      GetStorage().remove("protocolArgument");
     }
 
     return Scaffold(
