@@ -67,7 +67,7 @@ msix_config:
   msix_version: 8.0.1.0
   logo_path: .\assets\icons\logo.ico
   store: true
-  protocol-activation: curseforge
-  app_uri_handler_hosts: www.curseforge.com, curseforge.com, beta.curseforge.com
+  protocol-activation: curseforge, mcmodpackmanager
+  app_uri_handler_hosts: www.curseforge.com, curseforge.com, beta.curseforge.com, modrinth.com
   languages: en-us, uk-ua, tr-tr
   capabilities: internetClient, broadFileSystemAccess
