@@ -34,6 +34,13 @@
     <keyword>Minecraft Modpack Manager</keyword>
   </keywords>
   <releases>
+
+    <release date="2023-05-09" version="8.1.0">
+      <description>
+        <p>Start using mcmodpackmanager protocol handler</p>
+      </description>
+    </release>
+
     <release date="2023-05-07" version="8.0.1">
       <description>
         <p>Revert to flutter stable</p>
