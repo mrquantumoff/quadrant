@@ -34,6 +34,11 @@
     <keyword>Minecraft Modpack Manager</keyword>
   </keywords>
   <releases>
+    <release date="2023-05-11" version="8.1.1">
+      <description>
+        <p>Update to flutter 3.10</p>
+      </description>
+    </release>
 
     <release date="2023-05-09" version="8.1.0">
       <description>

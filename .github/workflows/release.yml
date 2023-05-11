@@ -23,9 +23,11 @@ jobs:
         run: flutter gen-l10n
       - name: Build on windows
         if: matrix.platform == 'windows-latest'
+        continue-on-error: true
         run: |
           flutter pub get
-          flutter pub run msix:create --output-path windows-build --windows-build-args ' --split-debug-info --obfuscate --dart-define ETERNAL_API_KEY=${{ secrets.ETERNAL_API_KEY }} --release'
+          flutter pub run msix:create -v --output-path windows-build --windows-build-args ' --split-debug-info --obfuscate --dart-define ETERNAL_API_KEY=${{ secrets.ETERNAL_API_KEY }} --release'
+          flutter pub run msix:create -v --output-path windows-build --windows-build-args ' --split-debug-info --obfuscate --dart-define ETERNAL_API_KEY=${{ secrets.ETERNAL_API_KEY }} --release'
       - name: Compress Windows build to .zip
         if: matrix.platform == 'windows-latest'
         uses: vimtor/action-zip@v1.1
