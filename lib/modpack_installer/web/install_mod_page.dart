@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:intl/intl.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
 import "package:http/http.dart" as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -196,6 +197,8 @@ class _InstallModPageState extends State<InstallModPage> {
     String displayName = widget.mod.name.length >= 36
         ? widget.mod.name.replaceRange(36, null, "...")
         : widget.mod.name;
+    NumberFormat numberFormatter = NumberFormat.compact(
+        explicitSign: false, locale: AppLocalizations.of(context)!.localeName);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -252,7 +255,7 @@ class _InstallModPageState extends State<InstallModPage> {
                   children: [
                     const Icon(Icons.download, color: Colors.grey, size: 28),
                     Text(
-                      widget.mod.downloadCount.toString(),
+                      numberFormatter.format(widget.mod.downloadCount),
                       style: const TextStyle(
                         fontSize: 24,
                         color: Colors.grey,

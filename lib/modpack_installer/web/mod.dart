@@ -6,6 +6,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/install_mod_page.dart';
@@ -106,6 +107,8 @@ class _ModState extends State<Mod> {
     String displayName = widget.name.length >= 36
         ? widget.name.replaceRange(36, null, "...")
         : widget.name;
+    NumberFormat numberFormatter = NumberFormat.compact(
+        explicitSign: false, locale: AppLocalizations.of(context)!.localeName);
     return Column(
       children: [
         const Divider(
@@ -161,7 +164,7 @@ class _ModState extends State<Mod> {
                                 const Icon(Icons.download,
                                     color: Colors.grey, size: 20),
                                 Text(
-                                  widget.downloadCount.toString(),
+                                  numberFormatter.format(widget.downloadCount),
                                   style: const TextStyle(
                                     fontSize: 16,
                                     color: Colors.grey,
