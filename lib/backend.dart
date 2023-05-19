@@ -427,6 +427,8 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
         modClass: modClass,
         installFileId: fileId,
       ),
+      preventDuplicates: false,
+      transition: Transition.upToDown,
     );
   } catch (e) {
     fail();
