@@ -16,8 +16,6 @@
 
 - #### Opening modpacks folder
 
-- #### Installing modpacks using .mcmodpackref
-
 - #### Installing mods and resourcepacks (not modpacks) from curseforge/modrinth
 
 - #### Installing shaders from modrinth and (partially) curseforge
