@@ -35,6 +35,12 @@
   </keywords>
   <releases>
 
+    <release date="2023-05-23" version="8.3.0">
+      <description>
+        <p>Fix the bug, when the version was not displayed correctly</p>
+      </description>
+    </release>
+
     <release date="2023-05-19" version="8.2.1">
       <description>
         <p>Fix a bug related to the CurseForge protocol handler</p>

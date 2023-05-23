@@ -275,11 +275,20 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
     }
 
     return Scaffold(
-      appBar: AppBar(),
-      endDrawer: Drawer(
-        width: 350,
-        child: Settings(
-          setLocale: widget.setLocale,
+      appBar: AppBar(
+        leading: Container(
+          margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
+          child: IconButton(
+            onPressed: () async {
+              var release = await getReleaseInfo();
+
+              GetStorage().write("latestVersion", release["latestRelease"]);
+              GetStorage().write("currentVersion", release["currentRelease"]);
+              GetStorage().write("latestVersionUrl", release["url"]);
+              Get.to(() => Settings(setLocale: widget.setLocale));
+            },
+            icon: const Icon(Icons.settings),
+          ),
         ),
       ),
       body: Center(
