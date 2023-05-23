@@ -32,7 +32,7 @@
 
 </div>
 
-> ## \* If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the settings or reinstalling the app from microsoft store. If CurseForge protocl handler doesn't work properly you can easily use [this registry fix](https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/msstorefix.reg)
+> ## \* If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the settings or reinstalling the app from microsoft store. If CurseForge protocol handler doesn't work properly you can easily use [this registry fix](https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/msstorefix.reg)
 >
 > ### Warning: If your mods folder is not symlinked to modpacks/<anything> your mods folder will be deleted after you apply/clear your modpack
 >
