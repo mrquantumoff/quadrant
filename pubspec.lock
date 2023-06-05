@@ -13,10 +13,10 @@ packages:
     dependency: transitive
     description:
       name: args
-      sha256: c372bb384f273f0c2a8aaaa226dad84dc27c8519a691b888725dec59518ad53a
+      sha256: eef6c46b622e0494a36c5a12d10d77fb4e855501a91c1b9ef9339326e58f0596
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.1"
+    version: "2.4.2"
   async:
     dependency: transitive
     description:
@@ -117,10 +117,10 @@ packages:
     dependency: "direct main"
     description:
       name: device_info_plus
-      sha256: "499c61743e13909c13374a8c209075385858c614b9c0f2487b5f9995eeaf7369"
+      sha256: "2c35b6d1682b028e42d07b3aee4b98fa62996c10bc12cb651ec856a80d6a761b"
       url: "https://pub.dev"
     source: hosted
-    version: "9.0.1"
+    version: "9.0.2"
   device_info_plus_platform_interface:
     dependency: transitive
     description:
@@ -165,10 +165,10 @@ packages:
     dependency: "direct main"
     description:
       name: file_picker
-      sha256: c7a8e25ca60e7f331b153b0cb3d405828f18d3e72a6fa1d9440c86556fffc877
+      sha256: b1729fc96627dd44012d0a901558177418818d6bd428df59dcfeb594e5f66432
       url: "https://pub.dev"
     source: hosted
-    version: "5.3.0"
+    version: "5.3.2"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -207,10 +207,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_platform_widgets
-      sha256: "8ffd4a834f73a97dd8f1d73d6fcd067cdbe5e9190fb616e34772f1ffd14a277e"
+      sha256: "107d5bc9a167b4e268cba44075ee399b6b2c63d44ede28f7e8c983d7fa4b59be"
       url: "https://pub.dev"
     source: hosted
-    version: "3.3.4"
+    version: "3.3.5"
   flutter_plugin_android_lifecycle:
     dependency: transitive
     description:
@@ -257,19 +257,19 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "v2.2.3"
-      resolved-ref: "92c5cb58e120a6d8642b9107c6b4527ef9615719"
+      ref: "v2.2.4"
+      resolved-ref: c5e20b24ae052f35aa0fe3751d97b654838d2b77
       url: "https://github.com/mrquantumoff/get_storage.git"
     source: git
-    version: "2.2.3"
+    version: "2.2.4"
   http:
     dependency: "direct main"
     description:
       name: http
-      sha256: "5895291c13fa8a3bd82e76d5627f69e0d85ca6a30dcac95c4ea19a5d555879c2"
+      sha256: "4c3f04bfb64d3efd508d06b41b825542f08122d30bda4933fb95c069d22a4fa3"
       url: "https://pub.dev"
     source: hosted
-    version: "0.13.6"
+    version: "1.0.0"
   http_parser:
     dependency: transitive
     description:
@@ -314,10 +314,10 @@ packages:
     dependency: transitive
     description:
       name: lints
-      sha256: "6b0206b0bf4f04961fc5438198ccb3a885685cd67d4d4a32cc20ad7f8adbe015"
+      sha256: "0a217c6c989d21039f1498c3ed9f3ed71b354e69873f13a8dfc3c9fe76f1b452"
       url: "https://pub.dev"
     source: hosted
-    version: "2.1.0"
+    version: "2.1.1"
   matcher:
     dependency: transitive
     description:
@@ -346,10 +346,10 @@ packages:
     dependency: "direct dev"
     description:
       name: msix
-      sha256: "3cc1b01dc1e8b48d3121e6f8796e99f18a17911f4deb34c97c2936f517b89d1c"
+      sha256: c4ac0055da46764d9dca51f2f53b488294080fc8dc2de5730866558a37c6c07a
       url: "https://pub.dev"
     source: hosted
-    version: "3.13.1"
+    version: "3.14.1"
   package_config:
     dependency: transitive
     description:
@@ -362,10 +362,10 @@ packages:
     dependency: "direct main"
     description:
       name: package_info_plus
-      sha256: "28386bbe89ab5a7919a47cea99cdd1128e5a6e0bbd7eaafe20440ead84a15de3"
+      sha256: ceb027f6bc6a60674a233b4a90a7658af1aebdea833da0b5b53c1e9821a78c7b
       url: "https://pub.dev"
     source: hosted
-    version: "4.0.1"
+    version: "4.0.2"
   package_info_plus_platform_interface:
     dependency: transitive
     description:
@@ -575,10 +575,10 @@ packages:
     dependency: transitive
     description:
       name: url_launcher_android
-      sha256: "1a5848f598acc5b7d8f7c18b8cb834ab667e59a13edc3c93e9d09cf38cc6bc87"
+      sha256: eed4e6a1164aa9794409325c3b707ff424d4d1c2a785e7db67f8bbda00e36e51
       url: "https://pub.dev"
     source: hosted
-    version: "6.0.34"
+    version: "6.0.35"
   url_launcher_ios:
     dependency: transitive
     description:
@@ -660,21 +660,21 @@ packages:
     source: hosted
     version: "2.1.4"
   win32:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
       name: win32
-      sha256: "5a751eddf9db89b3e5f9d50c20ab8612296e4e8db69009788d6c8b060a84191c"
+      sha256: "7dacfda1edcca378031db9905ad7d7bd56b29fd1a90b0908b71a52a12c41e36b"
       url: "https://pub.dev"
     source: hosted
-    version: "4.1.4"
+    version: "5.0.3"
   win32_registry:
     dependency: transitive
     description:
       name: win32_registry
-      sha256: "1c52f994bdccb77103a6231ad4ea331a244dbcef5d1f37d8462f713143b0bfae"
+      sha256: e4506d60b7244251bc59df15656a3093501c37fb5af02105a944d73eb95be4c9
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.0"
+    version: "1.1.1"
   window_manager:
     dependency: "direct main"
     description:

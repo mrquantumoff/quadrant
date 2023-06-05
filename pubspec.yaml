@@ -2,7 +2,7 @@ name: mcmodpackmanager_reborn
 description: Manage your modpacks with ease!
 publish_to: 'none'
 
-version: 8.3.0+0
+version: 8.3.1+0
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -11,35 +11,38 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_platform_widgets: ^3.3.4
+  flutter_platform_widgets: ^3.3.5
   dynamic_color: ^1.6.5
   get: ^4.6.5
   get_storage:
     git:
       url: https://github.com/mrquantumoff/get_storage.git
-      ref: v2.2.3
+      ref: v2.2.4
   flutter_localizations:
     sdk: flutter
   intl: any
   ffi: ^2.0.2
   window_manager: ^0.3.4
-  package_info_plus: ^4.0.1
-  file_picker: ^5.3.0
-  http: ^0.13.6
+  package_info_plus: ^4.0.2
+  file_picker: ^5.3.2
+  http: ^1.0.0
   path_provider: ^2.0.15
   archive: ^3.3.7
   flutter_platform_alert: ^0.4.0
   url_launcher: ^6.1.11
   flutter_svg: ^2.0.6
   protocol_handler: ^0.1.5
-  device_info_plus: ^9.0.1
+  device_info_plus: ^9.0.2
   dart_ipify: ^1.1.1
+
+dependency_overrides:
+  win32: any
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.1
-  msix: ^3.13.1
+  msix: ^3.14.1
   flutter_launcher_icons: ^0.13.1
 flutter:
   generate: true
@@ -64,7 +67,7 @@ msix_config:
   publisher_display_name: MrQuantumOFF (Demir Yerli)
   publisher: CN=010914FC-8843-4963-A3FE-E3E06E6D9F53
   identity_name: 58734MrQuantumOFFDemirYer.MinecraftModpackManagerR
-  msix_version: 8.3.0.0
+  msix_version: 8.3.1.0
   logo_path: .\assets\icons\logo.ico
   store: true
   protocol-activation: curseforge, mcmodpackmanager
