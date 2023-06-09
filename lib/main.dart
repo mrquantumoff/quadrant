@@ -69,6 +69,13 @@ void main(List<String> args) async {
     GetStorage().writeInMemory("lastRSSfetched",
         DateTime.now().subtract(const Duration(days: 14)).toIso8601String());
   }
+
+  if (GetStorage().read("curseforge") == null) {
+    GetStorage().writeInMemory("curseForge", true);
+  }
+  if (GetStorage().read("modrinth") == null) {
+    GetStorage().writeInMemory("modrinth", true);
+  }
   runApp(const MyApp());
 }
 

@@ -20,6 +20,8 @@ class _SettingsState extends State<Settings> {
   late String latestVersion;
   bool clipButtons = GetStorage().read("clipIcons");
   bool collectData = GetStorage().read("collectUserData");
+  bool curseForge = GetStorage().read("curseForge");
+  bool modrinth = GetStorage().read("modrinth");
   @override
   void dispose() {
     super.dispose();
@@ -50,6 +52,20 @@ class _SettingsState extends State<Settings> {
     mcFolder = getMinecraftFolder().path;
     super.initState();
     _controller = TextEditingController();
+  }
+
+  void setModrinth(bool newValue) {
+    GetStorage().write("modrinth", newValue);
+    setState(() {
+      modrinth = newValue;
+    });
+  }
+
+  void setCurseForge(bool newValue) {
+    GetStorage().write("curseForge", newValue);
+    setState(() {
+      curseForge = newValue;
+    });
   }
 
   @override
@@ -272,6 +288,40 @@ class _SettingsState extends State<Settings> {
                     color: Colors.redAccent,
                   ),
                 ),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    margin: const EdgeInsetsDirectional.only(end: 12),
+                    child: Switch(
+                      value: curseForge,
+                      onChanged: setCurseForge,
+                    ),
+                  ),
+                  const Text("CurseForge"),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    margin: const EdgeInsetsDirectional.only(end: 12),
+                    child: Switch(
+                      value: modrinth,
+                      onChanged: setModrinth,
+                    ),
+                  ),
+                  const Text("Modrinth"),
+                ],
               ),
             ),
           ],

@@ -209,18 +209,27 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     String searchText =
         Uri.encodeQueryComponent(searchFieldController.text.trim());
     debugPrint(searchText);
-    List<Mod> mods =
-        await searchMods(searchText, ModClass.mod, ModSource.curseForge);
-    List<Mod> resourcePacks = await searchMods(
-        searchText, ModClass.resourcePack, ModSource.curseForge);
-    List<Mod> shaderPacks =
-        await searchMods(searchText, ModClass.shaderPack, ModSource.curseForge);
-    List<Mod> modsModrinth =
-        await searchMods(searchText, ModClass.mod, ModSource.modRinth);
-    List<Mod> resourcePacksModrinth =
-        await searchMods(searchText, ModClass.resourcePack, ModSource.modRinth);
-    List<Mod> shaderPacksModrinth =
-        await searchMods(searchText, ModClass.shaderPack, ModSource.modRinth);
+    List<Mod> mods = [];
+    List<Mod> resourcePacks = [];
+    List<Mod> shaderPacks = [];
+    List<Mod> modsModrinth = [];
+    List<Mod> resourcePacksModrinth = [];
+    List<Mod> shaderPacksModrinth = [];
+    if (GetStorage().read("curseForge")) {
+      mods = await searchMods(searchText, ModClass.mod, ModSource.curseForge);
+      resourcePacks = await searchMods(
+          searchText, ModClass.resourcePack, ModSource.curseForge);
+      shaderPacks = await searchMods(
+          searchText, ModClass.shaderPack, ModSource.curseForge);
+    }
+    if (GetStorage().read("modrinth")) {
+      modsModrinth =
+          await searchMods(searchText, ModClass.mod, ModSource.modRinth);
+      resourcePacksModrinth = await searchMods(
+          searchText, ModClass.resourcePack, ModSource.modRinth);
+      shaderPacksModrinth =
+          await searchMods(searchText, ModClass.shaderPack, ModSource.modRinth);
+    }
     List<Mod> widgets = mods +
         resourcePacks +
         modsModrinth +

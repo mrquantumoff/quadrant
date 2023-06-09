@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_platform_alert/flutter_platform_alert.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 
 import 'package:http/http.dart' as http;
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/filter_mods.dart';
@@ -22,7 +23,8 @@ class ModpackInstaller extends StatelessWidget {
         Container(
           margin: const EdgeInsets.all(12),
           child: ElevatedButton(
-            onPressed: (const String.fromEnvironment("ETERNAL_API_KEY") == "")
+            onPressed: (GetStorage().read("curseForge") &&
+                    const String.fromEnvironment("ETERNAL_API_KEY") == "")
                 ? () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -42,35 +44,17 @@ class ModpackInstaller extends StatelessWidget {
                         "X-API-Key": apiKey
                       },
                     );
+                    bool isValid = false;
 
-                    if (res.statusCode == 200) {
+                    if (res.statusCode == 200 &&
+                        GetStorage().read("curseForge")) {
                       var data = json.decode(res.body);
-                      bool isValid = false;
                       for (var game in data["data"]) {
                         if (game["id"] == 432) {
-                          final clickedButton =
-                              await FlutterPlatformAlert.showAlert(
-                            windowTitle:
-                                AppLocalizations.of(context)!.productName,
-                            text: AppLocalizations.of(context)!.filterModpacksQ,
-                            alertStyle: AlertButtonStyle.yesNo,
-                            iconStyle: IconStyle.question,
-                          );
-                          if (clickedButton == AlertButton.yesButton) {
-                            Get.to(
-                              () => const FilterMods(),
-                              transition: Transition.rightToLeft,
-                            );
-                          } else {
-                            Get.to(
-                              () => const WebSourcesPage(),
-                              transition: Transition.rightToLeft,
-                            );
-                          }
                           isValid = true;
                         }
                       }
-                      if (!isValid) {
+                      if (!isValid && GetStorage().read("curseForge")) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
@@ -84,6 +68,23 @@ class ModpackInstaller extends StatelessWidget {
                           content:
                               Text(AppLocalizations.of(context)!.noEternalKey),
                         ),
+                      );
+                    }
+                    final clickedButton = await FlutterPlatformAlert.showAlert(
+                      windowTitle: AppLocalizations.of(context)!.productName,
+                      text: AppLocalizations.of(context)!.filterModpacksQ,
+                      alertStyle: AlertButtonStyle.yesNo,
+                      iconStyle: IconStyle.question,
+                    );
+                    if (clickedButton == AlertButton.yesButton) {
+                      Get.to(
+                        () => const FilterMods(),
+                        transition: Transition.rightToLeft,
+                      );
+                    } else {
+                      Get.to(
+                        () => const WebSourcesPage(),
+                        transition: Transition.rightToLeft,
                       );
                     }
                   },
