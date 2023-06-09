@@ -3,8 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:http/http.dart' as http;
 import 'package:mcmodpackmanager_reborn/backend.dart';
 import 'package:mcmodpackmanager_reborn/modpack_creator/modpack_creator.dart';
+import 'package:universal_feed/universal_feed.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class Selector extends StatefulWidget {
   const Selector({super.key});
@@ -40,8 +44,55 @@ class _SelectorState extends State<Selector> {
     updateOptions();
   }
 
+  void checkRSS(BuildContext context) async {
+    http.Response res =
+        await http.get(Uri.parse("https://api.mrquantumoff.dev/blog.rss"));
+    if (res.statusCode != 200) return;
+    String rawFeed = res.body;
+
+    var feed = UniversalFeed.parseFromString(rawFeed);
+    for (var item in feed.items) {
+      List<String> categories = [];
+      for (var category in item.categories) {
+        categories.add(category.value!);
+      }
+      bool cond1 = (GetStorage().read<List<dynamic>>("seenItems") ?? [])
+          .contains(item.guid!);
+      bool cond2 = item.published!.parseValue()!.difference(DateTime.parse(
+              GetStorage().read("lastRSSfetched") ??
+                  DateTime.now()
+                      .subtract(const Duration(minutes: 15))
+                      .toIso8601String())) <=
+          const Duration(days: 14);
+      debugPrint(" Cond2: $cond2");
+      if (cond2 && categories.contains("Minecraft Modpack Manager") && !cond1) {
+        var newSeenItems =
+            (GetStorage().read<List<dynamic>>("seenItems") ?? []);
+        newSeenItems.add(item.guid!);
+        GetStorage().write("seenItems", newSeenItems);
+        showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text(item.title!),
+                content: Column(children: [Text(item.description!)]),
+                actions: [
+                  TextButton(
+                      onPressed: () async {
+                        await launchUrl(Uri.parse(item.link!.href.toString()));
+                      },
+                      child: Text(AppLocalizations.of(context)!.read))
+                ],
+              );
+            });
+      }
+    }
+    GetStorage().write("lastRSSfetched", DateTime.now().toIso8601String());
+  }
+
   @override
   Widget build(BuildContext context) {
+    checkRSS(context);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,

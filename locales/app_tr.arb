@@ -100,5 +100,6 @@
   "deleteYourUsageData": "Kullanım verileri sil",
   "failedToDeleteUsageInfo": "Kullanım bilgileri silinemedi",
   "dependencies": "bağımlılıklar: ",
-  "emptyDependencies": "Bugün şanslı gününüz, bu proje için bağımlılık yok"
+  "emptyDependencies": "Bugün şanslı gününüz, bu proje için bağımlılık yok",
+  "read": "Okumak"
 }

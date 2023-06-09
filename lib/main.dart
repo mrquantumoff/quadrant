@@ -65,6 +65,10 @@ void main(List<String> args) async {
   if (GetStorage().read("clipIcons") == null) {
     GetStorage().writeInMemory("clipIcons", true);
   }
+  if (GetStorage().read("lastRSSfetched") == null) {
+    GetStorage().writeInMemory("lastRSSfetched",
+        DateTime.now().subtract(const Duration(days: 14)).toIso8601String());
+  }
   runApp(const MyApp());
 }
 
