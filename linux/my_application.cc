@@ -110,7 +110,7 @@ static void my_application_init(MyApplication *self) {}
 MyApplication *my_application_new()
 {
   return MY_APPLICATION(g_object_new(my_application_get_type(),
-                                     "dev.mrquantumoff.mcmodpackmaager", APPLICATION_ID,
+                                     "dev.mrquantumoff.mcmodpackmanager", APPLICATION_ID,
                                      "flags", G_APPLICATION_NON_UNIQUE,
                                      nullptr));
 }
