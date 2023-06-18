@@ -102,42 +102,60 @@ class _SettingsState extends State<Settings> {
                 },
               ),
             ),
-            Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 12),
-              child: Column(
-                children: [
-                  Text(
-                    AppLocalizations.of(context)!.currentVersion(
-                      "v${GetStorage().read("currentVersion")}",
+            FutureBuilder<Map<String, String>>(
+              builder: (BuildContext context,
+                  AsyncSnapshot<Map<String, String>> snapshot) {
+                if (snapshot.hasError) {
+                  return Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 12),
+                    child: const Icon(Icons.error),
+                  );
+                }
+                if (snapshot.hasData) {
+                  return Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 12),
+                    child: Column(
+                      children: [
+                        Text(
+                          AppLocalizations.of(context)!.currentVersion(
+                            "v${snapshot.data!["currentRelease"]}",
+                          ),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        Text(
+                          AppLocalizations.of(context)!.latestVersion(
+                            snapshot.data!["latestRelease"] ??
+                                AppLocalizations.of(context)!.unknown,
+                          ),
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(top: 12),
+                          child: TextButton.icon(
+                            onPressed: () {
+                              Uri uri = Uri.parse(
+                                snapshot.data!["url"] ??
+                                    AppLocalizations.of(context)!.unknown,
+                              );
+                              launchUrl(uri);
+                            },
+                            icon: const Icon(Icons.open_in_browser),
+                            label: Text(
+                              AppLocalizations.of(context)!.openLatestRelease,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  Text(
-                    AppLocalizations.of(context)!.latestVersion(
-                      GetStorage().read("latestVersion") ??
-                          AppLocalizations.of(context)!.unknown,
-                    ),
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    child: TextButton.icon(
-                      onPressed: () {
-                        Uri uri = Uri.parse(
-                          GetStorage().read("latestVersionUrl") ??
-                              AppLocalizations.of(context)!.unknown,
-                        );
-                        launchUrl(uri);
-                      },
-                      icon: const Icon(Icons.open_in_browser),
-                      label: Text(
-                        AppLocalizations.of(context)!.openLatestRelease,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                  );
+                }
+                return Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 12),
+                  child: const LinearProgressIndicator(),
+                );
+              },
+              future: getReleaseInfo(),
             ),
             Container(
               margin: const EdgeInsets.only(top: 12),
