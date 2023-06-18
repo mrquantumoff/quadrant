@@ -7,10 +7,10 @@ import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
-import 'package:mcmodpackmanager_reborn/modpack_installer/install_modpack_button.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/install_mod_page.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/mod.dart';
+import 'package:mcmodpackmanager_reborn/modpack_installer/web_sources.dart';
 import 'package:mcmodpackmanager_reborn/selector.dart';
 import 'package:mcmodpackmanager_reborn/open_modpacks_folder.dart';
 import 'package:mcmodpackmanager_reborn/settings.dart';
@@ -193,12 +193,20 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
   @override
   void dispose() {
     protocolHandler.removeListener(this);
+    pages = [];
     super.dispose();
   }
 
+  int currentPage = 0;
+  List<Widget> pages = [];
   @override
   void initState() {
     super.initState();
+    pages = [
+      const MainPage(),
+      const WebSourcesPage(),
+      Settings(setLocale: widget.setLocale)
+    ];
     protocolHandler.addListener(this);
   }
 
@@ -286,40 +294,54 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
     }
 
     return Scaffold(
-      appBar: AppBar(
-        leading: Container(
-          margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 5),
-          child: IconButton(
-            onPressed: () async {
-              var release = await getReleaseInfo();
-
-              GetStorage().write("latestVersion", release["latestRelease"]);
-              GetStorage().write("currentVersion", release["currentRelease"]);
-              GetStorage().write("latestVersionUrl", release["url"]);
-              Get.to(() => Settings(setLocale: widget.setLocale));
-            },
-            icon: const Icon(Icons.settings),
+      body: pages[currentPage],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: currentPage,
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(Icons.check),
+            label: AppLocalizations.of(context)!.apply,
           ),
-        ),
+          NavigationDestination(
+            icon: const Icon(Icons.download),
+            label: AppLocalizations.of(context)!.web,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.settings),
+            label: AppLocalizations.of(context)!.settings,
+          ),
+        ],
+        onDestinationSelected: (int value) {
+          setState(() {
+            currentPage = value;
+          });
+        },
       ),
-      body: Center(
-        child: ListView(
-          // crossAxisAlignment: CrossAxisAlignment.center,
-          // mainAxisAlignment: MainAxisAlignment.center,
-          padding: const EdgeInsets.symmetric(vertical: 50),
-          children: [
-            Container(
-              margin: const EdgeInsets.only(bottom: 15),
-              child: SvgPicture.asset(
-                "assets/icons/logo.svg",
-                height: 128,
-              ),
+    );
+  }
+}
+
+class MainPage extends StatelessWidget {
+  const MainPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ListView(
+        // crossAxisAlignment: CrossAxisAlignment.center,
+        // mainAxisAlignment: MainAxisAlignment.center,
+        padding: const EdgeInsets.symmetric(vertical: 100),
+        children: [
+          Container(
+            margin: const EdgeInsets.only(bottom: 15),
+            child: SvgPicture.asset(
+              "assets/icons/logo.svg",
+              height: 128,
             ),
-            const Selector(),
-            const OpenModpacksFolder(),
-            const ModpackInstaller()
-          ],
-        ),
+          ),
+          const Selector(),
+          const OpenModpacksFolder(),
+        ],
       ),
     );
   }

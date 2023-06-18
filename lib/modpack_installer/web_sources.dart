@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
@@ -34,8 +33,8 @@ class WebSourcesPage extends StatefulWidget {
 }
 
 class _WebSourcesPageState extends State<WebSourcesPage> {
-  late TextEditingController searchFieldController;
-  late List<Widget> searchResults;
+  TextEditingController searchFieldController = TextEditingController();
+  List<Widget> searchResults = [];
   bool areButtonsEnabled = true;
 
   void setSearchResults(List<Widget> newSearchResults) {
@@ -183,21 +182,20 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
       const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
   @override
   void initState() {
-    searchFieldController = TextEditingController();
     super.initState();
-    searchResults = [];
   }
 
   @override
   void dispose() {
     super.dispose();
-    areButtonsEnabled = false;
-    searchFieldController.dispose();
-    searchResults = [];
+    // areButtonsEnabled = false;
+    // searchFieldController.dispose();
+    // searchResults = [];
   }
 
   void searchModsFunction() async {
     if (searchFieldController.text.trim() == "") return;
+    bool isCurseForgeAllowed = await checkCurseForge();
     setSearchResults(
       searchResults = [
         Container(
@@ -215,7 +213,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     List<Mod> modsModrinth = [];
     List<Mod> resourcePacksModrinth = [];
     List<Mod> shaderPacksModrinth = [];
-    if (GetStorage().read("curseForge")) {
+    if (GetStorage().read("curseForge") && isCurseForgeAllowed) {
       mods = await searchMods(searchText, ModClass.mod, ModSource.curseForge);
       resourcePacks = await searchMods(
           searchText, ModClass.resourcePack, ModSource.curseForge);
@@ -242,27 +240,41 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     setSearchResults(widgets);
   }
 
+  Future<bool> checkCurseForge() async {
+    final String apiKey =
+        const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
+    http.Response res = await http.get(
+      Uri.parse("https://api.curseforge.com/v1/games"),
+      headers: {"User-Agent": await generateUserAgent(), "X-API-Key": apiKey},
+    );
+    bool isValid = false;
+
+    if (res.statusCode == 200 && GetStorage().read("curseForge")) {
+      var data = json.decode(res.body);
+      for (var game in data["data"]) {
+        if (game["id"] == 432) {
+          isValid = true;
+        }
+      }
+
+      if (!isValid && GetStorage().read("curseForge")) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.noEternalKey),
+          ),
+        );
+      }
+    }
+    if (!isValid) {
+      debugPrint(
+          "The broken ETERNAL API KEY IS ${const String.fromEnvironment("ETERNAL_API_KEY")}");
+    }
+    return isValid;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: areButtonsEnabled
-              ? () {
-                  Get.back();
-                }
-              : () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.of(context)!
-                          .downloadIsAlreadyInProgress),
-                    ),
-                  );
-                },
-        ),
-        title: Text(AppLocalizations.of(context)!.web),
-      ),
       body: Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,

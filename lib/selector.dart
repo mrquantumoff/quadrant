@@ -95,7 +95,6 @@ class _SelectorState extends State<Selector> {
     checkRSS(context);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // Selector

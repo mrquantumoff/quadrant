@@ -1,6 +1,5 @@
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -71,13 +70,6 @@ class _SettingsState extends State<Settings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.settings),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Get.back(),
-        ),
-      ),
       body: Container(
         margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
         child: ListView(
