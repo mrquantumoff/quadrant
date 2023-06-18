@@ -75,7 +75,7 @@ class _SelectorState extends State<Selector> {
             builder: (BuildContext context) {
               return AlertDialog(
                 title: Text(item.title!),
-                content: Column(children: [Text(item.description!)]),
+                content: Text(item.description!),
                 actions: [
                   TextButton(
                       onPressed: () async {
