@@ -28,12 +28,20 @@
     <keyword>minecraft</keyword>
     <keyword>mods</keyword>
     <keyword>modding</keyword>
+    <keyword>curseforge</keyword>
+    <keyword>modrinth</keyword>
+    <keyword>mc modpack manager</keyword>
     <keyword>mrquantumoff</keyword>
-    <keyword>
-      modpacks</keyword>
+    <keyword>modpacks</keyword>
     <keyword>Minecraft Modpack Manager</keyword>
   </keywords>
   <releases>
+
+    <release date="2023-06-18" version="9.0.0">
+      <description>
+        <p>A redesign that changes the UI quite a bit.</p>
+      </description>
+    </release>
 
     <release date="2023-06-18" version="8.4.1">
       <description>
