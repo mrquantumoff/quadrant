@@ -35,6 +35,12 @@
   </keywords>
   <releases>
 
+    <release date="2023-06-18" version="8.4.1">
+      <description>
+        <p>Tiny fix for GNU+Linux based systems.</p>
+      </description>
+    </release>
+
     <release date="2023-06-10" version="8.4.0">
       <description>
         <p>Add support for news related to MC Modpack Manager from my RSS feed, add options to disable modrinth/curseforge</p>
