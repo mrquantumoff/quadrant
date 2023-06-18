@@ -26,7 +26,7 @@
   "systemLocale": "Sistem dili",
   "speed": "Hız",
   "someSettingsRequireReload": "Yeniden açmak için bazı ayarlar gerekli",
-  "web": "Mod'ları internetten yükle (CurseForge/Modrinth gibi)",
+  "web": "Mod'ları internetten yükle",
   "searchForMods": "Mod'ları ara",
   "noEternalKey": "Doğru CurseForge Eternal API anahtarı bulunamadığı için uygulama derlenemedi. Doğru anahtar olmadan modları CurseForge üzerinden yükleyemezsiniz",
   "choosePreferredAPI": "Tercih edilen API seç (Forge/Fabric)",
