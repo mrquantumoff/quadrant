@@ -87,7 +87,6 @@
   "resetMinecraftFolder": "Minecraft klasörünü sıfırla",
   "unknown": "Bilinmeyen",
   "clipIcons": "Yuvarlatılmış ikonlar?",
-  "filterModpacksQ": "Modiları filtrelemek istiyor musunuz?",
   "unsupportedDownload": "Bu tür bir proje desteklenmiyor.",
   "dataCollectionQuestionShort": "Veri toplama",
   "collectData": "Verileri kaydet",
@@ -101,5 +100,6 @@
   "failedToDeleteUsageInfo": "Kullanım bilgileri silinemedi",
   "dependencies": "bağımlılıklar: ",
   "emptyDependencies": "Bugün şanslı gününüz, bu proje için bağımlılık yok",
-  "read": "Okumak"
+  "read": "Okumak",
+  "filter": "Filtreler"
 }

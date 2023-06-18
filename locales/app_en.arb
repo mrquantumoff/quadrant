@@ -87,7 +87,7 @@
   "resetMinecraftFolder": "Reset the Minecraft folder",
   "unknown": "Unknown",
   "clipIcons": "Clip the icons",
-  "filterModpacksQ": "Do you want to filter the mods?",
+  "filter": "Filters",
   "unsupportedDownload": "This download is not supported",
   "dataCollectionQuestionShort": "Data collection",
   "collectData": "Collect data",

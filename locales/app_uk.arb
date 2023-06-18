@@ -87,7 +87,6 @@
   "resetMinecraftFolder": "Відновити .minecraft",
   "unknown": "Невідомо",
   "clipIcons": "Закругляти іконки",
-  "filterModpacksQ": "Чи хочете ви відфільтрувати моди?",
   "unsupportedDownload": "Цей тип проєкту не підтримується.",
   "dataCollectionQuestionShort": "Збирання інформації",
   "collectData": "Зібрати дані",
@@ -101,5 +100,6 @@
   "deleteYourUsageData": "Видаліть дані користування",
   "dependencies": "Залежності: ",
   "emptyDependencies": "Сьогодні ваш щасливий день, у цього проєкта немає залежностей",
-  "read": "Читати"
+  "read": "Читати",
+  "filter": "Фільтри"
 }

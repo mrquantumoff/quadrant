@@ -2,8 +2,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:mcmodpackmanager_reborn/modpack_installer/web/filter_mods.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 import 'dart:convert';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/mod.dart';
@@ -275,6 +277,14 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: widget.filterOn
+          ? AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Get.back(),
+              ),
+            )
+          : null,
       body: Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -303,7 +313,16 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                     onPressed: searchModsFunction,
                     icon: const Icon(Icons.search),
                     label: Text(AppLocalizations.of(context)!.search),
-                  )
+                  ),
+                  !widget.filterOn
+                      ? TextButton.icon(
+                          onPressed: () async {
+                            Get.to(() => const FilterMods());
+                          },
+                          icon: const Icon(Icons.filter_alt),
+                          label: Text(AppLocalizations.of(context)!.filter),
+                        )
+                      : Container(),
                 ],
               ),
             ),
