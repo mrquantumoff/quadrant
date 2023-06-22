@@ -502,12 +502,12 @@ class _InstallModPageState extends State<InstallModPage> {
                                     return;
                                   }
                                 }
-                                late ModFile mod;
+                                late ModFile currentModFile;
                                 if (widget.installFileId != null) {
                                   versionFieldController.text =
                                       responseJson["data"]["gameVersions"][0];
 
-                                  mod = ModFile(
+                                  currentModFile = ModFile(
                                     downloadUrl: responseJson["data"]
                                         ["downloadUrl"],
                                     fileName: responseJson["data"]["fileName"],
@@ -519,9 +519,10 @@ class _InstallModPageState extends State<InstallModPage> {
                                 }
 
                                 if (widget.installFileId == null) {
-                                  mod = fileMod[0];
+                                  currentModFile = fileMod[0];
                                 }
-                                String modDownloadUrl = mod.downloadUrl;
+                                String modDownloadUrl =
+                                    currentModFile.downloadUrl;
 
                                 var request = http.Request(
                                   "GET",
@@ -536,14 +537,14 @@ class _InstallModPageState extends State<InstallModPage> {
                                     streamedResponse.contentLength;
 
                                 File modDestFile = File(
-                                    "${getMinecraftFolder().path}/modpacks/$modpack/${mod.fileName}");
+                                    "${getMinecraftFolder().path}/modpacks/$modpack/${currentModFile.fileName}");
                                 if (widget.modClass == ModClass.resourcePack) {
                                   modDestFile = File(
-                                      "${getMinecraftFolder().path}/resourcepacks/${mod.fileName}");
+                                      "${getMinecraftFolder().path}/resourcepacks/${currentModFile.fileName}");
                                 } else if (widget.modClass ==
                                     ModClass.shaderPack) {
                                   modDestFile = File(
-                                      "${getMinecraftFolder().path}/shaderpacks/${mod.fileName}");
+                                      "${getMinecraftFolder().path}/shaderpacks/${currentModFile.fileName}");
                                 }
                                 if (await modDestFile.exists()) {
                                   modDestFile.delete();
@@ -572,6 +573,47 @@ class _InstallModPageState extends State<InstallModPage> {
                                                 .downloadSuccess),
                                       ),
                                     );
+                                    File modpackConfigFile = File(
+                                        "${getMinecraftFolder().path}/modpacks/$modpack/modConfig.json");
+                                    debugPrint(modpackConfigFile.path);
+                                    if (!modpackConfigFile.existsSync()) {
+                                      return;
+                                    }
+                                    String modpackConfigRaw =
+                                        await modpackConfigFile.readAsString();
+                                    Map modpackConfig =
+                                        json.decode(modpackConfigRaw);
+                                    List<dynamic> modsIndex =
+                                        modpackConfig["mods"] ?? [];
+                                    bool doesExist = false;
+                                    for (Map<dynamic, dynamic> modItem
+                                        in modsIndex) {
+                                      if (modItem["id"] == widget.mod.id) {
+                                        doesExist = true;
+                                        return;
+                                      }
+                                    }
+                                    if (doesExist) {
+                                      return;
+                                    }
+                                    modsIndex.add(
+                                      {
+                                        "id": widget.mod.id,
+                                        "source": widget.source.toString(),
+                                        "downloadUrl":
+                                            currentModFile.downloadUrl,
+                                      },
+                                    );
+                                    Map newModpackConfig = {
+                                      "modLoader": modpackConfig["modLoader"],
+                                      "version": modpackConfig["version"],
+                                      "mods": modsIndex
+                                    };
+                                    String finalModpackConfig =
+                                        json.encode(newModpackConfig);
+                                    debugPrint(finalModpackConfig);
+                                    await modpackConfigFile
+                                        .writeAsString(finalModpackConfig);
                                   },
                                   onError: (e) {
                                     debugPrint(e);
@@ -644,10 +686,10 @@ class _InstallModPageState extends State<InstallModPage> {
 
                                   return;
                                 }
-                                var mod = fileMod[0];
+                                var currentModFile = fileMod[0];
                                 var request = http.Request(
                                   "GET",
-                                  Uri.parse(mod.downloadUrl),
+                                  Uri.parse(currentModFile.downloadUrl),
                                 );
                                 final http.StreamedResponse streamedResponse =
                                     await UserAgentClient(
@@ -658,14 +700,14 @@ class _InstallModPageState extends State<InstallModPage> {
                                     streamedResponse.contentLength;
 
                                 File modDestFile = File(
-                                    "${getMinecraftFolder().path}/modpacks/$modpack/${mod.fileName}");
+                                    "${getMinecraftFolder().path}/modpacks/$modpack/${currentModFile.fileName}");
                                 if (widget.modClass == ModClass.resourcePack) {
                                   modDestFile = File(
-                                      "${getMinecraftFolder().path}/resourcepacks/${mod.fileName}");
+                                      "${getMinecraftFolder().path}/resourcepacks/${currentModFile.fileName}");
                                 } else if (widget.modClass ==
                                     ModClass.shaderPack) {
                                   modDestFile = File(
-                                      "${getMinecraftFolder().path}/shaderpacks/${mod.fileName}");
+                                      "${getMinecraftFolder().path}/shaderpacks/${currentModFile.fileName}");
                                 }
                                 if (await modDestFile.exists()) {
                                   modDestFile.delete();
@@ -694,6 +736,48 @@ class _InstallModPageState extends State<InstallModPage> {
                                                 .downloadSuccess),
                                       ),
                                     );
+                                    File modpackConfigFile = File(
+                                        "${getMinecraftFolder().path}/modpacks/$modpack/modConfig.json");
+                                    debugPrint(modpackConfigFile.path);
+                                    if (!modpackConfigFile.existsSync()) {
+                                      return;
+                                    }
+                                    String modpackConfigRaw =
+                                        await modpackConfigFile.readAsString();
+                                    Map modpackConfig =
+                                        json.decode(modpackConfigRaw);
+                                    List<dynamic> modsIndex =
+                                        modpackConfig["mods"] ?? [];
+                                    bool doesExist = false;
+                                    for (Map<dynamic, dynamic> modItem
+                                        in modsIndex) {
+                                      if (modItem["id"] ??
+                                          "" == widget.mod.id) {
+                                        doesExist = true;
+                                        return;
+                                      }
+                                    }
+                                    if (doesExist) {
+                                      return;
+                                    }
+                                    modsIndex.add(
+                                      {
+                                        "id": widget.mod.id,
+                                        "source": widget.source.toString(),
+                                        "downloadUrl":
+                                            currentModFile.downloadUrl,
+                                      },
+                                    );
+                                    Map newModpackConfig = {
+                                      "modLoader": modpackConfig["modLoader"],
+                                      "version": modpackConfig["version"],
+                                      "mods": modsIndex
+                                    };
+                                    String finalModpackConfig =
+                                        json.encode(newModpackConfig);
+                                    debugPrint(finalModpackConfig);
+                                    await modpackConfigFile
+                                        .writeAsString(finalModpackConfig);
                                   },
                                   onError: (e) {
                                     debugPrint(e);
