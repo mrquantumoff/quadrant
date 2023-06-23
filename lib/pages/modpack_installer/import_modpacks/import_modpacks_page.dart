@@ -237,8 +237,8 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
                   Mod mod = await getMod(id, source, (val) => null,
                       downloadAble: false);
                   newMods.add(mod);
-                  modDownloadUrls.add(downloadUrl);
                 }
+                modDownloadUrls.add(downloadUrl);
               }
             } catch (e) {
               debugPrint(e.toString());
