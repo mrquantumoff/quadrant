@@ -6,9 +6,9 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:mcmodpackmanager_reborn/pages/modpack_installer/web/mod/mod.dart';
+import 'package:mcmodpackmanager_reborn/pages/web/mod/mod.dart';
 
-import 'package:mcmodpackmanager_reborn/pages/modpack_installer/web/generate_user_agent.dart';
+import 'package:mcmodpackmanager_reborn/pages/web/generate_user_agent.dart';
 
 class ShareModpacksPage extends StatefulWidget {
   const ShareModpacksPage({super.key});
