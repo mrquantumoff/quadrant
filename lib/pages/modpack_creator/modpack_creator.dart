@@ -178,9 +178,15 @@ class _ModpackCreatorState extends State<ModpackCreator> {
                       );
                       return;
                     }
+                    List<dynamic> mods = [];
                     File indexFile = File("${modpackDir.path}/modConfig.json");
-                    String rawIndexFile = await indexFile.readAsString();
-                    Map indexFileConts = json.decode(rawIndexFile);
+                    if (widget.update) {
+                      try {
+                        String rawIndexFile = await indexFile.readAsString();
+                        Map indexFileConts = json.decode(rawIndexFile);
+                        mods = indexFileConts["mods"];
+                      } catch (e) {}
+                    }
                     if (await indexFile.exists() && widget.update) {
                       await indexFile.delete();
                     }
@@ -189,7 +195,7 @@ class _ModpackCreatorState extends State<ModpackCreator> {
                       "modLoader": apiFieldController.text,
                       "version": versionFieldController.text,
                       "name": modpackName,
-                      "mods": indexFileConts["mods"]
+                      "mods": mods
                     };
                     await indexFile.writeAsString(
                       json.encode(modConfig),
