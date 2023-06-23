@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
@@ -260,6 +261,7 @@ class _SelectorState extends State<Selector> {
             ),
           ],
         ),
+        // Update/Create/Delete modpack data
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -351,6 +353,72 @@ class _SelectorState extends State<Selector> {
                           child: Icon(Icons.delete),
                         ),
                         Text(AppLocalizations.of(context)!.clearModpackData)
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        // Open modpacks folder / Export selected modpack buttons
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
+              child: ElevatedButton(
+                onPressed: () {
+                  debugPrint("Open Modpacks Folder pressed.");
+                  openModpacksFolder();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(15),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.folder),
+                      Text(
+                          "  ${AppLocalizations.of(context)!.openModpacksFolder}")
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 5),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (selectedModpack == null) return;
+                    File modpackConfig = File(
+                        "${getMinecraftFolder().path}/modpacks/$selectedModpack/modConfig.json");
+                    if (!modpackConfig.existsSync()) return;
+                    String content = await modpackConfig.readAsString();
+                    var filePickerResult = await FilePicker.platform
+                        .saveFile(fileName: "$selectedModpack.json");
+                    if (filePickerResult == null) return;
+                    File selectedFile = File(filePickerResult);
+                    if (await selectedFile.exists()) {
+                      await selectedFile.delete(recursive: true);
+                    }
+                    await selectedFile.create(recursive: true);
+
+                    await selectedFile.writeAsString(content);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(15),
+                    child: Row(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(right: 5, left: 0),
+                          child: Icon(Icons.upload_file_outlined),
+                        ),
+                        Text(AppLocalizations.of(context)!.exportMods)
                       ],
                     ),
                   ),

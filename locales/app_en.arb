@@ -108,5 +108,6 @@
   "emptyDependencies": "It's your lucky day, there are no dependencies for this project",
   "read": "Read",
   "importMods": "Import a modpack",
-  "openFile": "Open a file"
+  "openFile": "Open a file",
+  "exportMods": "Export the selected modpack"
 }

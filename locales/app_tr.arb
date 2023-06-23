@@ -103,5 +103,6 @@
   "read": "Okumak",
   "filter": "Filtreler",
   "importMods": "Modları içe aktar",
-  "openFile": "Bir dosya seçin"
+  "openFile": "Bir dosya seçin",
+  "exportMods": "Seçilen modpack'i dışa aktarın"
 }

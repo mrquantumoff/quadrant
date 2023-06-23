@@ -12,7 +12,6 @@ import 'package:mcmodpackmanager_reborn/pages/web/mod/install_mod_page.dart';
 import 'package:mcmodpackmanager_reborn/pages/web/mod/mod.dart';
 import 'package:mcmodpackmanager_reborn/pages/web/web_sources.dart';
 import 'package:mcmodpackmanager_reborn/pages/apply/selector.dart';
-import 'package:mcmodpackmanager_reborn/pages/apply/open_modpacks_folder.dart';
 import 'package:mcmodpackmanager_reborn/pages/settings/settings.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
@@ -310,7 +309,7 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
             label: AppLocalizations.of(context)!.web,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.share),
+            icon: const Icon(Icons.file_download_outlined),
             label: AppLocalizations.of(context)!.importMods,
           ),
           NavigationDestination(
@@ -347,7 +346,6 @@ class MainPage extends StatelessWidget {
             ),
           ),
           const Selector(),
-          const OpenModpacksFolder(),
         ],
       ),
     );

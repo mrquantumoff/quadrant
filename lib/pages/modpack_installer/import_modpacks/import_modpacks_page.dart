@@ -66,14 +66,6 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                mods = [];
-                              });
-                            },
-                            icon: const Icon(Icons.arrow_back),
-                          ),
                           TextButton.icon(
                             onPressed: () async {
                               List<DownloadedMod> downloadedMods = [];
@@ -98,7 +90,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
                                 );
                               }
                               Directory modpackDir = Directory(
-                                  "${getMinecraftFolder().path}/$modpack");
+                                  "${getMinecraftFolder().path}/modpacks/$modpack");
                               if (await modpackDir.exists()) {
                                 await modpackDir.delete(recursive: true);
                               }
@@ -128,6 +120,15 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
                                 }
                               }
                               if (success) {
+                                File modpackConfig =
+                                    File("${modpackDir.path}/modConfig.json");
+                                debugPrint(modpackConfig.path);
+                                if (modpackConfig.existsSync()) {
+                                  await modpackConfig.delete();
+                                }
+                                await modpackConfig.create();
+
+                                await modpackConfig.writeAsString(modConfig);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
@@ -192,12 +193,66 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
           }
           File file = File(platformFile.path!);
           String rawFile = await file.readAsString();
-          modConfig = rawFile;
-          Map jsonFile = json.decode(rawFile);
-          if (jsonFile["modLoader"] == null ||
-              jsonFile["version"] == null ||
-              jsonFile["mods"] == null ||
-              jsonFile["name"] == null) {
+          setState(() {
+            modConfig = rawFile;
+          });
+          try {
+            Map jsonFile = json.decode(rawFile);
+            if (jsonFile["modLoader"] == null ||
+                jsonFile["version"] == null ||
+                jsonFile["mods"] == null ||
+                jsonFile["name"] == null) {
+              setState(() {
+                isLoading = false;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    AppLocalizations.of(context)!.invalidData,
+                  ),
+                ),
+              );
+              return;
+            }
+            modLoader = jsonFile["modLoader"];
+            version = jsonFile["version"];
+            modpack = jsonFile["name"];
+            List<dynamic> sourceMods = jsonFile["mods"];
+            List<Widget> newMods = [];
+            try {
+              for (var mod in sourceMods) {
+                String id = mod["id"];
+                String downloadUrl = mod["downloadUrl"];
+                String rawSource = mod["source"];
+                late ModSource source;
+                if (rawSource == "ModSource.curseForge") {
+                  source = ModSource.curseForge;
+                } else if (rawSource == "ModSource.modRinth") {
+                  source = ModSource.modRinth;
+                } else {
+                  source = ModSource.online;
+                }
+                if (source == ModSource.curseForge ||
+                    source == ModSource.modRinth) {
+                  Mod mod = await getMod(id, source, (val) => null,
+                      downloadAble: false);
+                  newMods.add(mod);
+                  modDownloadUrls.add(downloadUrl);
+                }
+              }
+            } catch (e) {
+              debugPrint(e.toString());
+              setState(() {
+                isLoading = false;
+              });
+              return;
+            }
+            setState(() {
+              isLoading = false;
+
+              mods = newMods;
+            });
+          } catch (e) {
             setState(() {
               isLoading = false;
             });
@@ -208,46 +263,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
                 ),
               ),
             );
-            return;
           }
-          modLoader = jsonFile["modLoader"];
-          version = jsonFile["version"];
-          modpack = jsonFile["name"];
-          List<dynamic> sourceMods = jsonFile["mods"];
-          List<Widget> newMods = [];
-          try {
-            for (var mod in sourceMods) {
-              String id = mod["id"];
-              String downloadUrl = mod["downloadUrl"];
-              String rawSource = mod["source"];
-              late ModSource source;
-              if (rawSource == "ModSource.curseForge") {
-                source = ModSource.curseForge;
-              } else if (rawSource == "ModSource.modRinth") {
-                source = ModSource.modRinth;
-              } else {
-                source = ModSource.online;
-              }
-              if (source == ModSource.curseForge ||
-                  source == ModSource.modRinth) {
-                Mod mod = await getMod(id, source, (val) => null,
-                    downloadAble: false);
-                newMods.add(mod);
-                modDownloadUrls.add(downloadUrl);
-              }
-            }
-          } catch (e) {
-            debugPrint(e.toString());
-            setState(() {
-              isLoading = false;
-            });
-            return;
-          }
-          setState(() {
-            isLoading = false;
-
-            mods = newMods;
-          });
         },
         icon: const Icon(Icons.file_open),
         label: Text(
