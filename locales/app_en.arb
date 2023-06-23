@@ -109,5 +109,13 @@
   "read": "Read",
   "importMods": "Import a modpack",
   "openFile": "Open a file",
-  "exportMods": "Export the selected modpack"
+  "exportMods": "Export the selected modpack",
+  "otherMods": "+{amount} mods from unknown sources",
+  "@otherMods": {
+    "placeholders": {
+      "amount": {
+        "type": "num"
+      }
+    }
+  }
 }

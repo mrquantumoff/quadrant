@@ -30,6 +30,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
   String version = "";
   String modpack = "";
   double progressValue = 0;
+  int otherModCount = 0;
   bool isLoading = false;
   String modConfig = "";
   void setProgressValue(double value) {
@@ -45,21 +46,31 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
         title: Text(AppLocalizations.of(context)!.importMods),
       ),
       body: Center(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: ListView(
+          shrinkWrap: true,
           children: isLoading
-              ? [const CircularProgressIndicator()]
-              : mods.isEmpty
+              ? [const LinearProgressIndicator()]
+              : (mods.isEmpty || otherModCount <= 0)
                   ? []
                   : [
                       Container(
                         height: 360,
-                        width: 840,
-                        margin: const EdgeInsets.only(bottom: 24),
+                        margin: const EdgeInsets.only(
+                            bottom: 24, left: 120, right: 120),
                         child: ListView(
                           shrinkWrap: true,
                           children: mods,
+                        ),
+                      ),
+                      Center(
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Text(
+                            AppLocalizations.of(context)!.otherMods(
+                              otherModCount,
+                            ),
+                            style: const TextStyle(fontSize: 18),
+                          ),
                         ),
                       ),
                       Row(
@@ -162,6 +173,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
             modDownloadUrls = [];
             mods = [];
             isLoading = true;
+            otherModCount = 0;
           });
           FilePickerResult? filePickerResult =
               await FilePicker.platform.pickFiles(
@@ -237,6 +249,9 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
                   Mod mod = await getMod(id, source, (val) => null,
                       downloadAble: false);
                   newMods.add(mod);
+                }
+                if (source == ModSource.online) {
+                  otherModCount += 1;
                 }
                 modDownloadUrls.add(downloadUrl);
               }

@@ -104,5 +104,13 @@
   "filter": "Filtreler",
   "importMods": "Modları içe aktar",
   "openFile": "Bir dosya seçin",
-  "exportMods": "Seçilen modpack'i dışa aktarın"
+  "exportMods": "Seçilen modpack'i dışa aktarın",
+  "otherMods": "ve {amount} bilinmeyen kaynaklardan gelen mod",
+  "@otherMods": {
+    "placeholders": {
+      "amount": {
+        "type": "num"
+      }
+    }
+  }
 }

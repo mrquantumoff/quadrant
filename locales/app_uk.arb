@@ -104,5 +104,13 @@
   "filter": "Фільтри",
   "importMods": "Імпортуйте модпак",
   "openFile": "Оберіть файл",
-  "exportMods": "Експортуйте обраний модпак"
+  "exportMods": "Експортуйте обраний модпак",
+  "otherMods": "+{amount} модів з невідомих джерел",
+  "@otherMods": {
+    "placeholders": {
+      "amount": {
+        "type": "num"
+      }
+    }
+  }
 }
