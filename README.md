@@ -20,6 +20,8 @@
 
 - #### Installing shaders from modrinth and (partially) curseforge
 
+- #### Importing and exporting modpacks
+
 <div align="center">
     <a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
         <img width="200" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
