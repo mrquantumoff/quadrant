@@ -37,12 +37,17 @@
   </keywords>
   <releases>
 
+    <release date="2023-06-23" version="10.0.0">
+      <description>
+        <p>Add an easy way to share modpacks</p>
+      </description>
+    </release>
+
     <release date="2023-06-18" version="9.0.1">
       <description>
         <p>A redesign that changes the UI quite a bit. 9.0.1 is a hotfix</p>
       </description>
     </release>
-
 
     <release date="2023-06-18" version="9.0.0">
       <description>
