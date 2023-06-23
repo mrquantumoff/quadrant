@@ -102,6 +102,6 @@
   "emptyDependencies": "Bugün şanslı gününüz, bu proje için bağımlılık yok",
   "read": "Okumak",
   "filter": "Filtreler",
-  "shareModpacks": "Mod'ları paylaş",
+  "importMods": "Modları içe aktar",
   "openFile": "Bir dosya seçin"
 }

@@ -107,6 +107,6 @@
   "dependencies": "Dependencies: ",
   "emptyDependencies": "It's your lucky day, there are no dependencies for this project",
   "read": "Read",
-  "shareModpacks": "Share modpacks",
+  "importMods": "Import a modpack",
   "openFile": "Open a file"
 }
