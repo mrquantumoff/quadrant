@@ -751,8 +751,8 @@ class _InstallModPageState extends State<InstallModPage> {
                                     bool doesExist = false;
                                     for (Map<dynamic, dynamic> modItem
                                         in modsIndex) {
-                                      if (modItem["id"] ??
-                                          "" == widget.mod.id) {
+                                      if ((modItem["id"] ?? "") ==
+                                          widget.mod.id) {
                                         doesExist = true;
                                         return;
                                       }
@@ -771,7 +771,8 @@ class _InstallModPageState extends State<InstallModPage> {
                                     Map newModpackConfig = {
                                       "modLoader": modpackConfig["modLoader"],
                                       "version": modpackConfig["version"],
-                                      "mods": modsIndex
+                                      "mods": modsIndex,
+                                      "name": modpackConfig["name"],
                                     };
                                     String finalModpackConfig =
                                         json.encode(newModpackConfig);

@@ -12,7 +12,7 @@ import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agen
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/install_mod_page.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-enum ModSource { curseForge, modRinth }
+enum ModSource { curseForge, modRinth, online }
 
 enum ModClass {
   mod(6),
@@ -24,11 +24,12 @@ enum ModClass {
 }
 
 class ModFile {
-  ModFile(
-      {required this.downloadUrl,
-      required this.fileName,
-      required this.gameVersions,
-      required this.fileDate});
+  ModFile({
+    required this.downloadUrl,
+    required this.fileName,
+    required this.gameVersions,
+    required this.fileDate,
+  });
   String downloadUrl = "";
   String fileName = "";
   List<dynamic> gameVersions = [];
@@ -48,6 +49,7 @@ class Mod extends StatefulWidget {
     required this.source,
     required this.modClass,
     required this.slug,
+    this.downloadAble = true,
   });
 
   final String name;
@@ -58,6 +60,7 @@ class Mod extends StatefulWidget {
   final ModSource source;
   final ModClass modClass;
   final String slug;
+  final bool downloadAble;
   Function(bool) setAreParentButtonsActive;
 
   @override
@@ -111,9 +114,13 @@ class _ModState extends State<Mod> {
         explicitSign: false, locale: AppLocalizations.of(context)!.localeName);
     return Column(
       children: [
-        const Divider(
-          height: 1.5,
-          thickness: 1,
+        Container(
+          child: widget.downloadAble
+              ? const Divider(
+                  height: 1.5,
+                  thickness: 1,
+                )
+              : null,
         ),
         Container(
           margin: const EdgeInsets.all(12),
@@ -154,7 +161,6 @@ class _ModState extends State<Mod> {
                             displayName,
                             style: const TextStyle(fontSize: 32),
                           ),
-                          const Divider(thickness: 50),
                           Container(
                             margin: const EdgeInsets.only(left: 14, top: 12),
                             child: Row(
@@ -200,62 +206,68 @@ class _ModState extends State<Mod> {
                       children: [
                         Container(
                           margin: const EdgeInsets.symmetric(vertical: 20),
-                          child: TextButton.icon(
-                            onPressed: () async {
-                              Uri uri = Uri.parse(
-                                'https://api.modrinth.com/v2/tag/game_version',
-                              );
-                              List<dynamic> vrs = json.decode((await http.get(
-                                uri,
-                                headers: {
-                                  "User-Agent": await generateUserAgent(),
-                                },
-                              ))
-                                  .body);
-                              List<String> versions = [];
-                              for (var v in vrs) {
-                                if (v["version_type"] == "release") {
-                                  versions.add(v["version"].toString());
-                                }
-                              }
-                              List<DropdownMenuEntry> versionItems = [];
-                              List<DropdownMenuEntry> modpackItems = [];
+                          child: widget.downloadAble
+                              ? TextButton.icon(
+                                  onPressed: () async {
+                                    Uri uri = Uri.parse(
+                                      'https://api.modrinth.com/v2/tag/game_version',
+                                    );
+                                    List<dynamic> vrs =
+                                        json.decode((await http.get(
+                                      uri,
+                                      headers: {
+                                        "User-Agent": await generateUserAgent(),
+                                      },
+                                    ))
+                                            .body);
+                                    List<String> versions = [];
+                                    for (var v in vrs) {
+                                      if (v["version_type"] == "release") {
+                                        versions.add(v["version"].toString());
+                                      }
+                                    }
+                                    List<DropdownMenuEntry> versionItems = [];
+                                    List<DropdownMenuEntry> modpackItems = [];
 
-                              for (var version in versions) {
-                                versionItems.add(
-                                  DropdownMenuEntry(
-                                      label: version.toString(),
-                                      value: version),
-                                );
-                              }
+                                    for (var version in versions) {
+                                      versionItems.add(
+                                        DropdownMenuEntry(
+                                            label: version.toString(),
+                                            value: version),
+                                      );
+                                    }
 
-                              List<String> modpacks =
-                                  getModpacks(hideFree: false);
+                                    List<String> modpacks =
+                                        getModpacks(hideFree: false);
 
-                              for (var modpack in modpacks) {
-                                modpackItems.add(
-                                  DropdownMenuEntry(
-                                      label: modpack, value: modpack),
-                                );
-                              }
+                                    for (var modpack in modpacks) {
+                                      modpackItems.add(
+                                        DropdownMenuEntry(
+                                            label: modpack, value: modpack),
+                                      );
+                                    }
 
-                              Get.to(
-                                () => InstallModPage(
-                                  versions: versionItems,
-                                  mod: widget,
-                                  modpacks: modpackItems,
-                                  source: widget.source,
-                                  modClass: widget.modClass,
-                                ),
-                                preventDuplicates: false,
-                              );
-                            },
-                            icon: const Icon(Icons.file_download),
-                            label: Text(AppLocalizations.of(context)!.download),
-                          ),
+                                    Get.to(
+                                      () => InstallModPage(
+                                        versions: versionItems,
+                                        mod: widget,
+                                        modpacks: modpackItems,
+                                        source: widget.source,
+                                        modClass: widget.modClass,
+                                      ),
+                                      preventDuplicates: false,
+                                    );
+                                  },
+                                  icon: const Icon(Icons.file_download),
+                                  label: Text(
+                                      AppLocalizations.of(context)!.download),
+                                )
+                              : null,
                         ),
                         Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          margin: widget.downloadAble
+                              ? const EdgeInsets.symmetric(horizontal: 20)
+                              : null,
                           child: TextButton.icon(
                             onPressed: () async {
                               final String slug = widget.slug;

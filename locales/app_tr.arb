@@ -101,5 +101,7 @@
   "dependencies": "bağımlılıklar: ",
   "emptyDependencies": "Bugün şanslı gününüz, bu proje için bağımlılık yok",
   "read": "Okumak",
-  "filter": "Filtreler"
+  "filter": "Filtreler",
+  "shareModpacks": "Mod'ları paylaş",
+  "openFile": "Bir dosya seçin"
 }

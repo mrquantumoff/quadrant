@@ -179,6 +179,8 @@ class _ModpackCreatorState extends State<ModpackCreator> {
                       return;
                     }
                     File indexFile = File("${modpackDir.path}/modConfig.json");
+                    String rawIndexFile = await indexFile.readAsString();
+                    Map indexFileConts = json.decode(rawIndexFile);
                     if (await indexFile.exists() && widget.update) {
                       await indexFile.delete();
                     }
@@ -186,6 +188,8 @@ class _ModpackCreatorState extends State<ModpackCreator> {
                     Map modConfig = {
                       "modLoader": apiFieldController.text,
                       "version": versionFieldController.text,
+                      "name": modpackName,
+                      "mods": indexFileConts["mods"]
                     };
                     await indexFile.writeAsString(
                       json.encode(modConfig),

@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:archive/archive_io.dart';
 import 'package:dart_ipify/dart_ipify.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
@@ -11,8 +10,6 @@ import 'package:flutter/material.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/install_mod_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter_platform_alert/flutter_platform_alert.dart';
 import 'package:mcmodpackmanager_reborn/modpack_installer/web/mod.dart';
 
 Directory getMinecraftFolder({bool onInit = false}) {
@@ -126,85 +123,6 @@ void openModpacksFolder() {
   }
 }
 
-void installModpack(
-    String url,
-    String modpackName,
-    Function(double progress) setProgressValue,
-    Function(bool newValue) setAreButtonsEnabled,
-    String overwriteQ,
-    String overwriteQText,
-    Function displayErrorSnackBar,
-    Function displaySuccessSnackbar,
-    Function(double speed) setDownloadSpeed) async {
-  setAreButtonsEnabled(false);
-  final sep = Platform.isWindows ? "\\" : "/";
-  try {
-    Uri uri = Uri.parse(url);
-    var request = http.Request('GET', uri);
-    String name = modpackName;
-    var response = await http.Client().send(request);
-    List<int> chunks = [];
-    File saveFile =
-        File("${(await getTemporaryDirectory()).path}${sep}modpack-$name.zip");
-    debugPrint(saveFile.path);
-    if (await saveFile.exists()) {
-      await saveFile.delete();
-    }
-    await saveFile.create(recursive: true);
-    int contentLength = response.contentLength ?? 1;
-    DateTime startContentDownloadTime = DateTime.now();
-    response.stream.listen((List<int> newBytes) {
-      chunks.addAll(newBytes);
-      final downloadedLength = chunks.length;
-      DateTime contentDownloadTime = DateTime.now();
-      try {
-        double dlSpeed = ((chunks.length /
-                contentDownloadTime
-                    .difference(startContentDownloadTime)
-                    .inSeconds) /
-            1000000 *
-            0.875);
-        String dlSpeedString =
-            "${dlSpeed.toString().split(".").first}.${dlSpeed.toString().split(".").last.characters.elementAt(0)}${dlSpeed.toString().split(".").last.characters.elementAt(1)}";
-        setDownloadSpeed(double.parse(dlSpeedString));
-      } catch (e) {
-        debugPrint("Error while calculating download speed");
-      }
-      setProgressValue(downloadedLength.toDouble() / contentLength);
-    }).onDone(() async {
-      setProgressValue(1);
-      await saveFile.writeAsBytes(chunks, flush: true);
-      final modpackDir = "${getMinecraftFolder().path}${sep}modpacks$sep$name";
-      if (await Directory(modpackDir).exists()) {
-        bool shouldReturn = false;
-
-        final clickedButton = await FlutterPlatformAlert.showAlert(
-          windowTitle: overwriteQ,
-          text: overwriteQText,
-          alertStyle: AlertButtonStyle.yesNo,
-          iconStyle: IconStyle.warning,
-        );
-        shouldReturn = clickedButton == AlertButton.noButton;
-        if (shouldReturn) {
-          await saveFile.delete(recursive: true);
-          setAreButtonsEnabled(true);
-          displayErrorSnackBar();
-          return;
-        }
-      }
-      await extractFileToDisk(
-          saveFile.path, "${getMinecraftFolder().path}${sep}modpacks$sep$name",
-          asyncWrite: false);
-      setAreButtonsEnabled(true);
-      displaySuccessSnackbar();
-    });
-  } catch (e) {
-    setAreButtonsEnabled(true);
-    displayErrorSnackBar();
-    debugPrint(e.toString());
-  }
-}
-
 void overwriteMinecraftFolder(Function() updateText) async {
   String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
   if (selectedDirectory == null) {
@@ -255,7 +173,8 @@ Future<Map<String, String>> getReleaseInfo() async {
 }
 
 Future<Mod> getMod(String modId, ModSource source,
-    Function(bool val) setAreParentButtonsActive) async {
+    Function(bool val) setAreParentButtonsActive,
+    {bool downloadAble = true}) async {
   if (source == ModSource.curseForge) {
     final String apiKey =
         const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
@@ -291,6 +210,7 @@ Future<Mod> getMod(String modId, ModSource source,
       slug: resJSON["slug"],
       modClass: modClass,
       source: ModSource.curseForge,
+      downloadAble: downloadAble,
     );
   } else {
     http.Response res = await http.get(
@@ -322,6 +242,7 @@ Future<Mod> getMod(String modId, ModSource source,
       source: ModSource.modRinth,
       slug: resJSON["slug"],
       modClass: modClass,
+      downloadAble: downloadAble,
     );
   }
 }

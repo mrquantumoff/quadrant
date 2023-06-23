@@ -19,6 +19,8 @@ import 'package:window_manager/window_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:protocol_handler/protocol_handler.dart';
 
+import 'package:mcmodpackmanager_reborn/modpack_installer/share/sharemodpackspage.dart';
+
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   await windowManager.ensureInitialized();
@@ -205,6 +207,7 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
     pages = [
       const MainPage(),
       const WebSourcesPage(),
+      const ShareModpacksPage(),
       Settings(setLocale: widget.setLocale)
     ];
     protocolHandler.addListener(this);
@@ -305,6 +308,10 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
           NavigationDestination(
             icon: const Icon(Icons.download),
             label: AppLocalizations.of(context)!.web,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.share),
+            label: AppLocalizations.of(context)!.shareModpacks,
           ),
           NavigationDestination(
             icon: const Icon(Icons.settings),

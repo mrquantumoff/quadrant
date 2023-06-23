@@ -106,5 +106,7 @@
   "failedToDeleteUsageInfo": "Failed to delete usage info",
   "dependencies": "Dependencies: ",
   "emptyDependencies": "It's your lucky day, there are no dependencies for this project",
-  "read": "Read"
+  "read": "Read",
+  "shareModpacks": "Share modpacks",
+  "openFile": "Open a file"
 }
