@@ -7,19 +7,19 @@ import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:mcmodpackmanager_reborn/backend.dart';
-import 'package:mcmodpackmanager_reborn/modpack_installer/web/generate_user_agent.dart';
-import 'package:mcmodpackmanager_reborn/modpack_installer/web/install_mod_page.dart';
-import 'package:mcmodpackmanager_reborn/modpack_installer/web/mod.dart';
-import 'package:mcmodpackmanager_reborn/modpack_installer/web_sources.dart';
-import 'package:mcmodpackmanager_reborn/selector.dart';
-import 'package:mcmodpackmanager_reborn/open_modpacks_folder.dart';
-import 'package:mcmodpackmanager_reborn/settings.dart';
+import 'package:mcmodpackmanager_reborn/pages/modpack_installer/web/generate_user_agent.dart';
+import 'package:mcmodpackmanager_reborn/pages/modpack_installer/web/mod/install_mod_page.dart';
+import 'package:mcmodpackmanager_reborn/pages/modpack_installer/web/mod/mod.dart';
+import 'package:mcmodpackmanager_reborn/pages/modpack_installer/web/web_sources.dart';
+import 'package:mcmodpackmanager_reborn/pages/selector.dart';
+import 'package:mcmodpackmanager_reborn/other/open_modpacks_folder.dart';
+import 'package:mcmodpackmanager_reborn/pages/settings.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:protocol_handler/protocol_handler.dart';
 
-import 'package:mcmodpackmanager_reborn/modpack_installer/share/sharemodpackspage.dart';
+import 'package:mcmodpackmanager_reborn/pages/modpack_installer/import_modpacks/import_modpacks_page.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -311,7 +311,7 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
           ),
           NavigationDestination(
             icon: const Icon(Icons.share),
-            label: AppLocalizations.of(context)!.shareModpacks,
+            label: AppLocalizations.of(context)!.importMods,
           ),
           NavigationDestination(
             icon: const Icon(Icons.settings),
