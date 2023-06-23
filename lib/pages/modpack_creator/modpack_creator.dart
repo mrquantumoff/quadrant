@@ -5,7 +5,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-import 'package:mcmodpackmanager_reborn/backend.dart';
+import 'package:mcmodpackmanager_reborn/other/backend.dart';
 import 'package:mcmodpackmanager_reborn/pages/web/generate_user_agent.dart';
 
 class ModpackCreator extends StatefulWidget {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:mcmodpackmanager_reborn/backend.dart';
+import 'package:mcmodpackmanager_reborn/other/backend.dart';
 
 class OpenModpacksFolder extends StatefulWidget {
   const OpenModpacksFolder({super.key});

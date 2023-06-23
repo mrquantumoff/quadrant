@@ -5,7 +5,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:mcmodpackmanager_reborn/backend.dart';
+import 'package:mcmodpackmanager_reborn/other/backend.dart';
 import 'package:mcmodpackmanager_reborn/pages/modpack_creator/modpack_creator.dart';
 import 'package:universal_feed/universal_feed.dart';
 import 'package:url_launcher/url_launcher.dart';

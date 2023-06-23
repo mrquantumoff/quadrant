@@ -7,7 +7,7 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:mcmodpackmanager_reborn/backend.dart';
+import 'package:mcmodpackmanager_reborn/other/backend.dart';
 import 'package:mcmodpackmanager_reborn/pages/web/generate_user_agent.dart';
 import 'package:mcmodpackmanager_reborn/pages/web/mod/install_mod_page.dart';
 import 'package:url_launcher/url_launcher.dart';
