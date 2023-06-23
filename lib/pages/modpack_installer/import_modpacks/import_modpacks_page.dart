@@ -50,7 +50,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
           shrinkWrap: true,
           children: isLoading
               ? [const LinearProgressIndicator()]
-              : (mods.isEmpty || otherModCount <= 0)
+              : (mods.isEmpty && otherModCount == 0)
                   ? []
                   : [
                       Container(
