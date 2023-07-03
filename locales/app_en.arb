@@ -8,6 +8,8 @@
   "setModpackStatus": "Modpack selection status",
   "setModpackSuccess": "Modpack set successfully",
   "setModpackFailed": "Modpack set failed",
+  "referenceFile": "Use a reference file",
+  "manualInput": "Use a string of text",
   "buttonsAreDisabled": "Buttons are disabled right now",
   "openModpacksFolder": "Open modpacks folder",
   "installModpacks": "Install mods",
@@ -117,5 +119,6 @@
         "type": "num"
       }
     }
-  }
+  },
+  "exportOptions": "How do you want to export this modpack?"
 }

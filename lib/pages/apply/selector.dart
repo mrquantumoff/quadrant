@@ -399,16 +399,35 @@ class _SelectorState extends State<Selector> {
                         "${getMinecraftFolder().path}/modpacks/$selectedModpack/modConfig.json");
                     if (!modpackConfig.existsSync()) return;
                     String content = await modpackConfig.readAsString();
-                    var filePickerResult = await FilePicker.platform
-                        .saveFile(fileName: "$selectedModpack.json");
-                    if (filePickerResult == null) return;
-                    File selectedFile = File(filePickerResult);
-                    if (await selectedFile.exists()) {
-                      await selectedFile.delete(recursive: true);
-                    }
-                    await selectedFile.create(recursive: true);
 
-                    await selectedFile.writeAsString(content);
+                    showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text(
+                                AppLocalizations.of(context)!.exportOptions),
+                            actions: [
+                              TextButton(
+                                onPressed: () async {
+                                  var filePickerResult =
+                                      await FilePicker.platform.saveFile(
+                                          fileName: "$selectedModpack.json");
+                                  if (filePickerResult == null) return;
+                                  File selectedFile = File(filePickerResult);
+                                  if (await selectedFile.exists()) {
+                                    await selectedFile.delete(recursive: true);
+                                  }
+                                  await selectedFile.create(recursive: true);
+
+                                  await selectedFile.writeAsString(content);
+                                },
+                                child: Text(
+                                  AppLocalizations.of(context)!.referenceFile,
+                                ),
+                              ),
+                            ],
+                          );
+                        });
                   },
                   child: Padding(
                     padding: const EdgeInsets.all(15),

@@ -11,8 +11,8 @@
   "buttonsAreDisabled": "Tuş etkin değil",
   "openModpacksFolder": "Modpacks klasörünü aç",
   "installModpacks": "Modları yükle",
-  "referenceFile": "Referans dosyasını kullanarak modpackileri yükle",
-  "manualInput": "Özelleştirilmis isim ve URL kullanarak modpackileri yükle",
+  "referenceFile": "Referans dosyasını kullanan",
+  "manualInput": "Özel bir tekst kullan",
   "installError": "Modpack yüklenirken hata oluştu. Modack'i doğru uzantısı ile seçtiğinizden emin olun",
   "name": "İsim",
   "download": "Yükle",
@@ -112,5 +112,6 @@
         "type": "num"
       }
     }
-  }
+  },
+  "exportOptions": "Bu modpack'i dışarı nasıl aktarmak istersiniz?"
 }
