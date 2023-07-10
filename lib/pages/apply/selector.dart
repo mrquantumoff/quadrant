@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'package:clipboard/clipboard.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -401,33 +401,52 @@ class _SelectorState extends State<Selector> {
                     String content = await modpackConfig.readAsString();
 
                     showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                          return AlertDialog(
-                            title: Text(
-                                AppLocalizations.of(context)!.exportOptions),
-                            actions: [
-                              TextButton(
-                                onPressed: () async {
-                                  var filePickerResult =
-                                      await FilePicker.platform.saveFile(
-                                          fileName: "$selectedModpack.json");
-                                  if (filePickerResult == null) return;
-                                  File selectedFile = File(filePickerResult);
-                                  if (await selectedFile.exists()) {
-                                    await selectedFile.delete(recursive: true);
-                                  }
-                                  await selectedFile.create(recursive: true);
+                      context: context,
+                      builder: (BuildContext context) {
+                        return AlertDialog(
+                          title:
+                              Text(AppLocalizations.of(context)!.exportOptions),
+                          actions: [
+                            TextButton(
+                              onPressed: () async {
+                                var filePickerResult = await FilePicker.platform
+                                    .saveFile(
+                                        fileName: "$selectedModpack.json");
+                                if (filePickerResult == null) return;
+                                File selectedFile = File(filePickerResult);
+                                if (await selectedFile.exists()) {
+                                  await selectedFile.delete(recursive: true);
+                                }
+                                await selectedFile.create(recursive: true);
 
-                                  await selectedFile.writeAsString(content);
-                                },
-                                child: Text(
-                                  AppLocalizations.of(context)!.referenceFile,
-                                ),
+                                await selectedFile.writeAsString(content);
+                              },
+                              child: Text(
+                                AppLocalizations.of(context)!.referenceFile,
                               ),
-                            ],
-                          );
-                        });
+                            ),
+                            TextButton(
+                              onPressed: () async {
+                                await FlutterClipboard.copy(
+                                  content,
+                                );
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      AppLocalizations.of(context)!
+                                          .copiedToClipboard,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                AppLocalizations.of(context)!.manualInput,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
                   },
                   child: Padding(
                     padding: const EdgeInsets.all(15),
