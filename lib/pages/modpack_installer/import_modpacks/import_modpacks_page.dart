@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:clipboard/clipboard.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -33,10 +34,89 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
   int otherModCount = 0;
   bool isLoading = false;
   String modConfig = "";
+  TextEditingController modpackEntryController = TextEditingController();
   void setProgressValue(double value) {
     setState(() {
       progressValue = value;
     });
+  }
+
+  void getMods(String rawFile) async {
+    setState(() {
+      modConfig = rawFile;
+    });
+    try {
+      Map jsonFile = json.decode(rawFile);
+      if (jsonFile["modLoader"] == null ||
+          jsonFile["version"] == null ||
+          jsonFile["mods"] == null ||
+          jsonFile["name"] == null) {
+        setState(() {
+          isLoading = false;
+        });
+        debugPrint("Invalid data 1");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.invalidData,
+            ),
+          ),
+        );
+        return;
+      }
+      modLoader = jsonFile["modLoader"];
+      version = jsonFile["version"];
+      modpack = jsonFile["name"];
+      List<dynamic> sourceMods = jsonFile["mods"];
+      List<Widget> newMods = [];
+      try {
+        for (var mod in sourceMods) {
+          String id = mod["id"];
+          String downloadUrl = mod["downloadUrl"];
+          String rawSource = mod["source"];
+          late ModSource source;
+          if (rawSource == "ModSource.curseForge") {
+            source = ModSource.curseForge;
+          } else if (rawSource == "ModSource.modRinth") {
+            source = ModSource.modRinth;
+          } else {
+            source = ModSource.online;
+          }
+          if (source == ModSource.curseForge || source == ModSource.modRinth) {
+            Mod mod =
+                await getMod(id, source, (val) => null, downloadAble: false);
+            newMods.add(mod);
+          }
+          if (source == ModSource.online) {
+            otherModCount += 1;
+          }
+          modDownloadUrls.add(downloadUrl);
+        }
+      } catch (e) {
+        debugPrint(e.toString());
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+      setState(() {
+        isLoading = false;
+
+        mods = newMods;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      debugPrint("Invalid data 2, $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.invalidData,
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -51,7 +131,59 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
           children: isLoading
               ? [const LinearProgressIndicator()]
               : (mods.isEmpty && otherModCount == 0)
-                  ? []
+                  ? [
+                      Center(
+                        child: SizedBox(
+                          width: 960,
+                          child: TextField(
+                            controller: modpackEntryController,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
+                              child: OutlinedButton(
+                                child: Text(
+                                  AppLocalizations.of(context)!.paste,
+                                ),
+                                onPressed: () async {
+                                  String value = await FlutterClipboard.paste();
+                                  setState(
+                                    () {
+                                      modpackEntryController.text = value;
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
+                              child: OutlinedButton(
+                                child: Text(
+                                  AppLocalizations.of(context)!.download,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    isLoading = true;
+                                  });
+                                  getMods(
+                                    // Deep copying
+                                    String.fromCharCodes(
+                                        modpackEntryController.text.codeUnits),
+                                  );
+                                },
+                              ),
+                            )
+                          ],
+                        ),
+                      )
+                    ]
                   : [
                       Container(
                         height: 360,
@@ -194,6 +326,8 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
             setState(() {
               isLoading = false;
             });
+            debugPrint("Invalid data 3");
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
@@ -205,80 +339,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
           }
           File file = File(platformFile.path!);
           String rawFile = await file.readAsString();
-          setState(() {
-            modConfig = rawFile;
-          });
-          try {
-            Map jsonFile = json.decode(rawFile);
-            if (jsonFile["modLoader"] == null ||
-                jsonFile["version"] == null ||
-                jsonFile["mods"] == null ||
-                jsonFile["name"] == null) {
-              setState(() {
-                isLoading = false;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    AppLocalizations.of(context)!.invalidData,
-                  ),
-                ),
-              );
-              return;
-            }
-            modLoader = jsonFile["modLoader"];
-            version = jsonFile["version"];
-            modpack = jsonFile["name"];
-            List<dynamic> sourceMods = jsonFile["mods"];
-            List<Widget> newMods = [];
-            try {
-              for (var mod in sourceMods) {
-                String id = mod["id"];
-                String downloadUrl = mod["downloadUrl"];
-                String rawSource = mod["source"];
-                late ModSource source;
-                if (rawSource == "ModSource.curseForge") {
-                  source = ModSource.curseForge;
-                } else if (rawSource == "ModSource.modRinth") {
-                  source = ModSource.modRinth;
-                } else {
-                  source = ModSource.online;
-                }
-                if (source == ModSource.curseForge ||
-                    source == ModSource.modRinth) {
-                  Mod mod = await getMod(id, source, (val) => null,
-                      downloadAble: false);
-                  newMods.add(mod);
-                }
-                if (source == ModSource.online) {
-                  otherModCount += 1;
-                }
-                modDownloadUrls.add(downloadUrl);
-              }
-            } catch (e) {
-              debugPrint(e.toString());
-              setState(() {
-                isLoading = false;
-              });
-              return;
-            }
-            setState(() {
-              isLoading = false;
-
-              mods = newMods;
-            });
-          } catch (e) {
-            setState(() {
-              isLoading = false;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  AppLocalizations.of(context)!.invalidData,
-                ),
-              ),
-            );
-          }
+          getMods(rawFile);
         },
         icon: const Icon(Icons.file_open),
         label: Text(

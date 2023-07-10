@@ -121,5 +121,6 @@
     }
   },
   "exportOptions": "How do you want to export this modpack?",
-  "copiedToClipboard": "Copied to clipboard"
+  "copiedToClipboard": "Copied to clipboard",
+  "paste": "Paste"
 }
