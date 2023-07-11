@@ -37,6 +37,12 @@
   </keywords>
   <releases>
 
+    <release date="2023-07-11" version="10.1.0">
+      <description>
+        <p>Add an option to export  and import modpacks using a string of text from the clipboard</p>
+      </description>
+    </release>
+
     <release date="2023-06-23" version="10.0.2">
       <description>
         <p>Add an easy way to share modpacks (bug fix)</p>
