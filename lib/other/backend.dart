@@ -412,6 +412,7 @@ void collectUserInfo({bool saveToFile = false}) async {
       country: string;
   }
   */
+
   try {
     debugPrint("Collecting user info");
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
@@ -447,7 +448,8 @@ void collectUserInfo({bool saveToFile = false}) async {
     String postBody = json.encode(response);
     debugPrint(postBody);
 
-    if (GetStorage().read("collectUserData") == true) {
+    if (GetStorage().read("collectUserData") == true &&
+        GetStorage().read("devMode") == false) {
       //https://api.mrquantumoff.dev/api/v1/submitMinecraftModpackManagerUsageInfo
       var result = await http.post(
         Uri.parse(

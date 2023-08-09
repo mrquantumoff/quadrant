@@ -122,5 +122,6 @@
   },
   "exportOptions": "How do you want to export this modpack?",
   "copiedToClipboard": "Copied to clipboard",
-  "paste": "Paste"
+  "paste": "Paste",
+  "devMode": "Developer mode"
 }

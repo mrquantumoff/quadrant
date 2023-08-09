@@ -21,6 +21,7 @@ class _SettingsState extends State<Settings> {
   bool collectData = GetStorage().read("collectUserData");
   bool curseForge = GetStorage().read("curseForge");
   bool modrinth = GetStorage().read("modrinth");
+  bool devMode = GetStorage().read("devMode");
   @override
   void dispose() {
     super.dispose();
@@ -36,6 +37,13 @@ class _SettingsState extends State<Settings> {
     GetStorage().write("clipIcons", newValue);
     setState(() {
       clipButtons = newValue;
+    });
+  }
+
+  void setDevMode(bool newValue) {
+    GetStorage().write("devMode", newValue);
+    setState(() {
+      devMode = newValue;
     });
   }
 
@@ -331,6 +339,23 @@ class _SettingsState extends State<Settings> {
                     ),
                   ),
                   const Text("Modrinth"),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    margin: const EdgeInsetsDirectional.only(end: 12),
+                    child: Switch(
+                      value: devMode,
+                      onChanged: setDevMode,
+                    ),
+                  ),
+                  Text(AppLocalizations.of(context)!.devMode),
                 ],
               ),
             ),

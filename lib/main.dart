@@ -77,6 +77,9 @@ void main(List<String> args) async {
   if (GetStorage().read("modrinth") == null) {
     GetStorage().writeInMemory("modrinth", true);
   }
+  if (GetStorage().read("devMode") == null) {
+    GetStorage().writeInMemory("devMode", false);
+  }
   runApp(const MyApp());
 }
 

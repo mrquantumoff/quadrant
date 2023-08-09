@@ -59,12 +59,9 @@ class _SelectorState extends State<Selector> {
       }
       bool cond1 = (GetStorage().read<List<dynamic>>("seenItems") ?? [])
           .contains(item.guid!);
-      bool cond2 = item.published!.parseValue()!.difference(DateTime.parse(
-              GetStorage().read("lastRSSfetched") ??
-                  DateTime.now()
-                      .subtract(const Duration(minutes: 15))
-                      .toIso8601String())) <=
-          const Duration(days: 14);
+      DateTime itemDate = item.published!.parseValue()!;
+      bool cond2 =
+          itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
       debugPrint(" Cond2: $cond2");
       if (cond2 && categories.contains("Minecraft Modpack Manager") && !cond1) {
         var newSeenItems =

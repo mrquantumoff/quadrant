@@ -115,5 +115,6 @@
   },
   "exportOptions": "Bu modpack'i dışarı nasıl aktarmak istersiniz?",
   "copiedToClipboard": "Panoya kopyalandı",
-  "paste": "Yapıştır"
+  "paste": "Yapıştır",
+  "devMode": "Geliştirici modu"
 }
