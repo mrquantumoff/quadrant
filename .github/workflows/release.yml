@@ -42,14 +42,14 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             ./WindowsBuild.zip
-            ./windows-build/mcmodpackmanager_reborn.msix
+            ./windows-build/quadrant.msix
 
       - name: Build on macOS
         if: matrix.platform == 'macos-latest'
         run: |
           flutter pub get
           flutter build macos --release --split-debug-info --obfuscate --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
-          tar -czvf macOSBuild.tar.gz build/macos/Build/Products/Release/Minecraft\ Modpack\ Manager\ Reborn.app
+          tar -czvf macOSBuild.tar.gz build/macos/Build/Products/Release/Quadrant.app
           # For future use
           # pkgbuild --install-location /Applications --component "./build/macos/Build/Products/Release/Minecraft Modpack Manager Reborn.app" ./mcmodpackmanagerMacOS.pkg --identifier dev.mrquantumoff.mcmodpackmanager
       - name: Upload the macOS build

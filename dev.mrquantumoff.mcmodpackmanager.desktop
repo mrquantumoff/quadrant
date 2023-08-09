@@ -1,9 +1,9 @@
 [Desktop Entry]
 Type=Application
-Exec=mcmodpackmanager_reborn %u
+Exec=quadrant %u
 Terminal=false
 Categories=Utility;
-Name=Minecraft Modpack Manager Reborn
+Name=Quadrant (Formerly Minecraft Modpack Manager)
 Icon=dev.mrquantumoff.mcmodpackmanager
 MimeType=x-scheme-handler/curseforge;
 MimeType=x-scheme-handler/mcmodpackmanager;

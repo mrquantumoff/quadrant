@@ -90,11 +90,11 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "mrquantumoff.dev" "\0"
-            VALUE "FileDescription", "mcmodpackmanager_reborn" "\0"
+            VALUE "FileDescription", "quadrant" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "mcmodpackmanager_reborn" "\0"
+            VALUE "InternalName", "quadrant" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2023 MrQuantumOFF (Demir Yerli). All rights reserved." "\0"
-            VALUE "OriginalFilename", "mcmodpackmanager_reborn.exe" "\0"
+            VALUE "OriginalFilename", "quadrant.exe" "\0"
             VALUE "ProductName", "Quadrant" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
