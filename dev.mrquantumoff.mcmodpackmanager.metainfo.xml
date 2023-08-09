@@ -3,7 +3,7 @@
   <id>dev.mrquantumoff.mcmodpackmanager</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MPL-2.0</project_license>
-  <name>Minecraft Modpack Manager</name>
+  <name>Quadrant (Formerly Minecraft Modpack Manager Reborn)</name>
   <summary>Manage your modpacks with ease!</summary>
   <description>
     <p>
@@ -39,7 +39,7 @@
 
     <release date="2023-07-11" version="10.1.0">
       <description>
-        <p>Add an option to export  and import modpacks using a string of text from the clipboard</p>
+        <p>Add an option to export and import modpacks using a string of text from the clipboard</p>
       </description>
     </release>
 

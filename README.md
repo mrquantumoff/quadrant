@@ -1,8 +1,9 @@
 <div align="center">
 
-<img src="https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logotext.svg" height=256 />
+<img src="https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logotext.svg" height=256 />
 
-> An easy way to manage your modpacks, written in Dart and Flutter
+> An easy way to manage your modpacks, written in Dart and Flutter.
+> Formerly Minecraft Modpack Manager Reborn
 
 </div>
 
@@ -30,11 +31,11 @@
         <img width="187" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
     </a>
 
-### [Grab the latest build manually (macOS/Linux/Windows)](https://github.com/mrquantumoff/mcmodpackmanager_reborn/releases/latest)
+### [Grab the latest build manually (macOS/Linux/Windows)](https://github.com/mrquantumoff/quadrant/releases/latest)
 
 </div>
 
-> ## \* If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the settings or reinstalling the app from microsoft store. If CurseForge protocol handler doesn't work properly you can easily use [this registry fix](https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/msstorefix.reg)
+> ## \* If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the settings or reinstalling the app from microsoft store. If CurseForge protocol handler doesn't work properly you can easily use [this registry fix](https://github.com/mrquantumoff/quadrant/raw/master/msstorefix.reg)
 >
 > ### Warning: If your mods folder is not symlinked to modpacks/<anything> your mods folder will be deleted after you apply/clear your modpack
 >
