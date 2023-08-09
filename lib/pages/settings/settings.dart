@@ -22,6 +22,7 @@ class _SettingsState extends State<Settings> {
   bool curseForge = GetStorage().read("curseForge");
   bool modrinth = GetStorage().read("modrinth");
   bool devMode = GetStorage().read("devMode");
+  bool rssFeeds = GetStorage().read("rssFeeds");
   @override
   void dispose() {
     super.dispose();
@@ -44,6 +45,13 @@ class _SettingsState extends State<Settings> {
     GetStorage().write("devMode", newValue);
     setState(() {
       devMode = newValue;
+    });
+  }
+
+  void setRSSFeeds(bool newValue) {
+    GetStorage().write("rssFeeds", newValue);
+    setState(() {
+      rssFeeds = newValue;
     });
   }
 
@@ -356,6 +364,23 @@ class _SettingsState extends State<Settings> {
                     ),
                   ),
                   Text(AppLocalizations.of(context)!.devMode),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    margin: const EdgeInsetsDirectional.only(end: 12),
+                    child: Switch(
+                      value: rssFeeds,
+                      onChanged: setRSSFeeds,
+                    ),
+                  ),
+                  Text(AppLocalizations.of(context)!.rssFeeds),
                 ],
               ),
             ),

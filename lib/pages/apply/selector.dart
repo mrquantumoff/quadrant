@@ -57,13 +57,17 @@ class _SelectorState extends State<Selector> {
       for (var category in item.categories) {
         categories.add(category.value!);
       }
-      bool cond1 = (GetStorage().read<List<dynamic>>("seenItems") ?? [])
+      bool cond1 = !(GetStorage().read<List<dynamic>>("seenItems") ?? [])
           .contains(item.guid!);
       DateTime itemDate = item.published!.parseValue()!;
       bool cond2 =
           itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
       debugPrint(" Cond2: $cond2");
-      if (cond2 && categories.contains("Minecraft Modpack Manager") && !cond1) {
+      bool cond3 = GetStorage().read("rssFeeds") == true;
+      bool cond4 = GetStorage().read("devMode") == true;
+      if (((cond1 && cond2) || cond4) &&
+          cond3 &&
+          categories.contains("Minecraft Modpack Manager")) {
         var newSeenItems =
             (GetStorage().read<List<dynamic>>("seenItems") ?? []);
         newSeenItems.add(item.guid!);

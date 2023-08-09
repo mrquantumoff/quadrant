@@ -123,5 +123,6 @@
   "exportOptions": "How do you want to export this modpack?",
   "copiedToClipboard": "Copied to clipboard",
   "paste": "Paste",
-  "devMode": "Developer mode"
+  "devMode": "Developer mode",
+  "rssFeeds": "News related to Quadrant"
 }

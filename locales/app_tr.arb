@@ -116,5 +116,6 @@
   "exportOptions": "Bu modpack'i dışarı nasıl aktarmak istersiniz?",
   "copiedToClipboard": "Panoya kopyalandı",
   "paste": "Yapıştır",
-  "devMode": "Geliştirici modu"
+  "devMode": "Geliştirici modu",
+  "rssFeeds": "Quadrant ile ilgili haberler"
 }

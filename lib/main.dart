@@ -80,6 +80,9 @@ void main(List<String> args) async {
   if (GetStorage().read("devMode") == null) {
     GetStorage().writeInMemory("devMode", false);
   }
+  if (GetStorage().read("rssFeeds") == null) {
+    GetStorage().writeInMemory("rssFeeds", true);
+  }
   runApp(const MyApp());
 }
 
