@@ -37,6 +37,12 @@
   </keywords>
   <releases>
 
+    <release date="2023-08-09" version="11.0.0">
+      <description>
+        <p>A rebranding</p>
+      </description>
+    </release>
+
     <release date="2023-07-11" version="10.1.0">
       <description>
         <p>Add an option to export and import modpacks using a string of text from the clipboard</p>
