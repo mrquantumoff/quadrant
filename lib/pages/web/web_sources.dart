@@ -5,10 +5,10 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:mcmodpackmanager_reborn/pages/web/filter_mods.dart';
-import 'package:mcmodpackmanager_reborn/pages/web/generate_user_agent.dart';
+import 'package:quadrant/pages/web/filter_mods.dart';
+import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'dart:convert';
-import 'package:mcmodpackmanager_reborn/pages/web/mod/mod.dart';
+import 'package:quadrant/pages/web/mod/mod.dart';
 
 class UserAgentClient extends http.BaseClient {
   final String userAgent;

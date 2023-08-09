@@ -6,9 +6,9 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:mcmodpackmanager_reborn/other/backend.dart';
-import 'package:mcmodpackmanager_reborn/pages/web/web_sources.dart';
-import 'package:mcmodpackmanager_reborn/pages/web/generate_user_agent.dart';
+import 'package:quadrant/other/backend.dart';
+import 'package:quadrant/pages/web/web_sources.dart';
+import 'package:quadrant/pages/web/generate_user_agent.dart';
 
 class FilterMods extends StatefulWidget {
   const FilterMods({super.key});

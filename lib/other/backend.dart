@@ -7,10 +7,10 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:mcmodpackmanager_reborn/pages/web/generate_user_agent.dart';
-import 'package:mcmodpackmanager_reborn/pages/web/mod/install_mod_page.dart';
+import 'package:quadrant/pages/web/generate_user_agent.dart';
+import 'package:quadrant/pages/web/mod/install_mod_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:mcmodpackmanager_reborn/pages/web/mod/mod.dart';
+import 'package:quadrant/pages/web/mod/mod.dart';
 
 Directory getMinecraftFolder({bool onInit = false}) {
   if (GetStorage().read("minecraftFolder") != null && !onInit) {

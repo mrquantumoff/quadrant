@@ -6,19 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:mcmodpackmanager_reborn/other/backend.dart';
-import 'package:mcmodpackmanager_reborn/pages/web/generate_user_agent.dart';
-import 'package:mcmodpackmanager_reborn/pages/web/mod/install_mod_page.dart';
-import 'package:mcmodpackmanager_reborn/pages/web/mod/mod.dart';
-import 'package:mcmodpackmanager_reborn/pages/web/web_sources.dart';
-import 'package:mcmodpackmanager_reborn/pages/apply/selector.dart';
-import 'package:mcmodpackmanager_reborn/pages/settings/settings.dart';
+import 'package:quadrant/other/backend.dart';
+import 'package:quadrant/pages/web/generate_user_agent.dart';
+import 'package:quadrant/pages/web/mod/install_mod_page.dart';
+import 'package:quadrant/pages/web/mod/mod.dart';
+import 'package:quadrant/pages/web/web_sources.dart';
+import 'package:quadrant/pages/apply/selector.dart';
+import 'package:quadrant/pages/settings/settings.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:protocol_handler/protocol_handler.dart';
 
-import 'package:mcmodpackmanager_reborn/pages/modpack_installer/import_modpacks/import_modpacks_page.dart';
+import 'package:quadrant/pages/modpack_installer/import_modpacks/import_modpacks_page.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
