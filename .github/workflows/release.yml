@@ -26,7 +26,7 @@ jobs:
         continue-on-error: true
         run: |
           flutter pub get
-          dart run msix:create -v --output-path windows-build --windows-build-args ' --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY=${{secrets.QUADRANT_QNT_API_KEY}} --dart-define ETERNAL_API_KEY=${{ secrets.ETERNAL_API_KEY }} --release'
+          dart run msix:create -v --output-path windows-build --windows-build-args ' --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY='${{secrets.QUADRANT_QNT_API_KEY}}' --dart-define ETERNAL_API_KEY=${{ secrets.ETERNAL_API_KEY }} --release'
       - name: Compress Windows build to .zip
         if: matrix.platform == 'windows-latest'
         uses: vimtor/action-zip@v1.1
@@ -48,7 +48,7 @@ jobs:
         if: matrix.platform == 'macos-latest'
         run: |
           flutter pub get
-          flutter build macos --release --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY=${{secrets.QUADRANT_QNT_API_KEY}} --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
+          flutter build macos --release --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY='${{secrets.QUADRANT_QNT_API_KEY}}' --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
           tar -czvf macOSBuild.tar.gz build/macos/Build/Products/Release/Quadrant.app
           # For future use
           # pkgbuild --install-location /Applications --component "./build/macos/Build/Products/Release/Minecraft Modpack Manager Reborn.app" ./mcmodpackmanagerMacOS.pkg --identifier dev.mrquantumoff.mcmodpackmanager
@@ -66,7 +66,7 @@ jobs:
           sudo apt update
           sudo apt install meson clang build-essential cmake curl file git unzip xz-utils zip libglu1-mesa ninja-build pkg-config libgtk-3-dev
           flutter pub get
-          flutter build linux --release --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY=${{secrets.QUADRANT_QNT_API_KEY}} --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
+          flutter build linux --release --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY='${{secrets.QUADRANT_QNT_API_KEY}}' --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
           tar -czvf GNULinuxBuild.tar.gz ./build/linux/x64/release/bundle
       - name: Upload the GNU/Linux build
         if: matrix.platform == 'ubuntu-latest'
