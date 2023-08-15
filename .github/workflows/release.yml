@@ -24,9 +24,11 @@ jobs:
       - name: Build on windows
         if: matrix.platform == 'windows-latest'
         continue-on-error: true
+        env:
+          QUADRANT_KEY: ${{ secrets.QUADRANT_QNT_API_KEY }}
         run: |
           flutter pub get
-          flutter build windows --release --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY='${{secrets.QUADRANT_QNT_API_KEY}}' --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
+          flutter build windows --release --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY=$QUADRANT_KEY --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
           dart run msix:create -v --output-path windows-build --build_windows false
       - name: Compress Windows build to .zip
         if: matrix.platform == 'windows-latest'
