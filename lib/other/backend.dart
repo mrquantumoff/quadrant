@@ -453,8 +453,11 @@ void collectUserInfo({bool saveToFile = false}) async {
       //https://api.mrquantumoff.dev/api/v1/submitMinecraftModpackManagerUsageInfo
       var result = await http.post(
         Uri.parse(
-            "https://api.mrquantumoff.dev/api/v1/submitMinecraftModpackManagerUsageInfo"),
-        headers: {"User-Agent": await generateUserAgent()},
+            "https://api.mrquantumoff.dev/api/v2/submit/quadrantusageinfo"),
+        headers: {
+          "User-Agent": await generateUserAgent(),
+          "Authorization": const String.fromEnvironment("QUADRANT_QNT_API_KEY")
+        },
         body: postBody,
       );
       if (result.body.contains("Updated") || result.body.contains("Created")) {
@@ -480,9 +483,10 @@ void deleteUsageInfo() async {
 
   await http.delete(
     Uri.parse(
-        "https://api.mrquantumoff.dev/api/v1/deleteUsageInfo?hardware_id=${info.machineId}"),
+        "https://api.mrquantumoff.dev/api/v2/delete/quadrantusageinfo?hardware_id=${info.machineId}"),
     headers: {
       "User-Agent": await generateUserAgent(),
+      "Authorization": const String.fromEnvironment("QUADRANT_QNT_API_KEY")
     },
   );
 }

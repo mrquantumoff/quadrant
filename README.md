@@ -41,6 +41,8 @@
 >
 > #### Warning: Some features may not work properly on macOS, since I don't have a Mac and I can't test the app on it. If you have one and you know how to code, please submit a pr
 >
+> #### Warning: Before requesting to the delete the data collected by the app, please be sure that you are using the latest version.
+>
 > Why can't I include modpacks from curseforge? Although I do have API access to curseforge modpack API, I cannot completely install everything from a modpack, since many modpacks tend to overwrite some of minecraft's settings and/or install external resource packs. I do not wish to deal with that.
 
 ###### [Logo's source (Figma)](https://www.figma.com/community/file/1222558477898371497)

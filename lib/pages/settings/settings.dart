@@ -252,7 +252,7 @@ class _SettingsState extends State<Settings> {
                 onPressed: () async {
                   await launchUrl(
                     Uri.parse(
-                        "https://mrquantumoff.dev/projects/mcmodpackmanager_reborn/analytics"),
+                        "https://mrquantumoff.dev/projects/quadrant/analytics"),
                   );
                 },
                 label: Text(
@@ -272,7 +272,7 @@ class _SettingsState extends State<Settings> {
 
                     await launchUrl(
                       Uri.parse(
-                          "https://mrquantumoff.dev/projects/mcmodpackmanager_reborn/analytics/${info.machineId}"),
+                          "https://mrquantumoff.dev/projects/quadrant/analytics/${info.machineId}"),
                     );
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
