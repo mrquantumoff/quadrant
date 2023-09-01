@@ -168,7 +168,7 @@ Future<Map<String, String>> getReleaseInfo() async {
     "latestRelease": latestRelease,
     "currentRelease": packageInfo.version,
     "url":
-        "https://github.com/mrquantumoff/mcmodpackmanager_reborn/releases/tag/$latestRelease"
+        "https://github.com/mrquantumoff/quadrant/releases/tag/$latestRelease"
   };
 }
 
@@ -266,7 +266,7 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
     String name = mod["name"];
     String summary = mod["summary"];
     String modIconUrl =
-        "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
+        "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo.png";
     int downloadCount = mod["downloadCount"];
     try {
       String mModIconUrl = mod["logo"]["thumbnailUrl"].toString().trim();
@@ -450,7 +450,6 @@ void collectUserInfo({bool saveToFile = false}) async {
 
     if (GetStorage().read("collectUserData") == true &&
         GetStorage().read("devMode") == false) {
-      //https://api.mrquantumoff.dev/api/v1/submitMinecraftModpackManagerUsageInfo
       var result = await http.post(
         Uri.parse(
             "https://api.mrquantumoff.dev/api/v2/submit/quadrantusageinfo"),

@@ -133,6 +133,9 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
               : (mods.isEmpty && otherModCount == 0)
                   ? [
                       Center(
+                        child: Text(AppLocalizations.of(context)!.manualInput),
+                      ),
+                      Center(
                         child: SizedBox(
                           width: 960,
                           child: TextField(
@@ -168,14 +171,32 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
                                 child: Text(
                                   AppLocalizations.of(context)!.download,
                                 ),
-                                onPressed: () {
+                                onPressed: () async {
                                   setState(() {
                                     isLoading = true;
                                   });
+                                  var res = await http.get(Uri.parse(
+                                      "https://api.mrquantumoff.dev/api/v2/get/quadrant_share?code=${String.fromCharCodes(modpackEntryController.text.codeUnits)}"));
+                                  if (res.statusCode != 200) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          AppLocalizations.of(context)!
+                                              .failedQuadrantShare,
+                                        ),
+                                      ),
+                                    );
+                                    setState(() {
+                                      isLoading = false;
+                                    });
+                                    return;
+                                  }
+                                  var decoded = json.decode(res.body);
+                                  debugPrint(decoded["mod_config"]);
+
                                   getMods(
                                     // Deep copying
-                                    String.fromCharCodes(
-                                        modpackEntryController.text.codeUnits),
+                                    decoded["mod_config"],
                                   );
                                 },
                               ),

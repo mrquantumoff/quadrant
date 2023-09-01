@@ -114,8 +114,25 @@
     }
   },
   "exportOptions": "Bu modpack'i dışarı nasıl aktarmak istersiniz?",
-  "copiedToClipboard": "Panoya kopyalandı",
+  "copiedToClipboard": "Panoya kopyalandı, {amount} kullanım kaldı",
+  "@copiedToClipboard": {
+    "placeholders": {
+      "amount": {
+        "type": "num"
+      }
+    }
+  },
   "paste": "Yapıştır",
   "devMode": "Geliştirici modu",
-  "rssFeeds": "Quadrant ile ilgili haberler"
+  "rssFeeds": "Quadrant ile ilgili haberler",
+  "enableDataSharing": "Bu özelliği kullanmak için veri toplamayı etkinleştirmelisiniz.",
+  "failedQuadrantShare": "Mod paketiniz paylaşılamadı.",
+  "uses": "{amount} kullanım",
+  "@uses": {
+    "placeholders": {
+      "amount": {
+        "type": "num"
+      }
+    }
+  }
 }

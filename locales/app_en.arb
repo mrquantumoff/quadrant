@@ -9,7 +9,7 @@
   "setModpackSuccess": "Modpack set successfully",
   "setModpackFailed": "Modpack set failed",
   "referenceFile": "Use a reference file",
-  "manualInput": "Use a string of text",
+  "manualInput": "Use a code from your friend",
   "buttonsAreDisabled": "Buttons are disabled right now",
   "openModpacksFolder": "Open modpacks folder",
   "installModpacks": "Install mods",
@@ -121,8 +121,25 @@
     }
   },
   "exportOptions": "How do you want to export this modpack?",
-  "copiedToClipboard": "Copied to clipboard",
+  "copiedToClipboard": "Copied to clipboard, {amount} uses left",
+  "@copiedToClipboard": {
+    "placeholders": {
+      "amount": {
+        "type": "num"
+      }
+    }
+  },
   "paste": "Paste",
   "devMode": "Developer mode",
-  "rssFeeds": "News related to Quadrant"
+  "rssFeeds": "News related to Quadrant",
+  "enableDataSharing": "Please enable data collection in order to use this feature.",
+  "failedQuadrantShare": "Failed to share your modpack.",
+  "uses": "{amount} uses",
+  "@uses": {
+    "placeholders": {
+      "amount": {
+        "type": "num"
+      }
+    }
+  }
 }

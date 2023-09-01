@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:clipboard/clipboard.dart';
 import 'package:file_picker/file_picker.dart';
@@ -8,6 +9,7 @@ import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/modpack_creator/modpack_creator.dart';
+import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:universal_feed/universal_feed.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -428,14 +430,57 @@ class _SelectorState extends State<Selector> {
                             ),
                             TextButton(
                               onPressed: () async {
+                                if (GetStorage().read("collectUserData") ==
+                                    false) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        AppLocalizations.of(context)!
+                                            .enableDataSharing,
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                var machineInfo = await getMachineIdAndOs();
+                                var res = await http.post(
+                                    Uri.parse(
+                                        "https://api.mrquantumoff.dev/api/v2/submit/quadrant_share"),
+                                    headers: {
+                                      "User-Agent": await generateUserAgent(),
+                                      "Authorization":
+                                          const String.fromEnvironment(
+                                              "QUADRANT_QNT_API_KEY")
+                                    },
+                                    body: json.encode({
+                                      "hardware_id": machineInfo.machineId,
+                                      "mod_config": content,
+                                      "uses_left": 5,
+                                    }));
+
+                                if (res.statusCode != 201) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        AppLocalizations.of(context)!
+                                            .failedQuadrantShare,
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+
+                                var decoded = json.decode(res.body);
+
                                 await FlutterClipboard.copy(
-                                  content,
+                                  decoded["code"].toString(),
                                 );
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
                                       AppLocalizations.of(context)!
-                                          .copiedToClipboard,
+                                          .copiedToClipboard(
+                                              decoded["uses_left"]),
                                     ),
                                   ),
                                 );

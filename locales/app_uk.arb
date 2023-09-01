@@ -114,8 +114,25 @@
     }
   },
   "exportOptions": "Як ви бажаєте експортувати цей модпак?",
-  "copiedToClipboard": "Скопійовано в буфер обміну",
+  "copiedToClipboard": "Скопійовано в буфер обміну, залишилося {amount} використувувань",
+   "@copiedToClipboard": {
+    "placeholders": {
+      "amount": {
+        "type": "num"
+      }
+    }
+  },
   "paste": "Вставити",
   "devMode": "Режим розробника",
-  "rssFeeds": "Новини пов'язані з Квадрантом"
+  "rssFeeds": "Новини пов'язані з Quadrant",
+  "enableDataSharing": "Ви повинні увімкнути збір інформації, аби користуватися цією функцією.",
+  "failedQuadrantShare": "Помилка при роздачі модпаку",
+  "uses": "{amount} використувувань",
+  "@uses": {
+    "placeholders": {
+      "amount": {
+        "type": "num"
+      }
+    }
+  }
 }
