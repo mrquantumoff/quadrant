@@ -442,6 +442,7 @@ class _SelectorState extends State<Selector> {
                                   );
                                   return;
                                 }
+                                collectUserInfo();
                                 var machineInfo = await getMachineIdAndOs();
                                 var res = await http.post(
                                     Uri.parse(

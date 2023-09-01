@@ -19,9 +19,9 @@ pub struct AppInfo {
 }
 ```
 
-This an example of which data is being collected by the app and can be accessed with https://api.mrquantumoff.dev/api/v1/getusageinfo?hardware_id=YOURHARDWAREID.
+This an example of which data is being collected by the app and can be accessed with https://api.mrquantumoff.dev/api/v2/get/quadrantusageinfo?hardware_id=YOURHARDWAREID.
 
-However, when someone is asking for general usage info (https://api.mrquantumoff.dev/api/v1/getusageinfo) without any query params, they can only get this struct
+However, when someone is asking for general usage info (https://api.mrquantumoff.dev/api/v2/get/quadrantusageinfo) without any query params, they can only get this struct
 
 ```rust
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -35,3 +35,5 @@ pub struct AppInfoAnonymous {
     country: String,
 }
 ```
+
+The Quadrant Share feature in Quadrant v12+ requires optional data collection enabled (hardware id), in order not to have the database spammed with hundreds of codes.

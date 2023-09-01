@@ -37,6 +37,12 @@
   </keywords>
   <releases>
 
+    <release date="2023-09-01" version="12.0.0">
+      <description>
+        <p>Featuring Quadrant Share, an easy way to share a modpack with friends</p>
+      </description>
+    </release>
+
     <release date="2023-08-15" version="11.2.0">
       <description>
         <p>Migrate to my updated API.</p>
