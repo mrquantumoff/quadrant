@@ -37,6 +37,14 @@
   </keywords>
   <releases>
 
+    <release date="2023-09-16" version="23.09.0">
+      <description>
+        <p>Starting with the 23.09 release of Quadrant, the project now uses a new versioning system, YY.MM.REVISION</p>
+        <p>Dependency updates</p>
+      </description>
+    </release>
+
+
     <release date="2023-09-01" version="12.0.0">
       <description>
         <p>Featuring Quadrant Share, an easy way to share a modpack with friends</p>
