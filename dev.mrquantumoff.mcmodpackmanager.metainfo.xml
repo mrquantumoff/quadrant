@@ -37,6 +37,13 @@
   </keywords>
   <releases>
 
+    <release date="2023-09-30" version="23.10.0">
+      <description>
+        <p>Bug fixes</p>
+        <p>Dependency updates</p>
+      </description>
+    </release>
+
     <release date="2023-09-16" version="23.09.0">
       <description>
         <p>Starting with the 23.09 release of Quadrant, the project now uses a new versioning system, YY.MM.REVISION</p>

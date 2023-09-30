@@ -44,13 +44,10 @@ class _ModpackCreatorState extends State<ModpackCreator> {
     });
   }
 
-  List<DropdownMenuEntry> versionItems = [];
-  List<String> versions = [];
-
   bool hasGetVersionsBeenRun = false;
 
-  void getVersions() async {
-    if (hasGetVersionsBeenRun) return;
+  Future<List<DropdownMenuEntry>> getVersions() async {
+    List<DropdownMenuEntry> items = [];
     Uri uri = Uri.parse(
       'https://api.modrinth.com/v2/tag/game_version',
     );
@@ -61,6 +58,7 @@ class _ModpackCreatorState extends State<ModpackCreator> {
       },
     ))
         .body);
+    List<String> versions = [];
     for (var v in vrs) {
       if (v["version_type"] == "release") {
         versions.add(v["version"].toString());
@@ -68,11 +66,11 @@ class _ModpackCreatorState extends State<ModpackCreator> {
     }
 
     for (var version in versions) {
-      versionItems.add(
+      items.add(
         DropdownMenuEntry(label: version.toString(), value: version),
       );
     }
-    hasGetVersionsBeenRun = true;
+    return items;
   }
 
   @override
@@ -106,14 +104,34 @@ class _ModpackCreatorState extends State<ModpackCreator> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              child: DropdownMenu(
-                dropdownMenuEntries: versionItems,
-                controller: versionFieldController,
-                label: Text(AppLocalizations.of(context)!.chooseVersion),
-                width: 640,
-              ),
-            ),
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                child: FutureBuilder(
+                    future: getVersions(),
+                    builder: ((BuildContext context, snapshot) {
+                      if (snapshot.hasError) {
+                        return DropdownMenu(
+                          dropdownMenuEntries: const [],
+                          enabled: false,
+                          errorText: AppLocalizations.of(context)!.downloadFail,
+                          label:
+                              Text(AppLocalizations.of(context)!.downloadFail),
+                          width: 640,
+                        );
+                      } else if (!snapshot.hasData) {
+                        return const SizedBox(
+                          width: 640,
+                          child: LinearProgressIndicator(),
+                        );
+                      }
+                      return DropdownMenu(
+                        dropdownMenuEntries: snapshot.data!,
+                        controller: versionFieldController,
+                        label:
+                            Text(AppLocalizations.of(context)!.chooseVersion),
+                        width: 640,
+                        menuHeight: 240,
+                      );
+                    }))),
             Container(
               margin: const EdgeInsets.symmetric(vertical: 12),
               child: DropdownMenu(
