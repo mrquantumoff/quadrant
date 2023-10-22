@@ -9,6 +9,7 @@ import 'package:quadrant/pages/web/filter_mods.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'dart:convert';
 import 'package:quadrant/pages/web/mod/mod.dart';
+import 'package:quadrant/pages/web/update_modpack.dart';
 
 class UserAgentClient extends http.BaseClient {
   final String userAgent;
@@ -185,6 +186,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   @override
   void initState() {
     super.initState();
+    searchModsFunction(forceSearch: true);
   }
 
   @override
@@ -195,8 +197,8 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     // searchResults = [];
   }
 
-  void searchModsFunction() async {
-    if (searchFieldController.text.trim() == "") return;
+  void searchModsFunction({bool forceSearch = false}) async {
+    if (searchFieldController.text.trim() == "" && !forceSearch) return;
     bool isCurseForgeAllowed = await checkCurseForge();
     setSearchResults(
       searchResults = [
@@ -277,14 +279,6 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.filterOn
-          ? AppBar(
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Get.back(),
-              ),
-            )
-          : null,
       body: Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -296,9 +290,16 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               margin: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
+                  widget.filterOn
+                      ? IconButton(
+                          icon: const Icon(Icons.arrow_back),
+                          onPressed: () => Get.back(),
+                        )
+                      : Container(),
                   Expanded(
                     child: Container(
-                      margin: const EdgeInsets.only(right: 20),
+                      margin: EdgeInsets.only(
+                          right: 20, left: (!widget.filterOn ? 0 : 20)),
                       child: TextField(
                         decoration: InputDecoration(
                             border: const OutlineInputBorder(),
@@ -317,10 +318,25 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                   !widget.filterOn
                       ? TextButton.icon(
                           onPressed: () async {
-                            Get.to(() => const FilterMods());
+                            Get.to(
+                              () => const FilterMods(),
+                              transition: Transition.upToDown,
+                            );
                           },
                           icon: const Icon(Icons.filter_alt),
                           label: Text(AppLocalizations.of(context)!.filter),
+                        )
+                      : Container(),
+                  !widget.filterOn
+                      ? TextButton.icon(
+                          onPressed: () async {
+                            Get.to(
+                              () => const UpdateModpack(),
+                              transition: Transition.upToDown,
+                            );
+                          },
+                          icon: const Icon(Icons.update),
+                          label: Text(AppLocalizations.of(context)!.update),
                         )
                       : Container(),
                 ],
