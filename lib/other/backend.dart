@@ -221,10 +221,6 @@ Future<Mod> getMod(
 
       Map parsed = json.decode(res.body);
       for (Map item in parsed["data"]) {
-        if (item["fileName"] == preVersion) {
-          latestVersionUrl = preVersion;
-          continue;
-        }
         if (item["gameVersions"].contains(modLoader)) {
           latestVersionUrl = item["downloadUrl"];
           break;
@@ -250,11 +246,13 @@ Future<Mod> getMod(
       newVersionUrl: latestVersionUrl,
     );
   } else {
+    Map<String, String> headers = {
+      "User-Agent": await generateUserAgent(),
+    };
+
     http.Response res = await http.get(
       Uri.parse("https://api.modrinth.com/v2/project/$modId"),
-      headers: {
-        "User-Agent": await generateUserAgent(),
-      },
+      headers: headers,
     );
 
     final resJSON = json.decode(res.body);
@@ -269,6 +267,31 @@ Future<Mod> getMod(
     } else {
       throw Exception("Unsupported Mod Type: $modClassString");
     }
+
+    String latestVersionUrl = "";
+
+    if (versionShow) {
+      http.Response res = await http.get(
+        Uri.parse("https://api.modrinth.com/v2/project/$modId/version"),
+        headers: headers,
+      );
+
+      List parsed = json.decode(res.body);
+
+      for (dynamic item in parsed) {
+        dynamic primaryFile;
+        for (dynamic file in item["files"]) {
+          if (file["primary"] == true) {
+            primaryFile = file;
+            break;
+          }
+        }
+        primaryFile ??= item["files"][0];
+
+        latestVersionUrl = primaryFile["url"];
+      }
+    }
+
     return Mod(
       name: resJSON["title"],
       description: resJSON["description"],
@@ -283,6 +306,8 @@ Future<Mod> getMod(
       preVersion: preVersion,
       showPreVersion: versionShow,
       versionTarget: versionTarget,
+      modpackToUpdate: modpack,
+      newVersionUrl: latestVersionUrl,
     );
   }
 }
