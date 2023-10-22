@@ -196,15 +196,25 @@ class MinecraftModpackManager extends StatefulWidget {
 }
 
 class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
-    with ProtocolListener {
+    with ProtocolListener, WindowListener {
+  void _init() async {
+    // Add this line to override the default close handler
+    await windowManager.setPreventClose(true);
+    setState(() {});
+  }
+
   @override
   void dispose() {
     protocolHandler.removeListener(this);
+    windowManager.removeListener(this);
+
     pages = [];
     super.dispose();
   }
 
-  int currentPage = 0;
+  int currentPage = (GetStorage().read("lastPage") ?? 0) <= 3
+      ? GetStorage().read("lastPage")
+      : 0;
   List<Widget> pages = [];
   @override
   void initState() {
@@ -216,6 +226,8 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
       Settings(setLocale: widget.setLocale)
     ];
     protocolHandler.addListener(this);
+    windowManager.addListener(this);
+    _init();
   }
 
   @override
@@ -327,6 +339,8 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
           setState(() {
             currentPage = value;
           });
+
+          GetStorage().write("lastPage", value);
         },
       ),
     );
