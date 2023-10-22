@@ -172,18 +172,28 @@ Future<Map<String, String>> getReleaseInfo() async {
   };
 }
 
-Future<Mod> getMod(String modId, ModSource source,
-    Function(bool val) setAreParentButtonsActive,
-    {bool downloadAble = true}) async {
+Future<Mod> getMod(
+  String modId,
+  ModSource source,
+  Function(bool val) setAreParentButtonsActive, {
+  bool downloadable = true,
+  // These 3 parameters MUST be used together
+  bool versionShow = false,
+  String preVersion = "",
+  String versionTarget = "",
+  String modLoader = "Forge",
+  String modpack = "free",
+}) async {
   if (source == ModSource.curseForge) {
     final String apiKey =
         const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
+    final Map<String, String> headers = {
+      "User-Agent": await generateUserAgent(),
+      "X-API-Key": apiKey,
+    };
     http.Response res = await http.get(
       Uri.parse("https://api.curseforge.com/v1/mods/$modId"),
-      headers: {
-        "User-Agent": await generateUserAgent(),
-        "X-API-Key": apiKey,
-      },
+      headers: headers,
     );
 
     final resJSON = json.decode(res.body)["data"];
@@ -200,6 +210,28 @@ Future<Mod> getMod(String modId, ModSource source,
       modClass = ModClass.shaderPack;
     }
 
+    String latestVersionUrl = "";
+
+    if (versionShow) {
+      http.Response res = await http.get(
+        Uri.parse(
+            "https://api.curseforge.com/v1/mods/$modId/files?gameVersion=$versionTarget"),
+        headers: headers,
+      );
+
+      Map parsed = json.decode(res.body);
+      for (Map item in parsed["data"]) {
+        if (item["fileName"] == preVersion) {
+          latestVersionUrl = preVersion;
+          continue;
+        }
+        if (item["gameVersions"].contains(modLoader)) {
+          latestVersionUrl = item["downloadUrl"];
+          break;
+        }
+      }
+    }
+
     return Mod(
       name: resJSON["name"],
       description: resJSON["summary"],
@@ -210,7 +242,12 @@ Future<Mod> getMod(String modId, ModSource source,
       slug: resJSON["slug"],
       modClass: modClass,
       source: ModSource.curseForge,
-      downloadAble: downloadAble,
+      downloadable: downloadable,
+      preVersion: preVersion,
+      showPreVersion: versionShow,
+      versionTarget: versionTarget,
+      modpackToUpdate: modpack,
+      newVersionUrl: latestVersionUrl,
     );
   } else {
     http.Response res = await http.get(
@@ -242,7 +279,10 @@ Future<Mod> getMod(String modId, ModSource source,
       source: ModSource.modRinth,
       slug: resJSON["slug"],
       modClass: modClass,
-      downloadAble: downloadAble,
+      downloadable: downloadable,
+      preVersion: preVersion,
+      showPreVersion: versionShow,
+      versionTarget: versionTarget,
     );
   }
 }

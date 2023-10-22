@@ -141,6 +141,7 @@ class _UpdateModpackState extends State<UpdateModpack> {
                     currentMods: modpackConf["mods"],
                     targetVersion: version,
                     name: modpackConf["name"],
+                    modLoader: modpackConf["modLoader"],
                   ),
                   transition: Transition.upToDown,
                 );

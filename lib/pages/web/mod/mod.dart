@@ -49,7 +49,12 @@ class Mod extends StatefulWidget {
     required this.source,
     required this.modClass,
     required this.slug,
-    this.downloadAble = true,
+    this.downloadable = true,
+    this.showPreVersion = false,
+    this.preVersion = "",
+    this.versionTarget = "",
+    this.modpackToUpdate = "",
+    this.newVersionUrl = "",
   });
 
   final String name;
@@ -60,7 +65,12 @@ class Mod extends StatefulWidget {
   final ModSource source;
   final ModClass modClass;
   final String slug;
-  final bool downloadAble;
+  final bool downloadable;
+  final bool showPreVersion;
+  final String preVersion;
+  final String newVersionUrl;
+  final String modpackToUpdate;
+  final String versionTarget;
   Function(bool) setAreParentButtonsActive;
 
   @override
@@ -69,6 +79,8 @@ class Mod extends StatefulWidget {
 
 class _ModState extends State<Mod> {
   late bool areButttonsActive;
+
+  bool showUpdateButton = true;
 
   @override
   void initState() {
@@ -104,18 +116,26 @@ class _ModState extends State<Mod> {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint(widget.preVersion);
     String desc = widget.description.length >= 48
         ? widget.description.replaceRange(48, null, "...")
         : widget.description;
     String displayName = widget.name.length >= 36
         ? widget.name.replaceRange(36, null, "...")
         : widget.name;
+
+    bool isNewVersionUrl = widget.newVersionUrl.trim().isEmpty;
+
     NumberFormat numberFormatter = NumberFormat.compact(
         explicitSign: false, locale: AppLocalizations.of(context)!.localeName);
+    if ((widget.showPreVersion && isNewVersionUrl) &&
+        GetStorage().read("showUnupgradeableMods") == false) {
+      return Container();
+    }
     return Column(
       children: [
         Container(
-          child: widget.downloadAble
+          child: widget.downloadable
               ? const Divider(
                   height: 1.5,
                   thickness: 1,
@@ -206,7 +226,7 @@ class _ModState extends State<Mod> {
                       children: [
                         Container(
                           margin: const EdgeInsets.symmetric(vertical: 20),
-                          child: widget.downloadAble
+                          child: widget.downloadable
                               ? TextButton.icon(
                                   onPressed: () async {
                                     Uri uri = Uri.parse(
@@ -265,17 +285,16 @@ class _ModState extends State<Mod> {
                               : null,
                         ),
                         Container(
-                          margin: widget.downloadAble
+                          margin: widget.downloadable
                               ? const EdgeInsets.symmetric(horizontal: 20)
-                              : null,
+                              : const EdgeInsets.symmetric(vertical: 20),
                           child: TextButton.icon(
                             onPressed: () async {
                               final String slug = widget.slug;
                               String rawUrl = "";
                               String typeUrl = "";
                               if (widget.source == ModSource.curseForge) {
-                                rawUrl =
-                                    "https://beta.curseforge.com/minecraft";
+                                rawUrl = "https://curseforge.com/minecraft";
                                 switch (widget.modClass) {
                                   case ModClass.mod:
                                     typeUrl = "mc-mods";
@@ -309,6 +328,38 @@ class _ModState extends State<Mod> {
                             label: Text(
                                 AppLocalizations.of(context)!.openInTheWeb),
                           ),
+                        ),
+                        Container(
+                          margin: widget.showPreVersion
+                              ? const EdgeInsets.symmetric(horizontal: 20)
+                              : EdgeInsets.symmetric(
+                                  vertical: (showUpdateButton ? 20 : 50)),
+                          child: !isNewVersionUrl
+                              ? showUpdateButton
+                                  ? TextButton.icon(
+                                      onPressed: () async {
+                                        setState(() {
+                                          showUpdateButton = false;
+                                        });
+                                      },
+                                      icon: const Icon(Icons.update),
+                                      label: Text(
+                                          AppLocalizations.of(context)!.update),
+                                    )
+                                  : SizedBox.fromSize(
+                                      size: const Size(240, 2),
+                                      child: const LinearProgressIndicator(),
+                                    )
+                              : Container(),
+                        ),
+                        Container(
+                          margin: widget.showPreVersion
+                              ? const EdgeInsets.symmetric(horizontal: 20)
+                              : const EdgeInsets.symmetric(vertical: 20),
+                          child: widget.showPreVersion
+                              ? Text(
+                                  "${widget.preVersion} -> ${widget.newVersionUrl.trim().split("/").last}")
+                              : Container(),
                         ),
                       ],
                     ),

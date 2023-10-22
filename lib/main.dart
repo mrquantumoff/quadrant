@@ -70,7 +70,6 @@ void main(List<String> args) async {
     GetStorage().writeInMemory("lastRSSfetched",
         DateTime.now().subtract(const Duration(days: 14)).toIso8601String());
   }
-
   if (GetStorage().read("curseforge") == null) {
     GetStorage().writeInMemory("curseForge", true);
   }
@@ -82,6 +81,9 @@ void main(List<String> args) async {
   }
   if (GetStorage().read("rssFeeds") == null) {
     GetStorage().writeInMemory("rssFeeds", true);
+  }
+  if (GetStorage().read("showUnupgradeableMods") == null) {
+    GetStorage().writeInMemory("showUnupgradeableMods", false);
   }
   runApp(const MyApp());
 }

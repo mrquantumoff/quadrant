@@ -134,5 +134,7 @@
         "type": "num"
       }
     }
-  }
+  },
+  "showUnupgradeableMods": "Belirli bir minecraft sürümünü desteklemeyen modları göster."
+
 }

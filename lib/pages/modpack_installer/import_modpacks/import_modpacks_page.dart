@@ -84,7 +84,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
           }
           if (source == ModSource.curseForge || source == ModSource.modRinth) {
             Mod mod =
-                await getMod(id, source, (val) => null, downloadAble: false);
+                await getMod(id, source, (val) => null, downloadable: false);
             newMods.add(mod);
           }
           if (source == ModSource.online) {

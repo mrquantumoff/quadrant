@@ -23,6 +23,7 @@ class _SettingsState extends State<Settings> {
   bool modrinth = GetStorage().read("modrinth");
   bool devMode = GetStorage().read("devMode");
   bool rssFeeds = GetStorage().read("rssFeeds");
+  bool showUnupgradeableMods = GetStorage().read("showUnupgradeableMods");
   @override
   void dispose() {
     super.dispose();
@@ -45,6 +46,13 @@ class _SettingsState extends State<Settings> {
     GetStorage().write("devMode", newValue);
     setState(() {
       devMode = newValue;
+    });
+  }
+
+  void setShowUnupgradeableMods(bool newValue) {
+    GetStorage().write("showUnupgradeableMods", newValue);
+    setState(() {
+      showUnupgradeableMods = newValue;
     });
   }
 
@@ -381,6 +389,23 @@ class _SettingsState extends State<Settings> {
                     ),
                   ),
                   Text(AppLocalizations.of(context)!.rssFeeds),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    margin: const EdgeInsetsDirectional.only(end: 12),
+                    child: Switch(
+                      value: showUnupgradeableMods,
+                      onChanged: setShowUnupgradeableMods,
+                    ),
+                  ),
+                  Text(AppLocalizations.of(context)!.showUnupgradeableMods),
                 ],
               ),
             ),

@@ -141,5 +141,6 @@
         "type": "num"
       }
     }
-  }
+  },
+  "showUnupgradeableMods": "Show mods that don't support a certain minecraft version."
 }
