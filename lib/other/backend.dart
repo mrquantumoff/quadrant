@@ -272,7 +272,8 @@ Future<Mod> getMod(
 
     if (versionShow) {
       http.Response res = await http.get(
-        Uri.parse("https://api.modrinth.com/v2/project/$modId/version"),
+        Uri.parse(
+            "https://api.modrinth.com/v2/project/$modId/version?loaders=[\"${modLoader.toLowerCase()}\"]&game_versions=[\"$versionTarget\"]"),
         headers: headers,
       );
 
