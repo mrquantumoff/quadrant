@@ -222,7 +222,7 @@ Future<Mod> getMod(
       Map parsed = json.decode(res.body);
       for (Map item in parsed["data"]) {
         if (item["gameVersions"].contains(modLoader)) {
-          if (latestVersionUrl == item["downloadUrl"]) {
+          if (preVersion == item["fileName"]) {
             latestVersionUrl = "";
             break;
           }
