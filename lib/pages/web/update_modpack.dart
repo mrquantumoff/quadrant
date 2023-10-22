@@ -118,7 +118,7 @@ class _UpdateModpackState extends State<UpdateModpack> {
               onPressed: () async {
                 String version = versionFieldController.value.text;
                 String modpack = modpackFieldController.value.text;
-
+                if (version == "" || modpack == "") return;
                 GetStorage().writeInMemory("lastUsedVersion", version);
                 GetStorage().writeInMemory("lastUsedModpack", modpack);
 

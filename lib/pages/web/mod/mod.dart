@@ -77,15 +77,20 @@ class Mod extends StatefulWidget {
   State<Mod> createState() => _ModState();
 }
 
-class _ModState extends State<Mod> {
+class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
   late bool areButttonsActive;
+  late bool hide;
+  late bool showUpdateButton;
 
-  bool showUpdateButton = true;
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
     super.initState();
     areButttonsActive = true;
+    showUpdateButton = true;
+    hide = false;
   }
 
   String getModpackTypeString() {
@@ -116,6 +121,7 @@ class _ModState extends State<Mod> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     debugPrint(widget.preVersion);
     String desc = widget.description.length >= 48
         ? widget.description.replaceRange(48, null, "...")
@@ -128,248 +134,267 @@ class _ModState extends State<Mod> {
 
     NumberFormat numberFormatter = NumberFormat.compact(
         explicitSign: false, locale: AppLocalizations.of(context)!.localeName);
-    if ((widget.showPreVersion && isNewVersionUrl) &&
-        GetStorage().read("showUnupgradeableMods") == false) {
-      return Container();
+    if (((widget.showPreVersion && isNewVersionUrl) &&
+        GetStorage().read("showUnupgradeableMods") == false)) {
+      return const SizedBox.shrink();
     }
-    return Column(
-      children: [
-        Container(
-          child: widget.downloadable
-              ? const Divider(
-                  height: 1.5,
-                  thickness: 1,
-                )
-              : null,
-        ),
-        Container(
-          margin: const EdgeInsets.all(12),
-          child: Card(
-            elevation: 12,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Container(
-                  margin: const EdgeInsetsDirectional.only(start: 12, top: 6.5),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                        GetStorage().read("clipIcons") == true ? 80 : 0),
-                    child: Image(
-                      image: NetworkImage(widget.modIconUrl),
-                      alignment: Alignment.centerRight,
-                      height: 84,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const CircularProgressIndicator();
-                      },
-                      width: 84,
+
+    if (hide) {
+      return const SizedBox.shrink();
+    }
+
+    return Visibility(
+      maintainSize: widget.showPreVersion,
+      maintainState: widget.showPreVersion,
+      maintainAnimation: widget.showPreVersion,
+      maintainInteractivity: widget.showPreVersion,
+      maintainSemantics: widget.showPreVersion,
+      child: Column(
+        children: [
+          Container(
+            child: widget.downloadable
+                ? const Divider(
+                    height: 1.5,
+                    thickness: 1,
+                  )
+                : null,
+          ),
+          Container(
+            margin: const EdgeInsets.all(12),
+            child: Card(
+              elevation: 12,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Container(
+                    margin:
+                        const EdgeInsetsDirectional.only(start: 12, top: 6.5),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(
+                          GetStorage().read("clipIcons") == true ? 80 : 0),
+                      child: Image(
+                        image: NetworkImage(widget.modIconUrl),
+                        alignment: Alignment.centerRight,
+                        height: 84,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const CircularProgressIndicator();
+                        },
+                        width: 84,
+                      ),
                     ),
                   ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 15),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 15),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              displayName,
+                              style: const TextStyle(fontSize: 32),
+                            ),
+                            Container(
+                              margin: const EdgeInsets.only(left: 14, top: 12),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  const Icon(Icons.download,
+                                      color: Colors.grey, size: 20),
+                                  Text(
+                                    numberFormatter
+                                        .format(widget.downloadCount),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        margin:
+                            const EdgeInsets.only(left: 18, right: 18, top: 8),
+                        child: Text(
+                          desc,
+                          style:
+                              const TextStyle(color: Colors.grey, fontSize: 24),
+                        ),
+                      ),
+                      Container(
+                        margin:
+                            const EdgeInsets.only(top: 8, bottom: 8, left: 18),
+                        child: Text(
+                          getModpackTypeString(),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                      Row(
                         children: [
-                          Text(
-                            displayName,
-                            style: const TextStyle(fontSize: 32),
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 20),
+                            child: widget.downloadable
+                                ? TextButton.icon(
+                                    onPressed: () async {
+                                      Uri uri = Uri.parse(
+                                        'https://api.modrinth.com/v2/tag/game_version',
+                                      );
+                                      List<dynamic> vrs =
+                                          json.decode((await http.get(
+                                        uri,
+                                        headers: {
+                                          "User-Agent":
+                                              await generateUserAgent(),
+                                        },
+                                      ))
+                                              .body);
+                                      List<String> versions = [];
+                                      for (var v in vrs) {
+                                        if (v["version_type"] == "release") {
+                                          versions.add(v["version"].toString());
+                                        }
+                                      }
+                                      List<DropdownMenuEntry> versionItems = [];
+                                      List<DropdownMenuEntry> modpackItems = [];
+
+                                      for (var version in versions) {
+                                        versionItems.add(
+                                          DropdownMenuEntry(
+                                              label: version.toString(),
+                                              value: version),
+                                        );
+                                      }
+
+                                      List<String> modpacks =
+                                          getModpacks(hideFree: false);
+
+                                      for (var modpack in modpacks) {
+                                        modpackItems.add(
+                                          DropdownMenuEntry(
+                                              label: modpack, value: modpack),
+                                        );
+                                      }
+
+                                      Get.to(
+                                        () => InstallModPage(
+                                          versions: versionItems,
+                                          mod: widget,
+                                          modpacks: modpackItems,
+                                          source: widget.source,
+                                          modClass: widget.modClass,
+                                        ),
+                                        preventDuplicates: false,
+                                      );
+                                    },
+                                    icon: const Icon(Icons.file_download),
+                                    label: Text(
+                                        AppLocalizations.of(context)!.download),
+                                  )
+                                : null,
                           ),
                           Container(
-                            margin: const EdgeInsets.only(left: 14, top: 12),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                const Icon(Icons.download,
-                                    color: Colors.grey, size: 20),
-                                Text(
-                                  numberFormatter.format(widget.downloadCount),
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
+                            margin: widget.downloadable
+                                ? const EdgeInsets.symmetric(horizontal: 20)
+                                : const EdgeInsets.symmetric(vertical: 20),
+                            child: TextButton.icon(
+                              onPressed: () async {
+                                final String slug = widget.slug;
+                                String rawUrl = "";
+                                String typeUrl = "";
+                                if (widget.source == ModSource.curseForge) {
+                                  rawUrl = "https://curseforge.com/minecraft";
+                                  switch (widget.modClass) {
+                                    case ModClass.mod:
+                                      typeUrl = "mc-mods";
+                                      break;
+                                    case ModClass.resourcePack:
+                                      typeUrl = "texture-packs";
+                                      break;
+                                    case ModClass.shaderPack:
+                                      typeUrl = "customization";
+                                      break;
+                                  }
+                                } else if (widget.source ==
+                                    ModSource.modRinth) {
+                                  rawUrl = "https://modrinth.com";
+                                  switch (widget.modClass) {
+                                    case ModClass.mod:
+                                      typeUrl = "mod";
+                                      break;
+                                    case ModClass.resourcePack:
+                                      typeUrl = "resourcepack";
+                                      break;
+                                    case ModClass.shaderPack:
+                                      typeUrl = "shader";
+                                      break;
+                                  }
+                                }
+                                rawUrl = "$rawUrl/$typeUrl/$slug";
+                                Uri uri = Uri.parse(rawUrl);
+                                launchUrl(uri);
+                              },
+                              icon: const Icon(Icons.open_in_browser),
+                              label: Text(
+                                  AppLocalizations.of(context)!.openInTheWeb),
                             ),
+                          ),
+                          Container(
+                            margin: widget.showPreVersion
+                                ? const EdgeInsets.symmetric(horizontal: 20)
+                                : EdgeInsets.symmetric(
+                                    vertical: (showUpdateButton ? 20 : 50)),
+                            child: !isNewVersionUrl || !areButttonsActive
+                                ? showUpdateButton
+                                    ? TextButton.icon(
+                                        onPressed: () async {
+                                          setState(() {
+                                            showUpdateButton = false;
+                                            areButttonsActive = false;
+                                            hide = true;
+                                          });
+                                        },
+                                        icon: const Icon(Icons.update),
+                                        label: Text(
+                                            AppLocalizations.of(context)!
+                                                .update),
+                                      )
+                                    : SizedBox.fromSize(
+                                        size: const Size(240, 2),
+                                        child: const LinearProgressIndicator(),
+                                      )
+                                : Container(),
+                          ),
+                          Container(
+                            margin: widget.showPreVersion
+                                ? const EdgeInsets.symmetric(horizontal: 20)
+                                : const EdgeInsets.symmetric(vertical: 20),
+                            child: widget.showPreVersion
+                                ? Text(
+                                    "${widget.preVersion} -> ${widget.newVersionUrl.trim().split("/").last}")
+                                : Container(),
                           ),
                         ],
                       ),
-                    ),
-                    Container(
-                      margin:
-                          const EdgeInsets.only(left: 18, right: 18, top: 8),
-                      child: Text(
-                        desc,
-                        style:
-                            const TextStyle(color: Colors.grey, fontSize: 24),
-                      ),
-                    ),
-                    Container(
-                      margin:
-                          const EdgeInsets.only(top: 8, bottom: 8, left: 18),
-                      child: Text(
-                        getModpackTypeString(),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.symmetric(vertical: 20),
-                          child: widget.downloadable
-                              ? TextButton.icon(
-                                  onPressed: () async {
-                                    Uri uri = Uri.parse(
-                                      'https://api.modrinth.com/v2/tag/game_version',
-                                    );
-                                    List<dynamic> vrs =
-                                        json.decode((await http.get(
-                                      uri,
-                                      headers: {
-                                        "User-Agent": await generateUserAgent(),
-                                      },
-                                    ))
-                                            .body);
-                                    List<String> versions = [];
-                                    for (var v in vrs) {
-                                      if (v["version_type"] == "release") {
-                                        versions.add(v["version"].toString());
-                                      }
-                                    }
-                                    List<DropdownMenuEntry> versionItems = [];
-                                    List<DropdownMenuEntry> modpackItems = [];
-
-                                    for (var version in versions) {
-                                      versionItems.add(
-                                        DropdownMenuEntry(
-                                            label: version.toString(),
-                                            value: version),
-                                      );
-                                    }
-
-                                    List<String> modpacks =
-                                        getModpacks(hideFree: false);
-
-                                    for (var modpack in modpacks) {
-                                      modpackItems.add(
-                                        DropdownMenuEntry(
-                                            label: modpack, value: modpack),
-                                      );
-                                    }
-
-                                    Get.to(
-                                      () => InstallModPage(
-                                        versions: versionItems,
-                                        mod: widget,
-                                        modpacks: modpackItems,
-                                        source: widget.source,
-                                        modClass: widget.modClass,
-                                      ),
-                                      preventDuplicates: false,
-                                    );
-                                  },
-                                  icon: const Icon(Icons.file_download),
-                                  label: Text(
-                                      AppLocalizations.of(context)!.download),
-                                )
-                              : null,
-                        ),
-                        Container(
-                          margin: widget.downloadable
-                              ? const EdgeInsets.symmetric(horizontal: 20)
-                              : const EdgeInsets.symmetric(vertical: 20),
-                          child: TextButton.icon(
-                            onPressed: () async {
-                              final String slug = widget.slug;
-                              String rawUrl = "";
-                              String typeUrl = "";
-                              if (widget.source == ModSource.curseForge) {
-                                rawUrl = "https://curseforge.com/minecraft";
-                                switch (widget.modClass) {
-                                  case ModClass.mod:
-                                    typeUrl = "mc-mods";
-                                    break;
-                                  case ModClass.resourcePack:
-                                    typeUrl = "texture-packs";
-                                    break;
-                                  case ModClass.shaderPack:
-                                    typeUrl = "customization";
-                                    break;
-                                }
-                              } else if (widget.source == ModSource.modRinth) {
-                                rawUrl = "https://modrinth.com";
-                                switch (widget.modClass) {
-                                  case ModClass.mod:
-                                    typeUrl = "mod";
-                                    break;
-                                  case ModClass.resourcePack:
-                                    typeUrl = "resourcepack";
-                                    break;
-                                  case ModClass.shaderPack:
-                                    typeUrl = "shader";
-                                    break;
-                                }
-                              }
-                              rawUrl = "$rawUrl/$typeUrl/$slug";
-                              Uri uri = Uri.parse(rawUrl);
-                              launchUrl(uri);
-                            },
-                            icon: const Icon(Icons.open_in_browser),
-                            label: Text(
-                                AppLocalizations.of(context)!.openInTheWeb),
-                          ),
-                        ),
-                        Container(
-                          margin: widget.showPreVersion
-                              ? const EdgeInsets.symmetric(horizontal: 20)
-                              : EdgeInsets.symmetric(
-                                  vertical: (showUpdateButton ? 20 : 50)),
-                          child: !isNewVersionUrl
-                              ? showUpdateButton
-                                  ? TextButton.icon(
-                                      onPressed: () async {
-                                        setState(() {
-                                          showUpdateButton = false;
-                                        });
-                                      },
-                                      icon: const Icon(Icons.update),
-                                      label: Text(
-                                          AppLocalizations.of(context)!.update),
-                                    )
-                                  : SizedBox.fromSize(
-                                      size: const Size(240, 2),
-                                      child: const LinearProgressIndicator(),
-                                    )
-                              : Container(),
-                        ),
-                        Container(
-                          margin: widget.showPreVersion
-                              ? const EdgeInsets.symmetric(horizontal: 20)
-                              : const EdgeInsets.symmetric(vertical: 20),
-                          child: widget.showPreVersion
-                              ? Text(
-                                  "${widget.preVersion} -> ${widget.newVersionUrl.trim().split("/").last}")
-                              : Container(),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

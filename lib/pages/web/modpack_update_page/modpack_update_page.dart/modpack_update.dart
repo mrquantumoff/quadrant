@@ -24,10 +24,11 @@ class UpdateModpackPage extends StatefulWidget {
 
 class _UpdateModpackPageState extends State<UpdateModpackPage> {
   List<Widget> items = [];
+  bool hasGotMods = false;
 
   Future<List<Mod>> getFullMods() async {
+    if (hasGotMods) return [];
     List<Mod> mods = [];
-
     for (var mod in widget.currentMods) {
       ModSource modSrc = mod["source"].toString().contains("curseForge")
           ? ModSource.curseForge
@@ -51,6 +52,7 @@ class _UpdateModpackPageState extends State<UpdateModpackPage> {
       mods.add(completeMod);
     }
 
+    hasGotMods = true;
     return mods;
   }
 
