@@ -398,6 +398,33 @@ Future<MachineIdAndOS> getMachineIdAndOs() async {
       machineId: base64Url.encode(utf8.encode(machineIdUnencoded)), os: os);
 }
 
+Future<List<DropdownMenuEntry>> getVersions() async {
+  List<DropdownMenuEntry> items = [];
+  Uri uri = Uri.parse(
+    'https://api.modrinth.com/v2/tag/game_version',
+  );
+  List<dynamic> vrs = json.decode((await http.get(
+    uri,
+    headers: {
+      "User-Agent": await generateUserAgent(),
+    },
+  ))
+      .body);
+  List<String> versions = [];
+  for (var v in vrs) {
+    if (v["version_type"] == "release") {
+      versions.add(v["version"].toString());
+    }
+  }
+
+  for (var version in versions) {
+    items.add(
+      DropdownMenuEntry(label: version.toString(), value: version),
+    );
+  }
+  return items;
+}
+
 void collectUserInfo({bool saveToFile = false}) async {
   /*
     interface IAppInfo {

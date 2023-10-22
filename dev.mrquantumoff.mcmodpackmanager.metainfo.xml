@@ -37,6 +37,13 @@
   </keywords>
   <releases>
 
+    <release date="2023-10-22" version="23.10.1">
+      <description>
+        <p>Bug fixes</p>
+        <p>Dependency updates</p>
+      </description>
+    </release>
+
     <release date="2023-09-30" version="23.10.0">
       <description>
         <p>Bug fixes</p>

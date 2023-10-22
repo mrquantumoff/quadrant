@@ -5,10 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:http/http.dart' as http;
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/web/web_sources.dart';
-import 'package:quadrant/pages/web/generate_user_agent.dart';
 
 class FilterMods extends StatefulWidget {
   const FilterMods({super.key});
@@ -38,29 +36,6 @@ class _FilterModsState extends State<FilterMods> {
   List<DropdownMenuEntry> versionItems = [];
   List<DropdownMenuEntry> modpackItems = [];
   void getModpacksList() async {
-    Uri uri = Uri.parse(
-      'https://api.modrinth.com/v2/tag/game_version',
-    );
-    List<dynamic> vrs = json.decode((await http.get(
-      uri,
-      headers: {
-        "User-Agent": await generateUserAgent(),
-      },
-    ))
-        .body);
-    List<String> versions = [];
-    for (var v in vrs) {
-      if (v["version_type"] == "release") {
-        versions.add(v["version"].toString());
-      }
-    }
-
-    for (var version in versions) {
-      versionItems.add(
-        DropdownMenuEntry(label: version.toString(), value: version),
-      );
-    }
-
     List<String> modpacks = getModpacks(hideFree: false);
 
     for (var modpack in modpacks) {
@@ -97,12 +72,31 @@ class _FilterModsState extends State<FilterMods> {
           children: [
             Container(
               margin: const EdgeInsets.symmetric(vertical: 12),
-              child: DropdownMenu(
-                dropdownMenuEntries: versionItems,
-                controller: versionFieldController,
-                label: Text(AppLocalizations.of(context)!.chooseVersion),
-                width: 840,
-                enabled: versionFieldEnabled,
+              child: FutureBuilder(
+                future: getVersions(),
+                builder: ((BuildContext context, snapshot) {
+                  if (snapshot.hasError) {
+                    return DropdownMenu(
+                      dropdownMenuEntries: const [],
+                      enabled: false,
+                      errorText: AppLocalizations.of(context)!.downloadFail,
+                      label: Text(AppLocalizations.of(context)!.downloadFail),
+                      width: 840,
+                    );
+                  } else if (!snapshot.hasData) {
+                    return const SizedBox(
+                      width: 840,
+                      child: LinearProgressIndicator(),
+                    );
+                  }
+                  return DropdownMenu(
+                    dropdownMenuEntries: snapshot.data!,
+                    controller: versionFieldController,
+                    label: Text(AppLocalizations.of(context)!.chooseVersion),
+                    width: 840,
+                    menuHeight: 240,
+                  );
+                }),
               ),
             ),
             Container(

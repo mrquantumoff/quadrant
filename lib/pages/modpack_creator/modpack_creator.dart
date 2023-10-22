@@ -4,9 +4,7 @@ import 'dart:io';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:http/http.dart' as http;
 import 'package:quadrant/other/backend.dart';
-import 'package:quadrant/pages/web/generate_user_agent.dart';
 
 class ModpackCreator extends StatefulWidget {
   const ModpackCreator({super.key, this.update = false, required this.modpack});
@@ -46,33 +44,6 @@ class _ModpackCreatorState extends State<ModpackCreator> {
 
   bool hasGetVersionsBeenRun = false;
 
-  Future<List<DropdownMenuEntry>> getVersions() async {
-    List<DropdownMenuEntry> items = [];
-    Uri uri = Uri.parse(
-      'https://api.modrinth.com/v2/tag/game_version',
-    );
-    List<dynamic> vrs = json.decode((await http.get(
-      uri,
-      headers: {
-        "User-Agent": await generateUserAgent(),
-      },
-    ))
-        .body);
-    List<String> versions = [];
-    for (var v in vrs) {
-      if (v["version_type"] == "release") {
-        versions.add(v["version"].toString());
-      }
-    }
-
-    for (var version in versions) {
-      items.add(
-        DropdownMenuEntry(label: version.toString(), value: version),
-      );
-    }
-    return items;
-  }
-
   @override
   Widget build(BuildContext context) {
     getVersions();
@@ -104,34 +75,34 @@ class _ModpackCreatorState extends State<ModpackCreator> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                child: FutureBuilder(
-                    future: getVersions(),
-                    builder: ((BuildContext context, snapshot) {
-                      if (snapshot.hasError) {
-                        return DropdownMenu(
-                          dropdownMenuEntries: const [],
-                          enabled: false,
-                          errorText: AppLocalizations.of(context)!.downloadFail,
-                          label:
-                              Text(AppLocalizations.of(context)!.downloadFail),
-                          width: 640,
-                        );
-                      } else if (!snapshot.hasData) {
-                        return const SizedBox(
-                          width: 640,
-                          child: LinearProgressIndicator(),
-                        );
-                      }
-                      return DropdownMenu(
-                        dropdownMenuEntries: snapshot.data!,
-                        controller: versionFieldController,
-                        label:
-                            Text(AppLocalizations.of(context)!.chooseVersion),
-                        width: 640,
-                        menuHeight: 240,
-                      );
-                    }))),
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              child: FutureBuilder(
+                future: getVersions(),
+                builder: ((BuildContext context, snapshot) {
+                  if (snapshot.hasError) {
+                    return DropdownMenu(
+                      dropdownMenuEntries: const [],
+                      enabled: false,
+                      errorText: AppLocalizations.of(context)!.downloadFail,
+                      label: Text(AppLocalizations.of(context)!.downloadFail),
+                      width: 640,
+                    );
+                  } else if (!snapshot.hasData) {
+                    return const SizedBox(
+                      width: 640,
+                      child: LinearProgressIndicator(),
+                    );
+                  }
+                  return DropdownMenu(
+                    dropdownMenuEntries: snapshot.data!,
+                    controller: versionFieldController,
+                    label: Text(AppLocalizations.of(context)!.chooseVersion),
+                    width: 640,
+                    menuHeight: 240,
+                  );
+                }),
+              ),
+            ),
             Container(
               margin: const EdgeInsets.symmetric(vertical: 12),
               child: DropdownMenu(
