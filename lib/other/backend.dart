@@ -293,8 +293,8 @@ Future<Mod> getMod(
           }
         }
         primaryFile ??= item["files"][0];
-
-        if (primaryFile["filename"] == preVersion) {
+        if (primaryFile["filename"].toString().trim() ==
+            Uri.decodeFull(preVersion.trim())) {
           latestVersionUrl = "";
         } else {
           latestVersionUrl = primaryFile["url"];

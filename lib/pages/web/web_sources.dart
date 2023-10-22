@@ -186,7 +186,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   @override
   void initState() {
     super.initState();
-    searchModsFunction(forceSearch: true);
+    // searchModsFunction(forceSearch: true);
   }
 
   @override
