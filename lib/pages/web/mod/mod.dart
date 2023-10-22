@@ -1,6 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
@@ -362,8 +363,57 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                                           setState(() {
                                             showUpdateButton = false;
                                             areButttonsActive = false;
+                                          });
+                                          http.Response res = await http.get(
+                                              Uri.parse(widget.newVersionUrl));
+                                          Directory modpackFolder = Directory(
+                                              "${getMinecraftFolder().path}/modpacks/${widget.modpackToUpdate}");
+                                          File resFile = File(
+                                              "${modpackFolder.path}/${widget.newVersionUrl.trim().split("/").last}");
+                                          if (!await resFile.exists()) {
+                                            await resFile.create(
+                                                recursive: true);
+                                          }
+                                          await resFile.writeAsBytes(
+                                              res.bodyBytes,
+                                              flush: true,
+                                              mode: FileMode.write);
+                                          File modConfig = File(
+                                              "${modpackFolder.path}/modConfig.json");
+                                          Map modConf = json.decode(
+                                              (await modConfig.readAsString()));
+                                          int modIndex = 0;
+
+                                          for (var mod in modConf["mods"]) {
+                                            if (mod["id"] != widget.id) {
+                                              modIndex += 1;
+                                            } else {
+                                              modConf["mods"][modIndex]
+                                                      ["downloadUrl"] =
+                                                  widget.newVersionUrl;
+                                              break;
+                                            }
+                                          }
+                                          String newConf = json.encode(modConf);
+                                          await modConfig
+                                              .writeAsString(newConf);
+
+                                          File oldVer = File(
+                                              "${modpackFolder.path}/${widget.preVersion}");
+                                          if (await oldVer.exists()) {
+                                            await oldVer.delete();
+                                          }
+                                          setState(() {
                                             hide = true;
                                           });
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                  AppLocalizations.of(context)!
+                                                      .downloadSuccess),
+                                            ),
+                                          );
                                         },
                                         icon: const Icon(Icons.update),
                                         label: Text(
