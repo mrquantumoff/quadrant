@@ -196,17 +196,10 @@ class MinecraftModpackManager extends StatefulWidget {
 }
 
 class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
-    with ProtocolListener, WindowListener {
-  void _init() async {
-    // Add this line to override the default close handler
-    await windowManager.setPreventClose(true);
-    setState(() {});
-  }
-
+    with ProtocolListener {
   @override
   void dispose() {
     protocolHandler.removeListener(this);
-    windowManager.removeListener(this);
 
     pages = [];
     super.dispose();
@@ -226,8 +219,6 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
       Settings(setLocale: widget.setLocale)
     ];
     protocolHandler.addListener(this);
-    windowManager.addListener(this);
-    _init();
   }
 
   @override
