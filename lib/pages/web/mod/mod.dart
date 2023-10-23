@@ -432,7 +432,8 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                                 : const EdgeInsets.symmetric(vertical: 20),
                             child: widget.showPreVersion
                                 ? Text(
-                                    "${widget.preVersion} -> ${widget.newVersionUrl.trim().split("/").last}")
+                                    "${widget.preVersion} -> ${widget.newVersionUrl.trim().split("/").last}",
+                                  )
                                 : Container(),
                           ),
                         ],

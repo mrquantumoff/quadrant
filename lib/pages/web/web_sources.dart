@@ -9,7 +9,7 @@ import 'package:quadrant/pages/web/filter_mods.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'dart:convert';
 import 'package:quadrant/pages/web/mod/mod.dart';
-import 'package:quadrant/pages/web/update_modpack.dart';
+import 'package:quadrant/pages/web/modpack_update_page/modpack_update_page.dart/update_modpack.dart';
 
 class UserAgentClient extends http.BaseClient {
   final String userAgent;

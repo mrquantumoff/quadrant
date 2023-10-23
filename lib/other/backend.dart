@@ -227,7 +227,7 @@ Future<Mod> getMod(
             break;
           }
 
-          latestVersionUrl = item["downloadUrl"];
+          latestVersionUrl = Uri.decodeFull(item["downloadUrl"]);
           break;
         }
       }
@@ -297,7 +297,7 @@ Future<Mod> getMod(
             Uri.decodeFull(preVersion.trim())) {
           latestVersionUrl = "";
         } else {
-          latestVersionUrl = primaryFile["url"];
+          latestVersionUrl = Uri.decodeFull(primaryFile["url"]);
         }
       }
     }

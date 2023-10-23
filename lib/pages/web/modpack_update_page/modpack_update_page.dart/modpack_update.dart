@@ -42,7 +42,9 @@ class _UpdateModpackPageState extends State<UpdateModpackPage> {
         modSrc,
         (val) => null,
         versionShow: true,
-        preVersion: mod["downloadUrl"].toString().trim().split("/").last,
+        preVersion: Uri.decodeFull(
+          mod["downloadUrl"].toString().trim().split("/").last,
+        ),
         versionTarget: widget.targetVersion,
         downloadable: false,
         modLoader: widget.modLoader,
