@@ -37,6 +37,13 @@
   </keywords>
   <releases>
 
+    <release date="2023-11-04" version="23.11.0">
+      <description>
+        <p>NEW FEATURE - Updating mods in a modpack.</p>
+        <p>Dependency updates</p>
+      </description>
+    </release>
+
     <release date="2023-10-22" version="23.10.1">
       <description>
         <p>Bug fixes</p>

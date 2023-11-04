@@ -23,6 +23,8 @@
 
 - #### Importing and exporting modpacks
 
+- ### Updating mods from curseforge and modrinth
+
 <div align="center">
     <a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
         <img width="200" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
