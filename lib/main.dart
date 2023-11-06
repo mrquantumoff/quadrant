@@ -85,6 +85,9 @@ void main(List<String> args) async {
   if (GetStorage().read("showUnupgradeableMods") == null) {
     GetStorage().writeInMemory("showUnupgradeableMods", false);
   }
+  if (GetStorage().read("lastPage") == null) {
+    GetStorage().writeInMemory("lastPage", 0);
+  }
   runApp(const MyApp());
 }
 
