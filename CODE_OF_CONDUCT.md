@@ -2,11 +2,11 @@
 
 ## 1. Purpose
 
-A primary goal of Minecraft Modpack Manager Reborn is to be inclusive to the largest number of contributors, with the most varied and diverse backgrounds possible. As such, we are committed to providing a friendly, safe and welcoming environment.
+A primary goal of Quadrant is to be inclusive to the largest number of contributors, with the most varied and diverse backgrounds possible. As such, we are committed to providing a friendly, safe and welcoming environment.
 
 This code of conduct outlines our expectations for all those who participate in our community, as well as the consequences for unacceptable behavior.
 
-We invite all those who participate in Minecraft Modpack Manager Reborn to help us create safe and positive experiences for everyone.
+We invite all those who participate in Quadrant to help us create safe and positive experiences for everyone.
 
 ## 2. Open [Source/Culture/Tech] Citizenship
 
