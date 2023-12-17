@@ -25,6 +25,10 @@
 
 - ### Updating mods from curseforge and modrinth
 
+
+> [!IMPORTANT] 
+> Why can't I include modpacks from curseforge? Although I do have API access to curseforge modpack API, I cannot completely install everything from a modpack, since many modpacks tend to overwrite some of minecraft's settings and/or install external resource packs. I do not wish to deal with that.
+
 <div align="center">
     <a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
         <img width="200" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
@@ -37,12 +41,14 @@
 
 </div>
 
-> ## \* If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the settings or reinstalling the app from microsoft store. If CurseForge protocol handler doesn't work properly you can easily use [this registry fix](https://github.com/mrquantumoff/quadrant/raw/master/msstorefix.reg)
->
-> ### Warning: If your mods folder is not symlinked to modpacks/<anything> your mods folder will be deleted after you apply/clear your modpack
->
-> #### Warning: Before requesting to the delete the data collected by the app, please be sure that you are using the latest version.
->
-> Why can't I include modpacks from curseforge? Although I do have API access to curseforge modpack API, I cannot completely install everything from a modpack, since many modpacks tend to overwrite some of minecraft's settings and/or install external resource packs. I do not wish to deal with that.
+> [!TIP]
+>  ## If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the settings or reinstalling the app from microsoft store. If CurseForge protocol handler doesn't work properly you can easily use [this registry fix](https://github.com/mrquantumoff/quadrant/raw/master/msstorefix.reg)
+
+> [!WARNING]
+> ### If your mods folder is not symlinked to modpacks/<anything>, your mods folder will be deleted after you apply/clear your modpack
+
+> [!WARNING] 
+> ## Before requesting to the delete the data collected by the app, please be sure that you are using the latest version.
+
 
 ###### [Logo's source (Figma)](https://www.figma.com/community/file/1222558477898371497)
