@@ -346,7 +346,9 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               margin: const EdgeInsets.only(top: 15),
             ),
             Expanded(
-              child: ListView(
+              child: GridView.extent(
+                maxCrossAxisExtent: 540,
+                mainAxisSpacing: 0,
                 children: searchResults,
               ),
             )

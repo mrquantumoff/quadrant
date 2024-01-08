@@ -41,11 +41,11 @@ void main(List<String> args) async {
     }
   }
   WindowOptions windowOptions = const WindowOptions(
-    size: Size(1280, 720),
+    size: Size(1366, 768),
     center: false,
     skipTaskbar: false,
     titleBarStyle: TitleBarStyle.normal,
-    minimumSize: Size(1024, 576),
+    minimumSize: Size(1280, 720),
     fullScreen: false,
   );
   windowManager.waitUntilReadyToShow(windowOptions, () async {
