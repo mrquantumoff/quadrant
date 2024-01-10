@@ -349,6 +349,8 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               child: GridView.extent(
                 maxCrossAxisExtent: 540,
                 mainAxisSpacing: 0,
+                crossAxisSpacing: 0,
+                padding: const EdgeInsets.all(0),
                 children: searchResults,
               ),
             )

@@ -85,7 +85,8 @@ class _UpdateModpackPageState extends State<UpdateModpackPage> {
                 ],
               );
             } else {
-              return ListView(
+              return GridView.extent(
+                maxCrossAxisExtent: 540,
                 children: snapshot.data ?? [],
               );
             }
