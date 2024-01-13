@@ -148,11 +148,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
     }
 
     return Visibility(
-      maintainSize: widget.showPreVersion,
       maintainState: widget.showPreVersion,
-      maintainAnimation: widget.showPreVersion,
-      maintainInteractivity: widget.showPreVersion,
-      maintainSemantics: widget.showPreVersion,
       child:
           //   child: widget.downloadable
           //       ? const Divider(
@@ -189,7 +185,8 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                   ),
                 ),
                 Container(
-                  margin: const EdgeInsets.only(left: 12),
+                  margin: EdgeInsets.only(
+                      left: 12, top: widget.showPreVersion ? 24 : 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -314,7 +311,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                 Container(
                   margin: widget.downloadable
                       ? const EdgeInsets.symmetric(horizontal: 0)
-                      : const EdgeInsets.symmetric(vertical: 20),
+                      : const EdgeInsets.symmetric(vertical: 0),
                   child: TextButton.icon(
                     onPressed: () async {
                       final String slug = widget.slug;
@@ -417,7 +414,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                             )
                           : SizedBox.fromSize(
                               size: const Size(240, 2),
-                              child: const CircularProgressIndicator(),
+                              child: const LinearProgressIndicator(),
                             )
                       : Container(),
                 ),

@@ -211,8 +211,10 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
                         margin: const EdgeInsets.only(
                             bottom: 24, left: 120, right: 120),
                         child: GridView.extent(
-                          maxCrossAxisExtent: 540,
-                          shrinkWrap: true,
+                          maxCrossAxisExtent: 480,
+                          childAspectRatio: 2.25,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          mainAxisSpacing: 24,
                           children: mods,
                         ),
                       ),

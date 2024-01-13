@@ -39,6 +39,13 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   TextEditingController searchFieldController = TextEditingController();
   List<Widget> searchResults = [];
   bool areButtonsEnabled = true;
+  bool isLoading = false;
+
+  void setIsLoading(bool value) {
+    setState(() {
+      isLoading = value;
+    });
+  }
 
   void setSearchResults(List<Widget> newSearchResults) {
     setState(() {
@@ -200,13 +207,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   void searchModsFunction({bool forceSearch = false}) async {
     if (searchFieldController.text.trim() == "" && !forceSearch) return;
     bool isCurseForgeAllowed = await checkCurseForge();
-    setSearchResults(
-      searchResults = [
-        Container(
-            margin: const EdgeInsets.only(top: 50, left: 20, right: 20),
-            child: const LinearProgressIndicator())
-      ],
-    );
+    setIsLoading(true);
 
     String searchText =
         Uri.encodeQueryComponent(searchFieldController.text.trim());
@@ -241,6 +242,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     widgets.sort((a, b) {
       return b.downloadCount.compareTo(a.downloadCount);
     });
+    setIsLoading(false);
     setSearchResults(widgets);
   }
 
@@ -345,16 +347,23 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
             Container(
               margin: const EdgeInsets.only(top: 15),
             ),
-            Expanded(
-              child: GridView.extent(
-                maxCrossAxisExtent: 540,
-                mainAxisSpacing: 15,
-                crossAxisSpacing: 0,
-                childAspectRatio: 2.25,
-                padding: const EdgeInsets.only(bottom: 120),
-                children: searchResults,
-              ),
-            )
+            isLoading
+                ? Center(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 512),
+                      child: const LinearProgressIndicator(),
+                    ),
+                  )
+                : Expanded(
+                    child: GridView.extent(
+                      maxCrossAxisExtent: 540,
+                      mainAxisSpacing: 15,
+                      crossAxisSpacing: 0,
+                      childAspectRatio: 2.25,
+                      padding: const EdgeInsets.only(bottom: 120),
+                      children: searchResults,
+                    ),
+                  ),
           ],
         ),
       ),

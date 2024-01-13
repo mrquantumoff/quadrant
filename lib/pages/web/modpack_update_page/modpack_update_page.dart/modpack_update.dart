@@ -71,27 +71,38 @@ class _UpdateModpackPageState extends State<UpdateModpackPage> {
         title: Text(AppLocalizations.of(context)!.update),
       ),
       body: Center(
-        child: FutureBuilder(
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            } else if (snapshot.hasError) {
-              return Column(
-                children: [
-                  const Icon(Icons.error),
-                  Text(AppLocalizations.of(context)!.unknown)
-                ],
-              );
-            } else {
-              return GridView.extent(
-                maxCrossAxisExtent: 540,
-                children: snapshot.data ?? [],
-              );
-            }
-          },
-          future: getFullMods(),
+        child: Visibility(
+          maintainAnimation: true,
+          maintainInteractivity: true,
+          maintainSemantics: true,
+          maintainSize: true,
+          maintainState: true,
+          child: FutureBuilder(
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              } else if (snapshot.hasError) {
+                return Column(
+                  children: [
+                    const Icon(Icons.error),
+                    Text(AppLocalizations.of(context)!.unknown)
+                  ],
+                );
+              } else {
+                return GridView.extent(
+                  maxCrossAxisExtent: 840,
+                  mainAxisSpacing: 15,
+                  crossAxisSpacing: 0,
+                  childAspectRatio: 2.25,
+                  padding: const EdgeInsets.only(bottom: 120),
+                  children: snapshot.data ?? [],
+                );
+              }
+            },
+            future: getFullMods(),
+          ),
         ),
       ),
     );
