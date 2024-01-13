@@ -86,7 +86,7 @@
   "overrideMinecraftFolder": "Minecraft klasörünü yeniden yaz",
   "resetMinecraftFolder": "Minecraft klasörünü sıfırla",
   "unknown": "Bilinmeyen",
-  "clipIcons": "Yuvarlatılmış ikonlar?",
+  "clipIcons": "Yuvarlatılmış ikonlar",
   "unsupportedDownload": "Bu tür bir proje desteklenmiyor.",
   "dataCollectionQuestionShort": "Veri toplama",
   "collectData": "Verileri kaydet",
@@ -135,6 +135,6 @@
       }
     }
   },
-  "showUnupgradeableMods": "Belirli bir minecraft sürümünü desteklemeyen modları göster."
+  "showUnupgradeableMods": "Belirli bir minecraft sürümünü desteklemeyen modları göster"
 
 }

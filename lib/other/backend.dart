@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:dart_ipify/dart_ipify.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
@@ -527,11 +526,10 @@ void collectUserInfo({bool saveToFile = false}) async {
 
     debugPrint("Current OS: $os");
     var res = await http.get(
-      Uri.parse("https://api.iplocation.net/?ip=${await Ipify.ipv4()}"),
+      Uri.parse("https://api.myip.com"),
     );
-    debugPrint("IP: ${await Ipify.ipv4()}");
     Map responseJSON = json.decode(res.body);
-    final String country = responseJSON["country_name"] ?? "Unknown";
+    final String country = responseJSON["country"] ?? "Unknown";
     final int modrinthUsage = GetStorage().read("modrinthUsage") ?? 0;
     final int curseForgeUsage = GetStorage().read("curseForgeUsage") ?? 0;
     final int referenceFileUsage = GetStorage().read("referenceFileUsage") ?? 0;
