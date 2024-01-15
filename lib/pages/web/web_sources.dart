@@ -305,7 +305,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                     child: Container(
                       margin: EdgeInsets.only(
                           right: (widget.filterOn ? 20 : 0),
-                          left: (widget.filterOn ? 15 : 7.5)),
+                          left: (widget.filterOn ? 15 : 25)),
                       child: SearchBar(
                         controller: searchFieldController,
                         leading: Container(
