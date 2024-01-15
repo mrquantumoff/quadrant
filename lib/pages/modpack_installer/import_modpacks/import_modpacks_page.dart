@@ -129,17 +129,23 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
         child: ListView(
           shrinkWrap: true,
           children: isLoading
-              ? [const LinearProgressIndicator()]
+              ? [const CircularProgressIndicator()]
               : (mods.isEmpty && otherModCount == 0)
                   ? [
                       Center(
                         child: Text(AppLocalizations.of(context)!.manualInput),
                       ),
-                      Center(
-                        child: SizedBox(
-                          width: 960,
-                          child: TextField(
-                            controller: modpackEntryController,
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 12),
+                        child: Center(
+                          child: SizedBox(
+                            width: 960,
+                            child: TextField(
+                              decoration: const InputDecoration(
+                                border: OutlineInputBorder(),
+                              ),
+                              controller: modpackEntryController,
+                            ),
                           ),
                         ),
                       ),
@@ -151,7 +157,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
                           children: [
                             Container(
                               margin: const EdgeInsets.symmetric(horizontal: 8),
-                              child: OutlinedButton(
+                              child: FilledButton.tonal(
                                 child: Text(
                                   AppLocalizations.of(context)!.paste,
                                 ),
@@ -167,7 +173,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
                             ),
                             Container(
                               margin: const EdgeInsets.symmetric(horizontal: 8),
-                              child: OutlinedButton(
+                              child: FilledButton(
                                 child: Text(
                                   AppLocalizations.of(context)!.download,
                                 ),

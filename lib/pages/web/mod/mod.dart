@@ -256,7 +256,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                   margin:
                       const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                   child: widget.downloadable
-                      ? TextButton.icon(
+                      ? FilledButton.icon(
                           onPressed: () async {
                             Uri uri = Uri.parse(
                               'https://api.modrinth.com/v2/tag/game_version',
@@ -314,7 +314,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                   margin: widget.downloadable
                       ? const EdgeInsets.symmetric(horizontal: 0)
                       : const EdgeInsets.symmetric(vertical: 0),
-                  child: TextButton.icon(
+                  child: FilledButton.tonalIcon(
                     onPressed: () async {
                       final String slug = widget.slug;
                       String rawUrl = "";
@@ -361,7 +361,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                           vertical: (showUpdateButton ? 20 : 50)),
                   child: !isNewVersionUrl || !areButttonsActive
                       ? showUpdateButton
-                          ? TextButton.icon(
+                          ? FilledButton.icon(
                               onPressed: () async {
                                 setState(() {
                                   showUpdateButton = false;
