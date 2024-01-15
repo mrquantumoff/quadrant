@@ -49,7 +49,10 @@ class _InstallModPageState extends State<InstallModPage> {
   List<Widget> dependencies = [
     Container(
       margin: const EdgeInsets.symmetric(vertical: 48, horizontal: 12),
-      child: const CircularProgressIndicator(),
+      child: const Text(
+        "...",
+        style: TextStyle(fontSize: 72),
+      ),
     ),
   ];
   @override

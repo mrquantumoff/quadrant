@@ -37,6 +37,12 @@
   </keywords>
   <releases>
 
+    <release date="2024-01-15" version="24.1.1">
+      <description>
+        <p>A huge design update.</p>
+      </description>
+    </release>
+
     <release date="2024-01-13" version="24.1.0">
       <description>
         <p>Update dependencies and redesign some things related to mods.</p>
