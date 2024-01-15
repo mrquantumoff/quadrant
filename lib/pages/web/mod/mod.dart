@@ -254,7 +254,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
               children: [
                 Container(
                   margin:
-                      const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
                   child: widget.downloadable
                       ? FilledButton.icon(
                           onPressed: () async {
@@ -311,6 +311,79 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                       : null,
                 ),
                 Container(
+                  margin: widget.showPreVersion
+                      ? const EdgeInsets.symmetric(horizontal: 0)
+                      : EdgeInsets.symmetric(
+                          vertical: (showUpdateButton ? 20 : 50),
+                          horizontal: 0),
+                  child: !isNewVersionUrl || !areButttonsActive
+                      ? showUpdateButton
+                          ? Container(
+                              margin: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              child: FilledButton.icon(
+                                onPressed: () async {
+                                  setState(() {
+                                    showUpdateButton = false;
+                                    areButttonsActive = false;
+                                  });
+                                  http.Response res = await http
+                                      .get(Uri.parse(widget.newVersionUrl));
+                                  Directory modpackFolder = Directory(
+                                      "${getMinecraftFolder().path}/modpacks/${widget.modpackToUpdate}");
+                                  File resFile = File(
+                                      "${modpackFolder.path}/${widget.newVersionUrl.trim().split("/").last}");
+                                  if (!await resFile.exists()) {
+                                    await resFile.create(recursive: true);
+                                  }
+                                  await resFile.writeAsBytes(res.bodyBytes,
+                                      flush: true, mode: FileMode.write);
+                                  File modConfig = File(
+                                      "${modpackFolder.path}/modConfig.json");
+                                  Map modConf = json
+                                      .decode((await modConfig.readAsString()));
+                                  int modIndex = 0;
+
+                                  for (var mod in modConf["mods"]) {
+                                    if (mod["id"] != widget.id) {
+                                      modIndex += 1;
+                                    } else {
+                                      modConf["mods"][modIndex]["downloadUrl"] =
+                                          widget.newVersionUrl;
+                                      break;
+                                    }
+                                  }
+                                  String newConf = json.encode(modConf);
+                                  await modConfig.writeAsString(newConf);
+
+                                  File oldVer = File(
+                                      "${modpackFolder.path}/${widget.preVersion}");
+                                  if (await oldVer.exists()) {
+                                    await oldVer.delete();
+                                  }
+                                  setState(() {
+                                    hide = true;
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                          AppLocalizations.of(context)!
+                                              .downloadSuccess),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.update),
+                                label:
+                                    Text(AppLocalizations.of(context)!.update),
+                              ),
+                            )
+                          : SizedBox.fromSize(
+                              size: const Size(240, 2),
+                              child: const LinearProgressIndicator(),
+                            )
+                      : Container(),
+                ),
+                Container(
                   margin: widget.downloadable
                       ? const EdgeInsets.symmetric(horizontal: 0)
                       : const EdgeInsets.symmetric(vertical: 0),
@@ -353,72 +426,6 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                     icon: const Icon(Icons.open_in_browser),
                     label: Text(AppLocalizations.of(context)!.openInTheWeb),
                   ),
-                ),
-                Container(
-                  margin: widget.showPreVersion
-                      ? const EdgeInsets.symmetric(horizontal: 0)
-                      : EdgeInsets.symmetric(
-                          vertical: (showUpdateButton ? 20 : 50)),
-                  child: !isNewVersionUrl || !areButttonsActive
-                      ? showUpdateButton
-                          ? FilledButton.icon(
-                              onPressed: () async {
-                                setState(() {
-                                  showUpdateButton = false;
-                                  areButttonsActive = false;
-                                });
-                                http.Response res = await http
-                                    .get(Uri.parse(widget.newVersionUrl));
-                                Directory modpackFolder = Directory(
-                                    "${getMinecraftFolder().path}/modpacks/${widget.modpackToUpdate}");
-                                File resFile = File(
-                                    "${modpackFolder.path}/${widget.newVersionUrl.trim().split("/").last}");
-                                if (!await resFile.exists()) {
-                                  await resFile.create(recursive: true);
-                                }
-                                await resFile.writeAsBytes(res.bodyBytes,
-                                    flush: true, mode: FileMode.write);
-                                File modConfig = File(
-                                    "${modpackFolder.path}/modConfig.json");
-                                Map modConf = json
-                                    .decode((await modConfig.readAsString()));
-                                int modIndex = 0;
-
-                                for (var mod in modConf["mods"]) {
-                                  if (mod["id"] != widget.id) {
-                                    modIndex += 1;
-                                  } else {
-                                    modConf["mods"][modIndex]["downloadUrl"] =
-                                        widget.newVersionUrl;
-                                    break;
-                                  }
-                                }
-                                String newConf = json.encode(modConf);
-                                await modConfig.writeAsString(newConf);
-
-                                File oldVer = File(
-                                    "${modpackFolder.path}/${widget.preVersion}");
-                                if (await oldVer.exists()) {
-                                  await oldVer.delete();
-                                }
-                                setState(() {
-                                  hide = true;
-                                });
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(AppLocalizations.of(context)!
-                                        .downloadSuccess),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.update),
-                              label: Text(AppLocalizations.of(context)!.update),
-                            )
-                          : SizedBox.fromSize(
-                              size: const Size(240, 2),
-                              child: const LinearProgressIndicator(),
-                            )
-                      : Container(),
                 ),
               ],
             ),

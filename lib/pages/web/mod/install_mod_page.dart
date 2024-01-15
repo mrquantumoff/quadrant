@@ -49,7 +49,7 @@ class _InstallModPageState extends State<InstallModPage> {
   List<Widget> dependencies = [
     Container(
       margin: const EdgeInsets.symmetric(vertical: 48, horizontal: 12),
-      child: const LinearProgressIndicator(),
+      child: const CircularProgressIndicator(),
     ),
   ];
   @override
@@ -858,8 +858,16 @@ class _InstallModPageState extends State<InstallModPage> {
                         onSelected: (newValue) => updateDependencies(),
                       ),
                     ),
-                    Column(
-                      children: dependencies,
+                    SizedBox(
+                      height: 720,
+                      child: GridView.extent(
+                        maxCrossAxisExtent: 540,
+                        mainAxisSpacing: 15,
+                        crossAxisSpacing: 0,
+                        childAspectRatio: 1.35,
+                        padding: const EdgeInsets.only(bottom: 0),
+                        children: dependencies,
+                      ),
                     ),
                   ],
                 ),
