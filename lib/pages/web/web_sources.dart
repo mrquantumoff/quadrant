@@ -273,7 +273,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     }
     if (!isValid) {
       debugPrint(
-          "The broken ETERNAL API KEY IS ${const String.fromEnvironment("ETERNAL_API_KEY")}");
+          "The BROKEN ETERNAL API KEY IS ${const String.fromEnvironment("ETERNAL_API_KEY")}");
     }
     return isValid;
   }
@@ -290,66 +290,93 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
             ),
             Container(
               margin: const EdgeInsets.only(right: 20),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  widget.filterOn
-                      ? Container(
-                          margin: const EdgeInsets.only(left: 15),
-                          child: IconButton(
-                            icon: const Icon(Icons.arrow_back),
-                            onPressed: () => Get.back(),
-                          ),
-                        )
-                      : Container(),
-                  Expanded(
-                    child: Container(
-                      margin: EdgeInsets.only(
-                          right: (widget.filterOn ? 20 : 25),
-                          left: (widget.filterOn ? 15 : 25)),
-                      child: SearchBar(
-                        controller: searchFieldController,
-                        leading: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          child: const Icon(
-                            Icons.search,
-                            color: Colors.grey,
-                            size: 24,
+                  Row(
+                    children: [
+                      widget.filterOn
+                          ? Container(
+                              margin: const EdgeInsets.only(left: 15),
+                              child: IconButton(
+                                icon: const Icon(Icons.arrow_back),
+                                onPressed: () => Get.back(),
+                              ),
+                            )
+                          : Container(),
+                      Expanded(
+                        child: Container(
+                          margin: EdgeInsets.only(
+                              right: (widget.filterOn ? 20 : 10),
+                              left: (widget.filterOn ? 15 : 10)),
+                          child: SearchBar(
+                            controller: searchFieldController,
+                            leading: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              child: const Icon(
+                                Icons.search,
+                                color: Colors.grey,
+                                size: 24,
+                              ),
+                            ),
+                            trailing: [
+                              FilledButton.icon(
+                                onPressed: searchModsFunction,
+                                label:
+                                    Text(AppLocalizations.of(context)!.search),
+                                icon: const Icon(Icons.search),
+                              ),
+                            ],
+                            onSubmitted: (String val) => searchModsFunction(),
+                            hintText:
+                                AppLocalizations.of(context)!.searchForMods,
                           ),
                         ),
-                        onSubmitted: (String val) => searchModsFunction(),
-                        hintText: AppLocalizations.of(context)!.searchForMods,
                       ),
+                    ],
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(left: 10, right: 4),
+                          child: !widget.filterOn
+                              ? ActionChip(
+                                  onPressed: () async {
+                                    Get.to(
+                                      () => const FilterMods(),
+                                      transition: Transition.upToDown,
+                                    );
+                                  },
+                                  avatar: const Icon(Icons.filter_alt),
+                                  label: Text(
+                                      AppLocalizations.of(context)!.filter),
+                                )
+                              : Container(),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          child: !widget.filterOn
+                              ? ActionChip(
+                                  onPressed: () async {
+                                    Get.to(
+                                      () => const UpdateModpack(),
+                                      transition: Transition.upToDown,
+                                    );
+                                  },
+                                  avatar: const Icon(Icons.update),
+                                  label: Text(
+                                      AppLocalizations.of(context)!.update),
+                                )
+                              : Container(),
+                        ),
+                      ],
                     ),
                   ),
-                  TextButton.icon(
-                    onPressed: searchModsFunction,
-                    icon: const Icon(Icons.search),
-                    label: Text(AppLocalizations.of(context)!.search),
-                  ),
-                  !widget.filterOn
-                      ? TextButton.icon(
-                          onPressed: () async {
-                            Get.to(
-                              () => const FilterMods(),
-                              transition: Transition.upToDown,
-                            );
-                          },
-                          icon: const Icon(Icons.filter_alt),
-                          label: Text(AppLocalizations.of(context)!.filter),
-                        )
-                      : Container(),
-                  !widget.filterOn
-                      ? TextButton.icon(
-                          onPressed: () async {
-                            Get.to(
-                              () => const UpdateModpack(),
-                              transition: Transition.upToDown,
-                            );
-                          },
-                          icon: const Icon(Icons.update),
-                          label: Text(AppLocalizations.of(context)!.update),
-                        )
-                      : Container(),
                 ],
               ),
             ),
