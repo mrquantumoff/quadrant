@@ -308,6 +308,14 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                           left: (widget.filterOn ? 15 : 7.5)),
                       child: SearchBar(
                         controller: searchFieldController,
+                        leading: Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          child: const Icon(
+                            Icons.search,
+                            color: Colors.grey,
+                            size: 24,
+                          ),
+                        ),
                         onSubmitted: (String val) => searchModsFunction(),
                         hintText: AppLocalizations.of(context)!.searchForMods,
                       ),
