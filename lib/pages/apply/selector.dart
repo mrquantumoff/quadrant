@@ -125,7 +125,7 @@ class _SelectorState extends State<Selector> {
               margin: const EdgeInsets.symmetric(horizontal: 5),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 15),
-                child: ElevatedButton(
+                child: FilledButton(
                   onPressed: areButtonsActive
                       ? () {
                           setState(
@@ -185,7 +185,7 @@ class _SelectorState extends State<Selector> {
               margin: const EdgeInsets.symmetric(horizontal: 5),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 15),
-                child: ElevatedButton(
+                child: FilledButton.tonal(
                   onPressed: areButtonsActive
                       ? () {
                           setState(
@@ -264,250 +264,166 @@ class _SelectorState extends State<Selector> {
             ),
           ],
         ),
-        // Update/Create/Delete modpack data
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 5),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                child: ElevatedButton(
-                  onPressed: () async {
-                    Get.to(
-                      () => ModpackCreator(
-                          modpack: selectedModpackController.text),
-                      transition: Transition.upToDown,
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(15),
-                    child: Row(
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(right: 5, left: 0),
-                          child: Icon(Icons.add),
-                        ),
-                        Text(AppLocalizations.of(context)!.createModpack)
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 5),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (selectedModpackController.text != "") {
-                      Get.to(
-                        () => ModpackCreator(
-                          modpack: selectedModpackController.text,
-                          update: true,
-                        ),
-                        transition: Transition.upToDown,
-                      );
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(15),
-                    child: Row(
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(right: 5, left: 0),
-                          child: Icon(Icons.change_circle),
-                        ),
-                        Text(AppLocalizations.of(context)!.update)
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 5),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (selectedModpackController.text != "") {
-                      File modpackConfigFile = File(
-                          "${getMinecraftFolder().path}/modpacks/${selectedModpackController.text}/modConfig.json");
-                      try {
-                        await modpackConfigFile.delete();
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("$e"),
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(15),
-                    child: Row(
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(right: 5, left: 0),
-                          child: Icon(Icons.delete),
-                        ),
-                        Text(AppLocalizations.of(context)!.clearModpackData)
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
         // Open modpacks folder / Export selected modpack buttons
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 5),
-              child: ElevatedButton(
+              margin: const EdgeInsets.only(top: 8, bottom: 8, right: 5),
+              child: ActionChip(
                 onPressed: () {
                   debugPrint("Open Modpacks Folder pressed.");
                   openModpacksFolder();
                 },
-                child: Padding(
-                  padding: const EdgeInsets.all(15),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.folder),
-                      Text(
-                          "  ${AppLocalizations.of(context)!.openModpacksFolder}")
-                    ],
-                  ),
-                ),
+                avatar: const Icon(Icons.folder),
+                label: Text(
+                    "  ${AppLocalizations.of(context)!.openModpacksFolder}"),
               ),
             ),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 5),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (selectedModpack == null) return;
-                    File modpackConfig = File(
-                        "${getMinecraftFolder().path}/modpacks/$selectedModpack/modConfig.json");
-                    if (!modpackConfig.existsSync()) return;
-                    String content = await modpackConfig.readAsString();
+              child: ActionChip(
+                onPressed: () async {
+                  if (selectedModpack == null) return;
+                  File modpackConfig = File(
+                      "${getMinecraftFolder().path}/modpacks/$selectedModpack/modConfig.json");
+                  if (!modpackConfig.existsSync()) return;
+                  String content = await modpackConfig.readAsString();
 
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title:
-                              Text(AppLocalizations.of(context)!.exportOptions),
-                          actions: [
-                            TextButton(
-                              onPressed: () async {
-                                var filePickerResult = await FilePicker.platform
-                                    .saveFile(
-                                        fileName: "$selectedModpack.json");
-                                if (filePickerResult == null) return;
-                                File selectedFile = File(filePickerResult);
-                                if (await selectedFile.exists()) {
-                                  await selectedFile.delete(recursive: true);
-                                }
-                                await selectedFile.create(recursive: true);
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title:
+                            Text(AppLocalizations.of(context)!.exportOptions),
+                        actions: [
+                          TextButton(
+                            onPressed: () async {
+                              var filePickerResult = await FilePicker.platform
+                                  .saveFile(fileName: "$selectedModpack.json");
+                              if (filePickerResult == null) return;
+                              File selectedFile = File(filePickerResult);
+                              if (await selectedFile.exists()) {
+                                await selectedFile.delete(recursive: true);
+                              }
+                              await selectedFile.create(recursive: true);
 
-                                await selectedFile.writeAsString(content);
-                              },
-                              child: Text(
-                                AppLocalizations.of(context)!.referenceFile,
-                              ),
+                              await selectedFile.writeAsString(content);
+                            },
+                            child: Text(
+                              AppLocalizations.of(context)!.referenceFile,
                             ),
-                            TextButton(
-                              onPressed: () async {
-                                if (GetStorage().read("collectUserData") ==
-                                    false) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        AppLocalizations.of(context)!
-                                            .enableDataSharing,
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
-                                collectUserInfo();
-                                var machineInfo = await getMachineIdAndOs();
-                                var res = await http.post(
-                                    Uri.parse(
-                                        "https://api.mrquantumoff.dev/api/v2/submit/quadrant_share"),
-                                    headers: {
-                                      "User-Agent": await generateUserAgent(),
-                                      "Authorization":
-                                          const String.fromEnvironment(
-                                              "QUADRANT_QNT_API_KEY")
-                                    },
-                                    body: json.encode({
-                                      "hardware_id": machineInfo.machineId,
-                                      "mod_config": content,
-                                      "uses_left": 5,
-                                    }));
-
-                                if (res.statusCode != 201) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        AppLocalizations.of(context)!
-                                            .failedQuadrantShare,
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
-
-                                var decoded = json.decode(res.body);
-
-                                await FlutterClipboard.copy(
-                                  decoded["code"].toString(),
-                                );
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              if (GetStorage().read("collectUserData") ==
+                                  false) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
                                       AppLocalizations.of(context)!
-                                          .copiedToClipboard(
-                                              decoded["uses_left"]),
+                                          .enableDataSharing,
                                     ),
                                   ),
                                 );
-                              },
-                              child: Text(
-                                AppLocalizations.of(context)!.manualInput,
-                              ),
+                                return;
+                              }
+                              collectUserInfo();
+                              var machineInfo = await getMachineIdAndOs();
+                              var res = await http.post(
+                                  Uri.parse(
+                                      "https://api.mrquantumoff.dev/api/v2/submit/quadrant_share"),
+                                  headers: {
+                                    "User-Agent": await generateUserAgent(),
+                                    "Authorization":
+                                        const String.fromEnvironment(
+                                            "QUADRANT_QNT_API_KEY")
+                                  },
+                                  body: json.encode({
+                                    "hardware_id": machineInfo.machineId,
+                                    "mod_config": content,
+                                    "uses_left": 5,
+                                  }));
+
+                              if (res.statusCode != 201) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      AppLocalizations.of(context)!
+                                          .failedQuadrantShare,
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+
+                              var decoded = json.decode(res.body);
+
+                              await FlutterClipboard.copy(
+                                decoded["code"].toString(),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    AppLocalizations.of(context)!
+                                        .copiedToClipboard(
+                                            decoded["uses_left"]),
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              AppLocalizations.of(context)!.manualInput,
                             ),
-                          ],
-                        );
-                      },
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+                label: Text(AppLocalizations.of(context)!.exportMods),
+                avatar: const Icon(Icons.upload_file_outlined),
+              ),
+            ),
+          ],
+        ),
+
+        // Update/Create/Delete modpack data
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              margin: const EdgeInsets.only(right: 5),
+              child: ActionChip(
+                onPressed: () async {
+                  Get.to(
+                    () =>
+                        ModpackCreator(modpack: selectedModpackController.text),
+                    transition: Transition.upToDown,
+                  );
+                },
+                label: Text(AppLocalizations.of(context)!.createModpack),
+                avatar: const Icon(Icons.add),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 5),
+              child: ActionChip(
+                onPressed: () async {
+                  if (selectedModpackController.text != "") {
+                    Get.to(
+                      () => ModpackCreator(
+                        modpack: selectedModpackController.text,
+                        update: true,
+                      ),
+                      transition: Transition.upToDown,
                     );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(15),
-                    child: Row(
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(right: 5, left: 0),
-                          child: Icon(Icons.upload_file_outlined),
-                        ),
-                        Text(AppLocalizations.of(context)!.exportMods)
-                      ],
-                    ),
-                  ),
-                ),
+                  }
+                },
+                label: Text(AppLocalizations.of(context)!.update),
+                avatar: const Icon(Icons.change_circle),
               ),
             ),
           ],
