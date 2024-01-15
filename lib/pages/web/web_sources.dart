@@ -289,26 +289,27 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               margin: const EdgeInsets.only(top: 16),
             ),
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
+              margin: const EdgeInsets.only(right: 20),
               child: Row(
                 children: [
                   widget.filterOn
-                      ? IconButton(
-                          icon: const Icon(Icons.arrow_back),
-                          onPressed: () => Get.back(),
+                      ? Container(
+                          margin: const EdgeInsets.only(left: 15),
+                          child: IconButton(
+                            icon: const Icon(Icons.arrow_back),
+                            onPressed: () => Get.back(),
+                          ),
                         )
                       : Container(),
                   Expanded(
                     child: Container(
                       margin: EdgeInsets.only(
-                          right: 20, left: (!widget.filterOn ? 0 : 20)),
-                      child: TextField(
-                        decoration: InputDecoration(
-                            border: const OutlineInputBorder(),
-                            hintText:
-                                AppLocalizations.of(context)!.searchForMods),
+                          right: (widget.filterOn ? 20 : 0),
+                          left: (widget.filterOn ? 15 : 7.5)),
+                      child: SearchBar(
                         controller: searchFieldController,
                         onSubmitted: (String val) => searchModsFunction(),
+                        hintText: AppLocalizations.of(context)!.searchForMods,
                       ),
                     ),
                   ),
