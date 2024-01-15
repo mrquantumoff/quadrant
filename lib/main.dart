@@ -1,17 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:quadrant/other/backend.dart';
+import 'package:quadrant/pages/main_page.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:quadrant/pages/web/mod/install_mod_page.dart';
 import 'package:quadrant/pages/web/mod/mod.dart';
 import 'package:quadrant/pages/web/web_sources.dart';
-import 'package:quadrant/pages/apply/selector.dart';
 import 'package:quadrant/pages/settings/settings.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
@@ -310,58 +309,39 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
     }
 
     return Scaffold(
-      body: pages[currentPage],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentPage,
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.check),
-            label: AppLocalizations.of(context)!.apply,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.download),
-            label: AppLocalizations.of(context)!.web,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.file_download_outlined),
-            label: AppLocalizations.of(context)!.importMods,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.settings),
-            label: AppLocalizations.of(context)!.settings,
-          ),
-        ],
-        onDestinationSelected: (int value) {
-          setState(() {
-            currentPage = value;
-          });
-
-          GetStorage().write("lastPage", value);
-        },
-      ),
-    );
-  }
-}
-
-class MainPage extends StatelessWidget {
-  const MainPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: ListView(
-        // crossAxisAlignment: CrossAxisAlignment.center,
-        // mainAxisAlignment: MainAxisAlignment.center,
-        padding: const EdgeInsets.symmetric(vertical: 100),
+      body: Row(
         children: [
-          Container(
-            margin: const EdgeInsets.only(bottom: 15),
-            child: SvgPicture.asset(
-              "assets/icons/logo.svg",
-              height: 128,
-            ),
+          NavigationRail(
+            selectedIndex: currentPage,
+            extended: true,
+            destinations: [
+              NavigationRailDestination(
+                icon: const Icon(Icons.check),
+                label: Text(AppLocalizations.of(context)!.apply),
+              ),
+              NavigationRailDestination(
+                icon: const Icon(Icons.download),
+                label: Text(AppLocalizations.of(context)!.web),
+              ),
+              NavigationRailDestination(
+                icon: const Icon(Icons.file_download_outlined),
+                label: Text(AppLocalizations.of(context)!.importMods),
+              ),
+              NavigationRailDestination(
+                icon: const Icon(Icons.settings),
+                label: Text(AppLocalizations.of(context)!.settings),
+              ),
+            ],
+            onDestinationSelected: (int value) {
+              setState(() {
+                currentPage = value;
+              });
+
+              GetStorage().write("lastPage", value);
+            },
           ),
-          const Selector(),
+          const VerticalDivider(thickness: 1, width: 1),
+          Expanded(child: pages[currentPage])
         ],
       ),
     );

@@ -365,7 +365,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                   )
                 : Expanded(
                     child: GridView.extent(
-                      maxCrossAxisExtent: 540,
+                      maxCrossAxisExtent: 600,
                       mainAxisSpacing: 15,
                       crossAxisSpacing: 0,
                       childAspectRatio: 2.25,
