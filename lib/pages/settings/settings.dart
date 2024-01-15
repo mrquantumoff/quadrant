@@ -98,33 +98,29 @@ class _SettingsState extends State<Settings> {
         margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
         child: ListView(
           children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  AppLocalizations.of(context)!.someSettingsRequireReload,
-                  style: const TextStyle(fontSize: 24),
-                ),
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                AppLocalizations.of(context)!.someSettingsRequireReload,
+                style: const TextStyle(fontSize: 24),
               ),
             ),
-            Center(
-              child: DropdownMenu(
-                width: 300,
-                controller: _controller,
-                label: Text(AppLocalizations.of(context)!.language),
-                dropdownMenuEntries: [
-                  const DropdownMenuEntry(value: "en", label: "English"),
-                  const DropdownMenuEntry(value: "uk", label: "Українська"),
-                  const DropdownMenuEntry(value: "tr", label: "Türkçe"),
-                  DropdownMenuEntry(
-                      value: "native",
-                      label: AppLocalizations.of(context)!.systemLocale),
-                ],
-                onSelected: (value) async {
-                  debugPrint("Selected value: ${value ?? "en"}");
-                  widget.setLocale(value ?? "en");
-                },
-              ),
+            DropdownMenu(
+              width: 300,
+              controller: _controller,
+              label: Text(AppLocalizations.of(context)!.language),
+              dropdownMenuEntries: [
+                const DropdownMenuEntry(value: "en", label: "English"),
+                const DropdownMenuEntry(value: "uk", label: "Українська"),
+                const DropdownMenuEntry(value: "tr", label: "Türkçe"),
+                DropdownMenuEntry(
+                    value: "native",
+                    label: AppLocalizations.of(context)!.systemLocale),
+              ],
+              onSelected: (value) async {
+                debugPrint("Selected value: ${value ?? "en"}");
+                widget.setLocale(value ?? "en");
+              },
             ),
             FutureBuilder<Map<String, String>>(
               builder: (BuildContext context,
@@ -138,37 +134,44 @@ class _SettingsState extends State<Settings> {
                 if (snapshot.hasData) {
                   return Container(
                     margin: const EdgeInsets.only(top: 12, bottom: 12),
-                    child: Column(
+                    child: Row(
                       children: [
-                        Text(
-                          AppLocalizations.of(context)!.currentVersion(
-                            "v${snapshot.data!["currentRelease"]}",
-                          ),
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        Text(
-                          AppLocalizations.of(context)!.latestVersion(
-                            snapshot.data!["latestRelease"] ??
-                                AppLocalizations.of(context)!.unknown,
-                          ),
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(top: 12),
-                          child: TextButton.icon(
-                            onPressed: () {
-                              Uri uri = Uri.parse(
-                                snapshot.data!["url"] ??
-                                    AppLocalizations.of(context)!.unknown,
-                              );
-                              launchUrl(uri);
-                            },
-                            icon: const Icon(Icons.open_in_browser),
-                            label: Text(
-                              AppLocalizations.of(context)!.openLatestRelease,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Text(
+                              AppLocalizations.of(context)!.currentVersion(
+                                "v${snapshot.data!["currentRelease"]}",
+                              ),
                               style: const TextStyle(fontSize: 16),
                             ),
-                          ),
+                            Text(
+                              AppLocalizations.of(context)!.latestVersion(
+                                snapshot.data!["latestRelease"] ??
+                                    AppLocalizations.of(context)!.unknown,
+                              ),
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            Container(
+                              margin: const EdgeInsets.only(top: 12),
+                              child: TextButton.icon(
+                                onPressed: () {
+                                  Uri uri = Uri.parse(
+                                    snapshot.data!["url"] ??
+                                        AppLocalizations.of(context)!.unknown,
+                                  );
+                                  launchUrl(uri);
+                                },
+                                icon: const Icon(Icons.open_in_browser),
+                                label: Text(
+                                  AppLocalizations.of(context)!
+                                      .openLatestRelease,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -184,6 +187,8 @@ class _SettingsState extends State<Settings> {
             Container(
               margin: const EdgeInsets.only(top: 12),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
                   Text(mcFolder),
                   Container(
@@ -210,8 +215,8 @@ class _SettingsState extends State<Settings> {
             Container(
               margin: const EdgeInsets.only(top: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     margin: const EdgeInsetsDirectional.only(end: 12),
@@ -227,8 +232,8 @@ class _SettingsState extends State<Settings> {
             Container(
               margin: const EdgeInsets.only(top: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     margin: const EdgeInsetsDirectional.only(end: 12),
@@ -243,92 +248,99 @@ class _SettingsState extends State<Settings> {
                 ],
               ),
             ),
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              child: TextButton.icon(
-                icon: const Icon(Icons.save),
-                onPressed: () => collectUserInfo(saveToFile: true),
-                label: Text(
-                  AppLocalizations.of(context)!.collectData,
-                ),
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              child: TextButton.icon(
-                icon: const Icon(Icons.open_in_browser),
-                onPressed: () async {
-                  await launchUrl(
-                    Uri.parse(
-                        "https://mrquantumoff.dev/projects/quadrant/analytics"),
-                  );
-                },
-                label: Text(
-                  AppLocalizations.of(context)!.viewPublicUsage(
-                    AppLocalizations.of(context)!.productName,
+            Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.save),
+                    onPressed: () => collectUserInfo(saveToFile: true),
+                    label: Text(
+                      AppLocalizations.of(context)!.collectData,
+                    ),
                   ),
                 ),
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              child: TextButton.icon(
-                icon: const Icon(Icons.open_in_browser),
-                onPressed: () async {
-                  if (GetStorage().read("collectUserData")) {
-                    MachineIdAndOS info = await getMachineIdAndOs();
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.open_in_browser),
+                    onPressed: () async {
+                      await launchUrl(
+                        Uri.parse(
+                            "https://mrquantumoff.dev/projects/quadrant/analytics"),
+                      );
+                    },
+                    label: Text(
+                      AppLocalizations.of(context)!.viewPublicUsage(
+                        AppLocalizations.of(context)!.productName,
+                      ),
+                    ),
+                  ),
+                ),
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.open_in_browser),
+                    onPressed: () async {
+                      if (GetStorage().read("collectUserData")) {
+                        MachineIdAndOS info = await getMachineIdAndOs();
 
-                    await launchUrl(
-                      Uri.parse(
-                          "https://mrquantumoff.dev/projects/quadrant/analytics/${info.machineId}"),
-                    );
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          AppLocalizations.of(context)!.invalidData,
-                        ),
-                      ),
-                    );
-                  }
-                },
-                label: Text(
-                  AppLocalizations.of(context)!.viewYourUsageData,
-                ),
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              child: TextButton.icon(
-                icon: const Icon(Icons.delete_forever),
-                style: const ButtonStyle(
-                  iconColor: MaterialStatePropertyAll<Color>(Colors.redAccent),
-                ),
-                onPressed: () {
-                  try {
-                    deleteUsageInfo();
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(AppLocalizations.of(context)!
-                            .failedToDeleteUsageInfo),
-                      ),
-                    );
-                  }
-                },
-                label: Text(
-                  AppLocalizations.of(context)!.deleteYourUsageData,
-                  style: const TextStyle(
-                    color: Colors.redAccent,
+                        await launchUrl(
+                          Uri.parse(
+                              "https://mrquantumoff.dev/projects/quadrant/analytics/${info.machineId}"),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              AppLocalizations.of(context)!.invalidData,
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    label: Text(
+                      AppLocalizations.of(context)!.viewYourUsageData,
+                    ),
                   ),
                 ),
-              ),
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.delete_forever),
+                    style: const ButtonStyle(
+                      iconColor:
+                          MaterialStatePropertyAll<Color>(Colors.redAccent),
+                    ),
+                    onPressed: () {
+                      try {
+                        deleteUsageInfo();
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(AppLocalizations.of(context)!
+                                .failedToDeleteUsageInfo),
+                          ),
+                        );
+                      }
+                    },
+                    label: Text(
+                      AppLocalizations.of(context)!.deleteYourUsageData,
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             Container(
               margin: const EdgeInsets.only(top: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     margin: const EdgeInsetsDirectional.only(end: 12),
@@ -344,8 +356,8 @@ class _SettingsState extends State<Settings> {
             Container(
               margin: const EdgeInsets.only(top: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     margin: const EdgeInsetsDirectional.only(end: 12),
@@ -361,8 +373,8 @@ class _SettingsState extends State<Settings> {
             Container(
               margin: const EdgeInsets.only(top: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     margin: const EdgeInsetsDirectional.only(end: 12),
@@ -378,8 +390,8 @@ class _SettingsState extends State<Settings> {
             Container(
               margin: const EdgeInsets.only(top: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     margin: const EdgeInsetsDirectional.only(end: 12),
@@ -395,8 +407,8 @@ class _SettingsState extends State<Settings> {
             Container(
               margin: const EdgeInsets.only(top: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     margin: const EdgeInsetsDirectional.only(end: 12),
