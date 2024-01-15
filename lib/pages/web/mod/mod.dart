@@ -127,8 +127,8 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
     String desc = widget.description.length >= 36
         ? widget.description.replaceRange(36, null, "...")
         : widget.description;
-    String displayName = widget.name.length >= 20
-        ? widget.name.replaceRange(20, null, "...")
+    String displayName = widget.name.length >= 24
+        ? widget.name.replaceRange(24, null, "...")
         : widget.name;
 
     // If there are new lines in the description we hide theme
@@ -161,14 +161,16 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
         elevation: 12,
         margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
                   margin:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                      const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(
                         GetStorage().read("clipIcons") == true ? 80 : 0),
@@ -186,7 +188,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                 ),
                 Container(
                   margin: EdgeInsets.only(
-                      left: 12, top: widget.showPreVersion ? 24 : 0),
+                      left: 0, top: widget.showPreVersion ? 24 : 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.center,

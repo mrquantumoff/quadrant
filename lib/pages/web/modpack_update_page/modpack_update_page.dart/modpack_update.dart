@@ -95,7 +95,7 @@ class _UpdateModpackPageState extends State<UpdateModpackPage> {
                   maxCrossAxisExtent: 840,
                   mainAxisSpacing: 15,
                   crossAxisSpacing: 0,
-                  childAspectRatio: 2.25,
+                  childAspectRatio: 1.35,
                   padding: const EdgeInsets.only(bottom: 120),
                   children: snapshot.data ?? [],
                 );

@@ -304,7 +304,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                   Expanded(
                     child: Container(
                       margin: EdgeInsets.only(
-                          right: (widget.filterOn ? 20 : 0),
+                          right: (widget.filterOn ? 20 : 25),
                           left: (widget.filterOn ? 15 : 25)),
                       child: SearchBar(
                         controller: searchFieldController,
@@ -359,17 +359,17 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
             isLoading
                 ? Center(
                     child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 512),
+                      margin: const EdgeInsets.symmetric(horizontal: 28),
                       child: const LinearProgressIndicator(),
                     ),
                   )
                 : Expanded(
                     child: GridView.extent(
-                      maxCrossAxisExtent: 600,
+                      maxCrossAxisExtent: 540,
                       mainAxisSpacing: 15,
                       crossAxisSpacing: 0,
-                      childAspectRatio: 2.25,
-                      padding: const EdgeInsets.only(bottom: 120),
+                      childAspectRatio: 1.35,
+                      padding: const EdgeInsets.only(bottom: 0),
                       children: searchResults,
                     ),
                   ),
