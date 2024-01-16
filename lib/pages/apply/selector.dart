@@ -401,7 +401,7 @@ class _SelectorState extends State<Selector> {
                   Get.to(
                     () =>
                         ModpackCreator(modpack: selectedModpackController.text),
-                    transition: Transition.upToDown,
+                    transition: Transition.topLevel,
                   );
                 },
                 label: Text(AppLocalizations.of(context)!.createModpack),
@@ -418,7 +418,7 @@ class _SelectorState extends State<Selector> {
                         modpack: selectedModpackController.text,
                         update: true,
                       ),
-                      transition: Transition.upToDown,
+                      transition: Transition.topLevel,
                     );
                   }
                 },

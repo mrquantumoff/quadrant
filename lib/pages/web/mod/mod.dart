@@ -253,8 +253,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  margin:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  margin: const EdgeInsets.only(top: 8, bottom: 8, right: 8),
                   child: widget.downloadable
                       ? FilledButton.icon(
                           onPressed: () async {
@@ -303,6 +302,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                                 modClass: widget.modClass,
                               ),
                               preventDuplicates: false,
+                              transition: Transition.topLevel,
                             );
                           },
                           icon: const Icon(Icons.file_download),

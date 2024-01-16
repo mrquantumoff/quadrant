@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:quadrant/other/backend.dart';
+import 'package:quadrant/other/restart_app.dart';
 import 'package:quadrant/pages/main_page.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:quadrant/pages/web/mod/install_mod_page.dart';
@@ -87,7 +88,14 @@ void main(List<String> args) async {
   if (GetStorage().read("lastPage") == null) {
     GetStorage().writeInMemory("lastPage", 0);
   }
-  runApp(const MyApp());
+  if (GetStorage().read("extendedNavigation") == null) {
+    GetStorage().writeInMemory("extendedNavigation", true);
+  }
+  runApp(
+    RestartWidget(
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -313,7 +321,10 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
         children: [
           NavigationRail(
             selectedIndex: currentPage,
-            extended: true,
+            extended: GetStorage().read("extendedNavigation"),
+            labelType: GetStorage().read("extendedNavigation")
+                ? null
+                : NavigationRailLabelType.none,
             destinations: [
               NavigationRailDestination(
                 icon: const Icon(Icons.check),

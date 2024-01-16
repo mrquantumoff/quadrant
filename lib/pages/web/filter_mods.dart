@@ -144,7 +144,7 @@ class _FilterModsState extends State<FilterMods> {
                 },
               ),
             ),
-            TextButton.icon(
+            FilledButton.icon(
               onPressed: () async {
                 String version = versionFieldController.value.text;
                 String api = apiFieldController.value.text;

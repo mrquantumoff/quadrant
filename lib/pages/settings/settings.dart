@@ -2,6 +2,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:quadrant/other/backend.dart';
+import 'package:quadrant/other/restart_app.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Settings extends StatefulWidget {
@@ -23,6 +24,7 @@ class _SettingsState extends State<Settings> {
   bool modrinth = GetStorage().read("modrinth");
   bool devMode = GetStorage().read("devMode");
   bool rssFeeds = GetStorage().read("rssFeeds");
+  bool extendedNavigation = GetStorage().read("extendedNavigation");
   bool showUnupgradeableMods = GetStorage().read("showUnupgradeableMods");
   @override
   void dispose() {
@@ -89,6 +91,14 @@ class _SettingsState extends State<Settings> {
     setState(() {
       curseForge = newValue;
     });
+  }
+
+  void setExtendedNavigation(bool newValue) {
+    GetStorage().write("extendedNavigation", newValue);
+    setState(() {
+      extendedNavigation = newValue;
+    });
+    RestartWidget.restartApp(context);
   }
 
   @override
@@ -219,13 +229,18 @@ class _SettingsState extends State<Settings> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    margin: const EdgeInsetsDirectional.only(end: 12),
+                    margin: const EdgeInsetsDirectional.only(
+                      end: 12,
+                    ),
                     child: Switch(
                       value: clipButtons,
                       onChanged: setClipButtons,
                     ),
                   ),
-                  Text(AppLocalizations.of(context)!.clipIcons),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8.5),
+                    child: Text(AppLocalizations.of(context)!.clipIcons),
+                  ),
                 ],
               ),
             ),
@@ -242,8 +257,11 @@ class _SettingsState extends State<Settings> {
                       onChanged: setCollectData,
                     ),
                   ),
-                  Text(
-                    AppLocalizations.of(context)!.dataCollectionQuestionShort,
+                  Container(
+                    margin: const EdgeInsets.only(top: 8.5),
+                    child: Text(
+                      AppLocalizations.of(context)!.dataCollectionQuestionShort,
+                    ),
                   ),
                 ],
               ),
@@ -349,7 +367,10 @@ class _SettingsState extends State<Settings> {
                       onChanged: setCurseForge,
                     ),
                   ),
-                  const Text("CurseForge"),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8.5),
+                    child: const Text("CurseForge"),
+                  ),
                 ],
               ),
             ),
@@ -366,7 +387,10 @@ class _SettingsState extends State<Settings> {
                       onChanged: setModrinth,
                     ),
                   ),
-                  const Text("Modrinth"),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8.5),
+                    child: const Text("Modrinth"),
+                  ),
                 ],
               ),
             ),
@@ -383,7 +407,10 @@ class _SettingsState extends State<Settings> {
                       onChanged: setDevMode,
                     ),
                   ),
-                  Text(AppLocalizations.of(context)!.devMode),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8.5),
+                    child: Text(AppLocalizations.of(context)!.devMode),
+                  ),
                 ],
               ),
             ),
@@ -400,7 +427,10 @@ class _SettingsState extends State<Settings> {
                       onChanged: setRSSFeeds,
                     ),
                   ),
-                  Text(AppLocalizations.of(context)!.rssFeeds),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8.5),
+                    child: Text(AppLocalizations.of(context)!.rssFeeds),
+                  ),
                 ],
               ),
             ),
@@ -417,7 +447,32 @@ class _SettingsState extends State<Settings> {
                       onChanged: setShowUnupgradeableMods,
                     ),
                   ),
-                  Text(AppLocalizations.of(context)!.showUnupgradeableMods),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8.5),
+                    child: Text(
+                        AppLocalizations.of(context)!.showUnupgradeableMods),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsetsDirectional.only(end: 12),
+                    child: Switch(
+                      value: extendedNavigation,
+                      onChanged: setExtendedNavigation,
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8.5),
+                    child:
+                        Text(AppLocalizations.of(context)!.extendedNavigation),
+                  ),
                 ],
               ),
             ),

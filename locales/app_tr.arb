@@ -135,6 +135,6 @@
       }
     }
   },
-  "showUnupgradeableMods": "Belirli bir minecraft sürümünü desteklemeyen modları göster"
-
+  "showUnupgradeableMods": "Belirli bir minecraft sürümünü desteklemeyen modları göster",
+  "extendedNavigation": "Genişletilmiş gezinme çubuğu"
 }

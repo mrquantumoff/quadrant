@@ -349,7 +349,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                                   onPressed: () async {
                                     Get.to(
                                       () => const FilterMods(),
-                                      transition: Transition.upToDown,
+                                      transition: Transition.topLevel,
                                     );
                                   },
                                   avatar: const Icon(Icons.filter_alt),
@@ -365,7 +365,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                                   onPressed: () async {
                                     Get.to(
                                       () => const UpdateModpack(),
-                                      transition: Transition.upToDown,
+                                      transition: Transition.topLevel,
                                     );
                                   },
                                   avatar: const Icon(Icons.update),

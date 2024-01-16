@@ -223,75 +223,93 @@ class _InstallModPageState extends State<InstallModPage> {
       ),
       body: ListView(
         children: [
-          Center(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(
-                  GetStorage().read("clipIcons") == true ? 80 : 0),
-              child: Image(
-                image: NetworkImage(widget.mod.modIconUrl),
-                alignment: Alignment.centerRight,
-                height: 96,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const CircularProgressIndicator();
-                },
-                width: 96,
-              ),
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 12, left: 12),
-                child: Text(
-                  displayName,
-                  style: const TextStyle(fontSize: 32),
+          Card(
+            child: SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: 360,
                 ),
-              ),
-              Container(
-                margin: const EdgeInsets.only(left: 14, top: 20),
-                child: Row(
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const Icon(Icons.download, color: Colors.grey, size: 28),
-                    Text(
-                      numberFormatter.format(widget.mod.downloadCount),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        color: Colors.grey,
+                    Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                            GetStorage().read("clipIcons") == true ? 80 : 0),
+                        child: Image(
+                          image: NetworkImage(widget.mod.modIconUrl),
+                          alignment: Alignment.centerRight,
+                          height: 96,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const CircularProgressIndicator();
+                          },
+                          width: 96,
+                        ),
                       ),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(top: 12, left: 12),
+                          child: Text(
+                            displayName,
+                            style: const TextStyle(fontSize: 32),
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(left: 14, top: 20),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.download,
+                                  color: Colors.grey, size: 28),
+                              Text(
+                                numberFormatter
+                                    .format(widget.mod.downloadCount),
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 256),
+                          child: SingleChildScrollView(
+                            child: Text(
+                              desc,
+                              style: const TextStyle(fontSize: 24),
+                            ),
+                          ),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.only(
+                              top: 8, bottom: 8, left: 18),
+                          child: Text(
+                            getModpackTypeString(),
+                            style: const TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 256),
-                child: SingleChildScrollView(
-                  child: Text(
-                    desc,
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                ),
-              ),
-              Container(
-                margin: const EdgeInsets.only(top: 8, bottom: 8, left: 18),
-                child: Text(
-                  getModpackTypeString(),
-                  style: const TextStyle(
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
           Column(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -383,7 +401,7 @@ class _InstallModPageState extends State<InstallModPage> {
                 children: [
                   Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    child: TextButton.icon(
+                    child: FilledButton.icon(
                       onPressed: areButttonsActive
                           ? () async {
                               setAreButtonsActive(false);
@@ -797,7 +815,7 @@ class _InstallModPageState extends State<InstallModPage> {
                   ),
                   Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    child: TextButton.icon(
+                    child: FilledButton.tonalIcon(
                       onPressed: () async {
                         final String slug = widget.mod.slug;
                         String rawUrl = "";

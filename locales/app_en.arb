@@ -142,5 +142,6 @@
       }
     }
   },
-  "showUnupgradeableMods": "Show mods that don't support a certain minecraft version."
+  "showUnupgradeableMods": "Show mods that don't support a certain minecraft version.",
+  "extendedNavigation": "Extended navigation bar"
 }

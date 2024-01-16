@@ -114,7 +114,7 @@ class _UpdateModpackState extends State<UpdateModpack> {
                 },
               ),
             ),
-            TextButton.icon(
+            FilledButton.icon(
               onPressed: () async {
                 String version = versionFieldController.value.text;
                 String modpack = modpackFieldController.value.text;

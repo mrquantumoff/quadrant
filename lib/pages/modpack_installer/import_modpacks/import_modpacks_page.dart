@@ -129,7 +129,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
         child: ListView(
           shrinkWrap: true,
           children: isLoading
-              ? [const CircularProgressIndicator()]
+              ? [const LinearProgressIndicator()]
               : (mods.isEmpty && otherModCount == 0)
                   ? [
                       Center(
@@ -239,7 +239,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          TextButton.icon(
+                          FilledButton.icon(
                             onPressed: () async {
                               List<DownloadedMod> downloadedMods = [];
                               debugPrint("$modDownloadUrls");
