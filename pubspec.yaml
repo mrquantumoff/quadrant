@@ -38,7 +38,6 @@ dependencies:
 
 dependency_overrides:
   win32: any
-  ffi: any
   path: any
   material_color_utilities: any
 
