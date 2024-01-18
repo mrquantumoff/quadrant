@@ -226,7 +226,7 @@ class _InstallModPageState extends State<InstallModPage> {
           Card(
             child: SingleChildScrollView(
               child: ConstrainedBox(
-                constraints: BoxConstraints(
+                constraints: const BoxConstraints(
                   minHeight: 360,
                 ),
                 child: Column(

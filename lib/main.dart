@@ -92,8 +92,8 @@ void main(List<String> args) async {
     GetStorage().writeInMemory("extendedNavigation", true);
   }
   runApp(
-    RestartWidget(
-      child: const MyApp(),
+    const RestartWidget(
+      child: MyApp(),
     ),
   );
 }
