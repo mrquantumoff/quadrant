@@ -37,6 +37,12 @@
   </keywords>
   <releases>
 
+    <release date="2024-01-31" version="24.2.0">
+      <description>
+        <p>Small design/animation changes</p>
+      </description>
+    </release>
+
     <release date="2024-01-16" version="24.1.2">
       <description>
         <p>Many small QoL updates.</p>
