@@ -1,4 +1,5 @@
 {
+  "@@locale": "en",
   "productName": "Quadrant (Formerly Minecraft Modpack Manager)",
   "apply": "Apply",
   "clear": "Clear",
@@ -143,5 +144,7 @@
     }
   },
   "showUnupgradeableMods": "Show mods that don't support a certain minecraft version.",
-  "extendedNavigation": "Extended navigation bar"
+  "extendedNavigation": "Extended navigation bar",
+  "noConnectivity": "No internet connectivity",
+  "noConnectivityDetailed": "The app can't function without internet."
 }

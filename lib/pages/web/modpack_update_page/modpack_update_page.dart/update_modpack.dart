@@ -143,7 +143,7 @@ class _UpdateModpackState extends State<UpdateModpack> {
                     name: modpackConf["name"],
                     modLoader: modpackConf["modLoader"],
                   ),
-                  transition: Transition.upToDown,
+                  transition: Transition.downToUp,
                 );
               },
               icon: const Icon(Icons.update),

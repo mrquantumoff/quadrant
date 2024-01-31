@@ -17,7 +17,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:protocol_handler/protocol_handler.dart';
-
+// import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:quadrant/pages/modpack_installer/import_modpacks/import_modpacks_page.dart';
 
 void main(List<String> args) async {
@@ -306,6 +306,27 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
       ),
     );
   }
+
+  // void checkConnectivity(
+  //     ConnectivityResult connectivityResult, BuildContext context) async {
+  //   if (connectivityResult == ConnectivityResult.wifi ||
+  //       connectivityResult == ConnectivityResult.ethernet) {
+  //     return;
+  //   }
+  //   showDialog(
+  //     context: context,
+  //     builder: (BuildContext context) {
+  //       return AlertDialog(
+  //         title: Text(
+  //           AppLocalizations.of(context)!.noConnectivity,
+  //         ),
+  //         content: Text(
+  //           AppLocalizations.of(context)!.noConnectivityDetailed,
+  //         ),
+  //       );
+  //     },
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,5 @@
 {
+  "@@locale": "tr",
   "productName": "Quadrant (Eskiden Minecraft Modpack Manager)",
   "apply": "Uygula",
   "clear": "Temizle",
@@ -136,5 +137,7 @@
     }
   },
   "showUnupgradeableMods": "Belirli bir minecraft sürümünü desteklemeyen modları göster",
-  "extendedNavigation": "Genişletilmiş gezinme çubuğu"
+  "extendedNavigation": "Genişletilmiş gezinme çubuğu",
+  "noConnectivity": "İnternet bağlantısı yok",
+  "noConnectivityDetailed": "Bu uygulama internet olmadan çalışamaz."
 }

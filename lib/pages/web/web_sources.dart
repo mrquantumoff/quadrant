@@ -396,7 +396,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                       mainAxisSpacing: 15,
                       crossAxisSpacing: 0,
                       childAspectRatio: 1.35,
-                      padding: const EdgeInsets.only(bottom: 0),
+                      padding: const EdgeInsets.only(bottom: 15),
                       children: searchResults,
                     ),
                   ),

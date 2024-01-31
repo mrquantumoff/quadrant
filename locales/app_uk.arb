@@ -1,4 +1,5 @@
 {
+  "@@locale": "uk",
   "productName": "Квадрант (раніше Minecraft Modpack Manager)",
   "apply": "Встановити модпак",
   "clear": "Очистити від модпаків",
@@ -136,5 +137,7 @@
     }
   },
   "showUnupgradeableMods": "Показувати моди, які не підтримують обрану версію гри",
-  "extendedNavigation": "Розширена панель навігації"
+  "extendedNavigation": "Розширена панель навігації",
+  "noConnectivity": "Не підключено до інтернету",
+  "noConnectivityDetailed": "Ця програма не працює без інтернету."
 }

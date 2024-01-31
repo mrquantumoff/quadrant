@@ -117,10 +117,10 @@ packages:
     dependency: "direct main"
     description:
       name: device_info_plus
-      sha256: "0042cb3b2a76413ea5f8a2b40cec2a33e01d0c937e91f0f7c211fde4f7739ba6"
+      sha256: "77f757b789ff68e4eaf9c56d1752309bd9f7ad557cb105b938a7f8eb89e59110"
       url: "https://pub.dev"
     source: hosted
-    version: "9.1.1"
+    version: "9.1.2"
   device_info_plus_platform_interface:
     dependency: transitive
     description:
@@ -249,10 +249,10 @@ packages:
     dependency: transitive
     description:
       name: get_it
-      sha256: d0b88dc35a7f97fd91fec0cf8f165abd97a57977968d8fc02ba0bc92e14ba07e
+      sha256: e6017ce7fdeaf218dc51a100344d8cb70134b80e28b760f8bb23c242437bafd7
       url: "https://pub.dev"
     source: hosted
-    version: "7.6.6"
+    version: "7.6.7"
   get_storage:
     dependency: "direct main"
     description:
@@ -482,10 +482,50 @@ packages:
     dependency: "direct main"
     description:
       name: protocol_handler
-      sha256: fb1882bd6cf767114f46b4708d1794fcd662e0a9b9b4512519adeaff3f931d7d
+      sha256: dc2e2dcb1e0e313c3f43827ec3fa6d98adee6e17edc0c3923ac67efee87479a9
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.6"
+    version: "0.2.0"
+  protocol_handler_android:
+    dependency: transitive
+    description:
+      name: protocol_handler_android
+      sha256: "82eb860ca42149e400328f54b85140329a1766d982e94705b68271f6ca73895c"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0"
+  protocol_handler_ios:
+    dependency: transitive
+    description:
+      name: protocol_handler_ios
+      sha256: "0d3a56b8c1926002cb1e32b46b56874759f4dcc8183d389b670864ac041b6ec2"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0"
+  protocol_handler_macos:
+    dependency: transitive
+    description:
+      name: protocol_handler_macos
+      sha256: "6eb8687a84e7da3afbc5660ce046f29d7ecf7976db45a9dadeae6c87147dd710"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0"
+  protocol_handler_platform_interface:
+    dependency: transitive
+    description:
+      name: protocol_handler_platform_interface
+      sha256: "53776b10526fdc25efdf1abcf68baf57fdfdb75342f4101051db521c9e3f3e5b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0"
+  protocol_handler_windows:
+    dependency: transitive
+    description:
+      name: protocol_handler_windows
+      sha256: d8f3a58938386aca2c76292757392f4d059d09f11439d6d896d876ebe997f2c4
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0"
   pub_semver:
     dependency: transitive
     description:
@@ -575,10 +615,10 @@ packages:
     dependency: "direct main"
     description:
       name: url_launcher
-      sha256: d25bb0ca00432a5e1ee40e69c36c85863addf7cc45e433769d61bed3fe81fd96
+      sha256: c512655380d241a337521703af62d2c122bf7b77a46ff7dd750092aa9433499c
       url: "https://pub.dev"
     source: hosted
-    version: "6.2.3"
+    version: "6.2.4"
   url_launcher_android:
     dependency: transitive
     description:
@@ -695,10 +735,10 @@ packages:
     dependency: "direct main"
     description:
       name: window_manager
-      sha256: dcc865277f26a7dad263a47d0e405d77e21f12cb71f30333a52710a408690bd7
+      sha256: b3c895bdf936c77b83c5254bec2e6b3f066710c1f89c38b20b8acc382b525494
       url: "https://pub.dev"
     source: hosted
-    version: "0.3.7"
+    version: "0.3.8"
   xdg_directories:
     dependency: transitive
     description:

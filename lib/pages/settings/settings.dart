@@ -104,17 +104,13 @@ class _SettingsState extends State<Settings> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.someSettingsRequireReload),
+      ),
       body: Container(
         margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
         child: ListView(
           children: [
-            Container(
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                AppLocalizations.of(context)!.someSettingsRequireReload,
-                style: const TextStyle(fontSize: 24),
-              ),
-            ),
             DropdownMenu(
               width: 300,
               controller: _controller,
