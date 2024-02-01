@@ -386,7 +386,9 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                 Container(
                   margin: widget.downloadable
                       ? const EdgeInsets.symmetric(horizontal: 0)
-                      : const EdgeInsets.symmetric(vertical: 0),
+                      : EdgeInsets.symmetric(
+                          vertical: !widget.downloadable ? 8 : 0,
+                        ),
                   child: FilledButton.tonalIcon(
                     onPressed: () async {
                       final String slug = widget.slug;

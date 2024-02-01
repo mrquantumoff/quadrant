@@ -8,8 +8,11 @@ import 'package:get_storage/get_storage.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/web/modpack_update_page/modpack_update_page.dart/modpack_update.dart';
 
+// ignore: must_be_immutable
 class UpdateModpack extends StatefulWidget {
-  const UpdateModpack({super.key});
+  UpdateModpack({super.key, this.preSelectedModpack});
+
+  String? preSelectedModpack;
 
   @override
   State<UpdateModpack> createState() => _UpdateModpackState();
@@ -26,7 +29,8 @@ class _UpdateModpackState extends State<UpdateModpack> {
     versionFieldEnabled = true;
 
     versionFieldController = TextEditingController();
-    modpackFieldController = TextEditingController();
+    modpackFieldController =
+        TextEditingController(text: widget.preSelectedModpack);
     super.initState();
     getModpacksList();
   }
@@ -97,27 +101,30 @@ class _UpdateModpackState extends State<UpdateModpack> {
                 }),
               ),
             ),
-            Container(
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              child: DropdownMenu(
-                dropdownMenuEntries: modpackItems,
-                controller: modpackFieldController,
-                label: Text(AppLocalizations.of(context)!.chooseModpack),
-                width: 840,
-                onSelected: (dynamic newValue) async {
-                  String latestVersion = (await getVersions())[0].value;
-                  setState(() {
-                    versionFieldController.text = latestVersion;
-                    apiFieldEnabled = false;
-                    versionFieldEnabled = false;
-                  });
-                },
-              ),
-            ),
+            widget.preSelectedModpack == null
+                ? Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    child: DropdownMenu(
+                      dropdownMenuEntries: modpackItems,
+                      controller: modpackFieldController,
+                      label: Text(AppLocalizations.of(context)!.chooseModpack),
+                      width: 840,
+                      onSelected: (dynamic newValue) async {
+                        String latestVersion = (await getVersions())[0].value;
+                        setState(() {
+                          versionFieldController.text = latestVersion;
+                          apiFieldEnabled = false;
+                          versionFieldEnabled = false;
+                        });
+                      },
+                    ),
+                  )
+                : Container(),
             FilledButton.icon(
               onPressed: () async {
                 String version = versionFieldController.value.text;
-                String modpack = modpackFieldController.value.text;
+                String modpack = widget.preSelectedModpack ??
+                    modpackFieldController.value.text;
                 if (version == "" || modpack == "") return;
                 GetStorage().writeInMemory("lastUsedVersion", version);
                 GetStorage().writeInMemory("lastUsedModpack", modpack);

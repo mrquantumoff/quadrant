@@ -3,8 +3,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:get/get.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/web/mod/mod.dart';
+import 'package:quadrant/pages/web/modpack_update_page/modpack_update_page.dart/update_modpack.dart';
 
 class CurrentModpackPage extends StatefulWidget {
   const CurrentModpackPage({super.key});
@@ -36,6 +38,7 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
 
   Future<List<Mod>> fetchMods() async {
     List<dynamic> rawMods = currentModpack["mods"];
+    // rawMods.sort();
     List<Mod> mods = [];
     for (var rawMod in rawMods) {
       ModSource modSrc = ModSource.online;
@@ -48,13 +51,15 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
         modSrc = ModSource.modRinth;
       }
       Mod mod = await getMod(
-        rawMod["id"],
+        rawMod["id"].toString(),
         modSrc,
         (val) => null,
         downloadable: false,
+        versionShow: false,
+        preVersion: rawMod["downloadUrl"].toString().split("/").last,
       );
       mods.add(mod);
-      debugPrint(mod.id);
+      // debugPrint(mod.id);
     }
 
     return mods;
@@ -68,8 +73,24 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "${AppLocalizations.of(context)!.currentModpack}: ${currentModpack["name"] ?? "-"}",
+          "${AppLocalizations.of(context)!.currentModpack}: ${currentModpack["name"] ?? "-"} | ${currentModpack["modLoader"]} | ${currentModpack["version"]}",
         ),
+        actions: [
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+            child: FilledButton.icon(
+              onPressed: () {
+                Get.to(
+                  UpdateModpack(
+                    preSelectedModpack: currentModpack["name"],
+                  ),
+                );
+              },
+              icon: const Icon(Icons.update),
+              label: Text(AppLocalizations.of(context)!.update),
+            ),
+          ),
+        ],
       ),
       body: Center(
         child: FutureBuilder(
@@ -80,7 +101,7 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
                 maxCrossAxisExtent: 540,
                 mainAxisSpacing: 15,
                 crossAxisSpacing: 0,
-                childAspectRatio: 1.35,
+                childAspectRatio: 1.25,
                 padding: const EdgeInsets.only(bottom: 15),
                 children: snapshot.data ?? [],
               );

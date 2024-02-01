@@ -369,7 +369,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                               ? ActionChip(
                                   onPressed: () async {
                                     Get.to(
-                                      () => const UpdateModpack(),
+                                      () => UpdateModpack(),
                                       transition: Transition.topLevel,
                                     );
                                   },

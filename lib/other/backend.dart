@@ -184,75 +184,83 @@ Future<Mod> getMod(
   String modpack = "free",
 }) async {
   if (source == ModSource.curseForge) {
-    final String apiKey =
-        const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
-    final Map<String, String> headers = {
-      "User-Agent": await generateUserAgent(),
-      "X-API-Key": apiKey,
-    };
-    http.Response res = await http.get(
-      Uri.parse("https://api.curseforge.com/v1/mods/$modId"),
-      headers: headers,
-    );
-
-    final resJSON = json.decode(res.body)["data"];
-
-    int modClassId = resJSON["classId"];
-
-    late ModClass modClass;
-
-    if (modClassId == 6) {
-      modClass = ModClass.mod;
-    } else if (modClassId == 12) {
-      modClass = ModClass.resourcePack;
-    } else {
-      modClass = ModClass.shaderPack;
-    }
-
-    String latestVersionUrl = "";
-
-    if (versionShow) {
+    try {
+      final String apiKey =
+          const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
+      final Map<String, String> headers = {
+        "User-Agent": await generateUserAgent(),
+        "X-API-Key": apiKey,
+      };
       http.Response res = await http.get(
-        Uri.parse(
-            "https://api.curseforge.com/v1/mods/$modId/files?gameVersion=$versionTarget"),
+        Uri.parse("https://api.curseforge.com/v1/mods/$modId"),
         headers: headers,
       );
 
-      Map parsed = json.decode(res.body);
-      for (Map item in parsed["data"]) {
-        if (item["gameVersions"].contains(modLoader)) {
-          if (preVersion == item["fileName"]) {
-            latestVersionUrl = "";
+      final resJSON = json.decode(res.body)["data"];
+
+      int modClassId = resJSON["classId"];
+
+      late ModClass modClass;
+
+      if (modClassId == 6) {
+        modClass = ModClass.mod;
+      } else if (modClassId == 12) {
+        modClass = ModClass.resourcePack;
+      } else {
+        modClass = ModClass.shaderPack;
+      }
+
+      String latestVersionUrl = "";
+
+      if (versionShow) {
+        http.Response res = await http.get(
+          Uri.parse(
+              "https://api.curseforge.com/v1/mods/$modId/files?gameVersion=$versionTarget"),
+          headers: headers,
+        );
+
+        Map parsed = json.decode(res.body);
+        for (Map item in parsed["data"]) {
+          if (item["gameVersions"].contains(modLoader)) {
+            if (preVersion == item["fileName"]) {
+              latestVersionUrl = "";
+              break;
+            }
+
+            latestVersionUrl = Uri.decodeFull(item["downloadUrl"]);
             break;
           }
-
-          latestVersionUrl = Uri.decodeFull(item["downloadUrl"]);
-          break;
         }
       }
-    }
-    String icon = resJSON["logo"]["thumbnailUrl"];
-    if (resJSON["logo"]["thumbnailUrl"] == "") {
-      icon = "https://www.curseforge.com/images/flame.svg";
-    }
 
-    return Mod(
-      name: resJSON["name"],
-      description: resJSON["summary"],
-      downloadCount: resJSON["downloadCount"],
-      modIconUrl: icon,
-      id: resJSON["id"].toString(),
-      setAreParentButtonsActive: setAreParentButtonsActive,
-      slug: resJSON["slug"],
-      modClass: modClass,
-      source: ModSource.curseForge,
-      downloadable: downloadable,
-      preVersion: preVersion,
-      showPreVersion: versionShow,
-      versionTarget: versionTarget,
-      modpackToUpdate: modpack,
-      newVersionUrl: latestVersionUrl,
-    );
+      String logo =
+          "https://raw.githubusercontent.com/mrquantumoff/quadrant/master/assets/icons/logo.png";
+      if (resJSON["logo"] != null) {
+        logo = resJSON["logo"]["thumbnailUrl"];
+      }
+
+      debugPrint("Mod ID gotten: ${resJSON["id"]}");
+      return Mod(
+        name: resJSON["name"].toString(),
+        description: resJSON["summary"].toString(),
+        downloadCount: int.parse(resJSON["downloadCount"].toString()),
+        modIconUrl: logo,
+        id: resJSON["id"].toString(),
+        setAreParentButtonsActive: setAreParentButtonsActive,
+        slug: resJSON["slug"].toString(),
+        modClass: modClass,
+        source: ModSource.curseForge,
+        downloadable: downloadable,
+        preVersion: preVersion,
+        showPreVersion: versionShow,
+        versionTarget: versionTarget,
+        modpackToUpdate: modpack,
+        newVersionUrl: latestVersionUrl,
+      );
+    } catch (e) {
+      debugPrint("$e");
+      rethrow;
+    }
   } else {
     Map<String, String> headers = {
       "User-Agent": await generateUserAgent(),
@@ -566,7 +574,7 @@ void collectUserInfo({bool saveToFile = false}) async {
       if (result.body.contains("Updated") || result.body.contains("Created")) {
         GetStorage().write("lastDataSent", DateTime.now().toUtc().toString());
       }
-      debugPrint(result.body);
+      // debugPrint(result.body);
     }
     if (saveToFile) {
       var filePickerResult =
