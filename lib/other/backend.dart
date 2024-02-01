@@ -178,6 +178,7 @@ Future<Mod> getMod(
   bool downloadable = true,
   // These 3 parameters MUST be used together
   bool versionShow = false,
+  bool deletable = false,
   String preVersion = "",
   String versionTarget = "",
   String modLoader = "Forge",
@@ -256,6 +257,7 @@ Future<Mod> getMod(
         versionTarget: versionTarget,
         modpackToUpdate: modpack,
         newVersionUrl: latestVersionUrl,
+        deletable: deletable,
       );
     } catch (e) {
       debugPrint("$e");
@@ -329,6 +331,7 @@ Future<Mod> getMod(
       versionTarget: versionTarget,
       modpackToUpdate: modpack,
       newVersionUrl: latestVersionUrl,
+      deletable: deletable,
     );
   }
 }

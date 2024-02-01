@@ -56,6 +56,7 @@ class Mod extends StatefulWidget {
     this.versionTarget = "",
     this.modpackToUpdate = "",
     this.newVersionUrl = "",
+    this.deletable = false,
   });
 
   final String name;
@@ -68,6 +69,7 @@ class Mod extends StatefulWidget {
   final String slug;
   final bool downloadable;
   final bool showPreVersion;
+  final bool deletable;
   final String preVersion;
   final String newVersionUrl;
   final String modpackToUpdate;
@@ -307,6 +309,35 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                           },
                           icon: const Icon(Icons.file_download),
                           label: Text(AppLocalizations.of(context)!.download),
+                        )
+                      : null,
+                ),
+                Container(
+                  margin: const EdgeInsets.only(top: 8, bottom: 8, right: 8),
+                  child: widget.deletable
+                      ? FilledButton.icon(
+                          onPressed: () async {
+                            File modFile = File(
+                                "${getMinecraftFolder().path}/modpacks/${widget.modpackToUpdate}/${widget.preVersion}");
+                            if (await modFile.exists()) {
+                              await modFile.delete();
+                            }
+                            File modConfigFile = File(
+                                "${getMinecraftFolder().path}/modpacks/${widget.modpackToUpdate}/modConfig.json");
+                            String modConfigRaw =
+                                await modConfigFile.readAsString();
+                            Map modConfig = json.decode(modConfigRaw);
+
+                            List<dynamic> mods = modConfig["mods"];
+                            mods.removeWhere(
+                                (element) => element["id"] == widget.id);
+                            modConfig["mods"] = mods;
+                            String newModConfigRaw = json.encode(modConfig);
+                            await modConfigFile.writeAsString(newModConfigRaw);
+                            widget.setAreParentButtonsActive(true);
+                          },
+                          icon: const Icon(Icons.delete),
+                          label: Text(AppLocalizations.of(context)!.delete),
                         )
                       : null,
                 ),

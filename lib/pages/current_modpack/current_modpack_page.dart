@@ -53,10 +53,12 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
       Mod mod = await getMod(
         rawMod["id"].toString(),
         modSrc,
-        (val) => null,
+        (val) => {setState(() {})},
         downloadable: false,
         versionShow: false,
+        modpack: currentModpack["name"],
         preVersion: rawMod["downloadUrl"].toString().split("/").last,
+        deletable: true,
       );
       mods.add(mod);
       // debugPrint(mod.id);
