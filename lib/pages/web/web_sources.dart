@@ -281,6 +281,11 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: widget.filterOn
+          ? null
+          : AppBar(
+              title: Text(AppLocalizations.of(context)!.web),
+            ),
       body: Center(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,

@@ -628,7 +628,8 @@ class _InstallModPageState extends State<InstallModPage> {
                                     Map newModpackConfig = {
                                       "modLoader": modpackConfig["modLoader"],
                                       "version": modpackConfig["version"],
-                                      "mods": modsIndex
+                                      "mods": modsIndex,
+                                      "name": modpackConfig["name"]
                                     };
                                     String finalModpackConfig =
                                         json.encode(newModpackConfig);

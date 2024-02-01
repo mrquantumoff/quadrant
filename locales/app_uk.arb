@@ -139,5 +139,7 @@
   "showUnupgradeableMods": "Показувати моди, які не підтримують обрану версію гри",
   "extendedNavigation": "Розширена панель навігації",
   "noConnectivity": "Не підключено до інтернету",
-  "noConnectivityDetailed": "Ця програма не працює без інтернету."
+  "noConnectivityDetailed": "Ця програма не працює без інтернету.",
+  "currentModpack": "Поточний модпак"
+
 }

@@ -139,5 +139,7 @@
   "showUnupgradeableMods": "Belirli bir minecraft sürümünü desteklemeyen modları göster",
   "extendedNavigation": "Genişletilmiş gezinme çubuğu",
   "noConnectivity": "İnternet bağlantısı yok",
-  "noConnectivityDetailed": "Bu uygulama internet olmadan çalışamaz."
+  "noConnectivityDetailed": "Bu uygulama internet olmadan çalışamaz.",
+  "currentModpack": "Mevcut mod paketi"
+
 }

@@ -7,6 +7,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/other/restart_app.dart';
+import 'package:quadrant/pages/current_modpack/current_modpack_page.dart';
 import 'package:quadrant/pages/main_page.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:quadrant/pages/web/mod/install_mod_page.dart';
@@ -89,7 +90,7 @@ void main(List<String> args) async {
     GetStorage().writeInMemory("lastPage", 0);
   }
   if (GetStorage().read("extendedNavigation") == null) {
-    GetStorage().writeInMemory("extendedNavigation", true);
+    GetStorage().writeInMemory("extendedNavigation", false);
   }
   runApp(
     const RestartWidget(
@@ -226,6 +227,7 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
     super.initState();
     pages = [
       const MainPage(),
+      const CurrentModpackPage(),
       const WebSourcesPage(),
       const ShareModpacksPage(),
       Settings(setLocale: widget.setLocale)
@@ -350,6 +352,10 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
               NavigationRailDestination(
                 icon: const Icon(Icons.check),
                 label: Text(AppLocalizations.of(context)!.apply),
+              ),
+              NavigationRailDestination(
+                icon: const Icon(Icons.file_copy_outlined),
+                label: Text(AppLocalizations.of(context)!.currentModpack),
               ),
               NavigationRailDestination(
                 icon: const Icon(Icons.download),

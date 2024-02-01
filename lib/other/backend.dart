@@ -231,12 +231,16 @@ Future<Mod> getMod(
         }
       }
     }
+    String icon = resJSON["logo"]["thumbnailUrl"];
+    if (resJSON["logo"]["thumbnailUrl"] == "") {
+      icon = "https://www.curseforge.com/images/flame.svg";
+    }
 
     return Mod(
       name: resJSON["name"],
       description: resJSON["summary"],
       downloadCount: resJSON["downloadCount"],
-      modIconUrl: resJSON["logo"]["thumbnailUrl"],
+      modIconUrl: icon,
       id: resJSON["id"].toString(),
       setAreParentButtonsActive: setAreParentButtonsActive,
       slug: resJSON["slug"],
