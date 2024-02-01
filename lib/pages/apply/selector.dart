@@ -389,7 +389,7 @@ class _SelectorState extends State<Selector> {
           ],
         ),
 
-        // Update/Create/Delete modpack data
+        // Update/Create/Delete modpack
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -424,6 +424,27 @@ class _SelectorState extends State<Selector> {
                 },
                 label: Text(AppLocalizations.of(context)!.update),
                 avatar: const Icon(Icons.change_circle),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 5),
+              child: ActionChip(
+                onPressed: () async {
+                  if (selectedModpackController.text != "") {
+                    Directory mods =
+                        Directory("${getMinecraftFolder().path}/mods");
+                    Directory modpack = Directory(
+                        "${getMinecraftFolder().path}/modpacks/${selectedModpackController.text}");
+                    if (mods.existsSync()) {
+                      mods.deleteSync(recursive: true);
+                    }
+                    if (modpack.existsSync()) {
+                      modpack.deleteSync(recursive: true);
+                    }
+                  }
+                },
+                label: Text(AppLocalizations.of(context)!.delete),
+                avatar: const Icon(Icons.delete),
               ),
             ),
           ],

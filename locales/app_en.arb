@@ -147,5 +147,14 @@
   "extendedNavigation": "Extended navigation bar",
   "noConnectivity": "No internet connectivity",
   "noConnectivityDetailed": "The app can't function without internet.",
-  "currentModpack": "Current modpack"
+  "currentModpack": "Current modpack",
+  "delete": "Delete",
+  "modCount": "{amount} Mod(s)",
+  "@modCount": {
+    "placeholders": {
+      "amount": {
+        "type": "num"
+      }
+    }
+  }
 }

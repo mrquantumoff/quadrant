@@ -140,6 +140,14 @@
   "extendedNavigation": "Розширена панель навігації",
   "noConnectivity": "Не підключено до інтернету",
   "noConnectivityDetailed": "Ця програма не працює без інтернету.",
-  "currentModpack": "Поточний модпак"
-
+  "currentModpack": "Поточний модпак",
+  "delete": "Видалити",
+  "modCount": "{amount} модів",
+  "@modCount": {
+    "placeholders": {
+      "amount": {
+        "type": "num"
+      }
+    }
+  }
 }

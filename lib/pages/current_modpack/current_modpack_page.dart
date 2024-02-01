@@ -37,7 +37,7 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
   }
 
   Future<List<Mod>> fetchMods() async {
-    List<dynamic> rawMods = currentModpack["mods"];
+    List<dynamic> rawMods = currentModpack["mods"] ?? [];
     // rawMods.sort();
     List<Mod> mods = [];
     for (var rawMod in rawMods) {
@@ -73,7 +73,7 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "${AppLocalizations.of(context)!.currentModpack}: ${currentModpack["name"] ?? "-"} | ${currentModpack["modLoader"]} | ${currentModpack["version"]}",
+          "${AppLocalizations.of(context)!.currentModpack}: ${currentModpack["name"] ?? "-"} | ${currentModpack["modLoader"] ?? "-"} | ${currentModpack["version"] ?? "-"} | ${AppLocalizations.of(context)!.modCount(((currentModpack["mods"] ?? []) as List<dynamic>).length)}",
         ),
         actions: [
           Container(
