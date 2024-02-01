@@ -37,6 +37,14 @@
   </keywords>
   <releases>
 
+    <release date="2024-02-01" version="24.2.1">
+      <description>
+        <p>Now you can view and delete mods in your modpacks</p>
+        <p>Now you can delete your modpacks safely</p>
+        <p>Small design/animation changes</p>
+      </description>
+    </release>
+
     <release date="2024-01-31" version="24.2.0">
       <description>
         <p>Small design/animation changes</p>
