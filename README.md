@@ -41,10 +41,6 @@
 </div>
 
 > [!TIP]
->
-> # If you're setting a modpack after you deleted the one that you selected, you might have to remove the mods folder
-
-> [!TIP]
 > ## If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the system settings and/or reinstalling the app from microsoft store.
 >
 
@@ -59,5 +55,9 @@
 > [!TIP]
 > 
 > #### THIS ONLY APPLIES TO APP VERSIONS BEFORE v24.2.0. If CurseForge protocol handler doesn't work properly you can easily use [this registry fix](https://github.com/mrquantumoff/quadrant/raw/master/msstorefix.reg)
+
+> [!TIP]
+>
+> ##### THIS ONLY APPLIES TO APP VERSIONS BEFORE v24.2.1. If you're setting a modpack after you deleted the one that you selected, you might have to remove the mods folder
 
 ###### [Logo's source (Figma)](https://www.figma.com/community/file/1222558477898371497)
