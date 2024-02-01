@@ -107,6 +107,7 @@ class _FilterModsState extends State<FilterMods> {
                 dropdownMenuEntries: const [
                   DropdownMenuEntry(label: "Fabric", value: "Fabric"),
                   DropdownMenuEntry(label: "Forge", value: "Forge"),
+                  DropdownMenuEntry(label: "NeoForge", value: "NeoForge"),
                   DropdownMenuEntry(label: "Quilt", value: "Quilt"),
                   DropdownMenuEntry(label: "Rift", value: "Rift"),
                 ],
