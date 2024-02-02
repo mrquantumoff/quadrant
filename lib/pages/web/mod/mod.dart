@@ -142,11 +142,11 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
         explicitSign: false, locale: AppLocalizations.of(context)!.localeName);
     if (((widget.showPreVersion && isNewVersionUrl) &&
         GetStorage().read("showUnupgradeableMods") == false)) {
-      return const SizedBox.shrink();
+      return Container();
     }
 
     if (hide) {
-      return const SizedBox.shrink();
+      return Container();
     }
 
     return Visibility(
