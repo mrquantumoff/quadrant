@@ -2,7 +2,7 @@ name: quadrant
 description: Manage your modpacks with ease!
 publish_to: 'none'
 
-version: 24.2.2+0
+version: 24.3.0+0
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -11,27 +11,27 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_platform_widgets: ^6.0.2
-  dynamic_color: ^1.6.9
+  flutter_platform_widgets: ^6.1.0
+  dynamic_color: ^1.7.0
   get: ^4.6.6
   universal_feed: ^0.4.0
   get_storage:
     git:
       url: https://github.com/mrquantumoff/get_storage.git
-      ref: v2.2.5
+      ref: v2.2.6
   flutter_localizations:
     sdk: flutter
   intl: any
-  ffi: ^2.1.0
+  ffi: ^2.1.2
   window_manager: ^0.3.8
   package_info_plus: ^5.0.1
   file_picker: ^6.1.1
-  http: ^1.2.0
+  http: ^1.2.1
   path_provider: ^2.1.2
   archive: ^3.4.10
   flutter_platform_alert: ^0.5.1
-  url_launcher: ^6.2.4
-  flutter_svg: ^2.0.9
+  url_launcher: ^6.2.5
+  flutter_svg: ^2.0.10+1
   protocol_handler: ^0.1.6
   device_info_plus: ^9.1.2
   clipboard: ^0.1.3
@@ -41,6 +41,7 @@ dependency_overrides:
   win32: any
   path: any
   material_color_utilities: any
+  web: any
 
 dev_dependencies:
   flutter_test:
@@ -71,7 +72,7 @@ msix_config:
   publisher_display_name: MrQuantumOFF (Demir Yerli)
   publisher: CN=010914FC-8843-4963-A3FE-E3E06E6D9F53
   identity_name: 58734MrQuantumOFFDemirYer.MinecraftModpackManagerR
-  msix_version: 24.2.2.0
+  msix_version: 24.3.0.0
   logo_path: .\assets\icons\logo.ico
   store: true
   protocol-activation: curseforge, mcmodpackmanager
