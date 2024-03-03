@@ -61,7 +61,7 @@ class _SelectorState extends State<Selector> {
       }
       bool cond1 = !(GetStorage().read<List<dynamic>>("seenItems") ?? [])
           .contains(item.guid!);
-      DateTime itemDate = item.published!.parseValue()!;
+      DateTime itemDate = item.published!.parseValue() ?? DateTime.now();
       bool cond2 =
           itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
       debugPrint(" Cond2: $cond2");
