@@ -33,7 +33,7 @@ jobs:
         if: matrix.platform == 'windows-latest'
         uses: vimtor/action-zip@v1.1
         with:
-          files: ./build/windows/runner/Release
+          files: ./build/windows/x64/runner/Release
           recursive: true
           dest: WindowsBuild.zip
 
