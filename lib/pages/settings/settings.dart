@@ -139,7 +139,7 @@ class _SettingsState extends State<Settings> {
                 }
                 if (snapshot.hasData) {
                   return Container(
-                    margin: const EdgeInsets.only(top: 12, bottom: 12),
+                    margin: const EdgeInsets.only(top: 12, bottom: 0),
                     child: Row(
                       children: [
                         Column(
@@ -189,6 +189,26 @@ class _SettingsState extends State<Settings> {
                 );
               },
               future: getReleaseInfo(),
+            ),
+            Container(
+              alignment: AlignmentDirectional.topStart,
+              margin: const EdgeInsets.only(top: 4),
+              child: Container(
+                margin: const EdgeInsets.only(top: 0, bottom: 12),
+                child: TextButton.icon(
+                  onPressed: () async {
+                    await launchUrl(
+                      Uri.parse(
+                          "https://github.com/mrquantumoff/quadrant/issues/new/choose"),
+                    );
+                  },
+                  label: Text(
+                    AppLocalizations.of(context)!.submitBugReport,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  icon: const Icon(Icons.send),
+                ),
+              ),
             ),
             Container(
               margin: const EdgeInsets.only(top: 12),
