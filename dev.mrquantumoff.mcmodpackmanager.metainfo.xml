@@ -37,6 +37,13 @@
   </keywords>
   <releases>
 
+    <release date="2024-03-09" version="24.3.1">
+      <description>
+        <p>Updated dependencies</p>
+        <p>Added a submit bug report button, fixed a bug</p>
+      </description>
+    </release>
+
     <release date="2024-03-03" version="24.3.0">
       <description>
         <p>Updated dependencies</p>
