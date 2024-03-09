@@ -277,15 +277,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.6.7"
-  get_storage:
+  get_storage_qnt:
     dependency: "direct main"
     description:
       path: "."
-      ref: "v2.2.6"
-      resolved-ref: "396465972768684247e79011eec4c028fba9c8a2"
-      url: "https://github.com/mrquantumoff/get_storage.git"
+      ref: "v3.0.0"
+      resolved-ref: "85350e67848488229da22c8e6030034d6ecc91cb"
+      url: "https://github.com/mrquantumoff/get_storage_qnt.git"
     source: git
-    version: "2.2.6"
+    version: "3.0.0"
   html_unescape:
     dependency: transitive
     description:

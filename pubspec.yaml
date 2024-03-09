@@ -2,7 +2,7 @@ name: quadrant
 description: Manage your modpacks with ease!
 publish_to: 'none'
 
-version: 24.3.1+1
+version: 24.3.1+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -15,10 +15,10 @@ dependencies:
   dynamic_color: ^1.7.0
   get: ^4.6.6
   universal_feed: ^0.4.0
-  get_storage:
+  get_storage_qnt:
     git:
-      url: https://github.com/mrquantumoff/get_storage.git
-      ref: v2.2.6
+      url: https://github.com/mrquantumoff/get_storage_qnt.git
+      ref: v3.0.0
   flutter_localizations:
     sdk: flutter
   intl: any
