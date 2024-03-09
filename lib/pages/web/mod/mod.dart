@@ -408,9 +408,13 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                                     Text(AppLocalizations.of(context)!.update),
                               ),
                             )
-                          : SizedBox.fromSize(
-                              size: const Size(240, 2),
-                              child: const LinearProgressIndicator(),
+                          : Container(
+                              margin:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: SizedBox.fromSize(
+                                size: const Size(120, 2),
+                                child: const LinearProgressIndicator(),
+                              ),
                             )
                       : Container(),
                 ),
