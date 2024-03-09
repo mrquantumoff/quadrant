@@ -25,6 +25,7 @@ jobs:
         if: matrix.platform == 'windows-latest'
         continue-on-error: false
         run: |
+          $Env:PUB_CACHE = "%LOCALAPPDATA%\Pub\Cache"
           flutter clean
           # flutter pub get
           flutter build windows --release --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY=${{ secrets.QUADRANT_QNT_API_KEY_WINDOWS }} --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
