@@ -37,6 +37,14 @@
   </keywords>
   <releases>
 
+    <release date="2024-03-18" version="24.3.2">
+
+      <description>
+        <p>Small internal changes.</p>
+      </description>
+
+    </release>
+
     <release date="2024-03-09" version="24.3.1">
       <description>
         <p>Updated dependencies</p>
