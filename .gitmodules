@@ -1,0 +1,3 @@
+[submodule "get_storage_qnt"]
+	path = get_storage_qnt
+	url = https://github.com/mrquantumoff/get_storage_qnt.git

@@ -280,11 +280,9 @@ packages:
   get_storage_qnt:
     dependency: "direct main"
     description:
-      path: "."
-      ref: "v3.0.0"
-      resolved-ref: "85350e67848488229da22c8e6030034d6ecc91cb"
-      url: "https://github.com/mrquantumoff/get_storage_qnt.git"
-    source: git
+      path: get_storage_qnt
+      relative: true
+    source: path
     version: "3.0.0"
   html_unescape:
     dependency: transitive
