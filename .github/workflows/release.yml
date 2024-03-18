@@ -25,8 +25,7 @@ jobs:
         if: matrix.platform == 'windows-latest'
         continue-on-error: false
         run: |
-          $Env:PUB_CACHE = "%LOCALAPPDATA%\Pub\Cache"
-          # flutter clean
+          git submodules init
           flutter pub get
           flutter build windows --release --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY=${{ secrets.QUADRANT_QNT_API_KEY_WINDOWS }} --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
           dart run msix:create -v --output-path windows-build --build-windows false
@@ -66,6 +65,7 @@ jobs:
         run: |
           sudo apt update
           sudo apt install meson clang build-essential cmake curl file git unzip xz-utils zip libglu1-mesa ninja-build pkg-config libgtk-3-dev
+          git submodules init
           flutter clean
           flutter pub get
           flutter build linux --release --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY='${{secrets.QUADRANT_QNT_API_KEY}}' --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
