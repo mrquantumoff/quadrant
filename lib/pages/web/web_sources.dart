@@ -27,9 +27,19 @@ class UserAgentClient extends http.BaseClient {
 }
 
 class WebSourcesPage extends StatefulWidget {
-  const WebSourcesPage({super.key, this.filterOn = false});
+  const WebSourcesPage({
+    super.key,
+    this.filterOn = false,
+    this.shadersOn = true,
+    this.modsOn = true,
+    this.resourcePacksOn = true,
+  });
 
   final bool filterOn;
+
+  final bool shadersOn;
+  final bool resourcePacksOn;
+  final bool modsOn;
 
   @override
   State<WebSourcesPage> createState() => _WebSourcesPageState();
@@ -219,19 +229,31 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     List<Mod> resourcePacksModrinth = [];
     List<Mod> shaderPacksModrinth = [];
     if (GetStorage().read("curseForge") && isCurseForgeAllowed) {
-      mods = await searchMods(searchText, ModClass.mod, ModSource.curseForge);
-      resourcePacks = await searchMods(
-          searchText, ModClass.resourcePack, ModSource.curseForge);
-      shaderPacks = await searchMods(
-          searchText, ModClass.shaderPack, ModSource.curseForge);
+      if (widget.modsOn) {
+        mods = await searchMods(searchText, ModClass.mod, ModSource.curseForge);
+      }
+      if (widget.resourcePacksOn) {
+        resourcePacks = await searchMods(
+            searchText, ModClass.resourcePack, ModSource.curseForge);
+      }
+      if (widget.shadersOn) {
+        shaderPacks = await searchMods(
+            searchText, ModClass.shaderPack, ModSource.curseForge);
+      }
     }
     if (GetStorage().read("modrinth")) {
-      modsModrinth =
-          await searchMods(searchText, ModClass.mod, ModSource.modRinth);
-      resourcePacksModrinth = await searchMods(
-          searchText, ModClass.resourcePack, ModSource.modRinth);
-      shaderPacksModrinth =
-          await searchMods(searchText, ModClass.shaderPack, ModSource.modRinth);
+      if (widget.modsOn) {
+        modsModrinth =
+            await searchMods(searchText, ModClass.mod, ModSource.modRinth);
+      }
+      if (widget.resourcePacksOn) {
+        resourcePacksModrinth = await searchMods(
+            searchText, ModClass.resourcePack, ModSource.modRinth);
+      }
+      if (widget.shadersOn) {
+        shaderPacksModrinth = await searchMods(
+            searchText, ModClass.shaderPack, ModSource.modRinth);
+      }
     }
     List<Mod> widgets = mods +
         resourcePacks +

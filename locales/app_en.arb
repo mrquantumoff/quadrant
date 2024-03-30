@@ -157,5 +157,8 @@
       }
     }
   },
-  "submitBugReport": "Submit a bug report"
+  "submitBugReport": "Submit a bug report",
+  "mods": "Mods",
+  "resourcePacks": "Resource packs",
+  "shaderPacks": "Shaders"
 }

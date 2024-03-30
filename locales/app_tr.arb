@@ -55,7 +55,7 @@
       }
     }
   },
-  "shaderPack": "{source}dan gökgelendirme",
+  "shaderPack": "{source}dan gölgelendirici",
   "@shaderPack": {
     "placeholders": {
       "source": {
@@ -150,5 +150,8 @@
       }
     }
   },
-  "submitBugReport": "Bir hata raporu gönderin"
+  "submitBugReport": "Bir hata raporu gönderin",
+  "mods": "Modlar",
+  "resourcePacks": "Kaynak paketleri",
+  "shaderPacks": "Gölgelendiriciler"
 }

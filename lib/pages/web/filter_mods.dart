@@ -21,6 +21,11 @@ class _FilterModsState extends State<FilterMods> {
   late TextEditingController modpackFieldController;
   late bool apiFieldEnabled;
   late bool versionFieldEnabled;
+
+  bool modsOn = true;
+  bool shadersOn = true;
+  bool resourcePacksOn = true;
+
   @override
   void initState() {
     apiFieldEnabled = true;
@@ -116,7 +121,7 @@ class _FilterModsState extends State<FilterMods> {
               ),
             ),
             Container(
-              margin: const EdgeInsets.symmetric(vertical: 12),
+              margin: const EdgeInsets.only(top: 12),
               child: DropdownMenu(
                 dropdownMenuEntries: modpackItems,
                 controller: modpackFieldController,
@@ -143,6 +148,39 @@ class _FilterModsState extends State<FilterMods> {
                     versionFieldEnabled = false;
                   });
                 },
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Checkbox(
+                      value: modsOn,
+                      onChanged: (bool? newValue) {
+                        setState(() {
+                          modsOn = newValue ?? true;
+                        });
+                      }),
+                  Text(AppLocalizations.of(context)!.mods),
+                  Checkbox(
+                      value: resourcePacksOn,
+                      onChanged: (bool? newValue) {
+                        setState(() {
+                          resourcePacksOn = newValue ?? true;
+                        });
+                      }),
+                  Text(AppLocalizations.of(context)!.resourcePacks),
+                  Checkbox(
+                      value: shadersOn,
+                      onChanged: (bool? newValue) {
+                        setState(() {
+                          shadersOn = newValue ?? true;
+                        });
+                      }),
+                  Text(AppLocalizations.of(context)!.shaderPacks),
+                ],
               ),
             ),
             FilledButton.icon(
