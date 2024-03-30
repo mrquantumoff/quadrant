@@ -56,3 +56,6 @@ app.*.map.json
 
 # Windows (MS Store) related
 windows-build*
+
+# NSIS related
+QuadrantSetup.exe

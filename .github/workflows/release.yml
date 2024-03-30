@@ -15,6 +15,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      - name: Install NSIS (windows)
+        if: matrix.platform == 'windows-latest'
+        uses: mrquantumoff/install-nsis@v1.0.1
+        with:
+          nsis-version: 3.09
       - name: Install flutter
         uses: richardshiue/flutter-action@main
         with:
@@ -28,6 +33,7 @@ jobs:
           flutter clean
           flutter pub get
           flutter build windows --release --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY=${{ secrets.QUADRANT_QNT_API_KEY_WINDOWS }} --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
+          makensis .\setup.nsi
           dart run msix:create -v --output-path windows-build --build-windows false
       - name: Compress Windows build to .zip
         if: matrix.platform == 'windows-latest'
@@ -37,7 +43,7 @@ jobs:
           recursive: true
           dest: WindowsBuild.zip
 
-      - name: Upload the Windows MSIX package and .zip build
+      - name: Upload the Windows MSIX package and .zip build and the NSIS build
         if: matrix.platform == 'windows-latest'
         uses: softprops/action-gh-release@v1
         with:
@@ -45,6 +51,7 @@ jobs:
           files: |
             ./WindowsBuild.zip
             ./windows-build/quadrant.msix
+            ./QuadrantSetup.exe
   release-linux:
     strategy:
       fail-fast: false
