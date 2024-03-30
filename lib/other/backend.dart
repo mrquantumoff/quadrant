@@ -455,7 +455,14 @@ void dataCollectionInit() async {
     //   debugPrint("Data collection failed: $e");
     // }
   } else if (GetStorage().read("collectUserData") == null) {
-    GetStorage().write("collectUserData", false);
+    MachineIdAndOS os = await getMachineIdAndOs();
+
+    bool collectUserDataByDefault = false;
+
+    if (os.os.toLowerCase().contains("windows")) {
+      collectUserDataByDefault = true;
+    }
+    GetStorage().write("collectUserData", collectUserDataByDefault);
   }
 }
 
