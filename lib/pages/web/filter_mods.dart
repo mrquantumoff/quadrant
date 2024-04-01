@@ -22,9 +22,9 @@ class _FilterModsState extends State<FilterMods> {
   late bool apiFieldEnabled;
   late bool versionFieldEnabled;
 
-  bool modsOn = true;
-  bool shadersOn = true;
-  bool resourcePacksOn = true;
+  late bool modsOn;
+  late bool shadersOn;
+  late bool resourcePacksOn;
 
   @override
   void initState() {
@@ -34,6 +34,11 @@ class _FilterModsState extends State<FilterMods> {
     versionFieldController = TextEditingController();
     apiFieldController = TextEditingController();
     modpackFieldController = TextEditingController();
+
+    modsOn = true;
+    shadersOn = true;
+    resourcePacksOn = true;
+
     super.initState();
     getModpacksList();
   }
@@ -160,7 +165,7 @@ class _FilterModsState extends State<FilterMods> {
                       value: modsOn,
                       onChanged: (bool? newValue) {
                         setState(() {
-                          modsOn = newValue ?? true;
+                          modsOn = newValue ?? modsOn;
                         });
                       }),
                   Text(AppLocalizations.of(context)!.mods),
@@ -168,7 +173,7 @@ class _FilterModsState extends State<FilterMods> {
                       value: resourcePacksOn,
                       onChanged: (bool? newValue) {
                         setState(() {
-                          resourcePacksOn = newValue ?? true;
+                          resourcePacksOn = newValue ?? resourcePacksOn;
                         });
                       }),
                   Text(AppLocalizations.of(context)!.resourcePacks),
@@ -176,7 +181,7 @@ class _FilterModsState extends State<FilterMods> {
                       value: shadersOn,
                       onChanged: (bool? newValue) {
                         setState(() {
-                          shadersOn = newValue ?? true;
+                          shadersOn = newValue ?? shadersOn;
                         });
                       }),
                   Text(AppLocalizations.of(context)!.shaderPacks),
@@ -193,8 +198,11 @@ class _FilterModsState extends State<FilterMods> {
                 GetStorage().writeInMemory("lastUsedAPI", api);
                 GetStorage().writeInMemory("lastUsedModpack", modpack);
                 Get.to(
-                  () => const WebSourcesPage(
+                  () => WebSourcesPage(
                     filterOn: true,
+                    modsOn: modsOn,
+                    resourcePacksOn: resourcePacksOn,
+                    shadersOn: shadersOn,
                   ),
                   transition: Transition.downToUp,
                 );
