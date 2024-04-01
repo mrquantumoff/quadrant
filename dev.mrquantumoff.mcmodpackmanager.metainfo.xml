@@ -37,6 +37,13 @@
   </keywords>
   <releases>
 
+    <release date="2024-04-01" version="24.4.1">
+      <description>
+        <p>Dependency updates, bug fixes</p>
+      </description>
+    </release>
+
+
     <release date="2024-03-30" version="24.4.0">
       <description>
         <p>Privacy policy changes.</p>
