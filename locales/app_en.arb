@@ -160,5 +160,24 @@
   "submitBugReport": "Submit a bug report",
   "mods": "Mods",
   "resourcePacks": "Resource packs",
-  "shaderPacks": "Shaders"
+  "shaderPacks": "Shaders",
+  "experimentalFeatures": "Experimental features",
+  "account": "Account",
+  "signIn": "Sign in",
+  "emailAndPassword": "Enter your email and password",
+  "email": "Email",
+  "password": "Password",
+  "dontHaveAccount": "Don't have an account? Create a new one!",
+  "username": "Username",
+  "shareLimit": "Quadrant Share code use limit",
+  "syncLimit": "Quadrant Sync limit",
+  "hello": "Hello, {name}",
+  "@hello": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "signout": "Sign out"
 }

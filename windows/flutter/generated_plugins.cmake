@@ -6,6 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
   dynamic_color
   flutter_platform_alert
+  flutter_secure_storage_windows
   protocol_handler
   screen_retriever
   url_launcher_windows

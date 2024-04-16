@@ -26,6 +26,8 @@ class _SettingsState extends State<Settings> {
   bool rssFeeds = GetStorage().read("rssFeeds");
   bool extendedNavigation = GetStorage().read("extendedNavigation");
   bool showUnupgradeableMods = GetStorage().read("showUnupgradeableMods");
+  bool experimentalFeatures = GetStorage().read("experimentalFeatures");
+
   @override
   void dispose() {
     super.dispose();
@@ -70,6 +72,14 @@ class _SettingsState extends State<Settings> {
     setState(() {
       collectData = newValue;
     });
+  }
+
+  void setExpFeatures(bool newValue) {
+    GetStorage().write("experimentalFeatures", newValue);
+    setState(() {
+      experimentalFeatures = newValue;
+    });
+    // RestartWidget.restartApp(context);
   }
 
   @override
@@ -488,6 +498,28 @@ class _SettingsState extends State<Settings> {
                     margin: const EdgeInsets.only(top: 8.5),
                     child:
                         Text(AppLocalizations.of(context)!.extendedNavigation),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsetsDirectional.only(end: 12),
+                    child: Switch(
+                      value: experimentalFeatures,
+                      onChanged: setExpFeatures,
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8.5),
+                    child: Text(
+                      AppLocalizations.of(context)!.experimentalFeatures,
+                    ),
                   ),
                 ],
               ),

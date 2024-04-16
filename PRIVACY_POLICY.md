@@ -1,5 +1,7 @@
 # Privacy Policy
-### This privacy policy is effective for Quadrant v24.4.0+
+## This privacy policy is effective for Quadrant v24.5.0+
+## For previous versions of Quadrant's privacy policy look at the previous commits.
+### The data that the Quadrant app uses.
 
 - This app modifies your minecraft folder
 - By default this app collects data on Windows. However, on GNU+Linux data is not being collected by default. You can let or prohibit the app to collect analytics and diagnostics from your PC by going to the settings and explicitly enabling or disabling optional data collection. Meanwhile my [website](https://mrquantumoff.dev) and my [API](https://api.mrquantumoff.dev) are proprietary, I can 100% guarantee that your personal info (e.g your hardware id or when did your device sent the diagnostics/analytics report) will not be sold to third parties.
@@ -38,3 +40,12 @@ pub struct AppInfoAnonymous {
 ```
 
 The Quadrant Share feature in Quadrant v12+ requires optional data collection enabled (hardware id), in order not to have the database spammed with hundreds of codes.
+
+### The data that Quadrant ID accounts uses
+#### Quadrant ID requires the user's email with the following purposes:
+* Verifying that the account is not made by a bot
+* Notifying the user of the changes/new sign-ins to their account
+#### Quadrant ID requires the user's name to greet them when they opens their account details.
+#### Quadrants ID requissres the user to specify a password for authentication, it is securely hashed using argon2id and is used to delete the account, sign in to the account or to change the account data.
+#### Quadrant ID requires the user to specify their username, it currently is just a reserved field, and is not used in anything other than the registration process.
+### Usage of the Quadrant ID doesn't require turning on the optional data collection, but some of the features (such as Quadrant Share) do require it.

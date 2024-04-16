@@ -4,6 +4,7 @@ import 'package:clipboard/clipboard.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:http/http.dart' as http;
@@ -331,6 +332,41 @@ class _SelectorState extends State<Selector> {
                               }
                               collectUserInfo();
                               var machineInfo = await getMachineIdAndOs();
+                              const storage = FlutterSecureStorage();
+                              String? token =
+                                  await storage.read(key: "quadrant_id_token");
+                              if (token != null &&
+                                  GetStorage().read("experimentalFeatures") ==
+                                      true) {
+                                var res = await http.post(
+                                    Uri.parse(
+                                        "https://api.mrquantumoff.dev/api/v2/submit/quadrant_share_with_id"),
+                                    headers: {
+                                      "User-Agent": await generateUserAgent(),
+                                      "Authorization": "Bearer $token"
+                                    },
+                                    body: json.encode({
+                                      "hardware_id": machineInfo.machineId,
+                                      "mod_config": content,
+                                    }));
+                                if (res.statusCode == 201) {
+                                  var decoded = json.decode(res.body);
+
+                                  await FlutterClipboard.copy(
+                                    decoded["code"].toString(),
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        AppLocalizations.of(context)!
+                                            .copiedToClipboard(
+                                                decoded["uses_left"]),
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                              }
                               var res = await http.post(
                                   Uri.parse(
                                       "https://api.mrquantumoff.dev/api/v2/submit/quadrant_share"),

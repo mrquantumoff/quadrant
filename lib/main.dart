@@ -2,11 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage_qnt/get_storage.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/other/restart_app.dart';
+import 'package:quadrant/pages/account/account.dart';
 import 'package:quadrant/pages/current_modpack/current_modpack_page.dart';
 import 'package:quadrant/pages/main_page.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
@@ -40,6 +43,15 @@ void main(List<String> args) async {
         GetStorage().writeInMemory("protocolArgument", arg);
       }
     }
+  }
+  const storage = FlutterSecureStorage();
+  try {
+    if (JwtDecoder.isExpired(
+        await storage.read(key: "quadrant_id_token") ?? "")) {
+      await storage.delete(key: "quadrant_id_token");
+    }
+  } catch (e) {
+    // print(e);
   }
   WindowOptions windowOptions = const WindowOptions(
     size: Size(1366, 768),
@@ -91,6 +103,9 @@ void main(List<String> args) async {
   }
   if (GetStorage().read("extendedNavigation") == null) {
     GetStorage().writeInMemory("extendedNavigation", false);
+  }
+  if (GetStorage().read("experimentalFeatures") == null) {
+    GetStorage().writeInMemory("experimentalFeatures", false);
   }
   runApp(
     const RestartWidget(
@@ -218,20 +233,35 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
     super.dispose();
   }
 
-  int currentPage = (GetStorage().read("lastPage") ?? 0) <= 3
-      ? GetStorage().read("lastPage")
-      : 0;
+  int currentPage = GetStorage().read("experimentalFeatures")
+      ? 0
+      : (GetStorage().read("lastPage") ?? 0) <= 3
+          ? GetStorage().read("lastPage")
+          : 0;
   List<Widget> pages = [];
   @override
   void initState() {
     super.initState();
-    pages = [
-      const MainPage(),
-      const CurrentModpackPage(),
-      const WebSourcesPage(),
-      const ShareModpacksPage(),
-      Settings(setLocale: widget.setLocale)
-    ];
+
+    if (GetStorage().read("experimentalFeatures") == true) {
+      pages = [
+        const MainPage(),
+        const CurrentModpackPage(),
+        const WebSourcesPage(),
+        const ShareModpacksPage(),
+        const AccountPage(),
+        Settings(setLocale: widget.setLocale)
+      ];
+    } else {
+      pages = [
+        const MainPage(),
+        const CurrentModpackPage(),
+        const WebSourcesPage(),
+        const ShareModpacksPage(),
+        Settings(setLocale: widget.setLocale)
+      ];
+    }
+
     protocolHandler.addListener(this);
   }
 
@@ -348,28 +378,55 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
             labelType: GetStorage().read("extendedNavigation")
                 ? null
                 : NavigationRailLabelType.none,
-            destinations: [
-              NavigationRailDestination(
-                icon: const Icon(Icons.check),
-                label: Text(AppLocalizations.of(context)!.apply),
-              ),
-              NavigationRailDestination(
-                icon: const Icon(Icons.file_copy_outlined),
-                label: Text(AppLocalizations.of(context)!.currentModpack),
-              ),
-              NavigationRailDestination(
-                icon: const Icon(Icons.download),
-                label: Text(AppLocalizations.of(context)!.web),
-              ),
-              NavigationRailDestination(
-                icon: const Icon(Icons.file_download_outlined),
-                label: Text(AppLocalizations.of(context)!.importMods),
-              ),
-              NavigationRailDestination(
-                icon: const Icon(Icons.settings),
-                label: Text(AppLocalizations.of(context)!.settings),
-              ),
-            ],
+            destinations: GetStorage().read("experimentalFeatures") == true
+                ? [
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.check),
+                      label: Text(AppLocalizations.of(context)!.apply),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.file_copy_outlined),
+                      label: Text(AppLocalizations.of(context)!.currentModpack),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.download),
+                      label: Text(AppLocalizations.of(context)!.web),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.file_download_outlined),
+                      label: Text(AppLocalizations.of(context)!.importMods),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.account_circle_outlined),
+                      label: Text(AppLocalizations.of(context)!.account),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.settings),
+                      label: Text(AppLocalizations.of(context)!.settings),
+                    ),
+                  ]
+                : [
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.check),
+                      label: Text(AppLocalizations.of(context)!.apply),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.file_copy_outlined),
+                      label: Text(AppLocalizations.of(context)!.currentModpack),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.download),
+                      label: Text(AppLocalizations.of(context)!.web),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.file_download_outlined),
+                      label: Text(AppLocalizations.of(context)!.importMods),
+                    ),
+                    NavigationRailDestination(
+                      icon: const Icon(Icons.settings),
+                      label: Text(AppLocalizations.of(context)!.settings),
+                    ),
+                  ],
             onDestinationSelected: (int value) {
               setState(() {
                 currentPage = value;
