@@ -335,9 +335,7 @@ class _SelectorState extends State<Selector> {
                               const storage = FlutterSecureStorage();
                               String? token =
                                   await storage.read(key: "quadrant_id_token");
-                              if (token != null &&
-                                  GetStorage().read("experimentalFeatures") ==
-                                      true) {
+                              if (token != null) {
                                 var res = await http.post(
                                     Uri.parse(
                                         "https://api.mrquantumoff.dev/api/v2/submit/quadrant_share_with_id"),
@@ -357,6 +355,7 @@ class _SelectorState extends State<Selector> {
                                   );
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
+                                      duration: const Duration(seconds: 5),
                                       content: Text(
                                         AppLocalizations.of(context)!
                                             .copiedToClipboard(
@@ -401,6 +400,7 @@ class _SelectorState extends State<Selector> {
                               );
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
+                                  duration: const Duration(seconds: 5),
                                   content: Text(
                                     AppLocalizations.of(context)!
                                         .copiedToClipboard(
