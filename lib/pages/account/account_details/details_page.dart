@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get/get.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:http/http.dart' as http;
 import 'package:quadrant/other/restart_app.dart';
+import 'package:quadrant/pages/account/account_details/edit_details.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 
 class AccountDetails extends StatefulWidget {
@@ -32,18 +34,24 @@ class _AccountDetailsState extends State<AccountDetails> {
       },
     );
 
-    if (res.statusCode == 403) {
+    if (res.statusCode == 400) {
       await storage.delete(key: "quadrant_id_token");
       RestartWidget.restartApp(context);
     } else if (res.statusCode != 200) {
-      return Center(
-        child: Text(
-          AppLocalizations.of(context)!.unknown,
-        ),
+      debugPrint("${res.statusCode}");
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.unknown,
+          ),
+          Text(res.body),
+        ],
       );
     }
     Map<String, dynamic> user = json.decode(res.body);
-
+    debugPrint(user.toString());
     String name = user["name"];
     String username = user["login"];
     String email = user["email"];
@@ -134,6 +142,31 @@ class _AccountDetailsState extends State<AccountDetails> {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(
+                width: 8,
+              ),
+              FilledButton(
+                onPressed: () async {
+                  Get.to(
+                    () => EditDetails(accountToken: widget.accountToken),
+                    transition: Transition.fadeIn,
+                  );
+                },
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(AppLocalizations.of(context)!.edit),
+                    const SizedBox(
+                      width: 4,
+                    ),
+                    const Icon(
+                      Icons.edit,
+                      size: 16,
+                    ),
+                  ],
+                ),
               )
             ],
           ),
@@ -151,8 +184,13 @@ class _AccountDetailsState extends State<AccountDetails> {
           return Center(child: snapshot.data!);
         }
         if (snapshot.hasError) {
-          return const Center(
-            child: Icon(Icons.error),
+          return Center(
+            child: Column(
+              children: [
+                const Icon(Icons.error),
+                Text("${snapshot.error}"),
+              ],
+            ),
           );
         }
         return const Center(

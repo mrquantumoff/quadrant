@@ -179,5 +179,8 @@
       }
     }
   },
-  "signout": "Sign out"
+  "signout": "Sign out",
+  "edit": "Edit",
+  "resetSessions": "Log out on all devices (including this one)",
+  "newPassword": "New password (leave blank if you are not changing it)"
 }
