@@ -153,5 +153,30 @@
   "submitBugReport": "Bir hata raporu gönderin",
   "mods": "Modlar",
   "resourcePacks": "Kaynak paketleri",
-  "shaderPacks": "Gölgelendiriciler"
+  "shaderPacks": "Gölgelendiriciler",
+  "experimentalFeatures": "Deneysel özellikler",
+  "account": "Hesap",
+  "signIn": "Giriş yap",
+  "emailAndPassword": "E-postanızı ve şifrenizi girin",
+  "email": "E-posta",
+  "password": "Şifre",
+  "dontHaveAccount": "Hesabınız yok mu? Yeni bir tane yaratın!",
+  "username": "Kullanıcı adı",
+  "shareLimit": "Quadrant Share kod kullanım sınırı",
+  "syncLimit": "Quadrant Sync ile senkronize olan modpack sınırı",
+  "hello": "Merhaba {name}",
+  "@hello": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "signout": "Oturumu kapat",
+  "edit": "Düzenle",
+  "resetSessions": "Tüm cihazlardan çıkış yap (bu dahil)",
+  "newPassword": "Yeni şifre (değiştirmiyorsanız boş bırakın)",
+  "passwordsDontMatch": "Yeni şifre ve onun onayı eşleşmiyor!",
+  "register": "Kayıt ol",
+  "verificationCode": "E-postanıza gönderilen doğrulama kodu"
 }
