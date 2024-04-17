@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get/get.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:http/http.dart' as http;
 import 'package:quadrant/other/restart_app.dart';
@@ -46,6 +47,12 @@ class _EditDetailsState extends State<EditDetails> {
     });
   }
 
+  void setAreButtonsEnabled(bool value) async {
+    setState(() {
+      areButtonsEnabled = value;
+    });
+  }
+
   Future<Widget> editAccount(BuildContext context) async {
     if (JwtDecoder.isExpired(widget.accountToken)) {
       await storage.delete(key: "quadrant_id_token");
@@ -81,6 +88,13 @@ class _EditDetailsState extends State<EditDetails> {
     String name = user["name"];
     String username = user["login"];
     String email = user["email"];
+    String sid = json.decode(
+      String.fromCharCodes(
+        base64.decode(
+          widget.accountToken.split(".")[1],
+        ),
+      ),
+    )["uid"];
     nameController.text = name;
     usernameController.text = username;
 
@@ -184,6 +198,7 @@ class _EditDetailsState extends State<EditDetails> {
               FilledButton(
                 onPressed: areButtonsEnabled
                     ? () async {
+                        setAreButtonsEnabled(false);
                         Map requestBody = {
                           "email": email,
                           "password": oldPasswordController.text,
@@ -204,9 +219,11 @@ class _EditDetailsState extends State<EditDetails> {
                                   "${AppLocalizations.of(context)!.unknown}: ${res.body}"),
                             ),
                           );
+                          setAreButtonsEnabled(true);
                           return;
                         }
-                        storage.delete(key: "quadrant_id_token");
+                        setAreButtonsEnabled(true);
+                        await storage.delete(key: "quadrant_id_token");
                         RestartWidget.restartApp(context);
                       }
                     : () {
@@ -241,7 +258,70 @@ class _EditDetailsState extends State<EditDetails> {
               ),
               FilledButton(
                 onPressed: areButtonsEnabled
-                    ? () async {}
+                    ? () async {
+                        setAreButtonsEnabled(false);
+                        Map requestBody = {
+                          "id": sid,
+                          "password": oldPasswordController.text,
+                          "reset_sessions": resetSessions
+                        };
+                        if (newPasswordController.text != "" &&
+                            newPasswordController.text ==
+                                confirmNewPasswordController.text) {
+                          requestBody.addAll({
+                            "new_password": newPasswordController.text,
+                          });
+                        } else if (newPasswordController.text != "" &&
+                            newPasswordController.text !=
+                                confirmNewPasswordController.text) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                AppLocalizations.of(context)!
+                                    .passwordsDontMatch,
+                              ),
+                            ),
+                          );
+                          setAreButtonsEnabled(true);
+                          return;
+                        }
+
+                        if (name != nameController.text) {
+                          requestBody.addAll({
+                            "name": nameController.text,
+                          });
+                        }
+                        if (username != usernameController.text) {
+                          requestBody.addAll({
+                            "login": usernameController.text,
+                          });
+                        }
+
+                        http.Response res = await http.patch(
+                          Uri.parse(
+                              "https://api.mrquantumoff.dev/api/v2/update/id/account"),
+                          headers: {
+                            "User-Agent": await generateUserAgent(),
+                          },
+                          body: json.encode(requestBody),
+                        );
+                        debugPrint(json.encode(requestBody));
+                        if (res.statusCode != 202) {
+                          debugPrint("${res.statusCode}");
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  "${AppLocalizations.of(context)!.unknown}: ${res.body}"),
+                            ),
+                          );
+                          return;
+                        }
+                        if (resetSessions) {
+                          await storage.delete(key: "quadrant_id_token");
+                        }
+                        Get.back();
+                        RestartWidget.restartApp(context);
+                      }
                     : () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
