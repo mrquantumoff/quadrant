@@ -318,6 +318,7 @@ class _EditDetailsState extends State<EditDetails> {
                         }
                         if (resetSessions) {
                           await storage.delete(key: "quadrant_id_token");
+                          Get.back();
                         }
                         Get.back();
                         RestartWidget.restartApp(context);

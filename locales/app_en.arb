@@ -183,5 +183,7 @@
   "edit": "Edit",
   "resetSessions": "Log out on all devices (including this one)",
   "newPassword": "New password (leave blank if you are not changing it)",
-  "passwordsDontMatch": "The new password and its confirmation don't match!"
+  "passwordsDontMatch": "The new password and its confirmation don't match!",
+  "register": "Register",
+  "verificationCode": "Verification code sent to your email"
 }

@@ -2,10 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/other/restart_app.dart';
+import 'package:quadrant/pages/account/sign_in_or_register/register/email.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 
 class SignInPage extends StatefulWidget {
@@ -69,6 +71,7 @@ class _SignInPageState extends State<SignInPage> {
               SizedBox(
                 width: 640,
                 child: TextField(
+                  keyboardType: TextInputType.emailAddress,
                   enabled: buttonsEnabled,
                   controller: emailController,
                   decoration: InputDecoration(
@@ -143,7 +146,10 @@ class _SignInPageState extends State<SignInPage> {
         const SizedBox(height: 20),
         OutlinedButton(
           onPressed: buttonsEnabled
-              ? () {}
+              ? () async {
+                  Get.to(() => const RegisterStep1(),
+                      transition: Transition.rightToLeft);
+                }
               : () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
