@@ -22,7 +22,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:protocol_handler/protocol_handler.dart';
 // import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:quadrant/pages/modpack_installer/import_modpacks/import_modpacks_page.dart';
+import 'package:quadrant/pages/modpack_importer/import_modpacks/import_modpacks_page.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
