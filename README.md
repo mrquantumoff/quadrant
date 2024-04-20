@@ -23,7 +23,11 @@
 
 - #### Importing and exporting modpacks
 
-- ### Updating mods from curseforge and modrinth
+- #### Updating mods from curseforge and modrinth
+
+- #### Sharing modpacks with your friends
+
+- #### Backing up modpacks to the cloud
 
 > [!IMPORTANT]
 > Why can't I include modpacks from curseforge? Although I do have API access to curseforge modpack API, I cannot completely install everything from a modpack, since many modpacks tend to overwrite some of minecraft's settings and/or install external resource packs. I do not wish to deal with that.
