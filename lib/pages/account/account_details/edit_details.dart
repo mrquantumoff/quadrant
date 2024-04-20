@@ -198,39 +198,62 @@ class _EditDetailsState extends State<EditDetails> {
               FilledButton(
                 onPressed: areButtonsEnabled
                     ? () async {
-                        setAreButtonsEnabled(false);
-                        Map requestBody = {
-                          "email": email,
-                          "password": oldPasswordController.text,
-                        };
-                        http.Response res = await http.delete(
-                          Uri.parse(
-                              "https://api.mrquantumoff.dev/api/v2/delete/id/account"),
-                          headers: {
-                            "User-Agent": await generateUserAgent(),
-                          },
-                          body: json.encode(requestBody),
+                        // Show a warning
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title:
+                                Text(AppLocalizations.of(context)!.areYouSure),
+                            actions: [
+                              IconButton.filled(
+                                onPressed: () async {
+                                  setAreButtonsEnabled(false);
+                                  Map requestBody = {
+                                    "email": email,
+                                    "password": oldPasswordController.text,
+                                  };
+                                  http.Response res = await http.delete(
+                                    Uri.parse(
+                                        "https://api.mrquantumoff.dev/api/v2/delete/id/account"),
+                                    headers: {
+                                      "User-Agent": await generateUserAgent(),
+                                    },
+                                    body: json.encode(requestBody),
+                                  );
+                                  if (res.statusCode != 202) {
+                                    debugPrint("${res.statusCode}");
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                            "${AppLocalizations.of(context)!.unknown}: ${res.body}"),
+                                      ),
+                                    );
+                                    setAreButtonsEnabled(true);
+                                    return;
+                                  }
+                                  setAreButtonsEnabled(true);
+                                  await storage.delete(
+                                      key: "quadrant_id_token");
+                                  RestartWidget.restartApp(context);
+                                },
+                                icon: const Icon(Icons.check),
+                              ),
+                              IconButton.filled(
+                                onPressed: () {
+                                  Get.back();
+                                },
+                                icon: const Icon(Icons.close),
+                              )
+                            ],
+                          ),
                         );
-                        if (res.statusCode != 202) {
-                          debugPrint("${res.statusCode}");
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                  "${AppLocalizations.of(context)!.unknown}: ${res.body}"),
-                            ),
-                          );
-                          setAreButtonsEnabled(true);
-                          return;
-                        }
-                        setAreButtonsEnabled(true);
-                        await storage.delete(key: "quadrant_id_token");
-                        RestartWidget.restartApp(context);
                       }
                     : () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(AppLocalizations.of(context)!
-                                .buttonsAreDisabled),
+                            content: Text(
+                              AppLocalizations.of(context)!.buttonsAreDisabled,
+                            ),
                           ),
                         );
                       },
