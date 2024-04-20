@@ -23,6 +23,7 @@ import 'package:http/http.dart' as http;
 import 'package:protocol_handler/protocol_handler.dart';
 // import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:quadrant/pages/modpack_importer/import_modpacks/import_modpacks_page.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -251,6 +252,8 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
     ];
 
     protocolHandler.addListener(this);
+
+    initializeDateFormatting();
   }
 
   @override

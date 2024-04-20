@@ -188,5 +188,6 @@
   "verificationCode": "Verification code sent to your email",
   "modpackSynced": "Modpack synced with Quadrant Sync",
   "noQuadrantID": "Not logged into Quadrant ID",
-  "experimentalFeauturesAreDisabled": "Experimental features are disabled!"
+  "experimentalFeauturesAreDisabled": "Experimental features are disabled!",
+  "lastSyncedOn": "Last synced on {date}"
 }

@@ -122,7 +122,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
     }
   }
 
-  Future<List<SyncedModpack>> getSyncedModpacks() async {
+  Future<List<SyncedModpack>> getSyncedModpacks(String reload) async {
     if (GetStorage().read("experimentalFeatures") == false) {
       throw Exception(
           AppLocalizations.of(context)!.experimentalFeauturesAreDisabled);
@@ -154,11 +154,23 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
           mcVersion: modpack["mc_version"],
           modLoader: modpack["mod_loader"],
           lastSynced: modpack["last_synced"],
+          reload: () {
+            setReload(modpack["name"]);
+          },
+          token: token,
         ),
       );
     }
 
     return syncedModpacks;
+  }
+
+  String reload = "";
+
+  void setReload(String newReload) {
+    setState(() {
+      reload = newReload;
+    });
   }
 
   @override
@@ -470,7 +482,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       FutureBuilder(
-                        future: getSyncedModpacks(),
+                        future: getSyncedModpacks(reload),
                         builder: (context, snapshot) {
                           if (snapshot.hasData) {
                             return SizedBox(
