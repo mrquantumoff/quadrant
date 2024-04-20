@@ -162,8 +162,10 @@ class _SelectorState extends State<Selector> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               duration: const Duration(seconds: 1),
-                              content: Text(AppLocalizations.of(context)!
-                                  .buttonsAreDisabled),
+                              content: Text(
+                                AppLocalizations.of(context)!
+                                    .buttonsAreDisabled,
+                              ),
                             ),
                           );
                         },
@@ -222,8 +224,10 @@ class _SelectorState extends State<Selector> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               duration: const Duration(seconds: 1),
-                              content: Text(AppLocalizations.of(context)!
-                                  .buttonsAreDisabled),
+                              content: Text(
+                                AppLocalizations.of(context)!
+                                    .buttonsAreDisabled,
+                              ),
                             ),
                           );
                         },
@@ -432,6 +436,92 @@ class _SelectorState extends State<Selector> {
           children: [
             Container(
               margin: const EdgeInsets.only(right: 5),
+              child: ActionChip(
+                onPressed: () async {
+                  if (GetStorage().read("experimentalFeatures") == false) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          AppLocalizations.of(context)!
+                              .experimentalFeauturesAreDisabled,
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                  const storage = FlutterSecureStorage();
+                  String? token = await storage.read(key: "quadrant_id_token");
+                  if (token == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          AppLocalizations.of(context)!.noQuadrantID,
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                  if (selectedModpack == null) {
+                    return;
+                  }
+                  File selectedModpackFile = File(
+                    "${getMinecraftFolder().path}/modpacks/$selectedModpack/modConfig.json",
+                  );
+                  String modConfigRaw =
+                      await selectedModpackFile.readAsString();
+                  Map modConfig = json.decode(modConfigRaw);
+                  String modLoader = modConfig["modLoader"];
+                  String mcVersion = modConfig["version"];
+                  List mods = modConfig["mods"];
+                  int timestamp = DateTime.now().toUtc().millisecondsSinceEpoch;
+                  debugPrint(timestamp.toString());
+                  http.Response res = await http.post(
+                    Uri.parse(
+                      "https://api.mrquantumoff.dev/api/v2/submit/quadrant_sync",
+                    ),
+                    headers: {
+                      "User-Agent": await generateUserAgent(),
+                      "Authorization": "Bearer $token"
+                    },
+                    body: json.encode(
+                      {
+                        "name": selectedModpack,
+                        "mc_version": mcVersion,
+                        "mod_loader": modLoader,
+                        "mods": mods.toString(),
+                        // This is the manual way of updating the modpack in the cloud, so it will overwrite anything else
+                        "overwrite": true,
+                        "last_synced": timestamp,
+                      },
+                    ),
+                  );
+                  if (res.statusCode != 200) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          res.body,
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      duration: const Duration(seconds: 5),
+                      content: Text(
+                        AppLocalizations.of(context)!.modpackUpdated,
+                      ),
+                    ),
+                  );
+                },
+                avatar: const Icon(Icons.cloud_sync),
+                label: Text(
+                  "  ${AppLocalizations.of(context)!.sync}",
+                ),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 5),
               child: ActionChip(
                 onPressed: () async {
                   Get.to(

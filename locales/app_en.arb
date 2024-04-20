@@ -186,8 +186,10 @@
   "passwordsDontMatch": "The new password and its confirmation don't match!",
   "register": "Register",
   "verificationCode": "Verification code sent to your email",
-  "modpackSynced": "Modpack synced with Quadrant Sync",
+  "modpackSynced": "Modpack synced with Quadrant Sync: ",
   "noQuadrantID": "Not logged into Quadrant ID",
   "experimentalFeauturesAreDisabled": "Experimental features are disabled!",
-  "lastSyncedOn": "Last synced on {date}"
+  "lastSyncedOn": "Last synced on {date}",
+  "sync": "Sync",
+  "modpackUpdated": "Modpack updated successfully"
 }

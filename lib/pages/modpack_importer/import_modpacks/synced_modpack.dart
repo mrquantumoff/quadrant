@@ -37,9 +37,8 @@ class _SyncedModpackState extends State<SyncedModpack> {
   Widget build(BuildContext context) {
     var tag = Localizations.maybeLocaleOf(context)?.toLanguageTag();
 
-    String date = DateFormat('EEEE, dd.MM, hh:mm', tag).format(
-        DateTime.tryParse(widget.lastSynced.toString())!
-            .toLocal()); // 12/31, 11:00 PM
+    String date = DateFormat('EEEE, dd.MM, HH:mm y', tag)
+        .format(DateTime.fromMillisecondsSinceEpoch(widget.lastSynced));
 
     return SizedBox(
       width: 640,
