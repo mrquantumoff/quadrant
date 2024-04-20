@@ -74,7 +74,7 @@ msix_config:
   publisher_display_name: MrQuantumOFF (Demir Yerli)
   publisher: CN=010914FC-8843-4963-A3FE-E3E06E6D9F53
   identity_name: 58734MrQuantumOFFDemirYer.MinecraftModpackManagerR
-  msix_version: 24.4.1.0
+  msix_version: 24.5.0.0
   logo_path: .\assets\icons\logo.ico
   store: true
   protocol-activation: curseforge, mcmodpackmanager
