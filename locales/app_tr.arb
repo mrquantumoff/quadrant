@@ -178,5 +178,12 @@
   "newPassword": "Yeni şifre (değiştirmiyorsanız boş bırakın)",
   "passwordsDontMatch": "Yeni şifre ve onun onayı eşleşmiyor!",
   "register": "Kayıt ol",
-  "verificationCode": "E-postanıza gönderilen doğrulama kodu"
+  "verificationCode": "E-postanıza gönderilen doğrulama kodu",
+  "modpackSynced": "Quadrant Sync ile senkronize edilen mod paketler: ",
+  "noQuadrantID": "Quadrant ID'ye giriş yapılmadı",
+  "experimentalFeauturesAreDisabled": "Deneysel özellikler devre dışı bırakıldı!",
+  "lastSyncedOn": "Son senkronizasyon tarihi {date}",
+  "sync": "Senkronize et",
+  "modpackUpdated": "Mod paketi başarıyla güncellendi",
+  "areYouSure": "Hesabınızı silmek istediğinizden emin misiniz?"
 }
