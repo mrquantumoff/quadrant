@@ -17,6 +17,7 @@ class SyncedModpack extends StatefulWidget {
     required this.lastSynced,
     required this.reload,
     required this.token,
+    required this.getMods,
   });
 
   final String modpackId;
@@ -26,6 +27,7 @@ class SyncedModpack extends StatefulWidget {
   final String modLoader;
   final int lastSynced;
   final Function reload;
+  final Function(String rawFile, {bool switchTabs}) getMods;
   final String token;
 
   @override
@@ -76,6 +78,28 @@ class _SyncedModpackState extends State<SyncedModpack> {
                   children: [
                     FilledButton.icon(
                       onPressed: () async {
+                        List mods = json.decode(widget.mods);
+                        debugPrint(mods.toString());
+                        Map modConfig = {
+                          "name": widget.name,
+                          "version": widget.mcVersion,
+                          "mods": mods,
+                          "modLoader": widget.modLoader
+                        };
+                        await widget.getMods(json.encode(modConfig),
+                            switchTabs: true);
+                      },
+                      icon: const Icon(Icons.download),
+                      label: Text(AppLocalizations.of(context)!.download),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(360, 48),
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 12,
+                    ),
+                    FilledButton.icon(
+                      onPressed: () async {
                         http.Response res = await http.delete(
                           Uri.parse(
                               "https://api.mrquantumoff.dev/api/v2/delete/quadrant_sync"),
@@ -104,6 +128,7 @@ class _SyncedModpackState extends State<SyncedModpack> {
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.redAccent,
                         foregroundColor: Colors.white,
+                        minimumSize: const Size(360, 48),
                       ),
                     ),
                   ],

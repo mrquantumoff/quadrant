@@ -27,7 +27,8 @@ class DownloadedMod {
   File file;
 }
 
-class _ShareModpacksPageState extends State<ShareModpacksPage> {
+class _ShareModpacksPageState extends State<ShareModpacksPage>
+    with TickerProviderStateMixin {
   List<Widget> mods = [];
   List<String> modDownloadUrls = [];
   String modLoader = "";
@@ -37,6 +38,15 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
   int otherModCount = 0;
   bool isLoading = false;
   String modConfig = "";
+
+  late TabController tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    tabController = TabController(length: 2, vsync: this);
+  }
+
   TextEditingController modpackEntryController = TextEditingController();
   void setProgressValue(double value) {
     setState(() {
@@ -44,10 +54,18 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
     });
   }
 
-  void getMods(String rawFile) async {
+  void getMods(String rawFile, {bool switchTabs = false}) async {
     setState(() {
       modConfig = rawFile;
     });
+
+    if (switchTabs) {
+      tabController.animateTo(0);
+      setState(() {
+        isLoading = true;
+      });
+    }
+
     try {
       Map jsonFile = json.decode(rawFile);
       if (jsonFile["modLoader"] == null ||
@@ -158,6 +176,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
             setReload(modpack["name"]);
           },
           token: token,
+          getMods: getMods,
         ),
       );
     }
@@ -175,347 +194,341 @@ class _ShareModpacksPageState extends State<ShareModpacksPage> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(AppLocalizations.of(context)!.importMods),
-          bottom: TabBar(
-            tabs: [
-              Tab(
-                child: Text(AppLocalizations.of(context)!.importMods),
-              ),
-              const Tab(child: Text("Quadrant Sync")),
-            ],
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(AppLocalizations.of(context)!.importMods),
+        bottom: TabBar(
+          controller: tabController,
+          tabs: [
+            Tab(
+              child: Text(AppLocalizations.of(context)!.importMods),
+            ),
+            const Tab(child: Text("Quadrant Sync")),
+          ],
         ),
-        body: TabBarView(
-          children: [
-            Center(
-              child: ListView(
-                shrinkWrap: true,
-                children: isLoading
-                    ? [const LinearProgressIndicator()]
-                    : (mods.isEmpty && otherModCount == 0)
-                        ? [
-                            Center(
-                              child: Text(
-                                  AppLocalizations.of(context)!.manualInput),
-                            ),
-                            Container(
-                              margin: const EdgeInsets.symmetric(vertical: 12),
-                              child: Center(
-                                child: SizedBox(
-                                  width: 960,
-                                  child: TextField(
-                                    decoration: const InputDecoration(
-                                      border: OutlineInputBorder(),
-                                    ),
-                                    controller: modpackEntryController,
+      ),
+      body: TabBarView(
+        controller: tabController,
+        children: [
+          Center(
+            child: ListView(
+              shrinkWrap: true,
+              children: isLoading
+                  ? [const LinearProgressIndicator()]
+                  : (mods.isEmpty && otherModCount == 0)
+                      ? [
+                          Center(
+                            child:
+                                Text(AppLocalizations.of(context)!.manualInput),
+                          ),
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 12),
+                            child: Center(
+                              child: SizedBox(
+                                width: 960,
+                                child: TextField(
+                                  decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
                                   ),
+                                  controller: modpackEntryController,
                                 ),
                               ),
                             ),
-                            Container(
-                              margin: const EdgeInsets.symmetric(vertical: 12),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    margin: const EdgeInsets.only(right: 8),
-                                    child: FilledButton.tonal(
-                                      onPressed: () async {
-                                        setState(() {
-                                          modDownloadUrls = [];
-                                          mods = [];
-                                          isLoading = true;
-                                          otherModCount = 0;
-                                        });
-                                        FilePickerResult? filePickerResult =
-                                            await FilePicker.platform.pickFiles(
-                                          allowMultiple: false,
-                                          allowedExtensions: ["json"],
-                                          withData: true,
-                                          lockParentWindow: true,
-                                        );
-                                        if (filePickerResult == null) {
-                                          setState(() {
-                                            isLoading = false;
-                                          });
-                                          return;
-                                        }
-                                        PlatformFile platformFile =
-                                            filePickerResult.files[0];
-                                        if (platformFile.path == null ||
-                                            !platformFile.name
-                                                .endsWith(".json")) {
-                                          setState(() {
-                                            isLoading = false;
-                                          });
-                                          debugPrint("Invalid data 3");
-
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                AppLocalizations.of(context)!
-                                                    .invalidData,
-                                              ),
-                                            ),
-                                          );
-                                          return;
-                                        }
-                                        File file = File(platformFile.path!);
-                                        String rawFile =
-                                            await file.readAsString();
-                                        getMods(rawFile);
-                                      },
-                                      child: Text(
-                                        AppLocalizations.of(context)!.openFile,
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 8),
-                                    child: FilledButton.tonal(
-                                      child: Text(
-                                        AppLocalizations.of(context)!.paste,
-                                      ),
-                                      onPressed: () async {
-                                        String value =
-                                            await FlutterClipboard.paste();
-                                        setState(
-                                          () {
-                                            modpackEntryController.text = value;
-                                          },
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  Container(
-                                    margin: const EdgeInsets.only(left: 8),
-                                    child: FilledButton(
-                                      child: Text(
-                                        AppLocalizations.of(context)!.download,
-                                      ),
-                                      onPressed: () async {
-                                        setState(() {
-                                          isLoading = true;
-                                        });
-                                        var res = await http.get(Uri.parse(
-                                            "https://api.mrquantumoff.dev/api/v2/get/quadrant_share?code=${String.fromCharCodes(modpackEntryController.text.codeUnits)}"));
-                                        if (res.statusCode != 200) {
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                            SnackBar(
-                                              content: Text(
-                                                AppLocalizations.of(context)!
-                                                    .failedQuadrantShare,
-                                              ),
-                                            ),
-                                          );
-                                          setState(() {
-                                            isLoading = false;
-                                          });
-                                          return;
-                                        }
-                                        var decoded = json.decode(res.body);
-                                        debugPrint(decoded["mod_config"]);
-
-                                        getMods(
-                                          // Deep copying
-                                          decoded["mod_config"],
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ]
-                        : [
-                            Container(
-                              height: 360,
-                              margin: const EdgeInsets.only(
-                                  bottom: 24, left: 120, right: 120),
-                              child: GridView.extent(
-                                maxCrossAxisExtent: 540,
-                                childAspectRatio: 1.35,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                mainAxisSpacing: 24,
-                                children: mods,
-                              ),
-                            ),
-                            Center(
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                child: Text(
-                                  AppLocalizations.of(context)!.otherMods(
-                                    otherModCount,
-                                  ),
-                                  style: const TextStyle(fontSize: 18),
-                                ),
-                              ),
-                            ),
-                            Row(
+                          ),
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 12),
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                FilledButton.icon(
-                                  onPressed: () async {
-                                    List<DownloadedMod> downloadedMods = [];
-                                    debugPrint("$modDownloadUrls");
-                                    for (var downloadUrl in modDownloadUrls) {
-                                      int modIndex =
-                                          modDownloadUrls.indexOf(downloadUrl);
-                                      final http.Response res = await http.get(
-                                        Uri.parse(downloadUrl),
-                                        headers: {
-                                          "User-Agent":
-                                              await generateUserAgent(),
-                                        },
+                                Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  child: FilledButton.tonal(
+                                    onPressed: () async {
+                                      setState(() {
+                                        modDownloadUrls = [];
+                                        mods = [];
+                                        isLoading = true;
+                                        otherModCount = 0;
+                                      });
+                                      FilePickerResult? filePickerResult =
+                                          await FilePicker.platform.pickFiles(
+                                        allowMultiple: false,
+                                        allowedExtensions: ["json"],
+                                        withData: true,
+                                        lockParentWindow: true,
                                       );
-                                      File modDestFile = File(
-                                          "${getMinecraftFolder().path}/modpacks/$modpack/${Uri.parse(downloadUrl).pathSegments.last}");
-                                      List<int> bytes = res.bodyBytes;
-                                      setProgressValue(
-                                          modIndex / modDownloadUrls.length);
-                                      downloadedMods.add(
-                                        DownloadedMod(
-                                            bytes: bytes, file: modDestFile),
-                                      );
-                                    }
-                                    Directory modpackDir = Directory(
-                                        "${getMinecraftFolder().path}/modpacks/$modpack");
-                                    if (await modpackDir.exists()) {
-                                      await modpackDir.delete(recursive: true);
-                                    }
-                                    await modpackDir.create(recursive: true);
-                                    bool success = true;
-                                    for (DownloadedMod dlMod
-                                        in downloadedMods) {
-                                      try {
-                                        if (dlMod.file.existsSync()) {
-                                          await dlMod.file.delete();
-                                        }
-                                        await dlMod.file
-                                            .create(recursive: true);
-                                        await dlMod.file
-                                            .writeAsBytes(dlMod.bytes);
-                                        setProgressValue(
-                                            downloadedMods.indexOf(dlMod) +
-                                                1 / downloadedMods.length);
-                                      } catch (e) {
-                                        debugPrint(e.toString());
-                                        success = false;
+                                      if (filePickerResult == null) {
+                                        setState(() {
+                                          isLoading = false;
+                                        });
+                                        return;
+                                      }
+                                      PlatformFile platformFile =
+                                          filePickerResult.files[0];
+                                      if (platformFile.path == null ||
+                                          !platformFile.name
+                                              .endsWith(".json")) {
+                                        setState(() {
+                                          isLoading = false;
+                                        });
+                                        debugPrint("Invalid data 3");
+
                                         ScaffoldMessenger.of(context)
                                             .showSnackBar(
                                           SnackBar(
                                             content: Text(
                                               AppLocalizations.of(context)!
-                                                  .downloadFail,
+                                                  .invalidData,
                                             ),
                                           ),
                                         );
+                                        return;
                                       }
-                                    }
-                                    if (success) {
-                                      File modpackConfig = File(
-                                          "${modpackDir.path}/modConfig.json");
-                                      debugPrint(modpackConfig.path);
-                                      if (modpackConfig.existsSync()) {
-                                        await modpackConfig.delete();
+                                      File file = File(platformFile.path!);
+                                      String rawFile =
+                                          await file.readAsString();
+                                      getMods(rawFile);
+                                    },
+                                    child: Text(
+                                      AppLocalizations.of(context)!.openFile,
+                                    ),
+                                  ),
+                                ),
+                                Container(
+                                  margin:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                  child: FilledButton.tonal(
+                                    child: Text(
+                                      AppLocalizations.of(context)!.paste,
+                                    ),
+                                    onPressed: () async {
+                                      String value =
+                                          await FlutterClipboard.paste();
+                                      setState(
+                                        () {
+                                          modpackEntryController.text = value;
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ),
+                                Container(
+                                  margin: const EdgeInsets.only(left: 8),
+                                  child: FilledButton(
+                                    child: Text(
+                                      AppLocalizations.of(context)!.download,
+                                    ),
+                                    onPressed: () async {
+                                      setState(() {
+                                        isLoading = true;
+                                      });
+                                      var res = await http.get(Uri.parse(
+                                          "https://api.mrquantumoff.dev/api/v2/get/quadrant_share?code=${String.fromCharCodes(modpackEntryController.text.codeUnits)}"));
+                                      if (res.statusCode != 200) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              AppLocalizations.of(context)!
+                                                  .failedQuadrantShare,
+                                            ),
+                                          ),
+                                        );
+                                        setState(() {
+                                          isLoading = false;
+                                        });
+                                        return;
                                       }
-                                      await modpackConfig.create();
+                                      var decoded = json.decode(res.body);
+                                      debugPrint(decoded["mod_config"]);
 
-                                      await modpackConfig
-                                          .writeAsString(modConfig);
+                                      getMods(
+                                        // Deep copying
+                                        decoded["mod_config"],
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ]
+                      : [
+                          Container(
+                            height: 360,
+                            margin: const EdgeInsets.only(
+                                bottom: 24, left: 120, right: 120),
+                            child: GridView.extent(
+                              maxCrossAxisExtent: 540,
+                              childAspectRatio: 1.35,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              mainAxisSpacing: 24,
+                              children: mods,
+                            ),
+                          ),
+                          Center(
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              child: Text(
+                                AppLocalizations.of(context)!.otherMods(
+                                  otherModCount,
+                                ),
+                                style: const TextStyle(fontSize: 18),
+                              ),
+                            ),
+                          ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              FilledButton.icon(
+                                onPressed: () async {
+                                  List<DownloadedMod> downloadedMods = [];
+                                  debugPrint("$modDownloadUrls");
+                                  for (var downloadUrl in modDownloadUrls) {
+                                    int modIndex =
+                                        modDownloadUrls.indexOf(downloadUrl);
+                                    final http.Response res = await http.get(
+                                      Uri.parse(downloadUrl),
+                                      headers: {
+                                        "User-Agent": await generateUserAgent(),
+                                      },
+                                    );
+                                    File modDestFile = File(
+                                        "${getMinecraftFolder().path}/modpacks/$modpack/${Uri.parse(downloadUrl).pathSegments.last}");
+                                    List<int> bytes = res.bodyBytes;
+                                    setProgressValue(
+                                        modIndex / modDownloadUrls.length);
+                                    downloadedMods.add(
+                                      DownloadedMod(
+                                          bytes: bytes, file: modDestFile),
+                                    );
+                                  }
+                                  Directory modpackDir = Directory(
+                                      "${getMinecraftFolder().path}/modpacks/$modpack");
+                                  if (await modpackDir.exists()) {
+                                    await modpackDir.delete(recursive: true);
+                                  }
+                                  await modpackDir.create(recursive: true);
+                                  bool success = true;
+                                  for (DownloadedMod dlMod in downloadedMods) {
+                                    try {
+                                      if (dlMod.file.existsSync()) {
+                                        await dlMod.file.delete();
+                                      }
+                                      await dlMod.file.create(recursive: true);
+                                      await dlMod.file
+                                          .writeAsBytes(dlMod.bytes);
+                                      setProgressValue(
+                                          downloadedMods.indexOf(dlMod) +
+                                              1 / downloadedMods.length);
+                                    } catch (e) {
+                                      debugPrint(e.toString());
+                                      success = false;
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         SnackBar(
                                           content: Text(
                                             AppLocalizations.of(context)!
-                                                .downloadSuccess,
+                                                .downloadFail,
                                           ),
                                         ),
                                       );
                                     }
-                                  },
-                                  icon: const Icon(Icons.download),
-                                  label: Text(
-                                    AppLocalizations.of(context)!.download,
-                                  ),
+                                  }
+                                  if (success) {
+                                    File modpackConfig = File(
+                                        "${modpackDir.path}/modConfig.json");
+                                    debugPrint(modpackConfig.path);
+                                    if (modpackConfig.existsSync()) {
+                                      await modpackConfig.delete();
+                                    }
+                                    await modpackConfig.create();
+
+                                    await modpackConfig
+                                        .writeAsString(modConfig);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          AppLocalizations.of(context)!
+                                              .downloadSuccess,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.download),
+                                label: Text(
+                                  AppLocalizations.of(context)!.download,
                                 ),
-                              ],
-                            ),
-                            Container(
-                              margin: const EdgeInsets.symmetric(
-                                  vertical: 25, horizontal: 48),
-                              child: LinearProgressIndicator(
-                                value: progressValue,
                               ),
+                            ],
+                          ),
+                          Container(
+                            margin: const EdgeInsets.symmetric(
+                                vertical: 25, horizontal: 48),
+                            child: LinearProgressIndicator(
+                              value: progressValue,
                             ),
-                          ],
+                          ),
+                        ],
+            ),
+          ),
+          Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 4, left: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text(
+                      AppLocalizations.of(context)!.modpackSynced,
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 4, left: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppLocalizations.of(context)!.modpackSynced,
-                        style: const TextStyle(fontSize: 24),
-                      ),
-                    ],
-                  ),
-                ),
-                Center(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      FutureBuilder(
-                        future: getSyncedModpacks(reload),
-                        builder: (context, snapshot) {
-                          if (snapshot.hasData) {
-                            return SizedBox(
-                              height: 540,
-                              child: ListView(
-                                children: snapshot.data!,
-                              ),
-                            );
-                          } else if (snapshot.hasError) {
-                            return Column(
-                              children: [
-                                const Icon(Icons.error),
-                                Text(
-                                  snapshot.error.toString(),
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                  ),
-                                )
-                              ],
-                            );
-                          }
-                          return const Center(
-                            child: CircularProgressIndicator(),
+              Center(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FutureBuilder(
+                      future: getSyncedModpacks(reload),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return SizedBox(
+                            height: 540,
+                            child: ListView(
+                              children: snapshot.data!,
+                            ),
                           );
-                        },
-                      ),
-                    ],
-                  ),
+                        } else if (snapshot.hasError) {
+                          return Column(
+                            children: [
+                              const Icon(Icons.error),
+                              Text(
+                                snapshot.error.toString(),
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                ),
+                              )
+                            ],
+                          );
+                        }
+                        return const Center(
+                          child: CircularProgressIndicator(),
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

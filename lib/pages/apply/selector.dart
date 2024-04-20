@@ -488,7 +488,7 @@ class _SelectorState extends State<Selector> {
                         "name": selectedModpack,
                         "mc_version": mcVersion,
                         "mod_loader": modLoader,
-                        "mods": mods.toString(),
+                        "mods": json.encode(mods),
                         // This is the manual way of updating the modpack in the cloud, so it will overwrite anything else
                         "overwrite": true,
                         "last_synced": timestamp,
