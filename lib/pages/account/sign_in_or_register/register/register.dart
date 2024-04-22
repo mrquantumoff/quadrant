@@ -61,7 +61,7 @@ class _RegisterStep2State extends State<RegisterStep2> {
               Text(
                 AppLocalizations.of(context)!.register,
                 style: const TextStyle(
-                  color: Colors.white,
+                  // color: Colors.white,
                   fontSize: 30,
                   // fontWeight: FontWeight.w800,
                 ),

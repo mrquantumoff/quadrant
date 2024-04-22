@@ -50,7 +50,7 @@ class _SignInPageState extends State<SignInPage> {
             Text(
               AppLocalizations.of(context)!.signIn,
               style: const TextStyle(
-                color: Colors.white,
+                // color: Colors.white,
                 fontSize: 30,
                 // fontWeight: FontWeight.w800,
               ),
@@ -58,7 +58,7 @@ class _SignInPageState extends State<SignInPage> {
             Text(
               AppLocalizations.of(context)!.emailAndPassword,
               style: const TextStyle(
-                color: Colors.white,
+                // color: Colors.white,
                 fontSize: 20,
               ),
             ),
