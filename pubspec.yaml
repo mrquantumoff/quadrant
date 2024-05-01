@@ -2,7 +2,7 @@ name: quadrant
 description: Manage your modpacks with ease!
 publish_to: 'none'
 
-version: 24.5.0+4
+version: 24.5.1+4
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
