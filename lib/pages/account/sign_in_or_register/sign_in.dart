@@ -107,6 +107,9 @@ class _SignInPageState extends State<SignInPage> {
                         "https://api.mrquantumoff.dev/api/v2/submit/account/login"),
                     headers: {
                       'User-Agent': await generateUserAgent(),
+                      // This is not needed right now, but it will be once
+                      'Authorization':
+                          const String.fromEnvironment("QUADRANT_QNT_API_KEY")
                     },
                     body: jsonEncode(
                       {

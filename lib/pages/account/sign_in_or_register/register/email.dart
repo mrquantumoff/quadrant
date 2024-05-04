@@ -86,6 +86,8 @@ class _RegisterStep1State extends State<RegisterStep1> {
                           "https://api.mrquantumoff.dev/api/v2/submit/id/request_registration"),
                       headers: {
                         'User-Agent': await generateUserAgent(),
+                        'Authorization':
+                            const String.fromEnvironment("QUADRANT_QNT_API_KEY")
                       },
                       body: jsonEncode(
                         {
