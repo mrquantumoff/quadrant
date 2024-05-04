@@ -7,6 +7,7 @@ import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:http/http.dart' as http;
 import 'package:quadrant/other/restart_app.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class EditDetails extends StatefulWidget {
   const EditDetails({super.key, required this.accountToken});
@@ -87,7 +88,6 @@ class _EditDetailsState extends State<EditDetails> {
 
     String name = user["name"];
     String username = user["login"];
-    String email = user["email"];
     String sid = json.decode(
       String.fromCharCodes(
         base64.decode(
@@ -195,82 +195,20 @@ class _EditDetailsState extends State<EditDetails> {
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              FilledButton(
-                onPressed: areButtonsEnabled
-                    ? () async {
-                        // Show a warning
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title:
-                                Text(AppLocalizations.of(context)!.areYouSure),
-                            actions: [
-                              IconButton.filled(
-                                onPressed: () async {
-                                  setAreButtonsEnabled(false);
-                                  Map requestBody = {
-                                    "email": email,
-                                    "password": oldPasswordController.text,
-                                  };
-                                  http.Response res = await http.delete(
-                                    Uri.parse(
-                                        "https://api.mrquantumoff.dev/api/v2/delete/id/account"),
-                                    headers: {
-                                      "User-Agent": await generateUserAgent(),
-                                    },
-                                    body: json.encode(requestBody),
-                                  );
-                                  if (res.statusCode != 202) {
-                                    debugPrint("${res.statusCode}");
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                            "${AppLocalizations.of(context)!.unknown}: ${res.body}"),
-                                      ),
-                                    );
-                                    setAreButtonsEnabled(true);
-                                    return;
-                                  }
-                                  setAreButtonsEnabled(true);
-                                  await storage.delete(
-                                      key: "quadrant_id_token");
-                                  RestartWidget.restartApp(context);
-                                },
-                                icon: const Icon(Icons.check),
-                              ),
-                              IconButton.filled(
-                                onPressed: () {
-                                  Get.back();
-                                },
-                                icon: const Icon(Icons.close),
-                              )
-                            ],
-                          ),
-                        );
-                      }
-                    : () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              AppLocalizations.of(context)!.buttonsAreDisabled,
-                            ),
-                          ),
-                        );
-                      },
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                ),
+              FilledButton.tonal(
+                onPressed: () async {
+                  launchUrlString("https://mrquantumoff.dev/account");
+                },
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(AppLocalizations.of(context)!.delete),
+                    Text(AppLocalizations.of(context)!.advancedSettings),
                     const SizedBox(
                       width: 4,
                     ),
                     const Icon(
-                      Icons.delete,
+                      Icons.settings,
                       size: 16,
                     ),
                   ],

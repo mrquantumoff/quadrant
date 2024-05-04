@@ -9,6 +9,7 @@ import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/other/restart_app.dart';
 import 'package:quadrant/pages/account/sign_in_or_register/register/email.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -144,7 +145,7 @@ class _SignInPageState extends State<SignInPage> {
           child: Text(AppLocalizations.of(context)!.signIn),
         ),
         const SizedBox(height: 20),
-        OutlinedButton(
+        FilledButton.tonal(
           onPressed: buttonsEnabled
               ? () async {
                   Get.to(() => const RegisterStep1(),
@@ -158,8 +159,17 @@ class _SignInPageState extends State<SignInPage> {
                     ),
                   );
                 },
-          child: Text(AppLocalizations.of(context)!.dontHaveAccount),
-        )
+          child: Text(
+            AppLocalizations.of(context)!.dontHaveAccount,
+          ),
+        ),
+        const SizedBox(height: 20),
+        OutlinedButton(
+          onPressed: () async {
+            launchUrlString("https://mrquantumoff.dev/account");
+          },
+          child: Text(AppLocalizations.of(context)!.resetPassword),
+        ),
       ],
     );
   }
