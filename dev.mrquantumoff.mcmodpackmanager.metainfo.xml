@@ -37,6 +37,12 @@
   </keywords>
   <releases>
 
+    <release date="2024-05-04" version="24.5.2">
+      <description>
+        <p>Improved the Quadrant ID experience</p>
+      </description>
+    </release>
+
     <release date="2024-05-01" version="24.5.1">
       <description>
         <p>Introducing Quadrant ID, read more detailed changes here: https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
