@@ -24,9 +24,7 @@ class _AccountPageState extends State<AccountPage> {
     if (token == null) {
       return const SignInPage();
     } else {
-      return AccountDetails(
-        accountToken: token,
-      );
+      return const AccountDetails();
     }
     // return Container();
   }

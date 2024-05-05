@@ -10,9 +10,7 @@ import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class EditDetails extends StatefulWidget {
-  const EditDetails({super.key, required this.accountToken});
-
-  final String accountToken;
+  const EditDetails({super.key});
 
   @override
   State<EditDetails> createState() => _EditDetailsState();
@@ -55,7 +53,9 @@ class _EditDetailsState extends State<EditDetails> {
   }
 
   Future<Widget> editAccount(BuildContext context) async {
-    if (JwtDecoder.isExpired(widget.accountToken)) {
+    String accountToken = (await storage.read(key: "quadrant_id_token"))!;
+
+    if (JwtDecoder.isExpired(accountToken)) {
       await storage.delete(key: "quadrant_id_token");
     }
 
@@ -63,7 +63,7 @@ class _EditDetailsState extends State<EditDetails> {
       Uri.parse("https://api.mrquantumoff.dev/api/v2/get/account"),
       headers: {
         "User-Agent": await generateUserAgent(),
-        "Authorization": "Bearer ${widget.accountToken}",
+        "Authorization": "Bearer $accountToken",
       },
     );
 
@@ -86,15 +86,14 @@ class _EditDetailsState extends State<EditDetails> {
     }
     Map<String, dynamic> user = json.decode(res.body);
 
+    // debugPrint(accountToken);
+
     String name = user["name"];
     String username = user["login"];
-    String sid = json.decode(
-      String.fromCharCodes(
-        base64.decode(
-          widget.accountToken.split(".")[1],
-        ),
-      ),
-    )["uid"];
+
+    Map<dynamic, dynamic> tokenData = JwtDecoder.decode(accountToken);
+
+    String sid = tokenData["uid"];
     nameController.text = name;
     usernameController.text = username;
 

@@ -10,10 +10,7 @@ import 'package:quadrant/pages/account/account_details/edit_details.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 
 class AccountDetails extends StatefulWidget {
-  const AccountDetails({super.key, required this.accountToken});
-
-  final String accountToken;
-
+  const AccountDetails({super.key});
   @override
   State<AccountDetails> createState() => _AccountDetailsState();
 }
@@ -22,7 +19,9 @@ class _AccountDetailsState extends State<AccountDetails> {
   final storage = const FlutterSecureStorage();
 
   Future<Widget> accountDetails(BuildContext context) async {
-    if (JwtDecoder.isExpired(widget.accountToken)) {
+    String accountToken = (await storage.read(key: "quadrant_id_token"))!;
+
+    if (JwtDecoder.isExpired(accountToken)) {
       await storage.delete(key: "quadrant_id_token");
     }
 
@@ -30,7 +29,7 @@ class _AccountDetailsState extends State<AccountDetails> {
       Uri.parse("https://api.mrquantumoff.dev/api/v2/get/account"),
       headers: {
         "User-Agent": await generateUserAgent(),
-        "Authorization": "Bearer ${widget.accountToken}",
+        "Authorization": "Bearer $accountToken",
       },
     );
 
@@ -149,7 +148,7 @@ class _AccountDetailsState extends State<AccountDetails> {
               FilledButton(
                 onPressed: () async {
                   Get.to(
-                    () => EditDetails(accountToken: widget.accountToken),
+                    () => const EditDetails(),
                     transition: Transition.fadeIn,
                   );
                 },
