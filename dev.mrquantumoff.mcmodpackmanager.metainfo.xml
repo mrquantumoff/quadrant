@@ -37,6 +37,12 @@
   </keywords>
   <releases>
 
+    <release date="2024-05-05" version="24.5.3">
+      <description>
+        <p>Fixed a very important bug</p>
+      </description>
+    </release>
+
     <release date="2024-05-04" version="24.5.2">
       <description>
         <p>Improved the Quadrant ID experience</p>
