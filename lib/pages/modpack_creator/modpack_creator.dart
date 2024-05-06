@@ -25,6 +25,9 @@ class _ModpackCreatorState extends State<ModpackCreator> {
   void initState() {
     super.initState();
     areButttonsActive = true;
+    if (widget.update) {
+      modpackFieldController.text = widget.modpack;
+    }
   }
 
   final String apiKey =
@@ -127,7 +130,7 @@ class _ModpackCreatorState extends State<ModpackCreator> {
                   decoration: InputDecoration(
                     border: const OutlineInputBorder(),
                     hintText: AppLocalizations.of(context)!.name,
-                    enabled: !widget.update,
+                    // enabled: !widget.update,
                   ),
                 ),
               ),
@@ -140,8 +143,7 @@ class _ModpackCreatorState extends State<ModpackCreator> {
                   if (versionFieldController.text == "" ||
                       apiFieldController.text == "" ||
                       ((modpackFieldController.text == "" ||
-                              modpackFieldController.text == "free") &&
-                          !widget.update)) {
+                          modpackFieldController.text == "free"))) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -152,13 +154,16 @@ class _ModpackCreatorState extends State<ModpackCreator> {
                     return;
                   }
                   try {
-                    String modpackName = widget.update
+                    String oldModpackName = widget.update
                         ? widget.modpack
                         : modpackFieldController.text;
-
+                    String modpackName = modpackFieldController.text;
                     Directory modpackDir = Directory(
-                        "${getMinecraftFolder().path}/modpacks/$modpackName");
-                    if (await modpackDir.exists() && !widget.update) {
+                        "${getMinecraftFolder().path}/modpacks/$oldModpackName");
+                    if ((await modpackDir.exists() && !widget.update) ||
+                        (Directory("${getMinecraftFolder().path}/modpacks/$modpackName")
+                                .existsSync() &&
+                            widget.update)) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -167,6 +172,24 @@ class _ModpackCreatorState extends State<ModpackCreator> {
                         ),
                       );
                       return;
+                    }
+                    if (oldModpackName != modpackName) {
+                      File currentModpackConf = File(
+                          "${getMinecraftFolder().path}/mods/modConfig.json");
+                      if (currentModpackConf.existsSync()) {
+                        String rawIndexFile =
+                            await currentModpackConf.readAsString();
+                        Map currentModpackInfo = json.decode(rawIndexFile);
+                        if (currentModpackInfo["name"] == oldModpackName) {
+                          clearModpack();
+                        }
+                        modpackDir = await modpackDir.rename(modpackDir.path
+                            .replaceAll(oldModpackName, modpackName));
+                        applyModpack(modpackName);
+                      } else {
+                        modpackDir = await modpackDir.rename(modpackDir.path
+                            .replaceAll(oldModpackName, modpackName));
+                      }
                     }
                     List<dynamic> mods = [];
                     File indexFile = File("${modpackDir.path}/modConfig.json");
