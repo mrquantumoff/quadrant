@@ -367,6 +367,9 @@ class _InstallModPageState extends State<InstallModPage> {
                   width: 840,
                   enabled: widget.modClass == ModClass.mod,
                   onSelected: (dynamic newValue) async {
+                    if (widget.installFileId != null) {
+                      return;
+                    }
                     String value = newValue.toString().trim();
                     Directory mcFolder = getMinecraftFolder();
                     File config =
@@ -526,9 +529,6 @@ class _InstallModPageState extends State<InstallModPage> {
                                 }
                                 late ModFile currentModFile;
                                 if (widget.installFileId != null) {
-                                  versionFieldController.text =
-                                      responseJson["data"]["gameVersions"][0];
-
                                   currentModFile = ModFile(
                                     downloadUrl: responseJson["data"]
                                         ["downloadUrl"],
