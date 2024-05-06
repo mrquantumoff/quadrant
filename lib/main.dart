@@ -35,12 +35,12 @@ void main(List<String> args) async {
   // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
   if (Platform.isWindows || Platform.isMacOS) {
     await protocolHandler.register('curseforge');
-    await protocolHandler.register('mcmodpackmanager');
+    await protocolHandler.register('quadrant');
   } else {
     // Linux can use arguments from the cli
     for (String arg in args) {
       if (arg.startsWith("curseforge://install") ||
-          arg.startsWith("mcmodpackmanager://")) {
+          arg.startsWith("quadrant://")) {
         GetStorage().writeInMemory("protocolArgument", arg);
       }
     }
@@ -268,8 +268,8 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
         int modId = int.parse(uri.queryParameters["addonId"]!);
         int fileId = int.parse(uri.queryParameters["fileId"]!);
         installModByProtocol(modId, fileId, protocolFail);
-      } else if (url.startsWith("mcmodpackmanager://modrinthopen")) {
-        // Example: mcmodpackmanager://modrinthopen?id=AANobbMI
+      } else if (url.startsWith("quadrant://modrinthopen")) {
+        // Example: quadrant://modrinthopen?id=AANobbMI
         String id = uri.queryParameters["id"]!;
         Mod mod = await getMod(id, ModSource.modRinth, (val) => null);
         Uri vrsuri = Uri.parse(

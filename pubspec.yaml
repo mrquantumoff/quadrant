@@ -77,10 +77,9 @@ msix_config:
   msix_version: 24.5.3.0
   logo_path: .\assets\icons\logo.ico
   store: true
-  protocol-activation: curseforge, mcmodpackmanager
   app_uri_handler_hosts: www.curseforge.com, curseforge.com, beta.curseforge.com, modrinth.com
   languages: en-us, uk-ua, tr-tr
   capabilities: internetClient, broadFileSystemAccess
-  protocol_activation: mcmodpackmanager,curseforge
+  protocol_activation: quadrant,curseforge
   os_min_version: 10.0.19045.0
   execution_alias: quadrant
