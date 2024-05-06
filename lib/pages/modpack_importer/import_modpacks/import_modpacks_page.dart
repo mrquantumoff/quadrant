@@ -389,9 +389,48 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
                                   onPressed: () async {
                                     List<DownloadedMod> downloadedMods = [];
                                     debugPrint("$modDownloadUrls");
+                                    Directory modpackDir = Directory(
+                                        "${getMinecraftFolder().path}/modpacks/$modpack");
+                                    Stream<FileSystemEntity> installedMods =
+                                        modpackDir.list(
+                                            recursive: true, followLinks: true);
+                                    List<String> modpackFiles = [];
+                                    await for (FileSystemEntity item
+                                        in installedMods) {
+                                      String fileName = item.path
+                                          .replaceAll("\\", "/")
+                                          .split("/")
+                                          .last;
+                                      if (fileName.endsWith(".json") ||
+                                          (await FileSystemEntity.isDirectory(
+                                              item.path))) {
+                                        continue;
+                                      }
+                                      modpackFiles
+                                          .add(item.path.replaceAll("\\", "/"));
+                                    }
+                                    debugPrint("Modpack files: $modpackFiles");
                                     for (var downloadUrl in modDownloadUrls) {
+                                      String modFileName =
+                                          Uri.parse(downloadUrl)
+                                              .pathSegments
+                                              .last;
+                                      File modDestFile = File(
+                                          "${getMinecraftFolder().path}/modpacks/$modpack/$modFileName");
+                                      if (modpackFiles.contains(modDestFile.path
+                                          .replaceAll("\\", "/"))) {
+                                        modpackFiles.remove(modDestFile.path
+                                            .replaceAll("\\", "/"));
+                                      }
                                       int modIndex =
                                           modDownloadUrls.indexOf(downloadUrl);
+
+                                      if (modDestFile.existsSync()) {
+                                        setProgressValue(
+                                            modIndex / modDownloadUrls.length);
+                                        continue;
+                                      }
+
                                       final http.Response res = await http.get(
                                         Uri.parse(downloadUrl),
                                         headers: {
@@ -399,8 +438,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
                                               await generateUserAgent(),
                                         },
                                       );
-                                      File modDestFile = File(
-                                          "${getMinecraftFolder().path}/modpacks/$modpack/${Uri.parse(downloadUrl).pathSegments.last}");
+
                                       List<int> bytes = res.bodyBytes;
                                       setProgressValue(
                                           modIndex / modDownloadUrls.length);
@@ -409,12 +447,17 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
                                             bytes: bytes, file: modDestFile),
                                       );
                                     }
-                                    Directory modpackDir = Directory(
-                                        "${getMinecraftFolder().path}/modpacks/$modpack");
-                                    if (await modpackDir.exists()) {
-                                      await modpackDir.delete(recursive: true);
+
+                                    for (String item in modpackFiles) {
+                                      File itemFile = File(item);
+                                      if (itemFile.existsSync()) {
+                                        await itemFile.delete();
+                                      }
                                     }
-                                    await modpackDir.create(recursive: true);
+
+                                    if (!await modpackDir.exists()) {
+                                      await modpackDir.create(recursive: true);
+                                    }
                                     bool success = true;
                                     for (DownloadedMod dlMod
                                         in downloadedMods) {
@@ -426,9 +469,6 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
                                             .create(recursive: true);
                                         await dlMod.file
                                             .writeAsBytes(dlMod.bytes);
-                                        setProgressValue(
-                                            downloadedMods.indexOf(dlMod) +
-                                                1 / downloadedMods.length);
                                       } catch (e) {
                                         debugPrint(e.toString());
                                         success = false;
