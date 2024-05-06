@@ -183,6 +183,10 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
       );
     }
 
+    syncedModpacks.sort(((a, b) {
+      return b.lastSynced.compareTo(a.lastSynced);
+    }));
+
     return syncedModpacks;
   }
 
