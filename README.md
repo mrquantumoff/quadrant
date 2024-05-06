@@ -44,6 +44,10 @@
 
 </div>
 
+> [!WARNING]
+>
+> ## If you install the app from the Microsoft Store, make sure you have the .minecraft folder already created, or else you might have to follow the tip below!
+
 > [!TIP]
 > ## If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the system settings and/or reinstalling the app from microsoft store.
 >
