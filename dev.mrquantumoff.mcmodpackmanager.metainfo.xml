@@ -3,7 +3,7 @@
   <id>dev.mrquantumoff.mcmodpackmanager</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MPL-2.0</project_license>
-  <name>Quadrant (Formerly Minecraft Modpack Manager Reborn)</name>
+  <name>QuadrantMC (Formerly Minecraft Modpack Manager Reborn)</name>
   <summary>Manage your modpacks with ease!</summary>
   <description>
     <p>
@@ -22,7 +22,7 @@
     <category>Game</category>
     <category>Utility</category>
   </categories>
-  <developer_name>MrQuantumOFF
+  <developer_name>qnt / MrQuantumOFF
     (Demir Yerli)</developer_name>
   <keywords>
     <keyword>minecraft</keyword>
@@ -33,6 +33,7 @@
     <keyword>mc modpack manager</keyword>
     <keyword>mrquantumoff</keyword>
     <keyword>modpacks</keyword>
+    <keyword>quadrant</keyword>
     <keyword>Minecraft Modpack Manager</keyword>
   </keywords>
   <releases>
@@ -659,7 +660,11 @@
   </screenshots>
   <provides>
     <binary>
-      minecraft-modpack-manager</binary>
+      quadrant
+    </binary>
+    <binary>
+      minecraft-modpack-manager
+    </binary>
   </provides>
   <content_rating type="oars-1.1" />
   <launchable type="desktop-id">dev.mrquantumoff.mcmodpackmanager.desktop</launchable>
