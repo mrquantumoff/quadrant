@@ -5,7 +5,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:get_storage_qnt/get_storage.dart';
 import 'package:quadrant/other/backend.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -143,11 +142,6 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
   }
 
   Future<List<SyncedModpack>> getSyncedModpacks(String reload) async {
-    if (GetStorage().read("experimentalFeatures") == false) {
-      throw Exception(
-          AppLocalizations.of(context)!.experimentalFeauturesAreDisabled);
-    }
-
     const storage = FlutterSecureStorage();
     String? token = await storage.read(key: "quadrant_id_token");
     if (token == null) {
