@@ -438,17 +438,6 @@ class _SelectorState extends State<Selector> {
               margin: const EdgeInsets.only(right: 5),
               child: ActionChip(
                 onPressed: () async {
-                  if (GetStorage().read("experimentalFeatures") == false) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          AppLocalizations.of(context)!
-                              .experimentalFeauturesAreDisabled,
-                        ),
-                      ),
-                    );
-                    return;
-                  }
                   const storage = FlutterSecureStorage();
                   String? token = await storage.read(key: "quadrant_id_token");
                   if (token == null) {
