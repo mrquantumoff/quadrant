@@ -37,6 +37,13 @@
     <keyword>Minecraft Modpack Manager</keyword>
   </keywords>
   <releases>
+
+    <release date="2024-05-13" version="24.5.5">
+      <description>
+        <p>Fixed a few bugs, optimised some processes (Importing and getting modpacks from Quadrant Sync is now MUCH faster!)</p>
+      </description>
+    </release>
+
     <release date="2024-05-06" version="24.5.4">
       <description>
         <p>Multiple QoL improvements</p>
