@@ -9,7 +9,7 @@ class LoadingMod extends StatefulWidget {
     required this.modId,
     required this.source,
     this.downloadable = true,
-    this.versionShow = false,
+    this.showPreVersion = false,
     this.deletable = false,
     this.preVersion = "",
     this.versionTarget = "",
@@ -21,7 +21,7 @@ class LoadingMod extends StatefulWidget {
   final ModSource source;
   bool downloadable = true;
   // These 3 parameters MUST be used together
-  bool versionShow = false;
+  bool showPreVersion = false;
   bool deletable = false;
   String preVersion = "";
   String versionTarget = "";
@@ -46,7 +46,7 @@ class _LoadingModState extends State<LoadingMod> {
           },
           deletable: widget.deletable,
           preVersion: widget.preVersion,
-          versionShow: widget.versionShow,
+          versionShow: widget.showPreVersion,
           downloadable: widget.downloadable,
           modLoader: widget.modLoader,
           modpack: widget.modpack,

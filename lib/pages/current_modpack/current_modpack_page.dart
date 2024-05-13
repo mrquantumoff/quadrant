@@ -55,7 +55,7 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
         modId: rawMod["id"].toString(),
         source: modSrc,
         downloadable: false,
-        versionShow: false,
+        showPreVersion: false,
         modpack: currentModpack["name"],
         preVersion: rawMod["downloadUrl"].toString().split("/").last,
         deletable: true,
