@@ -9,6 +9,7 @@ import 'package:quadrant/other/backend.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:quadrant/pages/modpack_importer/import_modpacks/synced_modpack.dart';
+import 'package:quadrant/pages/web/mod/loading_mod.dart';
 import 'package:quadrant/pages/web/mod/mod.dart';
 
 import 'package:quadrant/pages/web/generate_user_agent.dart';
@@ -105,8 +106,8 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
             source = ModSource.online;
           }
           if (source == ModSource.curseForge || source == ModSource.modRinth) {
-            Mod mod =
-                await getMod(id, source, (val) => null, downloadable: false);
+            LoadingMod mod =
+                LoadingMod(modId: id, source: source, downloadable: false);
             newMods.add(mod);
           }
           if (source == ModSource.online) {

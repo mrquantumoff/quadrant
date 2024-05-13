@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:quadrant/other/backend.dart';
+import 'package:quadrant/pages/web/mod/loading_mod.dart';
 import 'package:quadrant/pages/web/mod/mod.dart';
 import 'package:quadrant/pages/web/modpack_update_page/modpack_update_page.dart/update_modpack.dart';
 
@@ -36,10 +37,10 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
     });
   }
 
-  Future<List<Mod>> fetchMods() async {
+  Future<List<LoadingMod>> fetchMods() async {
     List<dynamic> rawMods = currentModpack["mods"] ?? [];
     // rawMods.sort();
-    List<Mod> mods = [];
+    List<LoadingMod> mods = [];
     for (var rawMod in rawMods) {
       ModSource modSrc = ModSource.online;
       if (rawMod["source"].toString().toLowerCase().contains("curseforge")) {
@@ -50,10 +51,9 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
           .contains("modrinth")) {
         modSrc = ModSource.modRinth;
       }
-      Mod mod = await getMod(
-        rawMod["id"].toString(),
-        modSrc,
-        (val) => {setState(() {})},
+      LoadingMod mod = LoadingMod(
+        modId: rawMod["id"].toString(),
+        source: modSrc,
         downloadable: false,
         versionShow: false,
         modpack: currentModpack["name"],
