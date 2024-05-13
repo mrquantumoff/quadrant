@@ -38,6 +38,8 @@ class _UpdateModpackPageState extends State<UpdateModpackPage> {
               : ModSource.online);
       if (modSrc == ModSource.online) continue;
 
+      // Sadly, this has to use getMod and not the new LoadingMod widget, because it has to know whether there is a new version of a mod.
+
       Mod completeMod = await getMod(
         mod["id"],
         modSrc,
