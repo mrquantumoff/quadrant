@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 
 class SyncedModpack extends StatefulWidget {
@@ -44,7 +45,7 @@ class _SyncedModpackState extends State<SyncedModpack> {
 
     return SizedBox(
       width: 640,
-      height: 128,
+      height: 192,
       child: Card(
         child: Row(
           mainAxisSize: MainAxisSize.max,
@@ -127,6 +128,28 @@ class _SyncedModpackState extends State<SyncedModpack> {
                       icon: const Icon(Icons.delete),
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(360, 48),
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 12,
+                    ),
+                    FilledButton.icon(
+                      onPressed: () async {
+                        Map modConfig = {
+                          "name": widget.name,
+                          "version": widget.mcVersion,
+                          "mods": json.decode(widget.mods),
+                          "modLoader": widget.modLoader
+                        };
+                        String content = json.encode(modConfig);
+                        await shareModpack(context, content);
+                      },
+                      label: Text(AppLocalizations.of(context)!.share),
+                      icon: const Icon(Icons.share),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.blueAccent,
                         foregroundColor: Colors.white,
                         minimumSize: const Size(360, 48),
                       ),

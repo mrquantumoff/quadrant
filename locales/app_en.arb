@@ -194,5 +194,6 @@
   "modpackUpdated": "Modpack updated successfully",
   "areYouSure": "Are you sure that you want to delete your account?",
   "advancedSettings": "Advanced settings",
-  "resetPassword": "Reset password"
+  "resetPassword": "Reset password",
+  "share": "Share"
 }

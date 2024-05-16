@@ -372,11 +372,19 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
                             Center(
                               child: Container(
                                 margin: const EdgeInsets.only(bottom: 12),
-                                child: Text(
-                                  AppLocalizations.of(context)!.otherMods(
-                                    otherModCount,
-                                  ),
-                                  style: const TextStyle(fontSize: 18),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      "$modpack | $modLoader | $version | ${AppLocalizations.of(context)!.modCount(mods.length)}",
+                                      style: const TextStyle(fontSize: 18),
+                                    ),
+                                    Text(
+                                      AppLocalizations.of(context)!.otherMods(
+                                        otherModCount,
+                                      ),
+                                      style: const TextStyle(fontSize: 18),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),

@@ -187,5 +187,6 @@
   "modpackUpdated": "Mod paketi başarıyla güncellendi",
   "areYouSure": "Hesabınızı silmek istediğinizden emin misiniz?",
   "advancedSettings": "Gelişmiş ayarlar",
-  "resetPassword": "Şifreyi yenile"
+  "resetPassword": "Şifreyi yenile",
+  "share": "Paylaş"
 }

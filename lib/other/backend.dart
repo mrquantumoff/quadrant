@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:clipboard/clipboard.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:http/http.dart' as http;
@@ -10,6 +12,7 @@ import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:quadrant/pages/web/mod/install_mod_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:quadrant/pages/web/mod/mod.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 Directory getMinecraftFolder({bool onInit = false}) {
   if (GetStorage().read("minecraftFolder") != null && !onInit) {
@@ -169,6 +172,89 @@ Future<Map<String, String>> getReleaseInfo() async {
     "url":
         "https://github.com/mrquantumoff/quadrant/releases/tag/$latestRelease"
   };
+}
+
+Future<void> shareModpack(BuildContext context, String content) async {
+  if (GetStorage().read("collectUserData") == false) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context)!.enableDataSharing,
+        ),
+      ),
+    );
+    return;
+  }
+  collectUserInfo();
+  var machineInfo = await getMachineIdAndOs();
+  const storage = FlutterSecureStorage();
+  String? token = await storage.read(key: "quadrant_id_token");
+  if (token != null) {
+    var res = await http.post(
+        Uri.parse(
+            "https://api.mrquantumoff.dev/api/v2/submit/quadrant_share_with_id"),
+        headers: {
+          "User-Agent": await generateUserAgent(),
+          "Authorization": "Bearer $token"
+        },
+        body: json.encode({
+          "hardware_id": machineInfo.machineId,
+          "mod_config": content,
+        }));
+    if (res.statusCode == 201) {
+      var decoded = json.decode(res.body);
+
+      await FlutterClipboard.copy(
+        decoded["code"].toString(),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(seconds: 5),
+          content: Text(
+            AppLocalizations.of(context)!
+                .copiedToClipboard(decoded["uses_left"]),
+          ),
+        ),
+      );
+      return;
+    }
+  }
+  var res = await http.post(
+      Uri.parse("https://api.mrquantumoff.dev/api/v2/submit/quadrant_share"),
+      headers: {
+        "User-Agent": await generateUserAgent(),
+        "Authorization": const String.fromEnvironment("QUADRANT_QNT_API_KEY")
+      },
+      body: json.encode({
+        "hardware_id": machineInfo.machineId,
+        "mod_config": content,
+        "uses_left": 5,
+      }));
+
+  if (res.statusCode != 201) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context)!.failedQuadrantShare,
+        ),
+      ),
+    );
+    return;
+  }
+
+  var decoded = json.decode(res.body);
+
+  await FlutterClipboard.copy(
+    decoded["code"].toString(),
+  );
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      duration: const Duration(seconds: 5),
+      content: Text(
+        AppLocalizations.of(context)!.copiedToClipboard(decoded["uses_left"]),
+      ),
+    ),
+  );
 }
 
 Future<Mod> getMod(
