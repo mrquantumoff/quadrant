@@ -160,7 +160,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
           //       : null,
           // ),
           Card(
-        elevation: 12,
+        // elevation: 12,
         margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,

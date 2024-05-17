@@ -71,7 +71,7 @@ class _LoadingModState extends State<LoadingMod> {
                 //       : null,
                 // ),
                 const Card(
-              elevation: 12,
+              // elevation: 12,
               margin: EdgeInsets.symmetric(vertical: 0, horizontal: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
