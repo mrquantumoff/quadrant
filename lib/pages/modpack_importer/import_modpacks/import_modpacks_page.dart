@@ -57,6 +57,11 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
 
   void getMods(String rawFile, {bool switchTabs = false}) async {
     setState(() {
+      mods = [];
+      modDownloadUrls = [];
+      modLoader = "";
+      version = "";
+      modpack = "";
       modConfig = rawFile;
     });
 
@@ -396,26 +401,31 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
                                   onPressed: () async {
                                     List<DownloadedMod> downloadedMods = [];
                                     debugPrint("$modDownloadUrls");
+                                    List<String> modpackFiles = [];
+
                                     Directory modpackDir = Directory(
                                         "${getMinecraftFolder().path}/modpacks/$modpack");
-                                    Stream<FileSystemEntity> installedMods =
-                                        modpackDir.list(
-                                            recursive: true, followLinks: true);
-                                    List<String> modpackFiles = [];
-                                    await for (FileSystemEntity item
-                                        in installedMods) {
-                                      String fileName = item.path
-                                          .replaceAll("\\", "/")
-                                          .split("/")
-                                          .last;
-                                      if (fileName.endsWith(".json") ||
-                                          (await FileSystemEntity.isDirectory(
-                                              item.path))) {
-                                        continue;
+                                    if (modpackDir.existsSync()) {
+                                      Stream<FileSystemEntity> installedMods =
+                                          modpackDir.list(
+                                              recursive: true,
+                                              followLinks: true);
+                                      await for (FileSystemEntity item
+                                          in installedMods) {
+                                        String fileName = item.path
+                                            .replaceAll("\\", "/")
+                                            .split("/")
+                                            .last;
+                                        if (fileName.endsWith(".json") ||
+                                            (await FileSystemEntity.isDirectory(
+                                                item.path))) {
+                                          continue;
+                                        }
+                                        modpackFiles.add(
+                                            item.path.replaceAll("\\", "/"));
                                       }
-                                      modpackFiles
-                                          .add(item.path.replaceAll("\\", "/"));
                                     }
+
                                     debugPrint("Modpack files: $modpackFiles");
                                     for (var downloadUrl in modDownloadUrls) {
                                       String modFileName =
