@@ -96,6 +96,9 @@ void main(List<String> args) async {
   if (GetStorage().read("rssFeeds") == null) {
     GetStorage().writeInMemory("rssFeeds", true);
   }
+  if (GetStorage().read("silentNews") == null) {
+    GetStorage().writeInMemory("silentNews", false);
+  }
   if (GetStorage().read("autoQuadrantSync") == null) {
     GetStorage().writeInMemory("autoQuadrantSync", true);
   }

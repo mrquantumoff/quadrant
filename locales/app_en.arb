@@ -133,6 +133,7 @@
   "paste": "Paste",
   "devMode": "Developer mode",
   "rssFeeds": "News related to Quadrant",
+  "silentNews": "Make the news related to Quadrant less noticeable",
   "enableDataSharing": "Please enable data collection in order to use this feature.",
   "failedQuadrantShare": "Failed to share your modpack.",
   "uses": "{amount} uses",

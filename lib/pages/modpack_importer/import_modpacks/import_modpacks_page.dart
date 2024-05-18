@@ -220,7 +220,7 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
       ),
       body: TabBarView(
         controller: tabController,
-        physics: AlwaysScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(),
         children: [
           Center(
             child: isLoading

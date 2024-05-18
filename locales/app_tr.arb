@@ -126,6 +126,7 @@
   "paste": "Yapıştır",
   "devMode": "Geliştirici modu",
   "rssFeeds": "Quadrant ile ilgili haberler",
+  "silentNews": "Quadrant ile ilgili haberler daha az dikkat çekici olsun",
   "enableDataSharing": "Bu özelliği kullanmak için veri toplamayı etkinleştirmelisiniz.",
   "failedQuadrantShare": "Mod paketiniz paylaşılamadı.",
   "uses": "{amount} kullanım",

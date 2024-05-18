@@ -24,6 +24,8 @@ class _SettingsState extends State<Settings> {
   bool modrinth = GetStorage().read("modrinth");
   bool devMode = GetStorage().read("devMode");
   bool rssFeeds = GetStorage().read("rssFeeds");
+  bool silentNews = GetStorage().read("silentNews");
+
   bool autoQuadrantSync = GetStorage().read("autoQuadrantSync");
   bool extendedNavigation = GetStorage().read("extendedNavigation");
   bool showUnupgradeableMods = GetStorage().read("showUnupgradeableMods");
@@ -65,6 +67,13 @@ class _SettingsState extends State<Settings> {
     GetStorage().write("rssFeeds", newValue);
     setState(() {
       rssFeeds = newValue;
+    });
+  }
+
+  void setSilentNews(bool newValue) {
+    GetStorage().write("silentNews", newValue);
+    setState(() {
+      silentNews = silentNews;
     });
   }
 
@@ -464,6 +473,26 @@ class _SettingsState extends State<Settings> {
                   Container(
                     margin: const EdgeInsets.only(top: 8.5),
                     child: Text(AppLocalizations.of(context)!.rssFeeds),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsetsDirectional.only(end: 12),
+                    child: Switch(
+                      value: silentNews,
+                      onChanged: setSilentNews,
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8.5),
+                    child: Text(AppLocalizations.of(context)!.silentNews),
                   ),
                 ],
               ),

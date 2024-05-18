@@ -119,6 +119,7 @@ class _SelectorState extends State<Selector> {
                     ScaffoldMessenger.of(context).clearMaterialBanners();
 
                     Get.to(() => ImportModpacksPage(page: 1));
+                    checkRSS(context);
                   },
                   icon: const Icon(Icons.update),
                   label: Text(AppLocalizations.of(context)!.update),
@@ -142,9 +143,8 @@ class _SelectorState extends State<Selector> {
 
     var feed = UniversalFeed.parseFromString(rawFeed);
     List<Item> items = feed.items;
-    items.sort((a, b) =>
-        a.published!.parseValue()!.compareTo(b.published!.parseValue()!));
-    for (var item in feed.items) {
+    items = items.reversed.toList();
+    for (var item in items) {
       debugPrint(item.title);
       List<String> categories = [];
       for (var category in item.categories) {
@@ -165,25 +165,45 @@ class _SelectorState extends State<Selector> {
             (GetStorage().read<List<dynamic>>("seenItems") ?? []);
         newSeenItems.add(item.guid!);
         GetStorage().write("seenItems", newSeenItems);
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text(item.title!),
-              content: Text(item.description!),
+        if (GetStorage().read("silentNews") == true) {
+          ScaffoldMessenger.of(context).showMaterialBanner(
+            MaterialBanner(
+              content: Text(item.title!),
               actions: [
-                TextButton(
+                FilledButton.icon(
                     onPressed: () async {
                       await launchUrl(Uri.parse(item.link!.href.toString()));
+                      ScaffoldMessenger.of(context).clearMaterialBanners();
+                      checkModpackUpdates(context);
                     },
-                    child: Text(AppLocalizations.of(context)!.read))
+                    icon: const Icon(Icons.open_in_new),
+                    label: Text(AppLocalizations.of(context)!.read))
               ],
-            );
-          },
-        );
+            ),
+          );
+        } else {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text(item.title!),
+                content: Text(item.description!),
+                actions: [
+                  TextButton(
+                      onPressed: () async {
+                        await launchUrl(Uri.parse(item.link!.href.toString()));
+                      },
+                      child: Text(AppLocalizations.of(context)!.read))
+                ],
+              );
+            },
+          );
+        }
+        GetStorage().write("lastRSSfetched", DateTime.now().toIso8601String());
+
+        return;
       }
     }
-    GetStorage().write("lastRSSfetched", DateTime.now().toIso8601String());
   }
 
   @override
