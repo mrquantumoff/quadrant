@@ -422,6 +422,79 @@ Future<Mod> getMod(
   }
 }
 
+Future<void> syncModpack(
+    BuildContext context, String modConfigRaw, bool overwrite) async {
+  Map modConfig = json.decode(modConfigRaw);
+  String selectedModpack = modConfig["name"];
+  File selectedModpackSyncFile = File(
+    "${getMinecraftFolder().path}/modpacks/$selectedModpack/quadrantSync.json",
+  );
+
+  if (!selectedModpackSyncFile.existsSync()) {
+    await selectedModpackSyncFile.create(recursive: true);
+  }
+  const storage = FlutterSecureStorage();
+  String? token = await storage.read(key: "quadrant_id_token");
+  if (token == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context)!.noQuadrantID,
+        ),
+      ),
+    );
+    return;
+  }
+
+  String modLoader = modConfig["modLoader"];
+  String mcVersion = modConfig["version"];
+  List mods = modConfig["mods"];
+  int timestamp = DateTime.now().toUtc().millisecondsSinceEpoch;
+
+  debugPrint(timestamp.toString());
+  http.Response res = await http.post(
+    Uri.parse(
+      "https://api.mrquantumoff.dev/api/v2/submit/quadrant_sync",
+    ),
+    headers: {
+      "User-Agent": await generateUserAgent(),
+      "Authorization": "Bearer $token"
+    },
+    body: json.encode(
+      {
+        "name": selectedModpack,
+        "mc_version": mcVersion,
+        "mod_loader": modLoader,
+        "mods": json.encode(mods),
+        // This is the manual way of updating the modpack in the cloud, so it will overwrite anything else
+        "overwrite": true,
+        "last_synced": timestamp,
+      },
+    ),
+  );
+  if (res.statusCode != 200) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          res.body,
+        ),
+      ),
+    );
+    return;
+  }
+  await selectedModpackSyncFile.writeAsString(
+    json.encode({"last_synced": timestamp}),
+  );
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      duration: const Duration(seconds: 5),
+      content: Text(
+        AppLocalizations.of(context)!.modpackUpdated,
+      ),
+    ),
+  );
+}
+
 void installModByProtocol(int modId, int fileId, Function() fail) async {
   try {
     final String apiKey =

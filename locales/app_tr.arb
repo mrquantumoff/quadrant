@@ -188,5 +188,6 @@
   "areYouSure": "Hesabınızı silmek istediğinizden emin misiniz?",
   "advancedSettings": "Gelişmiş ayarlar",
   "resetPassword": "Şifreyi yenile",
-  "share": "Paylaş"
+  "share": "Paylaş",
+  "autoQuadrantSync": "Mod paketlerin Quadrant Sync ile otomatik olarak senkronize et"
 }

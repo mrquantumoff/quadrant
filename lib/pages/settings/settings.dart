@@ -24,6 +24,7 @@ class _SettingsState extends State<Settings> {
   bool modrinth = GetStorage().read("modrinth");
   bool devMode = GetStorage().read("devMode");
   bool rssFeeds = GetStorage().read("rssFeeds");
+  bool autoQuadrantSync = GetStorage().read("autoQuadrantSync");
   bool extendedNavigation = GetStorage().read("extendedNavigation");
   bool showUnupgradeableMods = GetStorage().read("showUnupgradeableMods");
   bool experimentalFeatures = GetStorage().read("experimentalFeatures");
@@ -100,6 +101,13 @@ class _SettingsState extends State<Settings> {
     GetStorage().write("curseForge", newValue);
     setState(() {
       curseForge = newValue;
+    });
+  }
+
+  void setAutoQuadrantSync(bool newValue) {
+    GetStorage().write("autoQuadrantSync", newValue);
+    setState(() {
+      autoQuadrantSync = newValue;
     });
   }
 
@@ -519,6 +527,28 @@ class _SettingsState extends State<Settings> {
                     margin: const EdgeInsets.only(top: 8.5),
                     child: Text(
                       AppLocalizations.of(context)!.experimentalFeatures,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsetsDirectional.only(end: 12),
+                    child: Switch(
+                      value: autoQuadrantSync,
+                      onChanged: setAutoQuadrantSync,
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8.5),
+                    child: Text(
+                      AppLocalizations.of(context)!.autoQuadrantSync,
                     ),
                   ),
                 ],

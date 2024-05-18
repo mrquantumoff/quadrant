@@ -402,6 +402,13 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                                               .downloadSuccess),
                                     ),
                                   );
+                                  File modpackSyncFile = File(
+                                      "${modpackFolder.path}/quadrantSync.json");
+                                  if (GetStorage().read("autoQuadrantSync") ==
+                                          true &&
+                                      modpackSyncFile.existsSync()) {
+                                    await syncModpack(context, newConf, false);
+                                  }
                                 },
                                 icon: const Icon(Icons.update),
                                 label:

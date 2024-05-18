@@ -195,5 +195,6 @@
   "areYouSure": "Are you sure that you want to delete your account?",
   "advancedSettings": "Advanced settings",
   "resetPassword": "Reset password",
-  "share": "Share"
+  "share": "Share",
+  "autoQuadrantSync": "Automatically sync modpacks with Quadrant Sync"
 }

@@ -96,6 +96,9 @@ void main(List<String> args) async {
   if (GetStorage().read("rssFeeds") == null) {
     GetStorage().writeInMemory("rssFeeds", true);
   }
+  if (GetStorage().read("autoQuadrantSync") == null) {
+    GetStorage().writeInMemory("autoQuadrantSync", true);
+  }
   if (GetStorage().read("showUnupgradeableMods") == null) {
     GetStorage().writeInMemory("showUnupgradeableMods", false);
   }

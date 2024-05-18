@@ -521,6 +521,18 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
                                         ),
                                       );
                                       if (switchTabsBack) {
+                                        File modpackSyncFile = File(
+                                            "${getMinecraftFolder().path}/modpacks/$modpack/quadrantSync.json");
+                                        if (!modpackSyncFile.existsSync()) {
+                                          await modpackSyncFile.create();
+                                        }
+                                        int timestamp = DateTime.now()
+                                            .toUtc()
+                                            .millisecondsSinceEpoch;
+
+                                        modpackSyncFile.writeAsString(json
+                                            .encode(
+                                                {"last_synced": timestamp}));
                                         tabController.animateTo(1);
                                         switchTabsBack = false;
                                       }

@@ -1,15 +1,12 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/modpack_creator/modpack_creator.dart';
-import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:universal_feed/universal_feed.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -348,70 +345,16 @@ class _SelectorState extends State<Selector> {
               margin: const EdgeInsets.only(right: 5),
               child: ActionChip(
                 onPressed: () async {
-                  const storage = FlutterSecureStorage();
-                  String? token = await storage.read(key: "quadrant_id_token");
-                  if (token == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          AppLocalizations.of(context)!.noQuadrantID,
-                        ),
-                      ),
-                    );
-                    return;
-                  }
                   if (selectedModpack == null) {
                     return;
                   }
                   File selectedModpackFile = File(
                     "${getMinecraftFolder().path}/modpacks/$selectedModpack/modConfig.json",
                   );
+
                   String modConfigRaw =
                       await selectedModpackFile.readAsString();
-                  Map modConfig = json.decode(modConfigRaw);
-                  String modLoader = modConfig["modLoader"];
-                  String mcVersion = modConfig["version"];
-                  List mods = modConfig["mods"];
-                  int timestamp = DateTime.now().toUtc().millisecondsSinceEpoch;
-                  debugPrint(timestamp.toString());
-                  http.Response res = await http.post(
-                    Uri.parse(
-                      "https://api.mrquantumoff.dev/api/v2/submit/quadrant_sync",
-                    ),
-                    headers: {
-                      "User-Agent": await generateUserAgent(),
-                      "Authorization": "Bearer $token"
-                    },
-                    body: json.encode(
-                      {
-                        "name": selectedModpack,
-                        "mc_version": mcVersion,
-                        "mod_loader": modLoader,
-                        "mods": json.encode(mods),
-                        // This is the manual way of updating the modpack in the cloud, so it will overwrite anything else
-                        "overwrite": true,
-                        "last_synced": timestamp,
-                      },
-                    ),
-                  );
-                  if (res.statusCode != 200) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          res.body,
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      duration: const Duration(seconds: 5),
-                      content: Text(
-                        AppLocalizations.of(context)!.modpackUpdated,
-                      ),
-                    ),
-                  );
+                  await syncModpack(context, modConfigRaw, true);
                 },
                 avatar: const Icon(Icons.cloud_sync),
                 label: Text(

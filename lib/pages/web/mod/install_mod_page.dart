@@ -597,6 +597,7 @@ class _InstallModPageState extends State<InstallModPage> {
                                     );
                                     File modpackConfigFile = File(
                                         "${getMinecraftFolder().path}/modpacks/$modpack/modConfig.json");
+
                                     debugPrint(modpackConfigFile.path);
                                     if (!modpackConfigFile.existsSync()) {
                                       return;
@@ -635,8 +636,17 @@ class _InstallModPageState extends State<InstallModPage> {
                                     String finalModpackConfig =
                                         json.encode(newModpackConfig);
                                     debugPrint(finalModpackConfig);
+
                                     await modpackConfigFile
                                         .writeAsString(finalModpackConfig);
+                                    File modpackSyncFile = File(
+                                        "${getMinecraftFolder().path}/modpacks/$modpack/quadrantSync.json");
+                                    if (GetStorage().read("autoQuadrantSync") ==
+                                            true &&
+                                        modpackSyncFile.existsSync()) {
+                                      await syncModpack(
+                                          context, finalModpackConfig, false);
+                                    }
                                   },
                                   onError: (e) {
                                     debugPrint(e);
@@ -800,8 +810,17 @@ class _InstallModPageState extends State<InstallModPage> {
                                     String finalModpackConfig =
                                         json.encode(newModpackConfig);
                                     debugPrint(finalModpackConfig);
+
                                     await modpackConfigFile
                                         .writeAsString(finalModpackConfig);
+                                    File modpackSyncFile = File(
+                                        "${getMinecraftFolder().path}/modpacks/$modpack/quadrantSync.json");
+                                    if (GetStorage().read("autoQuadrantSync") ==
+                                            true &&
+                                        modpackSyncFile.existsSync()) {
+                                      await syncModpack(
+                                          context, finalModpackConfig, false);
+                                    }
                                   },
                                   onError: (e) {
                                     debugPrint(e);
