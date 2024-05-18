@@ -356,7 +356,7 @@ class _SettingsState extends State<Settings> {
                     icon: const Icon(Icons.delete_forever),
                     style: const ButtonStyle(
                       iconColor:
-                          MaterialStatePropertyAll<Color>(Colors.redAccent),
+                          WidgetStatePropertyAll<Color>(Colors.redAccent),
                     ),
                     onPressed: () {
                       try {
