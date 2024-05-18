@@ -189,12 +189,14 @@
   "modpackSynced": "Modpack synced with Quadrant Sync: ",
   "noQuadrantID": "Not logged into Quadrant ID",
   "experimentalFeauturesAreDisabled": "Experimental features are disabled!",
-  "lastSyncedOn": "Last synced on {date}",
+  "cloudSyncDate": "Quadrant Sync version: {date}",
+  "localSyncDate": "Local version: {date}",
   "sync": "Sync",
   "modpackUpdated": "Modpack updated successfully",
   "areYouSure": "Are you sure that you want to delete your account?",
   "advancedSettings": "Advanced settings",
   "resetPassword": "Reset password",
   "share": "Share",
-  "autoQuadrantSync": "Automatically sync modpacks with Quadrant Sync"
+  "autoQuadrantSync": "Automatically sync modpacks with Quadrant Sync",
+  "newerVersionOfModpackUpdateAvailable": "A newer version of a synced modpack is available!"
 }

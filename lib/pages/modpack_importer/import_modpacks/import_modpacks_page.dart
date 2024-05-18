@@ -5,6 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:get/get.dart';
 import 'package:quadrant/other/backend.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
@@ -14,11 +15,14 @@ import 'package:quadrant/pages/web/mod/mod.dart';
 
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 
-class ShareModpacksPage extends StatefulWidget {
-  const ShareModpacksPage({super.key});
+// ignore: must_be_immutable
+class ImportModpacksPage extends StatefulWidget {
+  ImportModpacksPage({super.key, this.page = 0});
+
+  int page = 0;
 
   @override
-  State<ShareModpacksPage> createState() => _ShareModpacksPageState();
+  State<ImportModpacksPage> createState() => _ImportModpacksPageState();
 }
 
 class DownloadedMod {
@@ -27,7 +31,7 @@ class DownloadedMod {
   File file;
 }
 
-class _ShareModpacksPageState extends State<ShareModpacksPage>
+class _ImportModpacksPageState extends State<ImportModpacksPage>
     with TickerProviderStateMixin {
   List<Widget> mods = [];
   List<String> modDownloadUrls = [];
@@ -45,7 +49,8 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
   @override
   void initState() {
     super.initState();
-    tabController = TabController(length: 2, vsync: this);
+    tabController =
+        TabController(length: 2, vsync: this, initialIndex: widget.page);
   }
 
   TextEditingController modpackEntryController = TextEditingController();
@@ -215,6 +220,7 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
       ),
       body: TabBarView(
         controller: tabController,
+        physics: AlwaysScrollableScrollPhysics(),
         children: [
           Center(
             child: isLoading
@@ -533,7 +539,11 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
                                         modpackSyncFile.writeAsString(json
                                             .encode(
                                                 {"last_synced": timestamp}));
-                                        tabController.animateTo(1);
+                                        if (widget.page != 1) {
+                                          tabController.animateTo(1);
+                                        } else {
+                                          Get.back();
+                                        }
                                         switchTabsBack = false;
                                       }
                                     }
@@ -555,58 +565,55 @@ class _ShareModpacksPageState extends State<ShareModpacksPage>
                           ],
                   ),
           ),
-          Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.only(top: 4, left: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)!.modpackSynced,
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                  ],
+          Expanded(
+            child: Column(
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 4, left: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppLocalizations.of(context)!.modpackSynced,
+                        style: const TextStyle(fontSize: 24),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Center(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    FutureBuilder(
-                      future: getSyncedModpacks(reload),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          return SizedBox(
-                            height: 540,
-                            child: ListView(
-                              children: snapshot.data!,
-                            ),
-                          );
-                        } else if (snapshot.hasError) {
-                          return Column(
-                            children: [
-                              const Icon(Icons.error),
-                              Text(
-                                snapshot.error.toString(),
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                ),
-                              )
-                            ],
-                          );
-                        }
-                        return const Center(
-                          child: CircularProgressIndicator(),
+                SizedBox(
+                  height: 485,
+                  // margin:const EdgeInsets.only(bottom: 12),
+                  child: FutureBuilder(
+                    future: getSyncedModpacks(reload),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        return ListView(
+                          scrollDirection: Axis.vertical,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: snapshot.data!,
                         );
-                      },
-                    ),
-                  ],
+                      } else if (snapshot.hasError) {
+                        return Column(
+                          children: [
+                            const Icon(Icons.error),
+                            Text(
+                              snapshot.error.toString(),
+                              style: const TextStyle(
+                                fontSize: 18,
+                              ),
+                            )
+                          ],
+                        );
+                      }
+                      return const Center(
+                        child: CircularProgressIndicator(),
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

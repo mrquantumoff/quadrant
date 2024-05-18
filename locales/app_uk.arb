@@ -182,12 +182,14 @@
   "modpackSynced": "Модпаки синхронізовані з Quadrant Sync: ",
   "noQuadrantID": "Немає активного облікового запису Quadrant ID",
   "experimentalFeauturesAreDisabled": "Експерементальні функції вимкнені!",
-  "lastSyncedOn": "Остання дата синхронізації: {date}",
+  "cloudSyncDate": "Версія на Quadrant Sync: {date}",
+  "localSyncDate": "Локальна версія: {date}",
   "sync": "Синхронізувати",
   "modpackUpdated": "Модпак успішно оновлено",
   "areYouSure": "Чи ви впевнені, що хочете видалити свій обліковий запис?",
   "advancedSettings": "Просунуті налаштування",
   "resetPassword": "Скинути пароль",
   "share": "Поділитися",
-  "autoQuadrantSync": "Автоматично синхронізувати модпаки за допомогою Quadrant Sync"
+  "autoQuadrantSync": "Автоматично синхронізувати модпаки за допомогою Quadrant Sync",
+  "newerVersionOfModpackUpdateAvailable": "Доступна новіша версія синхронізованого модпаку!"
 }

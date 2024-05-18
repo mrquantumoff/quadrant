@@ -249,7 +249,7 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
       const MainPage(),
       const CurrentModpackPage(),
       const WebSourcesPage(),
-      const ShareModpacksPage(),
+      ImportModpacksPage(),
       const AccountPage(),
       Settings(setLocale: widget.setLocale)
     ];

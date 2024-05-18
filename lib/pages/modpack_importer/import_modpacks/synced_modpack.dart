@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -7,8 +8,9 @@ import 'package:intl/intl.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 
+// ignore: must_be_immutable
 class SyncedModpack extends StatefulWidget {
-  const SyncedModpack({
+  SyncedModpack({
     super.key,
     required this.modpackId,
     required this.name,
@@ -18,7 +20,7 @@ class SyncedModpack extends StatefulWidget {
     required this.lastSynced,
     required this.reload,
     required this.token,
-    required this.getMods,
+    this.getMods,
   });
 
   final String modpackId;
@@ -28,7 +30,7 @@ class SyncedModpack extends StatefulWidget {
   final String modLoader;
   final int lastSynced;
   final Function reload;
-  final Function(String rawFile, {bool switchTabs}) getMods;
+  Function(String rawFile, {bool switchTabs})? getMods;
   final String token;
 
   @override
@@ -42,6 +44,20 @@ class _SyncedModpackState extends State<SyncedModpack> {
 
     String date = DateFormat('EEEE, dd.MM.yy, HH:mm', tag)
         .format(DateTime.fromMillisecondsSinceEpoch(widget.lastSynced));
+
+    String localSyncedLocalDate = "-";
+
+    File modpackSyncFile = File(
+        "${getMinecraftFolder().path}/modpacks/${widget.name}/quadrantSync.json");
+    if (modpackSyncFile.existsSync()) {
+      try {
+        localSyncedLocalDate = DateFormat('EEEE, dd.MM.yy, HH:mm', tag).format(
+            DateTime.fromMillisecondsSinceEpoch(json
+                .decode(modpackSyncFile.readAsStringSync())["last_synced"]));
+      } catch (e) {
+        debugPrint("$e");
+      }
+    }
 
     return SizedBox(
       width: 640,
@@ -65,7 +81,11 @@ class _SyncedModpackState extends State<SyncedModpack> {
                     style: const TextStyle(fontSize: 18),
                   ),
                   Text(
-                    AppLocalizations.of(context)!.lastSyncedOn(date),
+                    AppLocalizations.of(context)!.cloudSyncDate(date),
+                  ),
+                  Text(
+                    AppLocalizations.of(context)!
+                        .localSyncDate(localSyncedLocalDate),
                   ),
                 ],
               ),
@@ -87,8 +107,10 @@ class _SyncedModpackState extends State<SyncedModpack> {
                           "mods": mods,
                           "modLoader": widget.modLoader
                         };
-                        await widget.getMods(json.encode(modConfig),
-                            switchTabs: true);
+                        if (widget.getMods != null) {
+                          await widget.getMods!(json.encode(modConfig),
+                              switchTabs: true);
+                        }
                       },
                       icon: const Icon(Icons.download),
                       label: Text(AppLocalizations.of(context)!.download),
