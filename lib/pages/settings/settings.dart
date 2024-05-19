@@ -73,7 +73,7 @@ class _SettingsState extends State<Settings> {
   void setSilentNews(bool newValue) {
     GetStorage().write("silentNews", newValue);
     setState(() {
-      silentNews = silentNews;
+      silentNews = newValue;
     });
   }
 
