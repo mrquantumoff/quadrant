@@ -117,6 +117,9 @@ void main(List<String> args) async {
   if (GetStorage().read("experimentalFeatures") == null) {
     GetStorage().writeInMemory("experimentalFeatures", false);
   }
+  if (GetStorage().read("dontShowUserDataRecommendation") == null) {
+    GetStorage().writeInMemory("dontShowUserDataRecommendation", false);
+  }
   runApp(
     const RestartWidget(
       child: MyApp(),
@@ -444,77 +447,124 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
   }
 
   void checkRSS(BuildContext context) async {
-    http.Response res =
-        await http.get(Uri.parse("https://api.mrquantumoff.dev/blog.rss"));
-    if (res.statusCode != 200) return;
-    String rawFeed = res.body;
+    try {
+      http.Response res =
+          await http.get(Uri.parse("https://api.mrquantumoff.dev/blog.rss"));
+      if (res.statusCode != 200) return;
+      String rawFeed = res.body;
 
-    var feed = UniversalFeed.parseFromString(rawFeed);
-    List<Item> items = feed.items;
-    items = items.reversed.toList();
-    for (var item in items) {
-      debugPrint(item.title);
-      List<String> categories = [];
-      for (var category in item.categories) {
-        categories.add(category.value!);
-      }
-      bool cond1 = !(GetStorage().read<List<dynamic>>("seenItems") ?? [])
-          .contains(item.guid!);
+      var feed = UniversalFeed.parseFromString(rawFeed);
+      List<Item> items = feed.items;
+      items = items.reversed.toList();
+      for (var item in items) {
+        debugPrint(item.title);
+        List<String> categories = [];
+        for (var category in item.categories) {
+          categories.add(category.value!);
+        }
+        bool cond1 = !(GetStorage().read<List<dynamic>>("seenItems") ?? [])
+            .contains(item.guid!);
 
-      DateTime itemDate = item.published!.parseValue() ?? DateTime.now();
-      bool cond2 =
-          itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
-      bool cond3 = GetStorage().read("rssFeeds") == true;
-      bool cond4 = GetStorage().read("devMode") == true;
-      debugPrint(
-          "\n\nSeen: $cond1\nIs within last 2 weeks: $cond2\nAre RSS feeds enabled: $cond3\nIs DevMode Enabled:  $cond4\n\n");
+        DateTime itemDate = item.published!.parseValue() ?? DateTime.now();
+        bool cond2 =
+            itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
+        bool cond3 = GetStorage().read("rssFeeds") == true;
+        bool cond4 = GetStorage().read("devMode") == true;
+        debugPrint(
+            "\n\nSeen: $cond1\nIs within last 2 weeks: $cond2\nAre RSS feeds enabled: $cond3\nIs DevMode Enabled:  $cond4\n\n");
 
-      if (((cond1 && cond2) || cond4) &&
-          cond3 &&
-          categories.contains("Minecraft Modpack Manager")) {
-        var newSeenItems =
-            (GetStorage().read<List<dynamic>>("seenItems") ?? []);
-        newSeenItems.add(item.guid!);
-        GetStorage().write("seenItems", newSeenItems);
-        if (GetStorage().read("silentNews") == true) {
-          ScaffoldMessenger.of(context).showMaterialBanner(
-            MaterialBanner(
-              content: Text(item.title!),
-              actions: [
-                FilledButton.icon(
-                    onPressed: () async {
-                      await launchUrl(Uri.parse(item.link!.href.toString()));
-                      ScaffoldMessenger.of(context).clearMaterialBanners();
-                      checkModpackUpdates(context);
-                    },
-                    icon: const Icon(Icons.open_in_new),
-                    label: Text(AppLocalizations.of(context)!.read))
-              ],
-            ),
-          );
-        } else {
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: Text(item.title!),
-                content: Text(item.description!),
+        if (((cond1 && cond2) || cond4) &&
+            cond3 &&
+            categories.contains("Minecraft Modpack Manager")) {
+          var newSeenItems =
+              (GetStorage().read<List<dynamic>>("seenItems") ?? []);
+          newSeenItems.add(item.guid!);
+          GetStorage().write("seenItems", newSeenItems);
+          if (GetStorage().read("silentNews") == true) {
+            ScaffoldMessenger.of(context).showMaterialBanner(
+              MaterialBanner(
+                content: Text(item.title!),
                 actions: [
-                  TextButton(
+                  FilledButton.icon(
                       onPressed: () async {
                         await launchUrl(Uri.parse(item.link!.href.toString()));
+                        ScaffoldMessenger.of(context).clearMaterialBanners();
+                        checkModpackUpdates(context);
                       },
-                      child: Text(AppLocalizations.of(context)!.read))
+                      icon: const Icon(Icons.open_in_new),
+                      label: Text(AppLocalizations.of(context)!.read))
                 ],
-              );
-            },
-          );
-        }
-        GetStorage().write("lastRSSfetched", DateTime.now().toIso8601String());
+              ),
+            );
+          } else {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: Text(item.title!),
+                  content: Text(item.description!),
+                  actions: [
+                    TextButton(
+                        onPressed: () async {
+                          await launchUrl(
+                              Uri.parse(item.link!.href.toString()));
+                        },
+                        child: Text(AppLocalizations.of(context)!.read))
+                  ],
+                );
+              },
+            );
+          }
+          GetStorage()
+              .write("lastRSSfetched", DateTime.now().toIso8601String());
 
-        return;
+          return;
+        }
       }
+    } catch (e) {
+      debugPrint("$e");
     }
+  }
+
+  void checkDataCollection(BuildContext context) async {
+    if (GetStorage().read("collectUserData") == true ||
+        GetStorage().read("dontShowTelemetryRecommendation") == true) {
+      return;
+    }
+    // try {
+    ScaffoldMessenger.of(context).showMaterialBanner(
+      MaterialBanner(
+        content: Container(
+          alignment: Alignment.bottomLeft,
+          child: Text(
+            AppLocalizations.of(context)!
+                .enableDataCollectionForAdvancedFeatures,
+            style: const TextStyle(
+              fontSize: 18,
+            ),
+          ),
+        ),
+        actions: [
+          FilledButton.icon(
+            onPressed: () {
+              GetStorage().write("collectUserData", true);
+              collectUserInfo();
+              ScaffoldMessenger.of(context).clearMaterialBanners();
+            },
+            label: const Text("OK"),
+            icon: const Icon(Icons.check),
+          ),
+          FilledButton.tonalIcon(
+            onPressed: () {
+              GetStorage().write("dontShowTelemetryRecommendation", true);
+              ScaffoldMessenger.of(context).clearMaterialBanners();
+            },
+            label: Text(AppLocalizations.of(context)!.dontBotherMeAgain),
+            icon: const Icon(Icons.close),
+          )
+        ],
+      ),
+    );
   }
 
   @override
@@ -525,9 +575,16 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
       debugPrint("curseforge protocol removed");
       GetStorage().remove("protocolArgument");
     }
-    checkRSS(context);
-    checkModpackUpdates(context);
 
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        checkRSS(context);
+        checkModpackUpdates(context);
+        checkDataCollection(context);
+      } catch (e) {
+        debugPrint("Failed to check for something: $e");
+      }
+    });
     return Scaffold(
       body: Row(
         children: [

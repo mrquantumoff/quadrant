@@ -79,6 +79,9 @@ class _SettingsState extends State<Settings> {
 
   void setCollectData(bool newValue) {
     GetStorage().write("collectUserData", newValue);
+    if (!newValue) {
+      GetStorage().write("dontShowTelemetryRecommendation", false);
+    }
     setState(() {
       collectData = newValue;
     });
