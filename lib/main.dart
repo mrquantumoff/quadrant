@@ -12,12 +12,15 @@ import 'package:quadrant/other/restart_app.dart';
 import 'package:quadrant/pages/account/account.dart';
 import 'package:quadrant/pages/current_modpack/current_modpack_page.dart';
 import 'package:quadrant/pages/main_page.dart';
+import 'package:quadrant/pages/modpack_importer/import_modpacks/synced_modpack.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:quadrant/pages/web/mod/install_mod_page.dart';
 import 'package:quadrant/pages/web/mod/mod.dart';
 import 'package:quadrant/pages/web/web_sources.dart';
 import 'package:quadrant/pages/settings/settings.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:universal_feed/universal_feed.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:protocol_handler/protocol_handler.dart';
@@ -205,7 +208,7 @@ class _ThemeProviderState extends State<ThemeProvider> {
       supportedLocales: AppLocalizations.supportedLocales,
       locale: Locale.fromSubtags(languageCode: locale),
       defaultTransition: Transition.rightToLeft,
-      home: MinecraftModpackManager(
+      home: Quadrant(
         setLocale: setLocale,
       ),
       darkTheme: ThemeData.from(
@@ -220,18 +223,16 @@ class _ThemeProviderState extends State<ThemeProvider> {
   }
 }
 
-class MinecraftModpackManager extends StatefulWidget {
-  const MinecraftModpackManager({super.key, required this.setLocale});
+class Quadrant extends StatefulWidget {
+  const Quadrant({super.key, required this.setLocale});
 
   final Function(String locale) setLocale;
 
   @override
-  State<MinecraftModpackManager> createState() =>
-      _MinecraftModpackManagerState();
+  State<Quadrant> createState() => _QuadrantState();
 }
 
-class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
-    with ProtocolListener {
+class _QuadrantState extends State<Quadrant> with ProtocolListener {
   @override
   void dispose() {
     protocolHandler.removeListener(this);
@@ -357,6 +358,165 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
   //   );
   // }
 
+  void checkModpackUpdates(context) async {
+    const storage = FlutterSecureStorage();
+    String? token = await storage.read(key: "quadrant_id_token");
+    if (token == null) {
+      throw Exception(AppLocalizations.of(context)!.noQuadrantID);
+    }
+    http.Response res = await http.get(
+        Uri.parse("https://api.mrquantumoff.dev/api/v2/get/quadrant_sync"),
+        headers: {
+          "User-Agent": await generateUserAgent(),
+          "Authorization": "Bearer $token"
+        });
+
+    if (res.statusCode != 200) {
+      throw Exception(res.body);
+    }
+    List<SyncedModpack> syncedModpacks = [];
+    List<dynamic> data = json.decode(res.body);
+    for (var modpack in data) {
+      syncedModpacks.add(
+        SyncedModpack(
+          modpackId: modpack["modpack_id"],
+          name: modpack["name"],
+          mods: modpack["mods"],
+          mcVersion: modpack["mc_version"],
+          modLoader: modpack["mod_loader"],
+          lastSynced: modpack["last_synced"],
+          reload: () {},
+          token: token,
+        ),
+      );
+    }
+
+    syncedModpacks.sort(((a, b) {
+      return b.lastSynced.compareTo(a.lastSynced);
+    }));
+
+    List<String> localModpacks = getModpacks();
+    List<SyncedModpack> localSyncedModpacks = [];
+    for (SyncedModpack modpack in syncedModpacks) {
+      if (localModpacks.contains(modpack.name)) {
+        localSyncedModpacks.add(modpack);
+      }
+    }
+    for (SyncedModpack modpack in localSyncedModpacks) {
+      File localSyncedModpackFile = File(
+          "${getMinecraftFolder().path}/modpacks/${modpack.name}/quadrantSync.json");
+
+      if (!localSyncedModpackFile.existsSync()) {
+        continue;
+      }
+      try {
+        int lastLocalSync = json
+            .decode(localSyncedModpackFile.readAsStringSync())["last_synced"];
+        int lastRemoteSync = modpack.lastSynced;
+
+        if (lastRemoteSync > lastLocalSync) {
+          ScaffoldMessenger.of(context).showMaterialBanner(
+            MaterialBanner(
+              content: Text(
+                AppLocalizations.of(context)!
+                    .newerVersionOfModpackUpdateAvailable,
+              ),
+              actions: [
+                FilledButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).clearMaterialBanners();
+
+                    Get.to(() => ImportModpacksPage(page: 1));
+                    checkRSS(context);
+                  },
+                  icon: const Icon(Icons.update),
+                  label: Text(AppLocalizations.of(context)!.update),
+                )
+              ],
+            ),
+          );
+          return;
+        }
+      } catch (e) {
+        debugPrint("$e");
+      }
+    }
+  }
+
+  void checkRSS(BuildContext context) async {
+    http.Response res =
+        await http.get(Uri.parse("https://api.mrquantumoff.dev/blog.rss"));
+    if (res.statusCode != 200) return;
+    String rawFeed = res.body;
+
+    var feed = UniversalFeed.parseFromString(rawFeed);
+    List<Item> items = feed.items;
+    items = items.reversed.toList();
+    for (var item in items) {
+      debugPrint(item.title);
+      List<String> categories = [];
+      for (var category in item.categories) {
+        categories.add(category.value!);
+      }
+      bool cond1 = !(GetStorage().read<List<dynamic>>("seenItems") ?? [])
+          .contains(item.guid!);
+
+      DateTime itemDate = item.published!.parseValue() ?? DateTime.now();
+      bool cond2 =
+          itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
+      bool cond3 = GetStorage().read("rssFeeds") == true;
+      bool cond4 = GetStorage().read("devMode") == true;
+      debugPrint(
+          "\n\nSeen: $cond1\nIs within last 2 weeks: $cond2\nAre RSS feeds enabled: $cond3\nIs DevMode Enabled:  $cond4\n\n");
+
+      if (((cond1 && cond2) || cond4) &&
+          cond3 &&
+          categories.contains("Minecraft Modpack Manager")) {
+        var newSeenItems =
+            (GetStorage().read<List<dynamic>>("seenItems") ?? []);
+        newSeenItems.add(item.guid!);
+        GetStorage().write("seenItems", newSeenItems);
+        if (GetStorage().read("silentNews") == true) {
+          ScaffoldMessenger.of(context).showMaterialBanner(
+            MaterialBanner(
+              content: Text(item.title!),
+              actions: [
+                FilledButton.icon(
+                    onPressed: () async {
+                      await launchUrl(Uri.parse(item.link!.href.toString()));
+                      ScaffoldMessenger.of(context).clearMaterialBanners();
+                      checkModpackUpdates(context);
+                    },
+                    icon: const Icon(Icons.open_in_new),
+                    label: Text(AppLocalizations.of(context)!.read))
+              ],
+            ),
+          );
+        } else {
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text(item.title!),
+                content: Text(item.description!),
+                actions: [
+                  TextButton(
+                      onPressed: () async {
+                        await launchUrl(Uri.parse(item.link!.href.toString()));
+                      },
+                      child: Text(AppLocalizations.of(context)!.read))
+                ],
+              );
+            },
+          );
+        }
+        GetStorage().write("lastRSSfetched", DateTime.now().toIso8601String());
+
+        return;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (GetStorage().read("protocolArgument") != null && Platform.isLinux) {
@@ -365,6 +525,8 @@ class _MinecraftModpackManagerState extends State<MinecraftModpackManager>
       debugPrint("curseforge protocol removed");
       GetStorage().remove("protocolArgument");
     }
+    checkRSS(context);
+    checkModpackUpdates(context);
 
     return Scaffold(
       body: Row(

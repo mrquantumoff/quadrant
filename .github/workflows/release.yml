@@ -19,7 +19,7 @@ jobs:
         if: matrix.platform == 'windows-latest'
         uses: mrquantumoff/install-nsis@v1.0.1
         with:
-          nsis-version: 3.09
+          nsis-version: 3.10
       - name: Install flutter
         uses: richardshiue/flutter-action@main
         with:

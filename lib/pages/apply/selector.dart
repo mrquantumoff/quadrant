@@ -1,20 +1,10 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
-import 'package:get_storage_qnt/get_storage.dart';
-import 'package:http/http.dart' as http;
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/modpack_creator/modpack_creator.dart';
-import 'package:quadrant/pages/modpack_importer/import_modpacks/import_modpacks_page.dart';
-import 'package:quadrant/pages/modpack_importer/import_modpacks/synced_modpack.dart';
-import 'package:quadrant/pages/web/generate_user_agent.dart';
-
-import 'package:universal_feed/universal_feed.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class Selector extends StatefulWidget {
   const Selector({super.key});
@@ -50,166 +40,8 @@ class _SelectorState extends State<Selector> {
     updateOptions();
   }
 
-  void checkModpackUpdates(context) async {
-    const storage = FlutterSecureStorage();
-    String? token = await storage.read(key: "quadrant_id_token");
-    if (token == null) {
-      throw Exception(AppLocalizations.of(context)!.noQuadrantID);
-    }
-    http.Response res = await http.get(
-        Uri.parse("https://api.mrquantumoff.dev/api/v2/get/quadrant_sync"),
-        headers: {
-          "User-Agent": await generateUserAgent(),
-          "Authorization": "Bearer $token"
-        });
-
-    if (res.statusCode != 200) {
-      throw Exception(res.body);
-    }
-    List<SyncedModpack> syncedModpacks = [];
-    List<dynamic> data = json.decode(res.body);
-    for (var modpack in data) {
-      syncedModpacks.add(
-        SyncedModpack(
-          modpackId: modpack["modpack_id"],
-          name: modpack["name"],
-          mods: modpack["mods"],
-          mcVersion: modpack["mc_version"],
-          modLoader: modpack["mod_loader"],
-          lastSynced: modpack["last_synced"],
-          reload: () {},
-          token: token,
-        ),
-      );
-    }
-
-    syncedModpacks.sort(((a, b) {
-      return b.lastSynced.compareTo(a.lastSynced);
-    }));
-
-    List<String> localModpacks = getModpacks();
-    List<SyncedModpack> localSyncedModpacks = [];
-    for (SyncedModpack modpack in syncedModpacks) {
-      if (localModpacks.contains(modpack.name)) {
-        localSyncedModpacks.add(modpack);
-      }
-    }
-    for (SyncedModpack modpack in localSyncedModpacks) {
-      File localSyncedModpackFile = File(
-          "${getMinecraftFolder().path}/modpacks/${modpack.name}/quadrantSync.json");
-
-      if (!localSyncedModpackFile.existsSync()) {
-        continue;
-      }
-      try {
-        int lastLocalSync = json
-            .decode(localSyncedModpackFile.readAsStringSync())["last_synced"];
-        int lastRemoteSync = modpack.lastSynced;
-
-        if (lastRemoteSync > lastLocalSync) {
-          ScaffoldMessenger.of(context).showMaterialBanner(
-            MaterialBanner(
-              content: Text(
-                AppLocalizations.of(context)!
-                    .newerVersionOfModpackUpdateAvailable,
-              ),
-              actions: [
-                FilledButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).clearMaterialBanners();
-
-                    Get.to(() => ImportModpacksPage(page: 1));
-                    checkRSS(context);
-                  },
-                  icon: const Icon(Icons.update),
-                  label: Text(AppLocalizations.of(context)!.update),
-                )
-              ],
-            ),
-          );
-          return;
-        }
-      } catch (e) {
-        debugPrint("$e");
-      }
-    }
-  }
-
-  void checkRSS(BuildContext context) async {
-    http.Response res =
-        await http.get(Uri.parse("https://api.mrquantumoff.dev/blog.rss"));
-    if (res.statusCode != 200) return;
-    String rawFeed = res.body;
-
-    var feed = UniversalFeed.parseFromString(rawFeed);
-    List<Item> items = feed.items;
-    items = items.reversed.toList();
-    for (var item in items) {
-      debugPrint(item.title);
-      List<String> categories = [];
-      for (var category in item.categories) {
-        categories.add(category.value!);
-      }
-      bool cond1 = !(GetStorage().read<List<dynamic>>("seenItems") ?? [])
-          .contains(item.guid!);
-      DateTime itemDate = item.published!.parseValue() ?? DateTime.now();
-      bool cond2 =
-          itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
-      debugPrint(" Cond2: $cond2");
-      bool cond3 = GetStorage().read("rssFeeds") == true;
-      bool cond4 = GetStorage().read("devMode") == true;
-      if (((cond1 && cond2) || cond4) &&
-          cond3 &&
-          categories.contains("Minecraft Modpack Manager")) {
-        var newSeenItems =
-            (GetStorage().read<List<dynamic>>("seenItems") ?? []);
-        newSeenItems.add(item.guid!);
-        GetStorage().write("seenItems", newSeenItems);
-        if (GetStorage().read("silentNews") == true) {
-          ScaffoldMessenger.of(context).showMaterialBanner(
-            MaterialBanner(
-              content: Text(item.title!),
-              actions: [
-                FilledButton.icon(
-                    onPressed: () async {
-                      await launchUrl(Uri.parse(item.link!.href.toString()));
-                      ScaffoldMessenger.of(context).clearMaterialBanners();
-                      checkModpackUpdates(context);
-                    },
-                    icon: const Icon(Icons.open_in_new),
-                    label: Text(AppLocalizations.of(context)!.read))
-              ],
-            ),
-          );
-        } else {
-          showDialog(
-            context: context,
-            builder: (BuildContext context) {
-              return AlertDialog(
-                title: Text(item.title!),
-                content: Text(item.description!),
-                actions: [
-                  TextButton(
-                      onPressed: () async {
-                        await launchUrl(Uri.parse(item.link!.href.toString()));
-                      },
-                      child: Text(AppLocalizations.of(context)!.read))
-                ],
-              );
-            },
-          );
-        }
-        GetStorage().write("lastRSSfetched", DateTime.now().toIso8601String());
-
-        return;
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    checkRSS(context);
-    checkModpackUpdates(context);
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
