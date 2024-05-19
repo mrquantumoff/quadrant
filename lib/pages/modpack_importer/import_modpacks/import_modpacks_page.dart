@@ -565,54 +565,48 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
                           ],
                   ),
           ),
-          Expanded(
-            child: Column(
-              children: [
-                Container(
-                  margin: const EdgeInsets.only(top: 4, left: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.start,
+          Center(
+            child: FutureBuilder(
+              future: getSyncedModpacks(reload),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return ListView(
+                    scrollDirection: Axis.vertical,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: <Widget>[
+                          Container(
+                            margin: const EdgeInsets.only(top: 4, left: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppLocalizations.of(context)!.modpackSynced,
+                                  style: const TextStyle(fontSize: 24),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] +
+                        snapshot.data!,
+                  );
+                } else if (snapshot.hasError) {
+                  return Column(
                     children: [
+                      const Icon(Icons.error),
                       Text(
-                        AppLocalizations.of(context)!.modpackSynced,
-                        style: const TextStyle(fontSize: 24),
-                      ),
+                        snapshot.error.toString(),
+                        style: const TextStyle(
+                          fontSize: 18,
+                        ),
+                      )
                     ],
-                  ),
-                ),
-                SizedBox(
-                  height: 485,
-                  // margin:const EdgeInsets.only(bottom: 12),
-                  child: FutureBuilder(
-                    future: getSyncedModpacks(reload),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        return ListView(
-                          scrollDirection: Axis.vertical,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: snapshot.data!,
-                        );
-                      } else if (snapshot.hasError) {
-                        return Column(
-                          children: [
-                            const Icon(Icons.error),
-                            Text(
-                              snapshot.error.toString(),
-                              style: const TextStyle(
-                                fontSize: 18,
-                              ),
-                            )
-                          ],
-                        );
-                      }
-                      return const Center(
-                        child: CircularProgressIndicator(),
-                      );
-                    },
-                  ),
-                ),
-              ],
+                  );
+                }
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              },
             ),
           ),
         ],
