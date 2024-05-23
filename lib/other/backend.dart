@@ -475,7 +475,7 @@ Future<void> syncModpack(
         "mod_loader": modLoader,
         "mods": json.encode(mods),
         // This is the manual way of updating the modpack in the cloud, so it will overwrite anything else
-        "overwrite": true,
+        "overwrite": overwrite,
         "last_synced": timestamp,
       },
     ),
@@ -491,7 +491,7 @@ Future<void> syncModpack(
     return;
   }
   await selectedModpackSyncFile.writeAsString(
-    json.encode({"last_synced": timestamp}),
+    json.encode({"last_synced": json.decode(res.body)["last_synced"]}),
   );
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(
