@@ -307,16 +307,25 @@ Future<Mod> getMod(
         );
 
         Map parsed = json.decode(res.body);
+        // debugPrint("\n\n${res.body}\n\n");
+        List<Map> gameVersions = [];
         for (Map item in parsed["data"]) {
           if (item["gameVersions"].contains(modLoader)) {
-            if (preVersion == item["fileName"]) {
-              latestVersionUrl = "";
-              break;
-            }
-
-            latestVersionUrl = Uri.decodeFull(item["downloadUrl"]);
-            break;
+            gameVersions.add(item);
           }
+        }
+        gameVersions.sort(
+          (a, b) {
+            return DateTime.parse(a["fileDate"])
+                .compareTo(DateTime.parse(b["fileDate"]));
+          },
+        );
+
+        latestVersionUrl = Uri.decodeFull(gameVersions.last["downloadUrl"]);
+        if (preVersion == gameVersions.last["fileName"]) {
+          latestVersionUrl = "";
+        } else {
+          debugPrint(json.encode(gameVersions));
         }
       }
 
@@ -377,7 +386,7 @@ Future<Mod> getMod(
     if (versionShow) {
       http.Response res = await http.get(
         Uri.parse(
-            "https://api.modrinth.com/v2/project/$modId/version?loaders=[\"${modLoader.toLowerCase()}\"]&game_versions=[\"$versionTarget\"]"),
+            "https://api.modrinth.com/v2/project/$modId/version?loaders=[\"${modLoader.toLowerCase()}\"]&game_versions=[\"$versionTarget\"]&featured=true"),
         headers: headers,
       );
 
@@ -392,8 +401,7 @@ Future<Mod> getMod(
           }
         }
         primaryFile ??= item["files"][0];
-        if (primaryFile["filename"].toString().trim() ==
-            Uri.decodeFull(preVersion.trim())) {
+        if (primaryFile["filename"].toString().trim() == preVersion.trim()) {
           latestVersionUrl = "";
         } else {
           latestVersionUrl = Uri.decodeFull(primaryFile["url"]);

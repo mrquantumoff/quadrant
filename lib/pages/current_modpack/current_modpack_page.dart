@@ -83,7 +83,7 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
             child: FilledButton.icon(
               onPressed: () {
                 Get.to(
-                  UpdateModpack(
+                  () => UpdateModpack(
                     preSelectedModpack: currentModpack["name"],
                   ),
                 );
