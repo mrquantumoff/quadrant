@@ -334,6 +334,13 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                             modConfig["mods"] = mods;
                             String newModConfigRaw = json.encode(modConfig);
                             await modConfigFile.writeAsString(newModConfigRaw);
+                            File modpackSyncFile = File(
+                                "${getMinecraftFolder().path}/modpacks/${widget.modpackToUpdate}/quadrantSync.json");
+                            if (GetStorage().read("autoQuadrantSync") == true &&
+                                modpackSyncFile.existsSync()) {
+                              await syncModpack(
+                                  context, newModConfigRaw, false);
+                            }
                             widget.setAreParentButtonsActive(true);
                           },
                           icon: const Icon(Icons.delete),

@@ -499,14 +499,16 @@ Future<void> syncModpack(
   await selectedModpackSyncFile.writeAsString(
     json.encode({"last_synced": json.decode(res.body)["last_synced"]}),
   );
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      duration: const Duration(seconds: 5),
-      content: Text(
-        AppLocalizations.of(context)!.modpackUpdated,
+  if (!overwrite) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 5),
+        content: Text(
+          AppLocalizations.of(context)!.modpackUpdated,
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 void installModByProtocol(int modId, int fileId, Function() fail) async {
