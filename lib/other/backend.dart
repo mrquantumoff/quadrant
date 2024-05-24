@@ -300,32 +300,36 @@ Future<Mod> getMod(
       String latestVersionUrl = "";
 
       if (versionShow) {
-        http.Response res = await http.get(
-          Uri.parse(
-              "https://api.curseforge.com/v1/mods/$modId/files?gameVersion=$versionTarget"),
-          headers: headers,
-        );
+        try {
+          http.Response res = await http.get(
+            Uri.parse(
+                "https://api.curseforge.com/v1/mods/$modId/files?gameVersion=$versionTarget"),
+            headers: headers,
+          );
 
-        Map parsed = json.decode(res.body);
-        // debugPrint("\n\n${res.body}\n\n");
-        List<Map> gameVersions = [];
-        for (Map item in parsed["data"]) {
-          if (item["gameVersions"].contains(modLoader)) {
-            gameVersions.add(item);
+          Map parsed = json.decode(res.body);
+          // debugPrint("\n\n${res.body}\n\n");
+          List<Map> gameVersions = [];
+          for (Map item in parsed["data"]) {
+            if (item["gameVersions"].contains(modLoader)) {
+              gameVersions.add(item);
+            }
           }
-        }
-        gameVersions.sort(
-          (a, b) {
-            return DateTime.parse(a["fileDate"])
-                .compareTo(DateTime.parse(b["fileDate"]));
-          },
-        );
+          gameVersions.sort(
+            (a, b) {
+              return DateTime.parse(a["fileDate"])
+                  .compareTo(DateTime.parse(b["fileDate"]));
+            },
+          );
 
-        latestVersionUrl = Uri.decodeFull(gameVersions.last["downloadUrl"]);
-        if (preVersion == gameVersions.last["fileName"]) {
-          latestVersionUrl = "";
-        } else {
-          debugPrint(json.encode(gameVersions));
+          latestVersionUrl = Uri.decodeFull(gameVersions.last["downloadUrl"]);
+          if (preVersion == gameVersions.last["fileName"]) {
+            latestVersionUrl = "";
+          } else {
+            debugPrint(json.encode(gameVersions));
+          }
+        } catch (e) {
+          debugPrint("$e");
         }
       }
 
@@ -391,21 +395,24 @@ Future<Mod> getMod(
       );
 
       List parsed = json.decode(res.body);
-
-      for (dynamic item in parsed) {
-        dynamic primaryFile;
-        for (dynamic file in item["files"]) {
-          if (file["primary"] == true) {
-            primaryFile = file;
-            break;
+      try {
+        for (dynamic item in parsed) {
+          dynamic primaryFile;
+          for (dynamic file in item["files"]) {
+            if (file["primary"] == true) {
+              primaryFile = file;
+              break;
+            }
+          }
+          primaryFile ??= item["files"][0];
+          if (primaryFile["filename"].toString().trim() == preVersion.trim()) {
+            latestVersionUrl = "";
+          } else {
+            latestVersionUrl = Uri.decodeFull(primaryFile["url"]);
           }
         }
-        primaryFile ??= item["files"][0];
-        if (primaryFile["filename"].toString().trim() == preVersion.trim()) {
-          latestVersionUrl = "";
-        } else {
-          latestVersionUrl = Uri.decodeFull(primaryFile["url"]);
-        }
+      } catch (e) {
+        debugPrint("$e");
       }
     }
 
@@ -474,7 +481,6 @@ Future<void> syncModpack(
         "mc_version": mcVersion,
         "mod_loader": modLoader,
         "mods": json.encode(mods),
-        // This is the manual way of updating the modpack in the cloud, so it will overwrite anything else
         "overwrite": overwrite,
         "last_synced": timestamp,
       },
