@@ -499,7 +499,7 @@ Future<void> syncModpack(
   await selectedModpackSyncFile.writeAsString(
     json.encode({"last_synced": json.decode(res.body)["last_synced"]}),
   );
-  if (!overwrite) {
+  if (overwrite) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         duration: const Duration(seconds: 5),
