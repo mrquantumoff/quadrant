@@ -144,6 +144,11 @@ class _SyncedModpackState extends State<SyncedModpack> {
                             ),
                           );
                         }
+                        File modpackSyncFile = File(
+                            "${getMinecraftFolder().path}/modpacks/${widget.name}/quadrantSync.json");
+                        if (modpackSyncFile.existsSync()) {
+                          await modpackSyncFile.delete();
+                        }
                         widget.reload();
                       },
                       label: Text(AppLocalizations.of(context)!.delete),
