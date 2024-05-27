@@ -201,5 +201,8 @@
   "autoQuadrantSync": "Automatically sync modpacks with Quadrant Sync",
   "newerVersionOfModpackUpdateAvailable": "A newer version of a synced modpack is available!",
   "enableDataCollectionForAdvancedFeatures": "Enable data collection for advanced features, such as Quadrant Share",
-  "dontBotherMeAgain": "Don't bother me with this message"
+  "dontBotherMeAgain": "Don't bother me with this message",
+  "subject":"Subject",
+  "message":"Message",
+  "sendFeedback": "Send feedback"
 }

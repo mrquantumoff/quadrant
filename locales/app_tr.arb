@@ -194,5 +194,8 @@
   "autoQuadrantSync": "Mod paketlerin Quadrant Sync ile otomatik olarak senkronize et",
   "newerVersionOfModpackUpdateAvailable": "Senkronize edilmiş mod paketinin daha yeni bir sürümü mevcut!",
   "enableDataCollectionForAdvancedFeatures": "Quadrant Share gibi gelişmiş özellikler için veri toplamayı etkinleştirin",
-  "dontBotherMeAgain": "Bu mesajı gösterme"
+  "dontBotherMeAgain": "Bu mesajı gösterme",
+  "subject":"Konu",
+  "message":"Mesaj",
+  "sendFeedback": "Geribildirim yolla"
 }

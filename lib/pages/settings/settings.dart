@@ -1,8 +1,10 @@
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/other/restart_app.dart';
+import 'package:quadrant/pages/settings/send_feedback/send_feedpack.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class Settings extends StatefulWidget {
@@ -222,7 +224,26 @@ class _SettingsState extends State<Settings> {
             ),
             Container(
               alignment: AlignmentDirectional.topStart,
-              margin: const EdgeInsets.only(top: 4),
+              margin: const EdgeInsets.only(top: 12),
+              child: Container(
+                margin: const EdgeInsets.only(top: 0, bottom: 6),
+                child: TextButton.icon(
+                  onPressed: () async {
+                    Get.to(
+                      () => const SendFeedpackPage(),
+                      transition: Transition.upToDown,
+                    );
+                  },
+                  label: Text(
+                    AppLocalizations.of(context)!.sendFeedback,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  icon: const Icon(Icons.send),
+                ),
+              ),
+            ),
+            Container(
+              alignment: AlignmentDirectional.topStart,
               child: Container(
                 margin: const EdgeInsets.only(top: 0, bottom: 12),
                 child: TextButton.icon(
@@ -236,7 +257,7 @@ class _SettingsState extends State<Settings> {
                     AppLocalizations.of(context)!.submitBugReport,
                     style: const TextStyle(fontSize: 16),
                   ),
-                  icon: const Icon(Icons.send),
+                  icon: const Icon(Icons.bug_report),
                 ),
               ),
             ),
@@ -252,8 +273,9 @@ class _SettingsState extends State<Settings> {
                     child: TextButton(
                       onPressed: () =>
                           overwriteMinecraftFolder(updateMinecraftFolderText),
-                      child: Text(AppLocalizations.of(context)!
-                          .overrideMinecraftFolder),
+                      child: Text(
+                        AppLocalizations.of(context)!.overrideMinecraftFolder,
+                      ),
                     ),
                   ),
                   Container(
