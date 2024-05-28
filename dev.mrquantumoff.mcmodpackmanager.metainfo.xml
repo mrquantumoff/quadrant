@@ -38,6 +38,13 @@
   </keywords>
   <releases>
 
+    <release date="2024-05-28" version="24.6.2">
+      <description>
+        <p>Added the ability to send feedback.</p>
+        <p>Fixed a few bugs</p>
+      </description>
+    </release>
+
     <release date="2024-05-24" version="24.6.1">
       <description>
         <p>Added the ability to automatically sync modpacks with Quadrant Sync</p>
