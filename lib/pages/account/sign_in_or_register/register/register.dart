@@ -207,11 +207,11 @@ class _RegisterStep2State extends State<RegisterStep2> {
                       },
                       body: jsonEncode(
                         {
-                          "email": emailController.text,
+                          "email": emailController.text.trim(),
                           "verification_code": code,
-                          "login": usernameController.text,
-                          "password": passwordController.text,
-                          "name": nameController.text,
+                          "login": usernameController.text.trim(),
+                          "password": passwordController.text.trim(),
+                          "name": nameController.text.trim(),
                         },
                       ),
                     );

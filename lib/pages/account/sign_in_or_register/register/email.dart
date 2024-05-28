@@ -91,7 +91,7 @@ class _RegisterStep1State extends State<RegisterStep1> {
                       },
                       body: jsonEncode(
                         {
-                          "email": emailController.text,
+                          "email": emailController.text.trim(),
                         },
                       ),
                     );
@@ -110,10 +110,11 @@ class _RegisterStep1State extends State<RegisterStep1> {
                     setButtonsEnabled(true);
 
                     Get.to(
-                        () => RegisterStep2(
-                              email: emailController.text,
-                            ),
-                        transition: Transition.fadeIn);
+                      () => RegisterStep2(
+                        email: emailController.text.trim(),
+                      ),
+                      transition: Transition.fadeIn,
+                    );
                   }
                 : () {
                     ScaffoldMessenger.of(context).showSnackBar(
