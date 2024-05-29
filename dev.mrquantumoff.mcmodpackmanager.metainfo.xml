@@ -36,6 +36,12 @@
     <keyword>quadrant</keyword>
     <keyword>Minecraft Modpack Manager</keyword>
   </keywords>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#1bd96a</color>
+    <color type="primary" scheme_preference="dark">#18294</color>
+  </branding>
+
   <releases>
 
     <release date="2024-05-28" version="24.6.2">
