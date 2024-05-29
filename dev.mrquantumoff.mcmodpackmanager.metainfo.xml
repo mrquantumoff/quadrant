@@ -3,15 +3,14 @@
   <id>dev.mrquantumoff.mcmodpackmanager</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MPL-2.0</project_license>
-  <name>QuadrantMC (Formerly Minecraft Modpack Manager Reborn)</name>
-  <summary>Manage your modpacks with ease!</summary>
+  <name>Quadrant</name>
+  <summary>Manage your mods and modpacks with ease!</summary>
   <description>
     <p>
-      Change your modpack by clicking just a few buttons!
+      This is a powerful tool to manage your Minecraft: Java Edition mods.
+      With this app you can easily install mods, resourcepacks, shaders. You can also share you modpacks with your friends, and you can back up your modpacks to the cloud!
     </p>
     <p>
-      This app lets you install and manage minecraft modpacks using a GUI written in Flutter and
-      Dart.
       NOTE: This app and its developer are not affiliated with Mojang Studios.
     </p>
   </description>
