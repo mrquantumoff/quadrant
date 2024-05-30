@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logotext.svg" height=256 />
+<img src="https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo.svg" height=256 />
 
 > An easy way to manage your modpacks, written in Dart and Flutter.
 > Formerly Minecraft Modpack Manager Reborn
@@ -49,8 +49,8 @@
 > ## If you install the app from the Microsoft Store, make sure you have the .minecraft folder already created, or else you might have to follow the tip below!
 
 > [!TIP]
-> ## If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the system settings and/or reinstalling the app from microsoft store.
 >
+> ## If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the system settings and/or reinstalling the app from microsoft store.
 
 > [!WARNING]
 >
@@ -61,7 +61,7 @@
 > ## Before requesting to the delete the data collected by the app, please be sure that you are using the latest version.
 
 > [!TIP]
-> 
+>
 > #### THIS ONLY APPLIES TO APP VERSIONS BEFORE v24.2.0. If CurseForge protocol handler doesn't work properly you can easily use [this registry fix](https://github.com/mrquantumoff/quadrant/raw/master/msstorefix.reg)
 
 > [!TIP]
