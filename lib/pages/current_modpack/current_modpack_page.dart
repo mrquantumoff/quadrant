@@ -100,7 +100,7 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
           builder: ((context, snapshot) {
             if (snapshot.hasData) {
               return GridView.extent(
-                maxCrossAxisExtent: 540,
+                maxCrossAxisExtent: 565,
                 mainAxisSpacing: 15,
                 crossAxisSpacing: 0,
                 childAspectRatio: 1.25,
