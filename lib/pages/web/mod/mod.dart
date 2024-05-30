@@ -189,18 +189,11 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
 
     return Visibility(
       maintainState: widget.showPreVersion,
-      child:
-          //   child: widget.downloadable
-          //       ? const Divider(
-          //           height: 1.5,
-          //           thickness: 1,
-          //         )
-          //       : null,
-          // ),
-          OpenContainer(
+      child: OpenContainer(
         closedBuilder: (context, action) {
           return Card(
             // elevation: 12,
+            clipBehavior: Clip.antiAlias,
             margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -519,6 +512,9 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
         closedColor: Colors.transparent,
         middleColor: Colors.transparent,
         openColor: Colors.transparent,
+        clipBehavior: Clip.antiAlias,
+        closedElevation: 0,
+        openElevation: 0,
         transitionDuration: Durations.long2,
         tappable: widget.downloadable,
       ),
