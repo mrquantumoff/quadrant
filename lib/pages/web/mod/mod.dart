@@ -517,7 +517,10 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
           );
         },
         closedColor: Colors.transparent,
-        tappable: false,
+        middleColor: Colors.transparent,
+        openColor: Colors.transparent,
+        transitionDuration: Durations.long2,
+        tappable: widget.downloadable,
       ),
     );
   }
