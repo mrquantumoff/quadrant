@@ -293,10 +293,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
         );
       }
     }
-    if (!isValid) {
-      debugPrint(
-          "The BROKEN ETERNAL API KEY IS ${const String.fromEnvironment("ETERNAL_API_KEY")}");
-    }
+
     return isValid;
   }
 
