@@ -196,7 +196,8 @@ class _EditDetailsState extends State<EditDetails> {
             children: [
               FilledButton.tonal(
                 onPressed: () async {
-                  launchUrlString("https://mrquantumoff.dev/account");
+                  launchUrlString(
+                      "https://mrquantumoff.dev/account?quadrant_id_token=$accountToken");
                 },
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
