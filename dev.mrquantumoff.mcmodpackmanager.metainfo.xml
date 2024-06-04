@@ -3,8 +3,8 @@
   <id>dev.mrquantumoff.mcmodpackmanager</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MPL-2.0</project_license>
-  <name>Quadrant</name>
-  <summary>Manage your mods and modpacks with ease!</summary>
+  <name>Quadrant (Formerly Minecraft Modpack Manager)</name>
+  <summary>Manage your mods and modpacks with ease.</summary>
   <description>
     <p>
       This is a powerful tool to manage your Minecraft: Java Edition mods.
@@ -42,6 +42,13 @@
   </branding>
 
   <releases>
+
+    <release date="2024-06-04" version="24.6.4">
+      <description>
+        <p>Improved in-app animations.</p>
+        <p>Fixed a few bugs</p>
+      </description>
+    </release>
 
     <release date="2024-05-30" version="24.6.3">
       <description>
