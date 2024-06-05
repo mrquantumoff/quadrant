@@ -326,20 +326,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
           transition: Transition.upToDown,
         );
       } else if (url.startsWith("quadrant://login")) {
-        // Example: quadrant://login?token=AANobbMI
-        String token = uri.queryParameters["token"]!;
-        const storage = FlutterSecureStorage();
-        if (JwtDecoder.isExpired(token)) {
-          return;
-        }
-        await storage.write(key: "quadrant_id_token", value: token);
-        setState(() {
-          currentPage = 4;
-          GetStorage().write("lastPage", 4);
-        });
-        RestartWidget.restartApp(context);
-      } else if (url.startsWith("quadrant://oauth2callback")) {
-        // Example: quadrant://oauth2callback?code=AANobbMI
+        // Example: quadrant://login?code=AANobbMI
         String code = uri.queryParameters["code"]!;
 
         http.Response res = await http.get(
