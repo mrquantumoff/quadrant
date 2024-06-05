@@ -338,6 +338,35 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
           GetStorage().write("lastPage", 4);
         });
         RestartWidget.restartApp(context);
+      } else if (url.startsWith("quadrant://oauth2callback")) {
+        // Example: quadrant://oauth2callback?code=AANobbMI
+        String code = uri.queryParameters["code"]!;
+
+        http.Response res = await http.get(
+          Uri.parse(
+              "https://api.mrquantumoff.dev/api/v2/get/account/oauth2/token?client_id=${const String.fromEnvironment("QUADRANT_OAUTH2_CLIENT_ID")}&client_secret=${const String.fromEnvironment("QUADRANT_OAUTH2_CLIENT_SECRET")}&auth_code=$code"),
+        );
+
+        if (res.statusCode != 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.invalidData),
+            ),
+          );
+          return;
+        }
+        String token = res.body;
+
+        const storage = FlutterSecureStorage();
+        if (JwtDecoder.isExpired(token)) {
+          return;
+        }
+        await storage.write(key: "quadrant_id_token", value: token);
+        setState(() {
+          currentPage = 4;
+          GetStorage().write("lastPage", 4);
+        });
+        RestartWidget.restartApp(context);
       }
     } catch (e) {
       protocolFail();
