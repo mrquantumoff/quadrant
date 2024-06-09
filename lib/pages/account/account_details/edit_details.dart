@@ -263,6 +263,7 @@ class _EditDetailsState extends State<EditDetails> {
                               "https://api.mrquantumoff.dev/api/v2/update/id/account"),
                           headers: {
                             "User-Agent": await generateUserAgent(),
+                            "Authorization": "Bearer $accountToken",
                           },
                           body: json.encode(requestBody),
                         );
