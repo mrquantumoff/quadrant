@@ -3,7 +3,7 @@
   <id>dev.mrquantumoff.mcmodpackmanager</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MPL-2.0</project_license>
-  <name>Quadrant (Formerly Minecraft Modpack Manager)</name>
+  <name>Quadrant for Minecraft</name>
   <summary>Manage your mods and modpacks with ease.</summary>
   <description>
     <p>
@@ -717,17 +717,22 @@
   <screenshots>
     <screenshot type="default">
       <image>
-        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/Screenshot%202023-02-03%20233117.png
+        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/linux1.png
       </image>
     </screenshot>
     <screenshot type="default">
       <image>
-        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/Screenshot%202023-02-03%20112802.png
+        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/linux2.png
       </image>
     </screenshot>
     <screenshot type="default">
       <image>
-        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/Screenshot%202023-02-03%20112742.png
+        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/linux3.png
+      </image>
+    </screenshot>
+    <screenshot type="default">
+      <image>
+	https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/linux4.png
       </image>
     </screenshot>
   </screenshots>
