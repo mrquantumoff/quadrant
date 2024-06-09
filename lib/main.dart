@@ -328,13 +328,10 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
       } else if (url.startsWith("quadrant://login")) {
         // Example: quadrant://login?code=AANobbMI
         String code = uri.queryParameters["code"]!;
+        String state = uri.queryParameters["state"]!;
 
-        http.Response res = await http.get(
-          Uri.parse(
-              "https://api.mrquantumoff.dev/api/v2/get/account/oauth2/token?client_id=${const String.fromEnvironment("QUADRANT_OAUTH2_CLIENT_ID")}&client_secret=${const String.fromEnvironment("QUADRANT_OAUTH2_CLIENT_SECRET")}&auth_code=$code"),
-        );
-
-        if (res.statusCode != 200) {
+        if (state != GetStorage().read("oauth2_state")) {
+          debugPrint("State mismatch");
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(AppLocalizations.of(context)!.invalidData),
@@ -342,7 +339,42 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
           );
           return;
         }
-        String token = res.body;
+
+        http.Response res = await http.post(
+          Uri.parse(
+              "https://api.mrquantumoff.dev/api/v2/get/account/oauth2/token/compliant"),
+          body: {
+            "client_id":
+                const String.fromEnvironment("QUADRANT_OAUTH2_CLIENT_ID"),
+            "client_secret":
+                const String.fromEnvironment("QUADRANT_OAUTH2_CLIENT_SECRET"),
+            "code": code,
+            "grant_type": "authorization_code"
+          },
+          headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        );
+
+        if (res.statusCode != 200) {
+          debugPrint("${res.statusCode} ${res.body}");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.invalidData),
+            ),
+          );
+          return;
+        }
+        String token = jsonDecode(res.body)["access_token"];
+        String scope = jsonDecode(res.body)["scope"];
+
+        if (!scope.contains("user_data") || !scope.contains("quadrant_sync")) {
+          debugPrint("Scope mismatch");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.invalidData),
+            ),
+          );
+          return;
+        }
 
         const storage = FlutterSecureStorage();
         if (JwtDecoder.isExpired(token)) {

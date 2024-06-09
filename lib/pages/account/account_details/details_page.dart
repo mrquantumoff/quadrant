@@ -33,11 +33,10 @@ class _AccountDetailsState extends State<AccountDetails> {
       },
     );
 
-    if (res.statusCode == 400) {
+    if (res.statusCode != 200) {
+      debugPrint("${res.body} (${res.statusCode})");
       await storage.delete(key: "quadrant_id_token");
       RestartWidget.restartApp(context);
-    } else if (res.statusCode != 200) {
-      debugPrint("${res.statusCode}");
       return Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
