@@ -526,7 +526,8 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
         bool cond1 = !(GetStorage().read<List<dynamic>>("seenItems") ?? [])
             .contains(item.guid!);
 
-        DateTime itemDate = item.published!.parseValue() ?? DateTime.now();
+        DateTime itemDate = item.published!.parseValue() ??
+            DateTime.now().subtract(const Duration(days: 28));
         bool cond2 =
             itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
         bool cond3 = GetStorage().read("rssFeeds") == true;
