@@ -43,6 +43,12 @@
 
   <releases>
 
+    <release date="2024-06-12" version="24.6.7">
+      <description>
+        <p>Fixed a few bugs</p>
+      </description>
+    </release>
+
     <release date="2024-06-09" version="24.6.6">
       <description>
         <p>Enhanced Quadrant ID security.</p>
