@@ -43,6 +43,13 @@
 
   <releases>
 
+    <release date="2024-06-12" version="24.6.8">
+      <description>
+        <p>Small locale changes</p>
+      </description>
+    </release>
+
+
     <release date="2024-06-12" version="24.6.7">
       <description>
         <p>Fixed a few bugs</p>

@@ -2,7 +2,7 @@ name: quadrant
 description: Manage your modpacks and mods with ease.
 publish_to: 'none'
 
-version: 24.6.7+0
+version: 24.6.8+0
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -31,7 +31,7 @@ dependencies:
   archive: ^3.6.1
   flutter_platform_alert: ^0.5.1
   url_launcher: ^6.3.0
-  flutter_svg: ^2.0.10+1
+  flutter_svg: ^2.0.10
   protocol_handler: ^0.2.0
   device_info_plus: ^10.1.0
   clipboard: ^0.1.3
@@ -76,12 +76,12 @@ msix_config:
   publisher_display_name: MrQuantumOFF (Demir Yerli)
   publisher: CN=010914FC-8843-4963-A3FE-E3E06E6D9F53
   identity_name: 58734MrQuantumOFFDemirYer.MinecraftModpackManagerR
-  msix_version: 24.6.7.0
+  msix_version: 24.6.8.0
   logo_path: .\assets\icons\logo.ico
   store: true
   app_uri_handler_hosts: www.curseforge.com, curseforge.com, beta.curseforge.com, modrinth.com
   languages: en-us, uk-ua, tr-tr
-  capabilities: internetClient, broadFileSystemAccess
+  capabilities: internetClient, broadFileSystemAccess, unvirtualizedResources
   protocol_activation: quadrant,curseforge
   os_min_version: 10.0.19045.0
   execution_alias: quadrant
