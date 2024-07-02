@@ -46,6 +46,9 @@ class _InstallModPageState extends State<InstallModPage> {
   late bool apiFieldEnabled;
   late bool versionFieldEnabled;
   late double progressValue;
+
+  late String lastVersion;
+
   List<Widget> dependencies = [
     Container(
       margin: const EdgeInsets.symmetric(vertical: 48, horizontal: 12),
@@ -67,6 +70,9 @@ class _InstallModPageState extends State<InstallModPage> {
     dependencyVersionFieldController = TextEditingController();
     modpackFieldController = TextEditingController();
     areButttonsActive = true;
+    lastVersion = widget.installFileId == null
+        ? GetStorage().read("lastUsedVersion") ?? ""
+        : "";
     getDeps();
   }
 
@@ -890,9 +896,7 @@ class _InstallModPageState extends State<InstallModPage> {
                       child: DropdownMenu(
                         controller: dependencyVersionFieldController,
                         dropdownMenuEntries: widget.versions,
-                        initialSelection: widget.installFileId == null
-                            ? GetStorage().read("lastUsedVersion")
-                            : null,
+                        initialSelection: lastVersion,
                         label:
                             Text(AppLocalizations.of(context)!.chooseVersion),
                         width: 840,
