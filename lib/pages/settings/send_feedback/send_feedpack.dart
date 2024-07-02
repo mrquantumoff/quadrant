@@ -30,7 +30,7 @@ class _SendFeedpackPageState extends State<SendFeedpackPage> {
       }
 
       http.Response res = await http.get(
-        Uri.parse("https://api.mrquantumoff.dev/api/v2/get/account"),
+        Uri.parse("https://api.mrquantumoff.dev/api/v3/account/info/get"),
         headers: {
           "User-Agent": await generateUserAgent(),
           "Authorization": "Bearer $accountToken",
@@ -117,7 +117,7 @@ class _SendFeedpackPageState extends State<SendFeedpackPage> {
                 };
                 http.Response res = await http.post(
                   Uri.parse(
-                      "https://api.mrquantumoff.dev/api/v2/submit/quadrant_feedback"),
+                      "https://api.mrquantumoff.dev/api/v3/quadrant/feedback/submit"),
                   headers: {
                     "User-Agent": await generateUserAgent(),
                     "Authorization":

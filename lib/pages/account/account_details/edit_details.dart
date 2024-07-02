@@ -60,7 +60,7 @@ class _EditDetailsState extends State<EditDetails> {
     }
 
     http.Response res = await http.get(
-      Uri.parse("https://api.mrquantumoff.dev/api/v2/get/account"),
+      Uri.parse("https://api.mrquantumoff.dev/api/v3/account/info/get"),
       headers: {
         "User-Agent": await generateUserAgent(),
         "Authorization": "Bearer $accountToken",
@@ -260,7 +260,7 @@ class _EditDetailsState extends State<EditDetails> {
 
                         http.Response res = await http.patch(
                           Uri.parse(
-                              "https://api.mrquantumoff.dev/api/v2/update/id/account"),
+                              "https://api.mrquantumoff.dev/api/v3/account/data/update"),
                           headers: {
                             "User-Agent": await generateUserAgent(),
                             "Authorization": "Bearer $accountToken",

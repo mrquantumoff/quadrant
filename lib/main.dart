@@ -342,7 +342,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
 
         http.Response res = await http.post(
           Uri.parse(
-              "https://api.mrquantumoff.dev/api/v2/get/account/oauth2/token/compliant"),
+              "https://api.mrquantumoff.dev/api/v3/account/oauth2/token/access"),
           body: {
             "client_id":
                 const String.fromEnvironment("QUADRANT_OAUTH2_CLIENT_ID"),

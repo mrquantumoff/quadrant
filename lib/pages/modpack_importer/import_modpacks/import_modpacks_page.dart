@@ -336,7 +336,7 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
                                           isLoading = true;
                                         });
                                         var res = await http.get(Uri.parse(
-                                            "https://api.mrquantumoff.dev/api/v2/get/quadrant_share?code=${String.fromCharCodes(modpackEntryController.text.codeUnits)}"));
+                                            "https://api.mrquantumoff.dev/api/v3/quadrant/share/get?code=${String.fromCharCodes(modpackEntryController.text.codeUnits)}"));
                                         if (res.statusCode != 200) {
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(

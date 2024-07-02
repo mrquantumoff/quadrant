@@ -83,7 +83,7 @@ class _RegisterStep1State extends State<RegisterStep1> {
                     setButtonsEnabled(false);
                     http.Response response = await http.post(
                       Uri.parse(
-                          "https://api.mrquantumoff.dev/api/v2/submit/id/request_registration"),
+                          "https://api.mrquantumoff.dev/api/v3/account/registration/request"),
                       headers: {
                         'User-Agent': await generateUserAgent(),
                         'Authorization':

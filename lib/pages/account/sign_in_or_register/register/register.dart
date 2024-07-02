@@ -201,7 +201,7 @@ class _RegisterStep2State extends State<RegisterStep2> {
                     }
                     http.Response response = await http.post(
                       Uri.parse(
-                          "https://api.mrquantumoff.dev/api/v2/submit/id/register"),
+                          "https://api.mrquantumoff.dev/api/v3/account/registration/confirm"),
                       headers: {
                         'User-Agent': await generateUserAgent(),
                       },

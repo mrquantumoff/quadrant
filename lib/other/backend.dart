@@ -145,7 +145,7 @@ void clearMinecraftFolderOverwrite(Function() updateText) async {
 
 Future<Map<String, String>> getReleaseInfo() async {
   Uri apiLink = Uri.parse(
-      "https://api.mrquantumoff.dev/api/v1/getLatestMinecraftModpackManagerRelease");
+      "https://api.github.com/repos/mrquantumoff/quadrant/releases/latest");
 
   Map<String, String> headers = {
     "User-Agent": await generateUserAgent(),
@@ -157,21 +157,19 @@ Future<Map<String, String>> getReleaseInfo() async {
     return {
       "latestRelease": "v",
       "currentRelease": "",
-      "url":
-          "https://api.mrquantumoff.dev/api/v1/getLatestMinecraftModpackManagerRelease"
+      "url": "https://github.com/mrquantumoff/quadrant/releases/latest"
     };
   }
   http.Response latestReleaseResponse =
       await http.get(apiLink, headers: headers);
   Map response = json.decode(latestReleaseResponse.body);
-  dynamic latestRelease = response["release"].toString();
+  dynamic latestRelease = response["tag_name"].toString();
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
 
   return {
     "latestRelease": latestRelease,
     "currentRelease": packageInfo.version,
-    "url":
-        "https://github.com/mrquantumoff/quadrant/releases/tag/$latestRelease"
+    "url": "https://github.com/mrquantumoff/quadrant/releases/latest"
   };
 }
 
@@ -193,7 +191,7 @@ Future<void> shareModpack(BuildContext context, String content) async {
   if (token != null) {
     var res = await http.post(
         Uri.parse(
-            "https://api.mrquantumoff.dev/api/v2/submit/quadrant_share_with_id"),
+            "https://api.mrquantumoff.dev/api/v3/quadrant/share/submit/id"),
         headers: {
           "User-Agent": await generateUserAgent(),
           "Authorization": "Bearer $token"
@@ -221,7 +219,7 @@ Future<void> shareModpack(BuildContext context, String content) async {
     }
   }
   var res = await http.post(
-      Uri.parse("https://api.mrquantumoff.dev/api/v2/submit/quadrant_share"),
+      Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/share/submit"),
       headers: {
         "User-Agent": await generateUserAgent(),
         "Authorization": const String.fromEnvironment("QUADRANT_QNT_API_KEY")
@@ -749,8 +747,7 @@ void collectUserInfo({bool saveToFile = false}) async {
     if (GetStorage().read("collectUserData") == true &&
         GetStorage().read("devMode") == false) {
       var result = await http.post(
-        Uri.parse(
-            "https://api.mrquantumoff.dev/api/v2/submit/quadrantusageinfo"),
+        Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/usage/submit"),
         headers: {
           "User-Agent": await generateUserAgent(),
           "Authorization": const String.fromEnvironment("QUADRANT_QNT_API_KEY")
@@ -786,7 +783,7 @@ void deleteUsageInfo() async {
 
   await http.delete(
     Uri.parse(
-        "https://api.mrquantumoff.dev/api/v2/delete/quadrantusageinfo?hardware_id=${info.machineId}"),
+        "https://api.mrquantumoff.dev/api/v3/quadrant/usage/delete?hardware_id=${info.machineId}"),
     headers: {
       "User-Agent": await generateUserAgent(),
       "Authorization": const String.fromEnvironment("QUADRANT_QNT_API_KEY")
