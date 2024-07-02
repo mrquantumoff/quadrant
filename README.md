@@ -50,6 +50,7 @@
 
 > [!TIP]
 > ## If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the system settings and/or reinstalling the app from microsoft store.
+> ## If you can't apply your Quadrant modpack, try removing the mods folder manually.
 >
 
 > [!WARNING]
