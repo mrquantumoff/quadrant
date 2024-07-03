@@ -206,5 +206,9 @@
   "message":"Message",
   "sendFeedback": "Send feedback",
   "youNeedToMigrateData": "With the latest version of Quadrant some things under the hood were changed, you have to migrate your data.",
-  "migrate": "Migrate"
+  "migrate": "Migrate",
+  "details": "Details",
+  "leaveOrDelete": "Leave/Delete",
+  "owners": "Owners",
+  "owner": "{username} (owner)"
 }
