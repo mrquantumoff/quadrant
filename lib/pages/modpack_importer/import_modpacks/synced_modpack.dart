@@ -191,9 +191,9 @@ class _SyncedModpackState extends State<SyncedModpack> {
                             ),
                           );
                         }
-                        List<dynamic> modpack_raw =
+                        List<dynamic> modpackRaw =
                             json.decode(snapshot.data!.body);
-                        Map modpack = modpack_raw[0];
+                        Map modpack = modpackRaw[0];
                         List<dynamic> owners = modpack["owners"];
                         List<Widget> ownersWidgets = [];
                         for (var owner in owners) {
@@ -205,7 +205,7 @@ class _SyncedModpackState extends State<SyncedModpack> {
                                     ? AppLocalizations.of(context)!
                                         .owner(owner["username"])
                                     : owner["username"],
-                                style: TextStyle(fontSize: 18),
+                                style: const TextStyle(fontSize: 18),
                               ),
                             ),
                           );

@@ -7,6 +7,7 @@ import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:http/http.dart' as http;
 import 'package:quadrant/other/restart_app.dart';
 import 'package:quadrant/pages/account/account_details/edit_details.dart';
+import 'package:quadrant/pages/account/account_details/notifications.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 
 class AccountDetails extends StatefulWidget {
@@ -18,7 +19,9 @@ class AccountDetails extends StatefulWidget {
 class _AccountDetailsState extends State<AccountDetails> {
   final storage = const FlutterSecureStorage();
 
-  Future<Widget> accountDetails(BuildContext context) async {
+  String reload = "account";
+
+  Future<Widget> accountDetails(BuildContext context, String reload) async {
     String accountToken = (await storage.read(key: "quadrant_id_token"))!;
 
     if (JwtDecoder.isExpired(accountToken)) {
@@ -55,6 +58,14 @@ class _AccountDetailsState extends State<AccountDetails> {
     String email = user["email"];
     int syncLimit = user["quadrant_sync_limit"];
     int shareLimit = user["quadrant_share_limit"];
+    List<dynamic> notifications = user["notifications"];
+    List<dynamic> unreadNotifications = [];
+
+    for (var not in notifications) {
+      if (not["read"] == false) {
+        unreadNotifications.add(not);
+      }
+    }
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -63,6 +74,23 @@ class _AccountDetailsState extends State<AccountDetails> {
         Text(
           AppLocalizations.of(context)!.hello(name),
           style: const TextStyle(fontSize: 24),
+        ),
+        Text(
+          AppLocalizations.of(context)!
+              .unreadNotifications(unreadNotifications.length),
+          style: const TextStyle(fontSize: 18),
+        ),
+        Container(
+          margin: const EdgeInsets.only(top: 12),
+          child: FilledButton.icon(
+            onPressed: () async {
+              Get.to(
+                () => Notifications(token: accountToken, setReload: setReload),
+              );
+            },
+            label: Text(AppLocalizations.of(context)!.read),
+            icon: const Icon(Icons.notifications),
+          ),
         ),
         Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -173,10 +201,16 @@ class _AccountDetailsState extends State<AccountDetails> {
     );
   }
 
+  void setReload(String newReload) {
+    setState(() {
+      reload = newReload;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: accountDetails(context),
+      future: accountDetails(context, reload),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           return Center(child: snapshot.data!);

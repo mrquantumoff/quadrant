@@ -210,5 +210,6 @@
   "details": "Details",
   "leaveOrDelete": "Leave/Delete",
   "owners": "Owners",
-  "owner": "{username} (owner)"
+  "owner": "{username} (owner)",
+  "unreadNotifications": "You have {number} unread notifications"
 }
