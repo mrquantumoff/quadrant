@@ -43,6 +43,7 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
   bool isLoading = false;
   String modConfig = "";
   bool switchTabsBack = false;
+  Future<List<Widget>>? future;
 
   late TabController tabController;
 
@@ -51,6 +52,7 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
     super.initState();
     tabController =
         TabController(length: 2, vsync: this, initialIndex: widget.page);
+    future = getSyncedModpacksOld(reload);
   }
 
   TextEditingController modpackEntryController = TextEditingController();
@@ -152,7 +154,7 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
     }
   }
 
-  Future<List<SyncedModpack>> getSyncedModpacks(String reload) async {
+  Future<List<Widget>> getSyncedModpacksOld(String reload) async {
     const storage = FlutterSecureStorage();
     String? token = await storage.read(key: "quadrant_id_token");
     if (token == null) {
@@ -168,15 +170,126 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
     if (res.statusCode != 200) {
       throw Exception(res.body);
     }
+    List<dynamic> data = json.decode(res.body);
+
+    if (data.isEmpty) {
+      return await getSyncedModpacks(reload);
+    }
+    return [
+      SizedBox(
+        width: 640,
+        height: 192,
+        child: Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                AppLocalizations.of(context)!.youNeedToMigrateData,
+                style: const TextStyle(fontSize: 18),
+              ),
+              const SizedBox(
+                height: 24,
+              ),
+              FilledButton.icon(
+                onPressed: () async {
+                  setState(() {
+                    reload = "";
+                    future = () async {
+                      return <Widget>[
+                        const SizedBox(
+                          width: 640,
+                          height: 640,
+                          child: Card(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(),
+                              ],
+                            ),
+                          ),
+                        )
+                      ];
+                    }();
+                  });
+                  http.Response res = await http.get(
+                    Uri.parse(
+                        "https://api.mrquantumoff.dev/api/v3/quadrant/sync/migrate"),
+                    headers: {
+                      "User-Agent": await generateUserAgent(),
+                      "Authorization": "Bearer $token"
+                    },
+                  );
+                  if (res.statusCode != 200) {
+                    setState(() {
+                      reload = "";
+                      future = () async {
+                        return <Widget>[
+                          SizedBox(
+                            width: 640,
+                            height: 640,
+                            child: Card(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.error),
+                                  Text(res.body)
+                                ],
+                              ),
+                            ),
+                          )
+                        ];
+                      }();
+                    });
+                  } else {
+                    setState(() {
+                      future = getSyncedModpacks(reload);
+                      reload = "";
+                    });
+                  }
+                },
+                label: Text(AppLocalizations.of(context)!.migrate),
+                icon: const Icon(
+                  Icons.upgrade,
+                ),
+              )
+            ],
+          ),
+        ),
+      )
+    ];
+  }
+
+  Future<List<SyncedModpack>> getSyncedModpacks(String reload) async {
+    const storage = FlutterSecureStorage();
+    String? token = await storage.read(key: "quadrant_id_token");
+    if (token == null) {
+      throw Exception(AppLocalizations.of(context)!.noQuadrantID);
+    }
+    http.Response res = await http.get(
+        Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/sync/get"),
+        headers: {
+          "User-Agent": await generateUserAgent(),
+          "Authorization": "Bearer $token"
+        });
+
+    if (res.statusCode != 200) {
+      throw Exception(res.body);
+    }
     List<SyncedModpack> syncedModpacks = [];
     List<dynamic> data = json.decode(res.body);
+
+    debugPrint(res.body);
+
     for (var modpack in data) {
       syncedModpacks.add(
         SyncedModpack(
           modpackId: modpack["modpack_id"],
           name: modpack["name"],
           mods: modpack["mods"],
-          mcVersion: modpack["mc_version"],
+          mcVersion: modpack["minecraft_version"],
           modLoader: modpack["mod_loader"],
           lastSynced: modpack["last_synced"],
           reload: () {
@@ -567,7 +680,7 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
           ),
           Center(
             child: FutureBuilder(
-              future: getSyncedModpacks(reload),
+              future: future,
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
                   return ListView(

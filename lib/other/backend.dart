@@ -468,7 +468,7 @@ Future<void> syncModpack(
   debugPrint(timestamp.toString());
   http.Response res = await http.post(
     Uri.parse(
-      "https://api.mrquantumoff.dev/api/v2/submit/quadrant_sync",
+      "https://api.mrquantumoff.dev/api/v3/quadrant/sync/submit",
     ),
     headers: {
       "User-Agent": await generateUserAgent(),

@@ -429,14 +429,15 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
       throw Exception(AppLocalizations.of(context)!.noQuadrantID);
     }
     http.Response res = await http.get(
-        Uri.parse("https://api.mrquantumoff.dev/api/v2/get/quadrant_sync"),
+        Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/sync"),
         headers: {
           "User-Agent": await generateUserAgent(),
           "Authorization": "Bearer $token"
         });
 
     if (res.statusCode != 200) {
-      throw Exception(res.body);
+      debugPrint(res.body);
+      return;
     }
     List<SyncedModpack> syncedModpacks = [];
     List<dynamic> data = json.decode(res.body);
@@ -446,7 +447,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
           modpackId: modpack["modpack_id"],
           name: modpack["name"],
           mods: modpack["mods"],
-          mcVersion: modpack["mc_version"],
+          mcVersion: modpack["minecraft_version"],
           modLoader: modpack["mod_loader"],
           lastSynced: modpack["last_synced"],
           reload: () {},
@@ -518,7 +519,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
       List<Item> items = feed.items;
       items = items.reversed.toList();
       for (var item in items) {
-        debugPrint(item.title);
+        // debugPrint(item.title);
         List<String> categories = [];
         for (var category in item.categories) {
           categories.add(category.value!);
@@ -532,8 +533,8 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
             itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
         bool cond3 = GetStorage().read("rssFeeds") == true;
         bool cond4 = GetStorage().read("devMode") == true;
-        debugPrint(
-            "\n\nSeen: $cond1\nIs within last 2 weeks: $cond2\nAre RSS feeds enabled: $cond3\nIs DevMode Enabled:  $cond4\n\n");
+        // debugPrint(
+        //     "\n\nSeen: $cond1\nIs within last 2 weeks: $cond2\nAre RSS feeds enabled: $cond3\nIs DevMode Enabled:  $cond4\n\n");
 
         if (((cond1 && cond2) || cond4) &&
             cond3 &&

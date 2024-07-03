@@ -204,5 +204,7 @@
   "dontBotherMeAgain": "Don't bother me with this message",
   "subject":"Subject",
   "message":"Message",
-  "sendFeedback": "Send feedback"
+  "sendFeedback": "Send feedback",
+  "youNeedToMigrateData": "With the latest version of Quadrant some things under the hood were changed, you have to migrate your data.",
+  "migrate": "Migrate"
 }

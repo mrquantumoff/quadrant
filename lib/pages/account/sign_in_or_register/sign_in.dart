@@ -70,7 +70,7 @@ class _SignInPageState extends State<SignInPage> {
                     GetStorage().write("oauth2_state", state);
                     await launchUrl(
                       Uri.parse(
-                          "https://mrquantumoff.dev/account/oauth2/authorize?client_id=dee6f38c-e6c2-4cf1-9973-dfd3c793f979&redirect_uri=quadrant://login&scope=user_data,quadrant_sync&duration=7776000&response_type=code&state=$state"),
+                          "https://mrquantumoff.dev/account/oauth2/authorize?client_id=dee6f38c-e6c2-4cf1-9973-dfd3c793f979&redirect_uri=quadrant://login&scope=user_data,quadrant_sync,notifications&duration=7776000&response_type=code&state=$state"),
                     );
                   }
                 : () {
