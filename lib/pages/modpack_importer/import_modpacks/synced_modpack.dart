@@ -31,7 +31,7 @@ class SyncedModpack extends StatefulWidget {
   final String mcVersion;
   final String modLoader;
   final int lastSynced;
-  final Function reload;
+  final Function(String) reload;
   final String username;
   Function(String rawFile, {bool switchTabs})? getMods;
   final String token;
@@ -205,12 +205,15 @@ class _SyncedModpackState extends State<SyncedModpack> {
                         List<dynamic> owners = modpack["owners"];
                         String modpackId = modpack["modpack_id"];
                         List<Widget> ownersWidgets = [];
+                        debugPrint(widget.username);
                         bool isAdmin = false;
                         for (var owner in owners) {
                           if (owner["username"] == widget.username &&
                               owner["admin"] == true) {
                             isAdmin = true;
                           }
+                        }
+                        for (var owner in owners) {
                           ownersWidgets.add(
                             Row(
                               children: [
@@ -251,18 +254,17 @@ class _SyncedModpackState extends State<SyncedModpack> {
                                           );
                                           debugPrint(
                                               "${res.body} (${res.statusCode})");
-                                          setState(() {
-                                            if (res.statusCode == 200) {
-                                              widget.reload(res.body);
-                                            } else {
-                                              ScaffoldMessenger.of(context)
-                                                  .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(res.body),
-                                                ),
-                                              );
-                                            }
-                                          });
+                                          if (res.statusCode == 200) {
+                                            widget.reload(res.body);
+                                          } else {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(res.body),
+                                              ),
+                                            );
+                                          }
+                                          setState(() {});
                                         },
                                         label: Text(
                                           AppLocalizations.of(context)!.kick,
@@ -331,7 +333,11 @@ class _SyncedModpackState extends State<SyncedModpack> {
                                           widget.reload("asdafaf");
                                         },
                                         label: Text(
-                                          AppLocalizations.of(context)!.leave,
+                                          isAdmin
+                                              ? AppLocalizations.of(context)!
+                                                  .delete
+                                              : AppLocalizations.of(context)!
+                                                  .leave,
                                         ),
                                         icon: const Icon(Icons.delete),
                                         style: FilledButton.styleFrom(

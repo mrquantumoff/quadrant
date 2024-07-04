@@ -50,10 +50,17 @@ void main(List<String> args) async {
     }
   }
   const storage = FlutterSecureStorage();
+  String? token = await storage.read(key: "quadrant_id_token");
   try {
-    if (JwtDecoder.isExpired(
-        await storage.read(key: "quadrant_id_token") ?? "")) {
+    if (JwtDecoder.isExpired(token ?? "")) {
       await storage.delete(key: "quadrant_id_token");
+    }
+    if (token != null) {
+      Map res = JwtDecoder.decode(token);
+      if (!res["sub"].toString().contains("notifications") ||
+          !res["sub"].toString().contains("quadrant_sync")) {
+        await storage.delete(key: "quadrant_id_token");
+      }
     }
   } catch (e) {
     // print(e);
@@ -463,7 +470,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
           mcVersion: modpack["minecraft_version"],
           modLoader: modpack["mod_loader"],
           lastSynced: modpack["last_synced"],
-          reload: () {},
+          reload: (value) {},
           token: token,
           username: userInfo["login"],
         ),

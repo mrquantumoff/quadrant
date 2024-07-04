@@ -305,9 +305,7 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
           mcVersion: modpack["minecraft_version"],
           modLoader: modpack["mod_loader"],
           lastSynced: modpack["last_synced"],
-          reload: () {
-            setReload(modpack["name"]);
-          },
+          reload: setReload,
           token: token,
           username: userInfo["login"],
           getMods: getMods,

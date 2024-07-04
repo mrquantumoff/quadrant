@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 
@@ -123,11 +124,7 @@ class _NotificationState extends State<Notification> {
                         );
                         return;
                       }
-                      setState(() {
-                        widget.setReload(res.body);
-
-                        read = true;
-                      });
+                      Get.back();
                     },
                     label: Text(AppLocalizations.of(context)!.accept),
                     icon: const Icon(Icons.check),
@@ -188,11 +185,7 @@ class _NotificationState extends State<Notification> {
                         );
                         return;
                       }
-                      setState(() {
-                        widget.setReload(res.body);
-
-                        read = true;
-                      });
+                      Get.back();
                     },
                     label: Text(AppLocalizations.of(context)!.decline),
                     icon: const Icon(Icons.close),
