@@ -40,7 +40,7 @@
         <img width="187" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
     </a>
 
-### [Grab the latest build manually (Linux/Windows)](https://github.com/mrquantumoff/quadrant/releases/latest)
+### [Grab the latest build manually (Linux/Windows/macOS (untested))](https://github.com/mrquantumoff/quadrant/releases/latest)
 
 </div>
 
@@ -49,9 +49,10 @@
 > ## If you install the app from the Microsoft Store, make sure you have the .minecraft folder already created, or else you might have to follow the tip below!
 
 > [!TIP]
-> ## If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the system settings and/or reinstalling the app from microsoft store.
-> ## If you can't apply your Quadrant modpack, try removing the mods folder manually.
 >
+> ## If some of the app's functionality doesn't work properly on Windows, try enabling developer mode in the system settings and/or reinstalling the app from microsoft store.
+>
+> ## If you can't apply your Quadrant modpack, try removing the mods folder manually.
 
 > [!WARNING]
 >
@@ -62,7 +63,7 @@
 > ## Before requesting to the delete the data collected by the app, please be sure that you are using the latest version.
 
 > [!TIP]
-> 
+>
 > #### THIS ONLY APPLIES TO APP VERSIONS BEFORE v24.2.0. If CurseForge protocol handler doesn't work properly you can easily use [this registry fix](https://github.com/mrquantumoff/quadrant/raw/master/msstorefix.reg)
 
 > [!TIP]

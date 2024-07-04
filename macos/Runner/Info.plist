@@ -38,7 +38,7 @@
 				<key> CFBundleURLSchemes</key>
 				<array>
 					<string>curseforge</string>
-					<string>mcmodpackmanager</string>
+					<string>quadrant</string>
 				</array>
 			</dict>
 		</array>

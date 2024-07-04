@@ -83,34 +83,34 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
             GNULinuxBuild.tar.gz
-  # release-macos:
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       platform: [macos-latest]
-  #   runs-on: ${{matrix.platform}}
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v2
-  #     - name: Install flutter
-  #       uses: subosito/flutter-action@v2
-  #       with:
-  #         channel: "stable"
-  #     - name: Generate locales
-  #       run: flutter gen-l10n
-  #     # - name: Build on macOS
-  #     #   if: matrix.platform == 'macos-latest'
-  #     #   run: |
-  #     #     flutter pub get
-  #     #     flutter build macos --release --split-debug-info --obfuscate --dart-define QUADRANT_QNT_API_KEY='${{secrets.QUADRANT_QNT_API_KEY}}' --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
-  #     #     tar -czvf macOSBuild.tar.gz build/macos/Build/Products/Release/Quadrant.app
-  #     #     # For future use
-  #     #     # pkgbuild --install-location /Applications --component "./build/macos/Build/Products/Release/Minecraft Modpack Manager Reborn.app" ./mcmodpackmanagerMacOS.pkg --identifier dev.mrquantumoff.mcmodpackmanager
-  #     # - name: Upload the macOS build
-  #     #   if: matrix.platform == 'macos-latest'
-  #     #   uses: softprops/action-gh-release@v1
-  #     #   with:
-  #     #     token: ${{ secrets.GITHUB_TOKEN }}
-  #     #     files: |
-  #     #       macOSBuild.tar.gz
-  #     #       LICENSE
+  release-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [macos-latest]
+    runs-on: ${{matrix.platform}}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+      - name: Generate locales
+        run: flutter gen-l10n
+      - name: Build on macOS
+        if: matrix.platform == 'macos-latest'
+        run: |
+          flutter pub get
+          flutter build macos --release --split-debug-info --obfuscate --dart-define QUADRANT_OAUTH2_CLIENT_SECRET='${{secrets.CLIENT_SECRET}}' --dart-define QUADRANT_OAUTH2_CLIENT_ID='${{secrets.CLIENT_ID}}' --dart-define QUADRANT_QNT_API_KEY='${{secrets.QUADRANT_QNT_API_KEY}}' --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
+          tar -czvf macOSBuild.tar.gz build/macos/Build/Products/Release/Quadrant.app
+          # For future use
+          # pkgbuild --install-location /Applications --component "./build/macos/Build/Products/Release/Minecraft Modpack Manager Reborn.app" ./mcmodpackmanagerMacOS.pkg --identifier dev.mrquantumoff.mcmodpackmanager
+      - name: Upload the macOS build
+        if: matrix.platform == 'macos-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: |
+            macOSBuild.tar.gz
+            LICENSE
