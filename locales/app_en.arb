@@ -211,5 +211,9 @@
   "leaveOrDelete": "Leave/Delete",
   "owners": "Owners",
   "owner": "{username} (owner)",
-  "unreadNotifications": "You have {number} unread notifications"
+  "unreadNotifications": "You have {number} unread notifications",
+  "invite": "Invite",
+  "admin": "Admin",
+  "accept": "Accept",
+  "decline": "Decline"
 }

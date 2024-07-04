@@ -434,7 +434,19 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
           "User-Agent": await generateUserAgent(),
           "Authorization": "Bearer $token"
         });
+    http.Response userInfoRes = await http.get(
+      Uri.parse("https://api.mrquantumoff.dev/api/v3/account/info/get"),
+      headers: {
+        "User-Agent": await generateUserAgent(),
+        "Authorization": "Bearer $token"
+      },
+    );
+    Map userInfo = json.decode(userInfoRes.body);
 
+    if (userInfoRes.statusCode != 200) {
+      debugPrint(res.body);
+      return;
+    }
     if (res.statusCode != 200) {
       debugPrint(res.body);
       return;
@@ -452,6 +464,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
           lastSynced: modpack["last_synced"],
           reload: () {},
           token: token,
+          username: userInfo["login"],
         ),
       );
     }

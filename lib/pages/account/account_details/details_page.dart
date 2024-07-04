@@ -52,7 +52,6 @@ class _AccountDetailsState extends State<AccountDetails> {
       );
     }
     Map<String, dynamic> user = json.decode(res.body);
-    debugPrint(user.toString());
     String name = user["name"];
     String username = user["login"];
     String email = user["email"];

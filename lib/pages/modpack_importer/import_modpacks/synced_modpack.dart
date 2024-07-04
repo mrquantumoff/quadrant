@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:quadrant/other/backend.dart';
@@ -20,6 +21,7 @@ class SyncedModpack extends StatefulWidget {
     required this.lastSynced,
     required this.reload,
     required this.token,
+    required this.username,
     this.getMods,
   });
 
@@ -30,6 +32,7 @@ class SyncedModpack extends StatefulWidget {
   final String modLoader;
   final int lastSynced;
   final Function reload;
+  final String username;
   Function(String rawFile, {bool switchTabs})? getMods;
   final String token;
 
@@ -38,6 +41,8 @@ class SyncedModpack extends StatefulWidget {
 }
 
 class _SyncedModpackState extends State<SyncedModpack> {
+  bool invitedAdmin = false;
+
   @override
   Widget build(BuildContext context) {
     var tag = Localizations.maybeLocaleOf(context)?.toLanguageTag();
@@ -111,8 +116,10 @@ class _SyncedModpackState extends State<SyncedModpack> {
                               "modLoader": widget.modLoader
                             };
                             if (widget.getMods != null) {
-                              await widget.getMods!(json.encode(modConfig),
-                                  switchTabs: true);
+                              await widget.getMods!(
+                                json.encode(modConfig),
+                                switchTabs: true,
+                              );
                             }
                           },
                           icon: const Icon(Icons.download),
@@ -176,6 +183,7 @@ class _SyncedModpackState extends State<SyncedModpack> {
                             "Authorization": "Bearer ${widget.token}"
                           },
                         );
+
                         return res;
                       }(),
                       builder: (context, snapshot) {
@@ -195,8 +203,14 @@ class _SyncedModpackState extends State<SyncedModpack> {
                             json.decode(snapshot.data!.body);
                         Map modpack = modpackRaw[0];
                         List<dynamic> owners = modpack["owners"];
+                        String modpackId = modpack["modpack_id"];
                         List<Widget> ownersWidgets = [];
+                        bool isAdmin = false;
                         for (var owner in owners) {
+                          if (owner["username"] == widget.username &&
+                              owner["admin"] == true) {
+                            isAdmin = true;
+                          }
                           ownersWidgets.add(
                             Container(
                               margin: const EdgeInsets.symmetric(vertical: 8),
@@ -224,48 +238,235 @@ class _SyncedModpackState extends State<SyncedModpack> {
                                 ] +
                                 ownersWidgets +
                                 [
-                                  FilledButton.icon(
-                                    onPressed: () async {
-                                      http.Response res = await http.delete(
-                                        Uri.parse(
-                                            "https://api.mrquantumoff.dev/api/v2/delete/quadrant_sync"),
-                                        headers: {
-                                          "User-Agent":
-                                              await generateUserAgent(),
-                                          "Authorization":
-                                              "Bearer ${widget.token}"
+                                  Row(
+                                    children: [
+                                      FilledButton.icon(
+                                        onPressed: () async {
+                                          http.Response res = await http.delete(
+                                            Uri.parse(
+                                                "https://api.mrquantumoff.dev/api/v3/quadrant/sync/delete"),
+                                            headers: {
+                                              "User-Agent":
+                                                  await generateUserAgent(),
+                                              "Authorization":
+                                                  "Bearer ${widget.token}"
+                                            },
+                                            body: json.encode(
+                                              {
+                                                "modpack_id": modpackId,
+                                              },
+                                            ),
+                                          );
+                                          if (res.statusCode != 200) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                    "${res.body} (${res.statusCode})"),
+                                              ),
+                                            );
+                                          }
+                                          File modpackSyncFile = File(
+                                              "${getMinecraftFolder().path}/modpacks/${widget.name}/quadrantSync.json");
+                                          if (modpackSyncFile.existsSync()) {
+                                            await modpackSyncFile.delete();
+                                          }
+                                          widget.reload("asdafaf");
                                         },
-                                        body: json.encode(
-                                          {
-                                            "modpack_id": widget.modpackId,
-                                            "name": widget.name,
-                                          },
+                                        label: Text(
+                                            AppLocalizations.of(context)!
+                                                .leaveOrDelete),
+                                        icon: const Icon(Icons.delete),
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: Colors.redAccent,
+                                          foregroundColor: Colors.white,
                                         ),
-                                      );
-                                      if (res.statusCode != 200) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            content: Text(res.body),
-                                          ),
-                                        );
-                                      }
-                                      File modpackSyncFile = File(
-                                          "${getMinecraftFolder().path}/modpacks/${widget.name}/quadrantSync.json");
-                                      if (modpackSyncFile.existsSync()) {
-                                        await modpackSyncFile.delete();
-                                      }
-                                      widget.reload();
-                                    },
-                                    label: Text(AppLocalizations.of(context)!
-                                        .leaveOrDelete),
-                                    icon: const Icon(Icons.delete),
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor: Colors.redAccent,
-                                      foregroundColor: Colors.white,
-                                      minimumSize: const Size(360, 48),
-                                    ),
-                                  ),
+                                      ),
+                                      const SizedBox(
+                                        width: 12,
+                                      ),
+                                      isAdmin
+                                          ? FilledButton.icon(
+                                              onPressed: () async {
+                                                showDialog(
+                                                  context: context,
+                                                  builder: (context) {
+                                                    TextEditingController
+                                                        usernameController =
+                                                        TextEditingController();
+                                                    return Dialog(
+                                                      child: StatefulBuilder(
+                                                        builder: (context,
+                                                            setState) {
+                                                          return SizedBox(
+                                                            height: 240,
+                                                            width: 540,
+                                                            child: Column(
+                                                              children: [
+                                                                Container(
+                                                                  margin:
+                                                                      const EdgeInsets
+                                                                          .only(
+                                                                          top:
+                                                                              24),
+                                                                  child:
+                                                                      SizedBox(
+                                                                    width: 500,
+                                                                    child:
+                                                                        TextField(
+                                                                      controller:
+                                                                          usernameController,
+                                                                      decoration:
+                                                                          InputDecoration(
+                                                                        border:
+                                                                            const OutlineInputBorder(),
+                                                                        labelText:
+                                                                            AppLocalizations.of(context)!.username,
+                                                                        icon: const Icon(
+                                                                            Icons.person),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                Container(
+                                                                  margin: const EdgeInsets
+                                                                      .symmetric(
+                                                                      vertical:
+                                                                          12,
+                                                                      horizontal:
+                                                                          12),
+                                                                  child: Row(
+                                                                    children: [
+                                                                      Switch(
+                                                                        value:
+                                                                            invitedAdmin,
+                                                                        onChanged:
+                                                                            (value) =>
+                                                                                {
+                                                                          setState(
+                                                                            () {
+                                                                              invitedAdmin = value;
+                                                                            },
+                                                                          ),
+                                                                        },
+                                                                      ),
+                                                                      const SizedBox(
+                                                                        width:
+                                                                            12,
+                                                                      ),
+                                                                      Text(
+                                                                        AppLocalizations.of(context)!
+                                                                            .admin,
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                                Container(
+                                                                  margin:
+                                                                      const EdgeInsets
+                                                                          .only(
+                                                                          right:
+                                                                              24,
+                                                                          top:
+                                                                              48),
+                                                                  child: Row(
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .end,
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment
+                                                                            .end,
+                                                                    children: [
+                                                                      FilledButton
+                                                                          .tonalIcon(
+                                                                        onPressed:
+                                                                            Get.back,
+                                                                        icon:
+                                                                            const Icon(
+                                                                          Icons
+                                                                              .cancel,
+                                                                        ),
+                                                                        label:
+                                                                            Text(
+                                                                          AppLocalizations.of(context)!
+                                                                              .cancel,
+                                                                        ),
+                                                                      ),
+                                                                      const SizedBox(
+                                                                        width:
+                                                                            12,
+                                                                      ),
+                                                                      FilledButton
+                                                                          .icon(
+                                                                        onPressed:
+                                                                            () async {
+                                                                          http.Response
+                                                                              result =
+                                                                              await http.post(
+                                                                            Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/sync/invite"),
+                                                                            headers: {
+                                                                              "User-Agent": await generateUserAgent(),
+                                                                              "Authorization": "Bearer ${widget.token}",
+                                                                              "Content-Type": "application/json",
+                                                                            },
+                                                                            body:
+                                                                                json.encode(
+                                                                              {
+                                                                                "modpack_id": widget.modpackId,
+                                                                                "username": usernameController.text,
+                                                                                "admin": invitedAdmin,
+                                                                              },
+                                                                            ),
+                                                                          );
+                                                                          debugPrint(
+                                                                              "${result.body} ${result.statusCode}");
+
+                                                                          if (result.statusCode !=
+                                                                              200) {
+                                                                            Get.back();
+
+                                                                            ScaffoldMessenger.of(context).showSnackBar(
+                                                                              SnackBar(
+                                                                                content: Text(result.body),
+                                                                              ),
+                                                                            );
+                                                                          }
+                                                                          Get.back();
+                                                                        },
+                                                                        icon:
+                                                                            const Icon(
+                                                                          Icons
+                                                                              .send,
+                                                                        ),
+                                                                        label:
+                                                                            Text(
+                                                                          AppLocalizations.of(context)!
+                                                                              .invite,
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          );
+                                                        },
+                                                      ),
+                                                    );
+                                                  },
+                                                );
+                                              },
+                                              label: Text(
+                                                AppLocalizations.of(context)!
+                                                    .invite,
+                                              ),
+                                              icon:
+                                                  const Icon(Icons.person_add),
+                                              // style:
+                                            )
+                                          : Container()
+                                    ],
+                                  )
                                 ],
                           ),
                         );

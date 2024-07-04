@@ -41,9 +41,166 @@ class _NotificationState extends State<Notification> {
   Widget build(BuildContext context) {
     Map notification = json.decode(widget.message);
 
+    debugPrint("NOTIFICATION : ${widget.message}");
+
     List<Widget> children = [];
 
+    bool showRead = true;
+
     if (notification["notification_type"] == "login") {
+      children = [
+        Text(
+          notification["simple_message"],
+          style: const TextStyle(fontSize: 24),
+        )
+      ];
+    } else if (notification["notification_type"] == "invite_to_sync") {
+      showRead = false;
+      children = [
+        Text(
+          notification["message"],
+          style: const TextStyle(fontSize: 24),
+        ),
+        const SizedBox(
+          height: 12,
+        ),
+        widget.read
+            ? Container()
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FilledButton.icon(
+                    onPressed: () async {
+                      http.Response res = await http.post(
+                        Uri.parse(
+                            "https://api.mrquantumoff.dev/api/v3/quadrant/sync/respond"),
+                        headers: {
+                          "User-Agent": await generateUserAgent(),
+                          "Authorization": "Bearer ${widget.token}",
+                          "Content-Type": "application/json"
+                        },
+                        body: json.encode({
+                          "modpack_id": notification["invite_id"],
+                          "accept": true,
+                        }),
+                      );
+                      debugPrint("${res.body} (${res.statusCode})");
+                      if (res.statusCode != 200) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: SnackBar(
+                              content: Text("${res.body} (${res.statusCode})"),
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      http.Response readRes = await http.post(
+                        Uri.parse(
+                            "https://api.mrquantumoff.dev/api/v3/account/notifications/read"),
+                        headers: {
+                          "User-Agent": await generateUserAgent(),
+                          "Authorization": "Bearer ${widget.token}",
+                          "Content-Type": "application/json"
+                        },
+                        body: json.encode(
+                          {
+                            "notification_id": widget.notificationId,
+                          },
+                        ),
+                      );
+                      debugPrint("${readRes.body} (${readRes.statusCode})");
+
+                      if (readRes.statusCode != 200) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: SnackBar(
+                              content: Text(
+                                  "${readRes.body} (${readRes.statusCode})"),
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      setState(() {
+                        widget.setReload(res.body);
+
+                        read = true;
+                      });
+                    },
+                    label: Text(AppLocalizations.of(context)!.accept),
+                    icon: const Icon(Icons.check),
+                  ),
+                  const SizedBox(
+                    width: 12,
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: () async {
+                      http.Response res = await http.post(
+                        Uri.parse(
+                            "https://api.mrquantumoff.dev/api/v3/quadrant/sync/respond"),
+                        headers: {
+                          "User-Agent": await generateUserAgent(),
+                          "Authorization": "Bearer ${widget.token}",
+                          "Content-Type": "application/json"
+                        },
+                        body: json.encode({
+                          "modpack_id": notification["invite_id"],
+                          "accept": false,
+                        }),
+                      );
+                      debugPrint("${res.body} (${res.statusCode})");
+                      if (res.statusCode != 200) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: SnackBar(
+                              content: Text("${res.body} (${res.statusCode})"),
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      http.Response readRes = await http.post(
+                        Uri.parse(
+                            "https://api.mrquantumoff.dev/api/v3/account/notifications/read"),
+                        headers: {
+                          "User-Agent": await generateUserAgent(),
+                          "Authorization": "Bearer ${widget.token}",
+                          "Content-Type": "application/json"
+                        },
+                        body: json.encode(
+                          {
+                            "notification_id": widget.notificationId,
+                          },
+                        ),
+                      );
+                      debugPrint("${readRes.body} (${readRes.statusCode})");
+
+                      if (readRes.statusCode != 200) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: SnackBar(
+                              content: Text(
+                                  "${readRes.body} (${readRes.statusCode})"),
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+                      setState(() {
+                        widget.setReload(res.body);
+
+                        read = true;
+                      });
+                    },
+                    label: Text(AppLocalizations.of(context)!.decline),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+      ];
+    } else {
       children = [
         Text(
           notification["simple_message"],
@@ -56,10 +213,10 @@ class _NotificationState extends State<Notification> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: Card(
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 24),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
           child: Column(
             children: children +
-                (read
+                (read || !showRead
                     ? []
                     : [
                         const SizedBox(
@@ -147,7 +304,7 @@ class _NotificationsState extends State<Notifications> {
 
             List<Notification> notifications = [];
 
-            debugPrint(nots.toString());
+            debugPrint("DATA: ${snapshot.data}");
 
             for (var not in nots) {
               notifications.add(
@@ -161,7 +318,7 @@ class _NotificationsState extends State<Notifications> {
                 ),
               );
             }
-
+            notifications.sort((a, b) => b.createdAt - a.createdAt);
             return ListView(
               children: notifications,
             );

@@ -283,6 +283,19 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
 
     debugPrint(res.body);
 
+    http.Response userInfoRes = await http.get(
+      Uri.parse("https://api.mrquantumoff.dev/api/v3/account/info/get"),
+      headers: {
+        "User-Agent": await generateUserAgent(),
+        "Authorization": "Bearer $token"
+      },
+    );
+    Map userInfo = json.decode(userInfoRes.body);
+
+    if (userInfoRes.statusCode != 200) {
+      throw Exception(res.body);
+    }
+
     for (var modpack in data) {
       syncedModpacks.add(
         SyncedModpack(
@@ -296,6 +309,7 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
             setReload(modpack["name"]);
           },
           token: token,
+          username: userInfo["login"],
           getMods: getMods,
         ),
       );
