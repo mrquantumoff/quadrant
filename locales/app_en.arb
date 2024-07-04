@@ -208,12 +208,13 @@
   "youNeedToMigrateData": "With the latest version of Quadrant some things under the hood were changed, you have to migrate your data.",
   "migrate": "Migrate",
   "details": "Details",
-  "leaveOrDelete": "Leave/Delete",
+  "leave": "Leave",
   "owners": "Owners",
   "owner": "{username} (owner)",
   "unreadNotifications": "You have {number} unread notifications",
   "invite": "Invite",
   "admin": "Admin",
   "accept": "Accept",
-  "decline": "Decline"
+  "decline": "Decline",
+  "kick": "Kick"
 }

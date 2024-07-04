@@ -19,14 +19,15 @@ import 'package:quadrant/pages/web/mod/mod.dart';
 import 'package:quadrant/pages/web/web_sources.dart';
 import 'package:quadrant/pages/settings/settings.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:universal_feed/universal_feed.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:protocol_handler/protocol_handler.dart';
+import 'package:dart_rss/dart_rss.dart';
 // import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:quadrant/pages/modpack_importer/import_modpacks/import_modpacks_page.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -528,9 +529,9 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
       if (res.statusCode != 200) return;
       String rawFeed = res.body;
 
-      var feed = UniversalFeed.parseFromString(rawFeed);
-      List<Item> items = feed.items;
-      items = items.reversed.toList();
+      var feed = RssFeed.parse(rawFeed);
+      List<RssItem> items = feed.items;
+      // items = items.reversed.toList();
       for (var item in items) {
         // debugPrint(item.title);
         List<String> categories = [];
@@ -540,14 +541,16 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
         bool cond1 = !(GetStorage().read<List<dynamic>>("seenItems") ?? [])
             .contains(item.guid!);
 
-        DateTime itemDate = item.published!.parseValue() ??
-            DateTime.now().subtract(const Duration(days: 28));
+        String itemTimestamp = item.pubDate!;
+        debugPrint("itemTimestamp");
+        var format = DateFormat("E, dd MMM y H:m:s +0000");
+        DateTime itemDate = format.parse(itemTimestamp);
         bool cond2 =
             itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
         bool cond3 = GetStorage().read("rssFeeds") == true;
         bool cond4 = GetStorage().read("devMode") == true;
-        // debugPrint(
-        //     "\n\nSeen: $cond1\nIs within last 2 weeks: $cond2\nAre RSS feeds enabled: $cond3\nIs DevMode Enabled:  $cond4\n\n");
+        debugPrint(
+            "\n\nName: ${item.title}\n\nDate: $itemTimestamp\n\nSeen: $cond1\nIs within last 2 weeks: $cond2\nAre RSS feeds enabled: $cond3\nIs DevMode Enabled:  $cond4\n\n");
 
         if (((cond1 && cond2) || cond4) &&
             cond3 &&
@@ -563,7 +566,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
                 actions: [
                   FilledButton.icon(
                       onPressed: () async {
-                        await launchUrl(Uri.parse(item.link!.href.toString()));
+                        await launchUrl(Uri.parse(item.link!.toString()));
                         ScaffoldMessenger.of(context).clearMaterialBanners();
                         checkModpackUpdates(context);
                       },
@@ -582,8 +585,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
                   actions: [
                     TextButton(
                         onPressed: () async {
-                          await launchUrl(
-                              Uri.parse(item.link!.href.toString()));
+                          await launchUrl(Uri.parse(item.link!.toString()));
                         },
                         child: Text(AppLocalizations.of(context)!.read))
                   ],

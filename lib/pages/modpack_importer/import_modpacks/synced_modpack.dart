@@ -212,15 +212,69 @@ class _SyncedModpackState extends State<SyncedModpack> {
                             isAdmin = true;
                           }
                           ownersWidgets.add(
-                            Container(
-                              margin: const EdgeInsets.symmetric(vertical: 8),
-                              child: Text(
-                                owner["admin"]
-                                    ? AppLocalizations.of(context)!
-                                        .owner(owner["username"])
-                                    : owner["username"],
-                                style: const TextStyle(fontSize: 18),
-                              ),
+                            Row(
+                              children: [
+                                Container(
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 8),
+                                  child: Text(
+                                    owner["admin"]
+                                        ? AppLocalizations.of(context)!
+                                            .owner(owner["username"])
+                                        : owner["username"],
+                                    style: const TextStyle(fontSize: 18),
+                                  ),
+                                ),
+                                const SizedBox(
+                                  width: 12,
+                                ),
+                                isAdmin && owner["username"] != widget.username
+                                    ? TextButton.icon(
+                                        onPressed: () async {
+                                          http.Response res = await http.delete(
+                                            Uri.parse(
+                                                "https://api.mrquantumoff.dev/api/v3/quadrant/sync/kick"),
+                                            headers: {
+                                              "User-Agent":
+                                                  await generateUserAgent(),
+                                              "Authorization":
+                                                  "Bearer ${widget.token}",
+                                              "Content-Type":
+                                                  "application/json",
+                                            },
+                                            body: json.encode(
+                                              {
+                                                "modpack_id": widget.modpackId,
+                                                "username": owner["username"],
+                                              },
+                                            ),
+                                          );
+                                          debugPrint(
+                                              "${res.body} (${res.statusCode})");
+                                          setState(() {
+                                            if (res.statusCode == 200) {
+                                              widget.reload(res.body);
+                                            } else {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(res.body),
+                                                ),
+                                              );
+                                            }
+                                          });
+                                        },
+                                        label: Text(
+                                          AppLocalizations.of(context)!.kick,
+                                        ),
+                                        icon: const Icon(Icons.person_remove),
+                                        style: FilledButton.styleFrom(
+                                          foregroundColor: Colors.redAccent,
+                                        ),
+                                        // style:
+                                      )
+                                    : Container()
+                              ],
                             ),
                           );
                         }
@@ -238,6 +292,9 @@ class _SyncedModpackState extends State<SyncedModpack> {
                                 ] +
                                 ownersWidgets +
                                 [
+                                  const SizedBox(
+                                    height: 12,
+                                  ),
                                   Row(
                                     children: [
                                       FilledButton.icon(
@@ -274,8 +331,8 @@ class _SyncedModpackState extends State<SyncedModpack> {
                                           widget.reload("asdafaf");
                                         },
                                         label: Text(
-                                            AppLocalizations.of(context)!
-                                                .leaveOrDelete),
+                                          AppLocalizations.of(context)!.leave,
+                                        ),
                                         icon: const Icon(Icons.delete),
                                         style: FilledButton.styleFrom(
                                           backgroundColor: Colors.redAccent,
@@ -464,7 +521,7 @@ class _SyncedModpackState extends State<SyncedModpack> {
                                                   const Icon(Icons.person_add),
                                               // style:
                                             )
-                                          : Container()
+                                          : Container(),
                                     ],
                                   )
                                 ],
