@@ -216,5 +216,6 @@
   "admin": "Admin",
   "accept": "Accept",
   "decline": "Decline",
-  "kick": "Kick"
+  "kick": "Kick",
+  "invited": "You have been invited to collaborate on a Quadrant Sync modpack by {name}"
 }

@@ -209,5 +209,6 @@
   "admin": "Yönetici",
   "accept": "Kabul et",
   "decline": "Reddet",
-  "kick": "Kullanıcıyı kov"
+  "kick": "Kullanıcıyı kov",
+  "invited": "{name} tarafından Quadrant Sync mod paketi üzerinde ortak çalışmaya davet edildiniz."
 }

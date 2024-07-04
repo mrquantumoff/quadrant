@@ -57,9 +57,12 @@ class _NotificationState extends State<Notification> {
       ];
     } else if (notification["notification_type"] == "invite_to_sync") {
       showRead = false;
+      String name = notification["message"]
+          .split("have been invited to collaborate on a modpack by ")
+          .last;
       children = [
         Text(
-          notification["message"],
+          AppLocalizations.of(context)!.invited(name),
           style: const TextStyle(fontSize: 24),
         ),
         const SizedBox(
