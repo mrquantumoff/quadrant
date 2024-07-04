@@ -197,5 +197,17 @@
   "dontBotherMeAgain": "Bu mesajı gösterme",
   "subject":"Konu",
   "message":"Mesaj",
-  "sendFeedback": "Geribildirim yolla"
+  "sendFeedback": "Geribildirim yolla",
+  "youNeedToMigrateData": "Quadrant'ın en son sürümüyle birlikte bazı şeyler değişti; verilerinizi taşımanız gerekiyor.",
+  "migrate": "Verileri taşı",
+  "details": "Detaylar",
+  "leave": "Ayrıl",
+  "owners": "Sahipleri",
+  "owner": "{username} (sahip)",
+  "unreadNotifications": "{number} okunmamış bildiriminiz var",
+  "invite": "Davet et",
+  "admin": "Yönetici",
+  "accept": "Kabul et",
+  "decline": "Reddet",
+  "kick": "Kullanıcıyı kov"
 }
