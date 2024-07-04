@@ -43,6 +43,13 @@
 
   <releases>
 
+    <release date="2024-07-04" version="24.7.0">
+      <description>
+        <p>Quadrant Sync has been revamped. You will have to manually migrate data from old Quadrant Sync.</p>
+        <p>The app has moved to MrQuantumOFF API v3</p>
+      </description>
+    </release>
+
     <release date="2024-06-12" version="24.6.8">
       <description>
         <p>Small locale changes</p>
