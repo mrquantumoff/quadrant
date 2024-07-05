@@ -1,6 +1,6 @@
 # Privacy Policy
 
-## This privacy policy is effective for Quadrant v24.7.0+
+## This privacy policy is effective for Quadrant v24.7.0/05.07.2024 (5th of July 2024)+
 
 ## For previous versions of Quadrant's privacy policy look at the previous commits.
 

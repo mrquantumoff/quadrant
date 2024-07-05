@@ -102,6 +102,19 @@ class _SignInPageState extends State<SignInPage> {
               AppLocalizations.of(context)!.dontHaveAccount,
             ),
           ),
+          const SizedBox(
+            height: 12,
+          ),
+          TextButton.icon(
+            onPressed: () async {
+              await launchUrl(
+                Uri.parse(
+                    "https://github.com/mrquantumoff/quadrant/blob/master/QUADRANT-ID-TOS.md"),
+              );
+            },
+            label: Text(AppLocalizations.of(context)!.acceptQuadrantIDTOS),
+            icon: const Icon(Icons.open_in_browser),
+          ),
         ],
       ),
     );

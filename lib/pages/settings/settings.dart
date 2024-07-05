@@ -224,6 +224,22 @@ class _SettingsState extends State<Settings> {
             ),
             Container(
               alignment: AlignmentDirectional.topStart,
+              child: Container(
+                margin: const EdgeInsets.only(top: 0, bottom: 12),
+                child: TextButton.icon(
+                  onPressed: () async {
+                    await launchUrl(
+                      Uri.parse(
+                          "https://github.com/mrquantumoff/quadrant/blob/master/QUADRANT-ID-TOS.md"),
+                    );
+                  },
+                  label: Text(AppLocalizations.of(context)!.quadrantIDToS),
+                  icon: const Icon(Icons.open_in_browser),
+                ),
+              ),
+            ),
+            Container(
+              alignment: AlignmentDirectional.topStart,
               margin: const EdgeInsets.only(top: 12),
               child: Container(
                 margin: const EdgeInsets.only(top: 0, bottom: 6),
