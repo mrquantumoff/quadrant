@@ -19,7 +19,7 @@
 
 #### OR
 
-[Grab the latest build manuall (Linux/Windows/macOS)](https://github.com/mrquantumoff/quadrant/releases/latest)
+[Grab the latest build manually (Linux/Windows/macOS)](https://github.com/mrquantumoff/quadrant/releases/latest)
 
 ### Working features
 
