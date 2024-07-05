@@ -210,5 +210,7 @@
   "accept": "Kabul et",
   "decline": "Reddet",
   "kick": "Kullanıcıyı kov",
-  "invited": "{name} tarafından Quadrant Sync mod paketi üzerinde ortak çalışmaya davet edildiniz."
+  "invited": "{name} tarafından Quadrant Sync mod paketi üzerinde ortak çalışmaya davet edildiniz.",
+  "acceptQuadrantIDTOS": "Bu işleme devam ederek Quadrant ID Hizmet Şartlarını okuduğunuzu ve kabul ettiğinizi kabul etmiş olursunuz.",
+  "quadrantIDToS": "Quadrant ID Hizmet Şartları"
 }
