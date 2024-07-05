@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -244,9 +245,17 @@ class Quadrant extends StatefulWidget {
 }
 
 class _QuadrantState extends State<Quadrant> with ProtocolListener {
+  Timer? checkRSSTimer;
+  Timer? checkAccountTimer;
+  Timer? clearBanners;
+
   @override
   void dispose() {
     protocolHandler.removeListener(this);
+
+    checkAccountTimer?.cancel();
+    checkRSSTimer?.cancel();
+    clearBanners?.cancel();
 
     pages = [];
     super.dispose();
@@ -256,9 +265,29 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
       ? GetStorage().read("lastPage")
       : 0;
   List<Widget> pages = [];
+
+  int accountNotifications = 0;
+
   @override
   void initState() {
     super.initState();
+    checkAccountTimer = Timer.periodic(
+      const Duration(seconds: 10),
+      (Timer t) async {
+        debugPrint("checkingAccountUpdates!");
+        await checkAccountUpdates(context, t);
+      },
+    );
+    checkRSSTimer = Timer.periodic(
+      const Duration(seconds: 180),
+      (Timer t) async {
+        debugPrint("checkingRSSUpdates!");
+        await checkRSS(context);
+      },
+    );
+    clearBanners = Timer.periodic(const Duration(seconds: 1), (Timer t) async {
+      await clearUselessBanners();
+    });
 
     pages = [
       const MainPage(),
@@ -272,6 +301,13 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
     protocolHandler.addListener(this);
 
     initializeDateFormatting();
+  }
+
+  Future<void> clearUselessBanners() async {
+    debugPrint("Clearing banners");
+    if (!areAnyUpdates && !areAnyNews) {
+      ScaffoldMessenger.of(context).clearMaterialBanners();
+    }
   }
 
   @override
@@ -429,15 +465,17 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
   //     },
   //   );
   // }
+  bool areAnyUpdates = false;
+  bool areAnyNews = false;
 
-  void checkModpackUpdates(context) async {
+  Future<void> checkAccountUpdates(context, Timer t) async {
     const storage = FlutterSecureStorage();
     String? token = await storage.read(key: "quadrant_id_token");
     if (token == null) {
       throw Exception(AppLocalizations.of(context)!.noQuadrantID);
     }
     http.Response res = await http.get(
-        Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/sync"),
+        Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/sync/get"),
         headers: {
           "User-Agent": await generateUserAgent(),
           "Authorization": "Bearer $token"
@@ -452,13 +490,25 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
     Map userInfo = json.decode(userInfoRes.body);
 
     if (userInfoRes.statusCode != 200) {
-      debugPrint(res.body);
+      debugPrint(
+          "ACCOUNT UPDATE ERROR: ${userInfoRes.body} (${userInfoRes.statusCode})");
       return;
     }
     if (res.statusCode != 200) {
-      debugPrint(res.body);
+      debugPrint("ACCOUNT UPDATE ERROR: ${res.body} (${res.statusCode})");
       return;
     }
+    List<dynamic> notifications = userInfo["notifications"];
+    accountNotifications = 0;
+    for (dynamic notification in notifications) {
+      if (notification["read"] == false) {
+        setState(() {
+          accountNotifications = accountNotifications + 1;
+        });
+      }
+    }
+    debugPrint("$accountNotifications notifications");
+
     List<SyncedModpack> syncedModpacks = [];
     List<dynamic> data = json.decode(res.body);
     for (var modpack in data) {
@@ -499,8 +549,9 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
         int lastLocalSync = json
             .decode(localSyncedModpackFile.readAsStringSync())["last_synced"];
         int lastRemoteSync = modpack.lastSynced;
-
+        areAnyUpdates = false;
         if (lastRemoteSync > lastLocalSync) {
+          areAnyUpdates = true;
           ScaffoldMessenger.of(context).showMaterialBanner(
             MaterialBanner(
               content: Text(
@@ -521,7 +572,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
               ],
             ),
           );
-          return;
+          break;
         }
       } catch (e) {
         debugPrint("$e");
@@ -529,7 +580,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
     }
   }
 
-  void checkRSS(BuildContext context) async {
+  Future<void> checkRSS(BuildContext context) async {
     try {
       http.Response res =
           await http.get(Uri.parse("https://api.mrquantumoff.dev/blog.rss"));
@@ -547,7 +598,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
         }
         bool cond1 = !(GetStorage().read<List<dynamic>>("seenItems") ?? [])
             .contains(item.guid!);
-
+        areAnyNews = false;
         String itemTimestamp = item.pubDate!;
         debugPrint("itemTimestamp");
         var format = DateFormat("E, dd MMM y H:m:s +0000");
@@ -567,18 +618,24 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
           newSeenItems.add(item.guid!);
           GetStorage().write("seenItems", newSeenItems);
           if (GetStorage().read("silentNews") == true) {
+            areAnyNews = true;
             ScaffoldMessenger.of(context).showMaterialBanner(
               MaterialBanner(
                 content: Text(item.title!),
                 actions: [
                   FilledButton.icon(
-                      onPressed: () async {
-                        await launchUrl(Uri.parse(item.link!.toString()));
-                        ScaffoldMessenger.of(context).clearMaterialBanners();
-                        checkModpackUpdates(context);
-                      },
-                      icon: const Icon(Icons.open_in_new),
-                      label: Text(AppLocalizations.of(context)!.read))
+                    onPressed: () async {
+                      await launchUrl(
+                        Uri.parse(
+                          item.link!.toString(),
+                        ),
+                      );
+                      ScaffoldMessenger.of(context).clearMaterialBanners();
+                      checkAccountUpdates(context, checkAccountTimer!);
+                    },
+                    icon: const Icon(Icons.open_in_new),
+                    label: Text(AppLocalizations.of(context)!.read),
+                  )
                 ],
               ),
             );
@@ -654,6 +711,14 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      try {
+        checkDataCollection(context);
+      } catch (e) {
+        debugPrint("Failed to check for something: $e");
+      }
+    });
+
     if (GetStorage().read("protocolArgument") != null && Platform.isLinux) {
       debugPrint("curseforge protocol received");
       onProtocolUrlReceived(GetStorage().read("protocolArgument"));
@@ -661,15 +726,6 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
       GetStorage().remove("protocolArgument");
     }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      try {
-        checkRSS(context);
-        checkModpackUpdates(context);
-        checkDataCollection(context);
-      } catch (e) {
-        debugPrint("Failed to check for something: $e");
-      }
-    });
     return Scaffold(
       body: Row(
         children: [
@@ -697,7 +753,11 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
                 label: Text(AppLocalizations.of(context)!.importMods),
               ),
               NavigationRailDestination(
-                icon: const Icon(Icons.account_circle_outlined),
+                icon: Badge(
+                  label: Text(accountNotifications.toString()),
+                  isLabelVisible: accountNotifications > 0,
+                  child: const Icon(Icons.account_circle_outlined),
+                ),
                 label: Text(AppLocalizations.of(context)!.account),
               ),
               NavigationRailDestination(
