@@ -5,7 +5,9 @@
 
 ### Installation guide:
 
-##### The app is available here
+##### The app is available on these stores:
+
+##### Read the warnings before installation!
 
 <a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
     <img width="200" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
@@ -17,7 +19,7 @@
 
 #### OR
 
-[Grab the latest build manually (Linux/Windows/macOS)](https://github.com/mrquantumoff/quadrant/releases/latest)
+[Grab the latest build manuall (Linux/Windows/macOS)](https://github.com/mrquantumoff/quadrant/releases/latest)
 
 ### Working features
 
