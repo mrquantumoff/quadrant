@@ -8,10 +8,11 @@
 ##### The app is available here
 
 <a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
-    <img width="100" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
+    <img width="200" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
 </a>
+
 <a href="https://www.microsoft.com/store/apps/9NLT70M0TVD0">
-        <img width="100" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
+        <img width="200" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
 </a>
 
 #### OR
