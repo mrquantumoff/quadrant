@@ -43,6 +43,13 @@
 
   <releases>
 
+    <release date="2024-07-06" version="24.7.1">
+      <description>
+        <p>Bug fixes</p>
+        <p>QoL improvements</p>
+      </description>
+    </release>
+
     <release date="2024-07-04" version="24.7.0">
       <description>
         <p>Quadrant Sync has been revamped. You will have to manually migrate data from old Quadrant Sync.</p>
