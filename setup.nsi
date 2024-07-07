@@ -46,6 +46,7 @@ Section
     WriteRegStr HKLM "$APP_REGISTRY_PATH" "InstallLocation" "$INSTDIR"
     WriteRegStr HKLM "$APP_REGISTRY_PATH" "DisplayName" "Quadrant"
     WriteRegStr HKLM "$APP_REGISTRY_PATH" "DisplayIcon" "$INSTDIR\logo.ico"
+    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "Quadrant (Manual install)" '"$InstDir\Release\quadrant.exe autstart"'
     WriteRegDWORD HKLM "$APP_REGISTRY_PATH" "NoModify" "1"
     WriteRegDWORD HKLM "$APP_REGISTRY_PATH" "NoRepair" "1"
 
@@ -74,6 +75,7 @@ Section "uninstall"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "DisplayIcon"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "NoModify"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "NoRepair"
+    DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "Quadrant (Manual install)"
     DeleteRegKey HKLM "$APP_REGISTRY_PATH"
     Delete "$INSTDIR\*"
     RMDir /r "$INSTDIR"
