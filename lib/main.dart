@@ -5,7 +5,6 @@ import 'dart:ui';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_single_instance/flutter_single_instance.dart';
 import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage_qnt/get_storage.dart';
@@ -50,8 +49,6 @@ void main(List<String> args) async {
   // Register a custom protocol
   // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
 
-  bool linuxProtocActivated = false;
-
   await trayManager.setIcon(
     Platform.isWindows ? 'assets/icons/logo.ico' : 'icons/logo256.png',
   );
@@ -78,18 +75,9 @@ void main(List<String> args) async {
     for (String arg in args) {
       if (arg.startsWith("curseforge://install") ||
           arg.startsWith("quadrant://")) {
-        linuxProtocActivated = true;
         GetStorage().writeInMemory("protocolArgument", arg);
       }
     }
-  }
-  GetStorage().writeInMemory("isNotFirstInstance", false);
-  if (!await FlutterSingleInstance.platform.isFirstInstance() &&
-      !linuxProtocActivated) {
-    debugPrint("App is already running");
-    exit(0);
-  } else if (!await FlutterSingleInstance.platform.isFirstInstance()) {
-    GetStorage().writeInMemory("isNotFirstInstance", true);
   }
   const storage = FlutterSecureStorage();
   String? token = await storage.read(key: "quadrant_id_token");
@@ -403,8 +391,7 @@ class _QuadrantState extends State<Quadrant>
   }
 
   @override
-  void onProtocolUrlReceived(String url,
-      {bool isNotFirstInstance = false}) async {
+  void onProtocolUrlReceived(String url) async {
     String log = 'Url received: $url)';
     debugPrint(log);
 
@@ -520,10 +507,7 @@ class _QuadrantState extends State<Quadrant>
           return;
         }
         await storage.write(key: "quadrant_id_token", value: token);
-        if (isNotFirstInstance) {
-          GetStorage().write("restartAppNow", true);
-          exit(0);
-        }
+
         setState(() {
           currentPage = 4;
           GetStorage().write("lastPage", 4);
@@ -819,6 +803,8 @@ class _QuadrantState extends State<Quadrant>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
         checkDataCollection(context);
+        checkRSS(context);
+        checkAccountUpdates(context);
       } catch (e) {
         debugPrint("Failed to check for something: $e");
       }
@@ -826,8 +812,9 @@ class _QuadrantState extends State<Quadrant>
 
     if (GetStorage().read("protocolArgument") != null && Platform.isLinux) {
       debugPrint("Protocol received");
-      onProtocolUrlReceived(GetStorage().read("protocolArgument"),
-          isNotFirstInstance: GetStorage().read("isNotFirstInstance") ?? false);
+      onProtocolUrlReceived(
+        GetStorage().read("protocolArgument"),
+      );
       debugPrint("Protocol protocol removed");
       GetStorage().remove("protocolArgument");
     }
