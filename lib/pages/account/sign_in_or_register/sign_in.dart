@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
@@ -20,7 +19,6 @@ class _SignInPageState extends State<SignInPage> {
   late TextEditingController emailController;
   late TextEditingController passwordController;
   final storage = const FlutterSecureStorage();
-  Timer? restartApp;
   @override
   void initState() {
     buttonsEnabled = true;
