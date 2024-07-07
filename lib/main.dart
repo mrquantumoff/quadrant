@@ -171,7 +171,7 @@ void main(List<String> args) async {
   }
 
   Timer.periodic(
-    const Duration(minutes: 10),
+    const Duration(seconds: 10),
     accountUpdate,
   );
   runApp(
@@ -331,7 +331,11 @@ class _QuadrantState extends State<Quadrant>
       const Duration(seconds: 10),
       (Timer t) async {
         debugPrint("checkingAccountUpdates!");
-        await checkAccountUpdates(context);
+        try {
+          await checkAccountUpdates(context);
+        } catch (e) {
+          debugPrint("$e");
+        }
       },
     );
     checkRSSTimer = Timer.periodic(
@@ -370,7 +374,7 @@ class _QuadrantState extends State<Quadrant>
     if (menuItem.key == 'show_window') {
       windowManager.focus();
     } else if (menuItem.key == 'exit_app') {
-      windowManager.close();
+      exit(0);
     }
     switch (menuItem.key) {
       case "show_window":
@@ -555,7 +559,7 @@ class _QuadrantState extends State<Quadrant>
     const storage = FlutterSecureStorage();
     String? token = await storage.read(key: "quadrant_id_token");
     if (token == null) {
-      throw Exception(AppLocalizations.of(context)!.noQuadrantID);
+      // throw Exception(AppLocalizations.of(context)!.noQuadrantID);
     }
     http.Response res = await http.get(
         Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/sync/get"),
@@ -570,6 +574,9 @@ class _QuadrantState extends State<Quadrant>
         "Authorization": "Bearer $token"
       },
     );
+    if (userInfoRes.statusCode != 200) {
+      return;
+    }
     Map userInfo = json.decode(userInfoRes.body);
 
     if (userInfoRes.statusCode != 200) {
@@ -604,7 +611,7 @@ class _QuadrantState extends State<Quadrant>
           modLoader: modpack["mod_loader"],
           lastSynced: modpack["last_synced"],
           reload: (value) {},
-          token: token,
+          token: token ?? "",
           username: userInfo["login"],
         ),
       );
@@ -720,7 +727,11 @@ class _QuadrantState extends State<Quadrant>
                         ),
                       );
                       ScaffoldMessenger.of(context).clearMaterialBanners();
-                      checkAccountUpdates(context);
+                      try {
+                        checkAccountUpdates(context);
+                      } catch (e) {
+                        debugPrint("$e");
+                      }
                     },
                     icon: const Icon(Icons.open_in_new),
                     label: Text(AppLocalizations.of(context)!.read),
@@ -804,7 +815,11 @@ class _QuadrantState extends State<Quadrant>
       try {
         checkDataCollection(context);
         checkRSS(context);
-        checkAccountUpdates(context);
+        try {
+          checkAccountUpdates(context);
+        } catch (e) {
+          debugPrint("$e");
+        }
       } catch (e) {
         debugPrint("Failed to check for something: $e");
       }

@@ -918,7 +918,7 @@ Future<void> checkAccountUpdates() async {
     return;
   }
   if (res.statusCode != 200) {
-    debugPrint("ACCOUNT UPDATE ERROR: ${res.body} (${res.statusCode})");
+    debugPrint("ACCOUNT UPDATE ERROR : ${res.body} (${res.statusCode})");
     return;
   }
   List<dynamic> notifications = userInfo["notifications"];
@@ -985,12 +985,17 @@ Future<void> checkAccountUpdates() async {
       int lastLocalSync =
           json.decode(localSyncedModpackFile.readAsStringSync())["last_synced"];
       int lastRemoteSync = modpack.lastSynced;
-
-      if (lastRemoteSync > lastLocalSync &&
-          GetStorage().read("autoQuadrantSync") == true &&
-          !await windowManager.isVisible() &&
-          GetStorage().read("areModpacksUpdated") == false) {
+      bool cond1 = lastRemoteSync > lastLocalSync;
+      bool cond2 = GetStorage().read("autoQuadrantSync") == true;
+      bool cond3 = !await windowManager.isFocused();
+      bool cond4 = GetStorage().read("areModpacksUpdated") ?? false == false;
+      debugPrint("Is AutoSync on: $cond2");
+      debugPrint("Are modpacks updated: $cond4");
+      debugPrint("Is modpack synced: $cond1");
+      debugPrint("Is window not focused: $cond3");
+      if (cond1 && cond2 && cond3 && cond4) {
         try {
+          debugPrint("AutoSyncing ${modpack.name}");
           GetStorage().write("areModpacksUpdated", true);
           LocalNotification modpackUpdateNotification = LocalNotification(
             title: modpack.name,
@@ -1041,10 +1046,11 @@ Future<void> checkAccountUpdates() async {
             windowManager.focus();
           };
         } catch (e) {
+          debugPrint("Error while autosyncing: $e");
           LocalNotification modpackUpdateStatus = LocalNotification(
             title: modpack.name,
             identifier: modpack.modpackId,
-            body: "❌ Failed to update",
+            body: "❌ Failed to update | $e",
             subtitle: "${modpack.modLoader} | ${modpack.mcVersion}",
             silent: false,
           );

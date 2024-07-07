@@ -1,5 +1,6 @@
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:quadrant/other/backend.dart';
@@ -24,7 +25,7 @@ class _SettingsState extends State<Settings> {
   bool collectData = GetStorage().read("collectUserData");
   bool curseForge = GetStorage().read("curseForge");
   bool modrinth = GetStorage().read("modrinth");
-  bool devMode = GetStorage().read("devMode");
+  bool devMode = GetStorage().read("devMode") ?? false;
   bool rssFeeds = GetStorage().read("rssFeeds");
   bool silentNews = GetStorage().read("silentNews");
 
@@ -498,6 +499,34 @@ class _SettingsState extends State<Settings> {
                 ],
               ),
             ),
+            devMode
+                ? Container(
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    child: SizedBox(
+                      width: 150,
+                      child: devMode
+                          ? Column(
+                              children: [
+                                TextField(
+                                  onSubmitted: (value) async {
+                                    const storage = FlutterSecureStorage();
+                                    await storage.write(
+                                      key: "quadrant_id_token",
+                                      value: value,
+                                    );
+                                    debugPrint("Set token to $value");
+                                  },
+                                  decoration: const InputDecoration(
+                                    label: Text("Quadrant ID Token override"),
+                                    border: OutlineInputBorder(),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Container(),
+                    ),
+                  )
+                : Container(),
             Container(
               margin: const EdgeInsets.only(top: 12),
               child: Row(
