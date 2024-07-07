@@ -7,6 +7,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   dynamic_color
   flutter_platform_alert
   flutter_secure_storage_windows
+  local_notifier
   protocol_handler_windows
   screen_retriever
   tray_manager

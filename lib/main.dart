@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:local_notifier/local_notifier.dart';
 import 'package:quadrant/draggable_appbar.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/other/restart_app.dart';
@@ -40,6 +41,12 @@ void main(List<String> args) async {
   await GetStorage.init();
   WidgetsFlutterBinding.ensureInitialized();
   dataCollectionInit();
+  await localNotifier.setup(
+    appName: 'quadrant',
+    // The parameter shortcutPolicy only works on Windows
+    shortcutPolicy: ShortcutPolicy.requireCreate,
+  );
+
   // Register a custom protocol
   // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
 
@@ -170,6 +177,15 @@ void main(List<String> args) async {
       await windowManager.focus();
     }
   });
+  void accountUpdate(Timer t) async {
+    debugPrint("checkingAccountUpdatesBackground!");
+    checkAccountUpdates();
+  }
+
+  Timer.periodic(
+    const Duration(minutes: 10),
+    accountUpdate,
+  );
   runApp(
     const RestartWidget(
       child: MyApp(),
@@ -297,14 +313,13 @@ class Quadrant extends StatefulWidget {
 class _QuadrantState extends State<Quadrant>
     with ProtocolListener, TrayListener {
   Timer? checkRSSTimer;
-  Timer? checkAccountTimer;
   Timer? clearBanners;
+  Timer? checkAccountTimer;
 
   @override
   void dispose() {
     protocolHandler.removeListener(this);
 
-    checkAccountTimer?.cancel();
     checkRSSTimer?.cancel();
     clearBanners?.cancel();
     pages = [];
@@ -323,11 +338,12 @@ class _QuadrantState extends State<Quadrant>
   void initState() {
     trayManager.addListener(this);
     super.initState();
+
     checkAccountTimer = Timer.periodic(
       const Duration(seconds: 10),
       (Timer t) async {
         debugPrint("checkingAccountUpdates!");
-        await checkAccountUpdates(context, t);
+        await checkAccountUpdates(context);
       },
     );
     checkRSSTimer = Timer.periodic(
@@ -551,7 +567,7 @@ class _QuadrantState extends State<Quadrant>
   bool areAnyUpdates = false;
   bool areAnyNews = false;
 
-  Future<void> checkAccountUpdates(context, Timer t) async {
+  Future<void> checkAccountUpdates(BuildContext context) async {
     const storage = FlutterSecureStorage();
     String? token = await storage.read(key: "quadrant_id_token");
     if (token == null) {
@@ -720,7 +736,7 @@ class _QuadrantState extends State<Quadrant>
                         ),
                       );
                       ScaffoldMessenger.of(context).clearMaterialBanners();
-                      checkAccountUpdates(context, checkAccountTimer!);
+                      checkAccountUpdates(context);
                     },
                     icon: const Icon(Icons.open_in_new),
                     label: Text(AppLocalizations.of(context)!.read),

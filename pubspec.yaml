@@ -41,6 +41,7 @@ dependencies:
   animations: ^2.0.11
   tray_manager: ^0.2.3
   flutter_single_instance: ^0.0.1
+  local_notifier: ^0.1.6
 
 dependency_overrides:
   win32: any

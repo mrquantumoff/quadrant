@@ -43,6 +43,14 @@
 
   <releases>
 
+    <release date="2024-07-07" version="24.7.2">
+      <description>
+        <p>Bug fixes</p>
+        <p>Significanty improved Quadrant Automatic Sync</p>
+        <p>Design improvements</p>
+      </description>
+    </release>
+
     <release date="2024-07-06" version="24.7.1">
       <description>
         <p>Bug fixes</p>

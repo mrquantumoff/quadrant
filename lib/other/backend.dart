@@ -9,11 +9,15 @@ import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:local_notifier/local_notifier.dart';
+import 'package:quadrant/pages/modpack_importer/import_modpacks/import_modpacks_page.dart';
+import 'package:quadrant/pages/modpack_importer/import_modpacks/synced_modpack.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:quadrant/pages/web/mod/install_mod_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:quadrant/pages/web/mod/mod.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:window_manager/window_manager.dart';
 
 Directory getMinecraftFolder({bool onInit = false}) {
   if (GetStorage().read("minecraftFolder") != null && !onInit) {
@@ -789,4 +793,269 @@ void deleteUsageInfo() async {
       "Authorization": const String.fromEnvironment("QUADRANT_QNT_API_KEY")
     },
   );
+}
+
+Future<void> importModpack(
+  List<String> modDownloadUrls,
+  String modpack,
+  Function(double value) setProgressValue,
+  String modConfig,
+  int syncTime,
+) async {
+  List<DownloadedMod> downloadedMods = [];
+  debugPrint("$modDownloadUrls");
+  List<String> modpackFiles = [];
+
+  Directory modpackDir =
+      Directory("${getMinecraftFolder().path}/modpacks/$modpack");
+  if (modpackDir.existsSync()) {
+    Stream<FileSystemEntity> installedMods =
+        modpackDir.list(recursive: true, followLinks: true);
+    await for (FileSystemEntity item in installedMods) {
+      String fileName = item.path.replaceAll("\\", "/").split("/").last;
+      if (fileName.endsWith(".json") ||
+          (await FileSystemEntity.isDirectory(item.path))) {
+        continue;
+      }
+      modpackFiles.add(item.path.replaceAll("\\", "/"));
+    }
+  }
+
+  debugPrint("Modpack files: $modpackFiles");
+  for (var downloadUrl in modDownloadUrls) {
+    String modFileName = Uri.parse(downloadUrl).pathSegments.last;
+    File modDestFile =
+        File("${getMinecraftFolder().path}/modpacks/$modpack/$modFileName");
+    if (modpackFiles.contains(modDestFile.path.replaceAll("\\", "/"))) {
+      modpackFiles.remove(modDestFile.path.replaceAll("\\", "/"));
+    }
+    int modIndex = modDownloadUrls.indexOf(downloadUrl);
+
+    if (modDestFile.existsSync()) {
+      setProgressValue(modIndex / modDownloadUrls.length);
+      continue;
+    }
+
+    final http.Response res = await http.get(
+      Uri.parse(downloadUrl),
+      headers: {
+        "User-Agent": await generateUserAgent(),
+      },
+    );
+
+    List<int> bytes = res.bodyBytes;
+    setProgressValue(modIndex / modDownloadUrls.length);
+    downloadedMods.add(
+      DownloadedMod(bytes: bytes, file: modDestFile),
+    );
+  }
+
+  for (String item in modpackFiles) {
+    File itemFile = File(item);
+    if (itemFile.existsSync()) {
+      await itemFile.delete();
+    }
+  }
+
+  if (!await modpackDir.exists()) {
+    await modpackDir.create(recursive: true);
+  }
+  bool success = true;
+  for (DownloadedMod dlMod in downloadedMods) {
+    if (dlMod.file.existsSync()) {
+      await dlMod.file.delete();
+    }
+    await dlMod.file.create(recursive: true);
+    await dlMod.file.writeAsBytes(dlMod.bytes);
+  }
+  if (success) {
+    File modpackConfig = File("${modpackDir.path}/modConfig.json");
+    debugPrint(modpackConfig.path);
+    if (modpackConfig.existsSync()) {
+      await modpackConfig.delete();
+    }
+    await modpackConfig.create();
+
+    File syncConfig = File("${modpackDir.path}/quadrantSync.json");
+
+    if (syncConfig.existsSync()) {
+      await syncConfig.writeAsString(
+        json.encode(
+          {"last_synced": syncTime},
+        ),
+      );
+    }
+
+    await modpackConfig.writeAsString(modConfig);
+    return;
+  }
+}
+
+Future<void> checkAccountUpdates() async {
+  const storage = FlutterSecureStorage();
+  String? token = await storage.read(key: "quadrant_id_token");
+  if (token == null) {
+    return;
+  }
+  http.Response res = await http.get(
+      Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/sync/get"),
+      headers: {
+        "User-Agent": await generateUserAgent(),
+        "Authorization": "Bearer $token"
+      });
+  http.Response userInfoRes = await http.get(
+    Uri.parse("https://api.mrquantumoff.dev/api/v3/account/info/get"),
+    headers: {
+      "User-Agent": await generateUserAgent(),
+      "Authorization": "Bearer $token"
+    },
+  );
+  Map userInfo = json.decode(userInfoRes.body);
+
+  if (userInfoRes.statusCode != 200) {
+    debugPrint(
+        "ACCOUNT UPDATE ERROR: ${userInfoRes.body} (${userInfoRes.statusCode})");
+    return;
+  }
+  if (res.statusCode != 200) {
+    debugPrint("ACCOUNT UPDATE ERROR: ${res.body} (${res.statusCode})");
+    return;
+  }
+  List<dynamic> notifications = userInfo["notifications"];
+  for (dynamic notification in notifications) {
+    if (notification["read"] == false) {
+      Map notificationBody = json.decode(notification["message"]);
+      debugPrint("$notification");
+      List<String> shownNotifications =
+          GetStorage().read("shownNotifications") ?? [];
+      if (!shownNotifications.contains(notification["notification_id"])) {
+        LocalNotification localNotification = LocalNotification(
+          title: notificationBody["simple_message"],
+          identifier: notification["notification_id"],
+          silent: false,
+        );
+        await localNotification.show();
+        localNotification.onClick = () {
+          windowManager.show();
+          windowManager.focus();
+        };
+      }
+      shownNotifications.add(notification["notification_id"]);
+      GetStorage().write("shownNotifications", shownNotifications);
+    }
+  }
+
+  List<SyncedModpack> syncedModpacks = [];
+  List<dynamic> data = json.decode(res.body);
+  for (var modpack in data) {
+    syncedModpacks.add(
+      SyncedModpack(
+        modpackId: modpack["modpack_id"],
+        name: modpack["name"],
+        mods: modpack["mods"],
+        mcVersion: modpack["minecraft_version"],
+        modLoader: modpack["mod_loader"],
+        lastSynced: modpack["last_synced"],
+        reload: (value) {},
+        token: token,
+        username: userInfo["login"],
+      ),
+    );
+  }
+
+  syncedModpacks.sort(((a, b) {
+    return b.lastSynced.compareTo(a.lastSynced);
+  }));
+
+  List<String> localModpacks = getModpacks();
+  List<SyncedModpack> localSyncedModpacks = [];
+  for (SyncedModpack modpack in syncedModpacks) {
+    if (localModpacks.contains(modpack.name)) {
+      localSyncedModpacks.add(modpack);
+    }
+  }
+  for (SyncedModpack modpack in localSyncedModpacks) {
+    File localSyncedModpackFile = File(
+        "${getMinecraftFolder().path}/modpacks/${modpack.name}/quadrantSync.json");
+
+    if (!localSyncedModpackFile.existsSync()) {
+      continue;
+    }
+    try {
+      int lastLocalSync =
+          json.decode(localSyncedModpackFile.readAsStringSync())["last_synced"];
+      int lastRemoteSync = modpack.lastSynced;
+
+      if (lastRemoteSync > lastLocalSync &&
+          GetStorage().read("autoQuadrantSync") == true &&
+          !await windowManager.isVisible()) {
+        try {
+          LocalNotification modpackUpdateNotification = LocalNotification(
+            title: modpack.name,
+            identifier: modpack.modpackId,
+            body: "🔃 Updating...",
+            subtitle: "${modpack.modLoader} | ${modpack.mcVersion}",
+            silent: false,
+          );
+
+          modpackUpdateNotification.show();
+          modpackUpdateNotification.onClick = () {
+            windowManager.show();
+            windowManager.focus();
+          };
+
+          List<dynamic> mods = json.decode(modpack.mods);
+
+          List<String> modDownloadUrls = [];
+          for (dynamic mod in mods) {
+            modDownloadUrls.add(mod["downloadUrl"]);
+          }
+
+          await importModpack(
+            modDownloadUrls,
+            modpack.name,
+            (value) {},
+            json.encode(
+              {
+                "name": modpack.name,
+                "modLoader": modpack.modLoader,
+                "version": modpack.mcVersion,
+                "mods": mods
+              },
+            ),
+            modpack.lastSynced,
+          );
+          LocalNotification modpackUpdateStatus = LocalNotification(
+            title: modpack.name,
+            identifier: modpack.modpackId,
+            body: "✅ Successfully updated!",
+            subtitle: "${modpack.modLoader} | ${modpack.mcVersion}",
+            silent: false,
+          );
+
+          modpackUpdateStatus.show();
+          modpackUpdateStatus.onClick = () {
+            windowManager.show();
+            windowManager.focus();
+          };
+        } catch (e) {
+          LocalNotification modpackUpdateStatus = LocalNotification(
+            title: modpack.name,
+            identifier: modpack.modpackId,
+            body: "❌ Failed to update",
+            subtitle: "${modpack.modLoader} | ${modpack.mcVersion}",
+            silent: false,
+          );
+
+          modpackUpdateStatus.show();
+          modpackUpdateStatus.onClick = () {
+            windowManager.show();
+            windowManager.focus();
+          };
+        }
+      }
+    } catch (e) {
+      debugPrint("$e");
+    }
+  }
 }
