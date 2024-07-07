@@ -36,6 +36,12 @@ Section
     # point the new shortcut at the program uninstaller
     CreateShortcut "$SMPROGRAMS\Quadrant.lnk" "$INSTDIR\Release\quadrant.exe"
     CreateShortcut "$SMPROGRAMS\Uninstall Quadrant.lnk" "$INSTDIR\uninstall.exe"
+    # Define the arguments you want to pass to your application
+    StrCpy $0 "autostart"
+
+    # Create a shortcut in the Startup folder with arguments
+    CreateShortcut "$SMSTARTUP\Quadrant (not from microsoft storee).lnk" "$INSTDIR\Release\quadrant.exe" "" "$0"
+
 
     File /r "build\windows\x64\runner\Release"
     File "assets\icons\logo.ico"
@@ -46,7 +52,6 @@ Section
     WriteRegStr HKLM "$APP_REGISTRY_PATH" "InstallLocation" "$INSTDIR"
     WriteRegStr HKLM "$APP_REGISTRY_PATH" "DisplayName" "Quadrant"
     WriteRegStr HKLM "$APP_REGISTRY_PATH" "DisplayIcon" "$INSTDIR\logo.ico"
-    WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "Quadrant (Manual install)" '"$InstDir\Release\quadrant.exe autstart"'
     WriteRegDWORD HKLM "$APP_REGISTRY_PATH" "NoModify" "1"
     WriteRegDWORD HKLM "$APP_REGISTRY_PATH" "NoRepair" "1"
 
@@ -67,6 +72,8 @@ Section "uninstall"
     # second, remove the link from the start menu
     Delete "$SMPROGRAMS\Quadrant.lnk"
     Delete "$SMPROGRAMS\Uninstall Quadrant.lnk"
+    # Remove the shortcut from the Startup folder
+    Delete "$SMSTARTUP\Quadrant (not from microsoft storee).lnk"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "Publisher"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "UninstallString"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "URLInfoAbout"
