@@ -65,6 +65,8 @@ flutter:
     - assets/icons/logo.svg
     - assets/icons/logo.ico
     - assets/icons/logo.png
+    - assets/icons/tray.png
+    - assets/icons/tray.ico
 
 flutter_icons:
   windows:

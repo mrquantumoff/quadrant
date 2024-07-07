@@ -988,15 +988,17 @@ Future<void> checkAccountUpdates() async {
       bool cond1 = lastRemoteSync > lastLocalSync;
       bool cond2 = GetStorage().read("autoQuadrantSync") == true;
       bool cond3 = !await windowManager.isFocused();
-      bool cond4 = GetStorage().read("areModpacksUpdated") ?? false == false;
+      bool cond4 =
+          GetStorage().read("isModpack_${modpack.modpackId}Updated") == false;
       debugPrint("Is AutoSync on: $cond2");
-      debugPrint("Are modpacks updated: $cond4");
+      debugPrint("Are modpacks being updated: $cond4");
       debugPrint("Is modpack synced: $cond1");
       debugPrint("Is window not focused: $cond3");
       if (cond1 && cond2 && cond3 && cond4) {
         try {
           debugPrint("AutoSyncing ${modpack.name}");
-          GetStorage().write("areModpacksUpdated", true);
+          GetStorage()
+              .writeInMemory("isModpack_${modpack.modpackId}Updated", true);
           LocalNotification modpackUpdateNotification = LocalNotification(
             title: modpack.name,
             identifier: modpack.modpackId,
@@ -1045,6 +1047,8 @@ Future<void> checkAccountUpdates() async {
             windowManager.show();
             windowManager.focus();
           };
+          GetStorage()
+              .writeInMemory("isModpack_${modpack.modpackId}Updated", false);
         } catch (e) {
           debugPrint("Error while autosyncing: $e");
           LocalNotification modpackUpdateStatus = LocalNotification(
@@ -1061,8 +1065,11 @@ Future<void> checkAccountUpdates() async {
             windowManager.focus();
           };
         }
-        GetStorage().write("areModpacksUpdated", false);
+        GetStorage()
+            .writeInMemory("isModpack_${modpack.modpackId}Updated", false);
       }
+      GetStorage()
+          .writeInMemory("isModpack_${modpack.modpackId}Updated", false);
     } catch (e) {
       debugPrint("$e");
     }

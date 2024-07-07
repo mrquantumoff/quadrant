@@ -50,7 +50,7 @@ void main(List<String> args) async {
   // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
 
   await trayManager.setIcon(
-    Platform.isWindows ? 'assets/icons/logo.ico' : 'icons/logo256.png',
+    Platform.isWindows ? 'assets/icons/tray.ico' : 'icons/tray.png',
   );
   Menu menu = Menu(
     items: [
@@ -171,7 +171,7 @@ void main(List<String> args) async {
   }
 
   Timer.periodic(
-    const Duration(seconds: 180),
+    const Duration(seconds: 10),
     accountUpdate,
   );
   runApp(
@@ -367,6 +367,13 @@ class _QuadrantState extends State<Quadrant>
   void onTrayIconRightMouseDown() async {
     // do something, for example pop up the menu
     await trayManager.popUpContextMenu();
+  }
+
+  @override
+  void onTrayIconMouseDown() async {
+    await windowManager.show();
+    await windowManager.focus();
+    await windowManager.center();
   }
 
   @override
