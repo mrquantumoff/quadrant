@@ -988,8 +988,10 @@ Future<void> checkAccountUpdates() async {
 
       if (lastRemoteSync > lastLocalSync &&
           GetStorage().read("autoQuadrantSync") == true &&
-          !await windowManager.isVisible()) {
+          !await windowManager.isVisible() &&
+          GetStorage().read("areModpacksUpdated") == false) {
         try {
+          GetStorage().write("areModpacksUpdated", true);
           LocalNotification modpackUpdateNotification = LocalNotification(
             title: modpack.name,
             identifier: modpack.modpackId,
@@ -1053,6 +1055,7 @@ Future<void> checkAccountUpdates() async {
             windowManager.focus();
           };
         }
+        GetStorage().write("areModpacksUpdated", false);
       }
     } catch (e) {
       debugPrint("$e");
