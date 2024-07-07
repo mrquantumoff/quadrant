@@ -171,7 +171,7 @@ void main(List<String> args) async {
   }
 
   Timer.periodic(
-    const Duration(seconds: 10),
+    const Duration(seconds: 180),
     accountUpdate,
   );
   runApp(
