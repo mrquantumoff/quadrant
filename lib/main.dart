@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_single_instance/flutter_single_instance.dart';
 import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage_qnt/get_storage.dart';
@@ -38,6 +39,9 @@ void main(List<String> args) async {
   dataCollectionInit();
   // Register a custom protocol
   // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
+
+  bool linuxProtocActivated = false;
+
   if (Platform.isWindows || Platform.isMacOS) {
     await protocolHandler.register('curseforge');
     await protocolHandler.register('quadrant');
@@ -46,9 +50,15 @@ void main(List<String> args) async {
     for (String arg in args) {
       if (arg.startsWith("curseforge://install") ||
           arg.startsWith("quadrant://")) {
+        linuxProtocActivated = true;
         GetStorage().writeInMemory("protocolArgument", arg);
       }
     }
+  }
+  if (!await FlutterSingleInstance.platform.isFirstInstance() &&
+      !linuxProtocActivated) {
+    debugPrint("App is already running");
+    exit(0);
   }
   const storage = FlutterSecureStorage();
   String? token = await storage.read(key: "quadrant_id_token");
@@ -70,14 +80,11 @@ void main(List<String> args) async {
     size: Size(1366, 768),
     center: false,
     skipTaskbar: false,
-    titleBarStyle: TitleBarStyle.normal,
+    titleBarStyle: TitleBarStyle.hidden,
     minimumSize: Size(1280, 720),
     fullScreen: false,
   );
-  windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
-  });
+
   var tempDir = await getTemporaryDirectory();
 
   for (var file in tempDir.listSync()) {
@@ -129,6 +136,10 @@ void main(List<String> args) async {
   if (GetStorage().read("dontShowUserDataRecommendation") == null) {
     GetStorage().writeInMemory("dontShowUserDataRecommendation", false);
   }
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
   runApp(
     const RestartWidget(
       child: MyApp(),
@@ -311,7 +322,8 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
   }
 
   @override
-  void onProtocolUrlReceived(String url) async {
+  void onProtocolUrlReceived(String url,
+      {bool isNotFirstInstance = false}) async {
     String log = 'Url received: $url)';
     debugPrint(log);
 
@@ -381,7 +393,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
               content: Text(AppLocalizations.of(context)!.invalidData),
             ),
           );
-          return;
+          exit(1);
         }
 
         http.Response res = await http.post(
@@ -405,19 +417,21 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
               content: Text(AppLocalizations.of(context)!.invalidData),
             ),
           );
-          return;
+          exit(2);
         }
         String token = jsonDecode(res.body)["access_token"];
         String scope = jsonDecode(res.body)["scope"];
 
-        if (!scope.contains("user_data") || !scope.contains("quadrant_sync")) {
+        if (!scope.contains("user_data") ||
+            !scope.contains("quadrant_sync") ||
+            !scope.contains("notifications")) {
           debugPrint("Scope mismatch");
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(AppLocalizations.of(context)!.invalidData),
             ),
           );
-          return;
+          exit(3);
         }
 
         const storage = FlutterSecureStorage();
@@ -425,6 +439,10 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
           return;
         }
         await storage.write(key: "quadrant_id_token", value: token);
+        if (isNotFirstInstance) {
+          GetStorage().write("restartAppNow", true);
+          exit(0);
+        }
         setState(() {
           currentPage = 4;
           GetStorage().write("lastPage", 4);
@@ -720,9 +738,9 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
     });
 
     if (GetStorage().read("protocolArgument") != null && Platform.isLinux) {
-      debugPrint("curseforge protocol received");
+      debugPrint("Protocol received");
       onProtocolUrlReceived(GetStorage().read("protocolArgument"));
-      debugPrint("curseforge protocol removed");
+      debugPrint("Protocol protocol removed");
       GetStorage().remove("protocolArgument");
     }
 

@@ -39,6 +39,8 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   jwt_decoder: ^2.0.1
   animations: ^2.0.11
+  tray_manager: ^0.2.3
+  flutter_single_instance: ^0.0.1
 
 dependency_overrides:
   win32: any

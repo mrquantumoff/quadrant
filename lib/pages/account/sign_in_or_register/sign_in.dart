@@ -1,9 +1,13 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:quadrant/other/backend.dart';
+import 'package:quadrant/other/restart_app.dart';
 import 'package:quadrant/pages/account/sign_in_or_register/register/email.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -19,7 +23,7 @@ class _SignInPageState extends State<SignInPage> {
   late TextEditingController emailController;
   late TextEditingController passwordController;
   final storage = const FlutterSecureStorage();
-
+  Timer? restartApp;
   @override
   void initState() {
     buttonsEnabled = true;
@@ -72,6 +76,17 @@ class _SignInPageState extends State<SignInPage> {
                       Uri.parse(
                           "https://mrquantumoff.dev/account/oauth2/authorize?client_id=dee6f38c-e6c2-4cf1-9973-dfd3c793f979&redirect_uri=quadrant://login&scope=user_data,quadrant_sync,notifications&duration=7776000&response_type=code&state=$state"),
                     );
+                    if (Platform.isLinux) {
+                      restartApp = Timer.periodic(
+                        const Duration(seconds: 5),
+                        (Timer t) async {
+                          if (GetStorage().read("restartAppNow") == true) {
+                            t.cancel();
+                            RestartWidget.restartApp(context);
+                          }
+                        },
+                      );
+                    }
                   }
                 : () {
                     ScaffoldMessenger.of(context).showSnackBar(
