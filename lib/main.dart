@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -9,6 +10,7 @@ import 'package:get/get.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:quadrant/draggable_appbar.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/other/restart_app.dart';
 import 'package:quadrant/pages/account/account.dart';
@@ -21,6 +23,7 @@ import 'package:quadrant/pages/web/mod/mod.dart';
 import 'package:quadrant/pages/web/web_sources.dart';
 import 'package:quadrant/pages/settings/settings.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:tray_manager/tray_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:http/http.dart' as http;
@@ -42,6 +45,24 @@ void main(List<String> args) async {
 
   bool linuxProtocActivated = false;
 
+  await trayManager.setIcon(
+    Platform.isWindows ? 'assets/icons/logo.ico' : 'icons/logo256.png',
+  );
+  Menu menu = Menu(
+    items: [
+      MenuItem(
+        key: 'show_window',
+        label: 'Show Window',
+      ),
+      MenuItem.separator(),
+      MenuItem(
+        key: 'exit_app',
+        label: 'Exit App',
+      ),
+    ],
+  );
+  await trayManager.setContextMenu(menu);
+
   if (Platform.isWindows || Platform.isMacOS) {
     await protocolHandler.register('curseforge');
     await protocolHandler.register('quadrant');
@@ -55,10 +76,13 @@ void main(List<String> args) async {
       }
     }
   }
+  GetStorage().writeInMemory("isNotFirstInstance", false);
   if (!await FlutterSingleInstance.platform.isFirstInstance() &&
       !linuxProtocActivated) {
     debugPrint("App is already running");
     exit(0);
+  } else if (!await FlutterSingleInstance.platform.isFirstInstance()) {
+    GetStorage().writeInMemory("isNotFirstInstance", true);
   }
   const storage = FlutterSecureStorage();
   String? token = await storage.read(key: "quadrant_id_token");
@@ -81,6 +105,7 @@ void main(List<String> args) async {
     center: false,
     skipTaskbar: false,
     titleBarStyle: TitleBarStyle.hidden,
+    windowButtonVisibility: false,
     minimumSize: Size(1280, 720),
     fullScreen: false,
   );
@@ -136,9 +161,14 @@ void main(List<String> args) async {
   if (GetStorage().read("dontShowUserDataRecommendation") == null) {
     GetStorage().writeInMemory("dontShowUserDataRecommendation", false);
   }
+  debugPrint("$args");
   windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.show();
-    await windowManager.focus();
+    if (args.contains("autostart")) {
+      await windowManager.hide();
+    } else {
+      await windowManager.show();
+      await windowManager.focus();
+    }
   });
   runApp(
     const RestartWidget(
@@ -155,6 +185,15 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  Future<AppExitResponse> onExit() async {
+    return AppExitResponse.cancel;
+  }
+
   @override
   Widget build(BuildContext context) {
     return DynamicColorBuilder(
@@ -255,7 +294,8 @@ class Quadrant extends StatefulWidget {
   State<Quadrant> createState() => _QuadrantState();
 }
 
-class _QuadrantState extends State<Quadrant> with ProtocolListener {
+class _QuadrantState extends State<Quadrant>
+    with ProtocolListener, TrayListener {
   Timer? checkRSSTimer;
   Timer? checkAccountTimer;
   Timer? clearBanners;
@@ -267,8 +307,8 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
     checkAccountTimer?.cancel();
     checkRSSTimer?.cancel();
     clearBanners?.cancel();
-
     pages = [];
+    trayManager.removeListener(this);
     super.dispose();
   }
 
@@ -281,6 +321,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
 
   @override
   void initState() {
+    trayManager.addListener(this);
     super.initState();
     checkAccountTimer = Timer.periodic(
       const Duration(seconds: 10),
@@ -296,7 +337,7 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
         await checkRSS(context);
       },
     );
-    clearBanners = Timer.periodic(const Duration(seconds: 1), (Timer t) async {
+    clearBanners = Timer.periodic(const Duration(seconds: 15), (Timer t) async {
       await clearUselessBanners();
     });
 
@@ -312,6 +353,30 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
     protocolHandler.addListener(this);
 
     initializeDateFormatting();
+  }
+
+  @override
+  void onTrayIconRightMouseDown() async {
+    // do something, for example pop up the menu
+    await trayManager.popUpContextMenu();
+  }
+
+  @override
+  void onTrayMenuItemClick(MenuItem menuItem) async {
+    if (menuItem.key == 'show_window') {
+      windowManager.focus();
+    } else if (menuItem.key == 'exit_app') {
+      windowManager.close();
+    }
+    switch (menuItem.key) {
+      case "show_window":
+        windowManager.show();
+        windowManager.focus();
+        break;
+      case "exit_app":
+        windowManager.close();
+        break;
+    }
   }
 
   Future<void> clearUselessBanners() async {
@@ -567,9 +632,15 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
         int lastLocalSync = json
             .decode(localSyncedModpackFile.readAsStringSync())["last_synced"];
         int lastRemoteSync = modpack.lastSynced;
+
+        bool notification = !areAnyUpdates;
+
         areAnyUpdates = false;
         if (lastRemoteSync > lastLocalSync) {
           areAnyUpdates = true;
+
+          if (notification != areAnyUpdates) {}
+
           ScaffoldMessenger.of(context).showMaterialBanner(
             MaterialBanner(
               content: Text(
@@ -739,12 +810,42 @@ class _QuadrantState extends State<Quadrant> with ProtocolListener {
 
     if (GetStorage().read("protocolArgument") != null && Platform.isLinux) {
       debugPrint("Protocol received");
-      onProtocolUrlReceived(GetStorage().read("protocolArgument"));
+      onProtocolUrlReceived(GetStorage().read("protocolArgument"),
+          isNotFirstInstance: GetStorage().read("isNotFirstInstance") ?? false);
       debugPrint("Protocol protocol removed");
       GetStorage().remove("protocolArgument");
     }
 
     return Scaffold(
+      appBar: DraggableAppBar(
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.productName),
+          actions: [
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              child: IconButton(
+                onPressed: currentPage == 3
+                    ? null
+                    : () async {
+                        windowManager.minimize();
+                      },
+                icon: const Icon(Icons.minimize),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              child: IconButton(
+                onPressed: currentPage == 3
+                    ? null
+                    : () async {
+                        windowManager.hide();
+                      },
+                icon: const Icon(Icons.close),
+              ),
+            ),
+          ],
+        ),
+      ),
       body: Row(
         children: [
           NavigationRail(

@@ -80,6 +80,9 @@ msix_config:
   identity_name: 58734MrQuantumOFFDemirYer.MinecraftModpackManagerR
   msix_version: 24.7.1.0
   logo_path: .\assets\icons\logo.ico
+  startup_task: # <-- Startup Task
+    enabled: true # optional (default: true)
+    parameters: autostart
   store: true
   app_uri_handler_hosts: www.curseforge.com, curseforge.com, beta.curseforge.com, modrinth.com
   languages: en-us, uk-ua, tr-tr
