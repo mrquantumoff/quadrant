@@ -78,9 +78,10 @@ class _SignInPageState extends State<SignInPage> {
                     );
                     if (Platform.isLinux) {
                       restartApp = Timer.periodic(
-                        const Duration(seconds: 5),
+                        const Duration(seconds: 1),
                         (Timer t) async {
                           if (GetStorage().read("restartAppNow") == true) {
+                            GetStorage().remove("restartAppNow");
                             t.cancel();
                             RestartWidget.restartApp(context);
                           }
