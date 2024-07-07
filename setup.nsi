@@ -36,11 +36,9 @@ Section
     # point the new shortcut at the program uninstaller
     CreateShortcut "$SMPROGRAMS\Quadrant.lnk" "$INSTDIR\Release\quadrant.exe"
     CreateShortcut "$SMPROGRAMS\Uninstall Quadrant.lnk" "$INSTDIR\uninstall.exe"
-    # Define the arguments you want to pass to your application
-    StrCpy $0 "autostart"
 
     # Create a shortcut in the Startup folder with arguments
-    CreateShortcut "$SMSTARTUP\Quadrant (not from microsoft storee).lnk" "$INSTDIR\Release\quadrant.exe" "" "$0"
+    CreateShortcut "$SMSTARTUP\Quadrant (not from microsoft store).lnk" "$INSTDIR\Release\quadrant.exe" "autostart"
 
 
     File /r "build\windows\x64\runner\Release"
@@ -73,7 +71,7 @@ Section "uninstall"
     Delete "$SMPROGRAMS\Quadrant.lnk"
     Delete "$SMPROGRAMS\Uninstall Quadrant.lnk"
     # Remove the shortcut from the Startup folder
-    Delete "$SMSTARTUP\Quadrant (not from microsoft storee).lnk"
+    Delete "$SMSTARTUP\Quadrant (not from microsoft store).lnk"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "Publisher"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "UninstallString"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "URLInfoAbout"
