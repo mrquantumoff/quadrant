@@ -138,15 +138,7 @@ class _InstallModPageState extends State<InstallModPage> {
       }
     }
     if (mods.isEmpty) {
-      return [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 24),
-          child: Text(
-            AppLocalizations.of(context)!.emptyDependencies,
-            style: const TextStyle(fontSize: 24),
-          ),
-        )
-      ];
+      return [];
     }
     return mods;
   }
@@ -218,7 +210,7 @@ class _InstallModPageState extends State<InstallModPage> {
       screenshots.add(
         Image.network(
           screenshot,
-          fit: BoxFit.fill,
+          fit: BoxFit.contain,
         ),
       );
     }
@@ -370,7 +362,6 @@ class _InstallModPageState extends State<InstallModPage> {
                                     const BoxConstraints(maxWidth: 540),
                                 child: CarouselSlider(
                                   options: CarouselOptions(
-                                    aspectRatio: 16 / 9,
                                     pageSnapping: true,
                                     enableInfiniteScroll: true,
                                     enlargeFactor: 5,
@@ -977,17 +968,27 @@ class _InstallModPageState extends State<InstallModPage> {
                         onSelected: (newValue) => updateDependencies(),
                       ),
                     ),
-                    SizedBox(
-                      height: 720,
-                      child: GridView.extent(
-                        maxCrossAxisExtent: 540,
-                        mainAxisSpacing: 15,
-                        crossAxisSpacing: 0,
-                        childAspectRatio: 1.35,
-                        padding: const EdgeInsets.only(bottom: 0),
-                        children: dependencies,
-                      ),
-                    ),
+                    dependencies.isNotEmpty
+                        ? SizedBox(
+                            height: 720,
+                            child: GridView.extent(
+                              maxCrossAxisExtent: 540,
+                              mainAxisSpacing: 15,
+                              crossAxisSpacing: 0,
+                              childAspectRatio: 1.35,
+                              padding: const EdgeInsets.only(bottom: 0),
+                              children: dependencies,
+                            ),
+                          )
+                        : Container(
+                            margin: const EdgeInsets.only(bottom: 64),
+                            child: Center(
+                              child: Text(
+                                AppLocalizations.of(context)!.emptyDependencies,
+                                style: const TextStyle(fontSize: 24),
+                              ),
+                            ),
+                          ),
                   ],
                 ),
               ),
