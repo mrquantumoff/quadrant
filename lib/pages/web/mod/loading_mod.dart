@@ -74,7 +74,7 @@ class _LoadingModState extends State<LoadingMod> {
               //         )
               //       : null,
               // ),
-              Card(
+              Card.outlined(
             // elevation: 12,
             margin: EdgeInsets.symmetric(vertical: 0, horizontal: 8),
             child: Column(
