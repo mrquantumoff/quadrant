@@ -166,6 +166,16 @@ class _SyncedModpackState extends State<SyncedModpack> {
               child: ExpansionTile(
                 maintainState: true,
                 expandedAlignment: Alignment.centerLeft,
+                collapsedShape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(24),
+                  ),
+                ),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(24),
+                  ),
+                ),
                 title: Text(
                   AppLocalizations.of(context)!.details,
                   style: const TextStyle(fontSize: 24),
