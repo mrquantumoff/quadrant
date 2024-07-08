@@ -336,10 +336,16 @@ Future<Mod> getMod(
         }
       }
 
+      List<String> screenshots = [];
+
+      for (dynamic screenshot in resJSON["screenshots"]) {
+        screenshots.add(screenshot["thumbnailUrl"]);
+      }
+
       String logo =
           "https://raw.githubusercontent.com/mrquantumoff/quadrant/master/assets/icons/logo.png";
       if (resJSON["logo"] != null) {
-        logo = resJSON["logo"]["thumbnailUrl"];
+        logo = resJSON["logo"]["url"];
       }
 
       debugPrint("Mod ID gotten: ${resJSON["id"]}");
@@ -348,6 +354,7 @@ Future<Mod> getMod(
         description: resJSON["summary"].toString(),
         downloadCount: int.parse(resJSON["downloadCount"].toString()),
         modIconUrl: logo,
+        thumbnailUrl: screenshots,
         id: resJSON["id"].toString(),
         setAreParentButtonsActive: setAreParentButtonsActive,
         slug: resJSON["slug"].toString(),
@@ -376,6 +383,13 @@ Future<Mod> getMod(
     );
 
     final resJSON = json.decode(res.body);
+
+    List<String> screenshots = [];
+
+    for (dynamic screenshot in resJSON["gallery"] ?? []) {
+      screenshots.add(screenshot["url"]);
+    }
+
     late ModClass modClass;
     final modClassString = resJSON["project_type"];
     if (modClassString == "mod") {
@@ -436,6 +450,7 @@ Future<Mod> getMod(
       modpackToUpdate: modpack,
       newVersionUrl: latestVersionUrl,
       deletable: deletable,
+      thumbnailUrl: screenshots,
     );
   }
 }
@@ -534,6 +549,7 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
     String summary = mod["summary"];
     String modIconUrl =
         "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo.png";
+    List<String> screenshots = [];
     int downloadCount = mod["downloadCount"];
     try {
       String mModIconUrl = mod["logo"]["thumbnailUrl"].toString().trim();
@@ -544,6 +560,11 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
       modIconUrl = mModIconUrl;
       // ignore: empty_catches
     } catch (e) {}
+
+    for (dynamic screenshot in mod["screenshots"]) {
+      screenshots.add(screenshot["thumbnailUrl"]);
+    }
+
     String slug = mod["slug"];
     List<dynamic> categories = mod["categories"];
     late ModClass modClass;
@@ -573,6 +594,7 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
       downloadCount: downloadCount,
       source: ModSource.curseForge,
       modClass: modClass,
+      thumbnailUrl: screenshots,
     );
     Uri uri = Uri.parse(
       'https://api.modrinth.com/v2/tag/game_version',
@@ -990,10 +1012,13 @@ Future<void> checkAccountUpdates() async {
       bool cond3 = !await windowManager.isFocused();
       bool cond4 =
           GetStorage().read("isModpack_${modpack.modpackId}Updated") == false;
-      debugPrint("Is AutoSync on: $cond2");
-      debugPrint("Are modpacks being updated: $cond4");
-      debugPrint("Is modpack synced: $cond1");
-      debugPrint("Is window not focused: $cond3");
+
+      if (GetStorage().read("devMode") == true) {
+        debugPrint("Is AutoSync on: $cond2");
+        debugPrint("Are modpacks being updated: $cond4");
+        debugPrint("Is modpack synced: $cond1");
+        debugPrint("Is window not focused: $cond3");
+      }
       if (cond1 && cond2 && cond3 && cond4) {
         try {
           debugPrint("AutoSyncing ${modpack.name}");

@@ -102,7 +102,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
           int modId = mod["id"];
 
           String modIconUrl =
-              "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
+              "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo.png";
           int downloadCount = mod["downloadCount"];
           try {
             String mModIconUrl = mod["logo"]["thumbnailUrl"].toString().trim();
@@ -113,6 +113,10 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
             modIconUrl = mModIconUrl;
             // ignore: empty_catches
           } catch (e) {}
+          List<String> screenshots = [];
+          for (dynamic screenshot in mod["screenshots"]) {
+            screenshots.add(screenshot["thumbnailUrl"]);
+          }
           String slug = mod["slug"];
           widgets.add(
             Mod(
@@ -125,6 +129,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               downloadCount: downloadCount,
               source: ModSource.curseForge,
               modClass: modsClass,
+              thumbnailUrl: screenshots,
             ),
           );
         } catch (e) {
@@ -162,9 +167,13 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
           String id = mod["project_id"];
           String slug = mod["slug"];
           String icon =
-              "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo256.png";
+              "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo256.png";
           // Not all mods have icons
+          List<String> screenshots = [];
 
+          for (dynamic screenshot in mod["gallery"] ?? []) {
+            screenshots.add(screenshot.toString());
+          }
           try {
             String mModIconUrl = mod["icon_url"].toString().trim();
             if (mModIconUrl == "") {
@@ -186,6 +195,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               downloadCount: downloadCount,
               source: ModSource.modRinth,
               modClass: modsClass,
+              thumbnailUrl: screenshots,
             ),
           );
         }

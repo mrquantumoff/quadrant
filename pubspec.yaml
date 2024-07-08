@@ -41,6 +41,7 @@ dependencies:
   animations: ^2.0.11
   tray_manager: ^0.2.3
   local_notifier: ^0.1.6
+  carousel_slider: ^4.2.1
 
 dependency_overrides:
   win32: any

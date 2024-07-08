@@ -36,50 +36,55 @@ class _LoadingModState extends State<LoadingMod> {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-        future: getMod(
-          widget.modId,
-          widget.source,
-          (val) => {
-            setState(
-              () {},
-            )
-          },
-          deletable: widget.deletable,
-          preVersion: widget.preVersion,
-          versionShow: widget.showPreVersion,
-          downloadable: widget.downloadable,
-          modLoader: widget.modLoader,
-          modpack: widget.modpack,
-          versionTarget: widget.versionTarget,
-        ),
-        builder: ((context, snapshot) {
-          if (snapshot.hasData) {
-            return snapshot.data!;
-          }
-          if (snapshot.hasError) {
-            return Text("${snapshot.error}");
-          }
+      future: getMod(
+        widget.modId,
+        widget.source,
+        (val) => {
+          setState(
+            () {},
+          )
+        },
+        deletable: widget.deletable,
+        preVersion: widget.preVersion,
+        versionShow: widget.showPreVersion,
+        downloadable: widget.downloadable,
+        modLoader: widget.modLoader,
+        modpack: widget.modpack,
+        versionTarget: widget.versionTarget,
+      ),
+      builder: ((context, snapshot) {
+        if (snapshot.hasData) {
+          return snapshot.data!;
+        }
+        if (snapshot.hasError) {
+          return Text("${snapshot.error}");
+        }
 
-          return Visibility(
-            maintainState: widget.preVersion != "",
-            child:
-                //   child: widget.downloadable
-                //       ? const Divider(
-                //           height: 1.5,
-                //           thickness: 1,
-                //         )
-                //       : null,
-                // ),
-                const Card(
-              // elevation: 12,
-              margin: EdgeInsets.symmetric(vertical: 0, horizontal: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [CircularProgressIndicator()],
-              ),
+        return const Visibility(
+          maintainState: true,
+          maintainAnimation: true,
+          maintainInteractivity: true,
+          maintainSemantics: true,
+          maintainSize: true,
+          child:
+              //   child: widget.downloadable
+              //       ? const Divider(
+              //           height: 1.5,
+              //           thickness: 1,
+              //         )
+              //       : null,
+              // ),
+              Card(
+            // elevation: 12,
+            margin: EdgeInsets.symmetric(vertical: 0, horizontal: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [CircularProgressIndicator()],
             ),
-          );
-        }));
+          ),
+        );
+      }),
+    );
   }
 }

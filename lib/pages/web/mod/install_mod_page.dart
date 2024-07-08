@@ -3,11 +3,13 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:intl/intl.dart';
+import 'package:quadrant/draggable_appbar.dart';
 import 'package:quadrant/other/backend.dart';
 import "package:http/http.dart" as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -46,7 +48,6 @@ class _InstallModPageState extends State<InstallModPage> {
   late bool apiFieldEnabled;
   late bool versionFieldEnabled;
   late double progressValue;
-
   late String lastVersion;
 
   List<Widget> dependencies = [
@@ -207,110 +208,182 @@ class _InstallModPageState extends State<InstallModPage> {
         ? widget.mod.name.replaceRange(36, null, "...")
         : widget.mod.name;
     NumberFormat numberFormatter = NumberFormat.compact(
-        explicitSign: false, locale: AppLocalizations.of(context)!.localeName);
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: areButttonsActive
-              ? () {
-                  Get.back();
-                }
-              : () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.of(context)!
-                          .downloadIsAlreadyInProgress),
-                    ),
-                  );
-                },
+      explicitSign: false,
+      locale: AppLocalizations.of(context)!.localeName,
+    );
+
+    List<Widget> screenshots = [];
+
+    for (String screenshot in widget.mod.thumbnailUrl) {
+      screenshots.add(
+        Image.network(
+          screenshot,
+          fit: BoxFit.fill,
         ),
-        title: Text(AppLocalizations.of(context)!.download),
+      );
+    }
+
+    return Scaffold(
+      appBar: DraggableAppBar(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: areButttonsActive
+                ? () {
+                    Get.back();
+                  }
+                : () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(AppLocalizations.of(context)!
+                            .downloadIsAlreadyInProgress),
+                      ),
+                    );
+                  },
+          ),
+          title: Text(AppLocalizations.of(context)!.download),
+        ),
       ),
       body: ListView(
         children: [
-          Card(
+          Card.outlined(
             child: SingleChildScrollView(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
-                  minHeight: 360,
+                  minHeight: 370,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Center(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                            GetStorage().read("clipIcons") == true ? 80 : 0),
-                        child: Image(
-                          image: NetworkImage(widget.mod.modIconUrl),
-                          alignment: Alignment.centerRight,
-                          height: 96,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return const CircularProgressIndicator();
-                          },
-                          width: 96,
-                        ),
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(top: 12, left: 12),
-                          child: Text(
-                            displayName,
-                            style: const TextStyle(fontSize: 32),
+                    screenshots.isEmpty
+                        ? Container()
+                        : const SizedBox(
+                            width: 12,
                           ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(left: 14, top: 20),
-                          child: Row(
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(left: 0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(
+                                  GetStorage().read("clipIcons") == true
+                                      ? 80
+                                      : 0),
+                              child: Image(
+                                image: NetworkImage(widget.mod.modIconUrl),
+                                alignment: Alignment.centerRight,
+                                height: 96,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return const CircularProgressIndicator();
+                                },
+                                width: 96,
+                              ),
+                            ),
+                          ),
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              const Icon(Icons.download,
-                                  color: Colors.grey, size: 28),
-                              Text(
-                                numberFormatter
-                                    .format(widget.mod.downloadCount),
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  color: Colors.grey,
+                              Container(
+                                margin: const EdgeInsets.only(top: 12, left: 0),
+                                child: Text(
+                                  displayName,
+                                  style: const TextStyle(fontSize: 32),
+                                ),
+                              ),
+                              Container(
+                                margin:
+                                    const EdgeInsets.only(left: 16, top: 24),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.download,
+                                        color: Colors.grey, size: 28),
+                                    Text(
+                                      numberFormatter
+                                          .format(widget.mod.downloadCount),
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 640),
+                                child: Container(
+                                  margin: const EdgeInsets.only(left: 0),
+                                  child: SingleChildScrollView(
+                                    child: Text(
+                                      desc,
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                margin: const EdgeInsets.only(
+                                  top: 8,
+                                  bottom: 8,
+                                ),
+                                child: Text(
+                                  getModpackTypeString(),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 256),
-                          child: SingleChildScrollView(
-                            child: Text(
-                              desc,
-                              style: const TextStyle(fontSize: 24),
-                            ),
+                    screenshots.isEmpty
+                        ? Container()
+                        : const SizedBox(
+                            width: 128,
                           ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(
-                              top: 8, bottom: 8, left: 18),
-                          child: Text(
-                            getModpackTypeString(),
-                            style: const TextStyle(
-                              fontSize: 16,
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: screenshots.isEmpty
+                          ? null
+                          : Card.outlined(
+                              margin: const EdgeInsets.only(right: 12),
+                              child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 540),
+                                child: CarouselSlider(
+                                  options: CarouselOptions(
+                                    aspectRatio: 16 / 9,
+                                    pageSnapping: true,
+                                    enableInfiniteScroll: true,
+                                    enlargeFactor: 5,
+                                    enlargeStrategy:
+                                        CenterPageEnlargeStrategy.scale,
+                                    scrollDirection: Axis.horizontal,
+                                    height: 304,
+                                    autoPlay: true,
+                                  ),
+                                  items: screenshots,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),

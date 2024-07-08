@@ -166,7 +166,6 @@ void main(List<String> args) async {
     }
   });
   void accountUpdate(Timer t) async {
-    debugPrint("checkingAccountUpdatesBackground!");
     checkAccountUpdates();
   }
 
@@ -330,7 +329,6 @@ class _QuadrantState extends State<Quadrant>
     checkAccountTimer = Timer.periodic(
       const Duration(seconds: 10),
       (Timer t) async {
-        debugPrint("checkingAccountUpdates!");
         try {
           await checkAccountUpdates(context);
         } catch (e) {
@@ -341,7 +339,9 @@ class _QuadrantState extends State<Quadrant>
     checkRSSTimer = Timer.periodic(
       const Duration(seconds: 180),
       (Timer t) async {
-        debugPrint("checkingRSSUpdates!");
+        if (GetStorage().read("devMode")) {
+          debugPrint("checkingRSSUpdates!");
+        }
         await checkRSS(context);
       },
     );
@@ -395,7 +395,6 @@ class _QuadrantState extends State<Quadrant>
   }
 
   Future<void> clearUselessBanners() async {
-    debugPrint("Clearing banners");
     if (!areAnyUpdates && !areAnyNews) {
       ScaffoldMessenger.of(context).clearMaterialBanners();
     }
@@ -604,7 +603,6 @@ class _QuadrantState extends State<Quadrant>
         });
       }
     }
-    debugPrint("$accountNotifications notifications");
 
     List<SyncedModpack> syncedModpacks = [];
     List<dynamic> data = json.decode(res.body);
@@ -703,16 +701,16 @@ class _QuadrantState extends State<Quadrant>
             .contains(item.guid!);
         areAnyNews = false;
         String itemTimestamp = item.pubDate!;
-        debugPrint("itemTimestamp");
         var format = DateFormat("E, dd MMM y H:m:s +0000");
         DateTime itemDate = format.parse(itemTimestamp);
         bool cond2 =
             itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
         bool cond3 = GetStorage().read("rssFeeds") == true;
         bool cond4 = GetStorage().read("devMode") == true;
-        debugPrint(
-            "\n\nName: ${item.title}\n\nDate: $itemTimestamp\n\nSeen: $cond1\nIs within last 2 weeks: $cond2\nAre RSS feeds enabled: $cond3\nIs DevMode Enabled:  $cond4\n\n");
-
+        if (GetStorage().read("devMode")) {
+          debugPrint(
+              "\n\nName: ${item.title}\n\nDate: $itemTimestamp\n\nSeen: $cond1\nIs within last 2 weeks: $cond2\nAre RSS feeds enabled: $cond3\nIs DevMode Enabled:  $cond4\n\n");
+        }
         if (((cond1 && cond2) || cond4) &&
             cond3 &&
             categories.contains("Minecraft Modpack Manager")) {
@@ -844,31 +842,9 @@ class _QuadrantState extends State<Quadrant>
     return Scaffold(
       appBar: DraggableAppBar(
         appBar: AppBar(
+          toolbarHeight: 56,
+          primary: true,
           title: Text(AppLocalizations.of(context)!.productName),
-          actions: [
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              child: IconButton(
-                onPressed: currentPage == 3
-                    ? null
-                    : () async {
-                        windowManager.minimize();
-                      },
-                icon: const Icon(Icons.minimize),
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              child: IconButton(
-                onPressed: currentPage == 3
-                    ? null
-                    : () async {
-                        windowManager.hide();
-                      },
-                icon: const Icon(Icons.close),
-              ),
-            ),
-          ],
         ),
       ),
       body: Row(
