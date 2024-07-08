@@ -144,6 +144,9 @@ class _SettingsState extends State<Settings> {
         margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
         child: ListView(
           children: [
+            const SizedBox(
+              height: 4,
+            ),
             DropdownMenu(
               width: 300,
               controller: _controller,
