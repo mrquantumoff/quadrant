@@ -565,7 +565,7 @@ class _QuadrantState extends State<Quadrant>
     const storage = FlutterSecureStorage();
     String? token = await storage.read(key: "quadrant_id_token");
     if (token == null) {
-      // throw Exception(AppLocalizations.of(context)!.noQuadrantID);
+      return;
     }
     http.Response res = await http.get(
         Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/sync/get"),
@@ -616,7 +616,7 @@ class _QuadrantState extends State<Quadrant>
           modLoader: modpack["mod_loader"],
           lastSynced: modpack["last_synced"],
           reload: (value) {},
-          token: token ?? "",
+          token: token,
           username: userInfo["login"],
         ),
       );
