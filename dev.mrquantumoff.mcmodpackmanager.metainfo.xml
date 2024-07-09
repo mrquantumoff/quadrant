@@ -758,22 +758,17 @@
   <screenshots>
     <screenshot type="default">
       <image>
-        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/linux1.png
+        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/1.png
       </image>
     </screenshot>
     <screenshot type="default">
       <image>
-        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/linux2.png
+        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/2.png
       </image>
     </screenshot>
     <screenshot type="default">
       <image>
-        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/linux3.png
-      </image>
-    </screenshot>
-    <screenshot type="default">
-      <image>
-	https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/linux4.png
+        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/3.png
       </image>
     </screenshot>
   </screenshots>
