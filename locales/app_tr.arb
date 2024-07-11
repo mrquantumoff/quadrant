@@ -213,5 +213,10 @@
   "invited": "{name} tarafından Quadrant Sync mod paketi üzerinde ortak çalışmaya davet edildiniz.",
   "acceptQuadrantIDTOS": "Bu işleme devam ederek Quadrant ID Hizmet Şartlarını okuduğunuzu ve kabul ettiğinizi kabul etmiş olursunuz.",
   "quadrantIDToS": "Quadrant ID Hizmet Şartları",
-  "licensedUnder": "{license} kapsamında lisanslandı"
+  "licensedUnder": "{license} kapsamında lisanslandı",
+  "sortBy": "Sıralama ölçütü",
+  "alphabet": "Alfabe",
+  "downloadCount": "İndirme sayısı",
+  "sourceModrinth": "Kaynak (Modrinth)",
+  "sourceCurseforge": "Kaynak (Curseforge)"
 }
