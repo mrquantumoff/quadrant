@@ -218,7 +218,22 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   @override
   void initState() {
     super.initState();
+    isLoading = true;
     // searchModsFunction(forceSearch: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      List<Mod> curseForgeMods =
+          await searchMods("", ModClass.mod, ModSource.curseForge);
+      List<Mod> modRinthMods =
+          await searchMods("", ModClass.mod, ModSource.modRinth);
+      List<Mod> finalMods = curseForgeMods + modRinthMods;
+      finalMods.shuffle();
+      if (isLoading) {
+        setState(() {
+          isLoading = false;
+          searchResults = finalMods;
+        });
+      }
+    });
   }
 
   @override
@@ -230,7 +245,6 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   }
 
   void searchModsFunction({bool forceSearch = false}) async {
-    if (searchFieldController.text.trim() == "" && !forceSearch) return;
     bool isCurseForgeAllowed = await checkCurseForge();
     setIsLoading(true);
 
