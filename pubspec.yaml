@@ -18,7 +18,7 @@ dependencies:
   get_storage_qnt:
     git:
       url: https://github.com/mrquantumoff/get_storage_qnt.git
-      ref: v3.0.0
+      ref: v3.1.0
   flutter_localizations:
     sdk: flutter
   intl: any
