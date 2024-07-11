@@ -17,6 +17,46 @@ import 'package:quadrant/pages/web/web_sources.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:quadrant/pages/web/mod/mod.dart';
 
+class ModMember extends StatelessWidget {
+  const ModMember({super.key, required this.name, required this.url});
+
+  final String name;
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Card(
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(fontSize: 24),
+              ),
+              const SizedBox(
+                height: 12,
+              ),
+              FilledButton.tonalIcon(
+                onPressed: () async {
+                  await launchUrl(Uri.parse(url));
+                },
+                label: Text(AppLocalizations.of(context)!.openInTheWeb),
+                icon: const Icon(
+                  Icons.open_in_browser,
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class InstallModPage extends StatefulWidget {
   const InstallModPage({
     super.key,
@@ -182,6 +222,44 @@ class _InstallModPageState extends State<InstallModPage> {
     } else {
       return "Unknown";
     }
+  }
+
+  Future<List<ModMember>> getMembers() async {
+    debugPrint("Getting members");
+
+    List<ModMember> members = [];
+    if (widget.mod.source == ModSource.curseForge) {
+      debugPrint("Raw members: ${widget.mod.rawMod["authors"]}");
+
+      List<dynamic> rawMembers = widget.mod.rawMod["authors"];
+      for (dynamic author in rawMembers) {
+        members.add(
+          ModMember(
+            name: author["name"],
+            url: author["url"],
+          ),
+        );
+      }
+    } else if (widget.mod.source == ModSource.modRinth) {
+      http.Response membersRes = await http.get(
+        Uri.parse(
+            "https://api.modrinth.com/v2/project/${widget.mod.id}/members"),
+        headers: {
+          "User-Agent": await generateUserAgent(),
+        },
+      );
+      final resJSON = json.decode(membersRes.body);
+      debugPrint(membersRes.body);
+      for (dynamic member in resJSON) {
+        members.add(
+          ModMember(
+            name: member["user"]["username"],
+            url: "https://modrinth.com/user/${member["user"]["id"]}",
+          ),
+        );
+      }
+    }
+    return members;
   }
 
   @override
@@ -381,6 +459,48 @@ class _InstallModPageState extends State<InstallModPage> {
               ),
             ),
           ),
+          Card.outlined(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 180),
+              child: FutureBuilder(
+                future: getMembers(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  } else if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        snapshot.error.toString(),
+                      ),
+                    );
+                  }
+
+                  return Container(
+                    margin: const EdgeInsets.symmetric(vertical: 24),
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      shrinkWrap: true,
+                      children: <Widget>[
+                            Center(
+                              child: Container(
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                child: Text(
+                                  "${AppLocalizations.of(context)!.owners}:",
+                                  style: const TextStyle(fontSize: 24),
+                                ),
+                              ),
+                            ),
+                          ] +
+                          snapshot.data!,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
           Column(
             mainAxisAlignment: MainAxisAlignment.end,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -393,6 +513,9 @@ class _InstallModPageState extends State<InstallModPage> {
                   initialSelection: widget.installFileId == null
                       ? GetStorage().read("lastUsedVersion")
                       : null,
+                  enableSearch: true,
+                  width: 840,
+                  enableFilter: true,
                   onSelected: (val) {
                     setState(() {
                       dependencyVersionFieldController.text = val;
@@ -400,7 +523,6 @@ class _InstallModPageState extends State<InstallModPage> {
                     updateDependencies();
                   },
                   label: Text(AppLocalizations.of(context)!.chooseVersion),
-                  width: 840,
                   enabled: versionFieldEnabled,
                 ),
               ),

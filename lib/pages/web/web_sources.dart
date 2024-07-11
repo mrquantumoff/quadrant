@@ -95,7 +95,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
         "X-API-Key": apiKey,
       });
       Map responseJson = json.decode(response.body);
-      for (var mod in responseJson["data"]) {
+      for (Map mod in responseJson["data"]) {
         try {
           String name = mod["name"];
           String summary = mod["summary"];
@@ -125,6 +125,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               id: modId.toString(),
               modIconUrl: modIconUrl,
               slug: slug,
+              rawMod: mod,
               setAreParentButtonsActive: setAreButtonsEnabled,
               downloadCount: downloadCount,
               source: ModSource.curseForge,
@@ -189,6 +190,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               description: desc,
               name: name,
               id: id,
+              rawMod: mod,
               slug: slug,
               modIconUrl: icon,
               setAreParentButtonsActive: setAreButtonsEnabled,

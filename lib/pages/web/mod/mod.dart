@@ -52,6 +52,7 @@ class Mod extends StatefulWidget {
     required this.modClass,
     required this.slug,
     required this.thumbnailUrl,
+    required this.rawMod,
     this.downloadable = true,
     this.showPreVersion = false,
     this.preVersion = "",
@@ -77,6 +78,7 @@ class Mod extends StatefulWidget {
   final String modpackToUpdate;
   final String versionTarget;
   final List<String> thumbnailUrl;
+  final Map rawMod;
   Function(bool) setAreParentButtonsActive;
 
   @override

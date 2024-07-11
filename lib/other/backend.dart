@@ -358,6 +358,7 @@ Future<Mod> getMod(
         id: resJSON["id"].toString(),
         setAreParentButtonsActive: setAreParentButtonsActive,
         slug: resJSON["slug"].toString(),
+        rawMod: resJSON,
         modClass: modClass,
         source: ModSource.curseForge,
         downloadable: downloadable,
@@ -438,6 +439,7 @@ Future<Mod> getMod(
       description: resJSON["description"],
       modIconUrl: resJSON["icon_url"],
       id: resJSON["id"],
+      rawMod: resJSON,
       downloadCount: resJSON["downloads"],
       setAreParentButtonsActive: setAreParentButtonsActive,
       source: ModSource.modRinth,
@@ -593,6 +595,7 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
       setAreParentButtonsActive: (bool newValue) {},
       downloadCount: downloadCount,
       source: ModSource.curseForge,
+      rawMod: mod,
       modClass: modClass,
       thumbnailUrl: screenshots,
     );
