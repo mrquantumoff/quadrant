@@ -60,12 +60,7 @@ class _LoadingModState extends State<LoadingMod> {
           return Text("${snapshot.error}");
         }
 
-        return const Visibility(
-          maintainState: true,
-          maintainAnimation: true,
-          maintainInteractivity: true,
-          maintainSemantics: true,
-          maintainSize: true,
+        return const Visibility.maintain(
           child:
               //   child: widget.downloadable
               //       ? const Divider(

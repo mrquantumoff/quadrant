@@ -240,6 +240,7 @@ class _NotificationState extends State<Notification> {
                                   read = true;
                                 });
                                 widget.setReload(res.body);
+                                Get.back();
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
