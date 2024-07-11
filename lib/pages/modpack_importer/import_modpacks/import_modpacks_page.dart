@@ -38,6 +38,7 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
   String modLoader = "";
   String version = "";
   String modpack = "";
+  int timestamp = 0;
   double progressValue = 0;
   int otherModCount = 0;
   bool isLoading = false;
@@ -62,7 +63,8 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
     });
   }
 
-  void getMods(String rawFile, {bool switchTabs = false}) async {
+  void getMods(String rawFile,
+      {bool switchTabs = false, int newTimestamp = 0}) async {
     setState(() {
       mods = [];
       modDownloadUrls = [];
@@ -70,6 +72,7 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
       version = "";
       modpack = "";
       modConfig = rawFile;
+      timestamp = newTimestamp;
     });
 
     if (switchTabs) {
@@ -657,9 +660,6 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
                                         if (!modpackSyncFile.existsSync()) {
                                           await modpackSyncFile.create();
                                         }
-                                        int timestamp = DateTime.now()
-                                            .toUtc()
-                                            .millisecondsSinceEpoch;
 
                                         modpackSyncFile.writeAsString(json
                                             .encode(

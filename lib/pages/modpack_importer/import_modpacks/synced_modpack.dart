@@ -33,7 +33,7 @@ class SyncedModpack extends StatefulWidget {
   final int lastSynced;
   final Function(String) reload;
   final String username;
-  Function(String rawFile, {bool switchTabs})? getMods;
+  Function(String rawFile, {bool switchTabs, int newTimestamp})? getMods;
   final String token;
 
   @override
@@ -119,6 +119,7 @@ class _SyncedModpackState extends State<SyncedModpack> {
                               await widget.getMods!(
                                 json.encode(modConfig),
                                 switchTabs: true,
+                                newTimestamp: widget.lastSynced,
                               );
                             }
                           },
