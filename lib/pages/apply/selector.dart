@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
@@ -21,6 +23,10 @@ class _SelectorState extends State<Selector> {
   bool areButtonsActive = true;
 
   void updateOptions() {
+    if (kDebugMode) {
+      debugPrint("Updating modpack options");
+    }
+
     var newItemsString = getModpacks();
     List<DropdownMenuEntry<String>> newItems = [];
     for (var newItemString in newItemsString) {
@@ -34,10 +40,25 @@ class _SelectorState extends State<Selector> {
     });
   }
 
+  Timer? updateOptionsTimer;
+
   @override
   void initState() {
     super.initState();
-    updateOptions();
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) {
+        updateOptions();
+      },
+    );
+    // updateOptionsTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+    //   updateOptions();
+    // });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    updateOptionsTimer?.cancel();
   }
 
   @override
@@ -163,6 +184,7 @@ class _SelectorState extends State<Selector> {
                               areButtonsActive = true;
                             },
                           );
+                          updateOptions();
                         }
                       : () {
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -190,27 +212,27 @@ class _SelectorState extends State<Selector> {
                 ),
               ),
             ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 5),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                child: ElevatedButton(
-                  onPressed: updateOptions,
-                  child: Padding(
-                    padding: const EdgeInsets.all(15),
-                    child: Row(
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.only(right: 5, left: 0),
-                          child: Icon(Icons.refresh),
-                        ),
-                        Text(AppLocalizations.of(context)!.reload)
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            // Container(
+            //   margin: const EdgeInsets.symmetric(horizontal: 5),
+            //   child: Padding(
+            //     padding: const EdgeInsets.symmetric(vertical: 15),
+            //     child: ElevatedButton(
+            //       onPressed: updateOptions,
+            //       child: Padding(
+            //         padding: const EdgeInsets.all(15),
+            //         child: Row(
+            //           children: [
+            //             const Padding(
+            //               padding: EdgeInsets.only(right: 5, left: 0),
+            //               child: Icon(Icons.refresh),
+            //             ),
+            //             Text(AppLocalizations.of(context)!.reload)
+            //           ],
+            //         ),
+            //       ),
+            //     ),
+            //   ),
+            // ),
           ],
         ),
         // Open modpacks folder / Export selected modpack buttons
