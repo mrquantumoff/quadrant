@@ -264,6 +264,13 @@ class _InstallModPageState extends State<InstallModPage> {
 
   @override
   Widget build(BuildContext context) {
+    String license = "?";
+
+    if (widget.mod.source == ModSource.modRinth) {
+      debugPrint(widget.mod.rawMod["license"]);
+      license = widget.mod.rawMod["license"];
+    }
+
     void updateDependencies() async {
       List<Widget> mods = await getDependencies(
           widget.mod, dependencyVersionFieldController.text);
@@ -414,6 +421,18 @@ class _InstallModPageState extends State<InstallModPage> {
                                 ),
                                 child: Text(
                                   getModpackTypeString(),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                margin: const EdgeInsets.only(
+                                  bottom: 8,
+                                ),
+                                child: Text(
+                                  AppLocalizations.of(context)!
+                                      .licensedUnder(license),
                                   style: const TextStyle(
                                     fontSize: 16,
                                   ),

@@ -205,7 +205,10 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     }
 
     widgets.sort((a, b) {
-      return (a.downloadCount > b.downloadCount) ? 0 : 1;
+      int aCount = a.downloadCount;
+      int bCount = b.downloadCount;
+
+      return bCount - aCount;
     });
     return widgets;
   }
