@@ -262,7 +262,7 @@ class _SettingsState extends State<Settings> {
                     ),
                   );
                 },
-                icon: const Icon(Icons.help),
+                icon: const Icon(Icons.info),
                 label: Text(
                   AppLocalizations.of(context)!.details,
                   style: const TextStyle(fontSize: 16),
