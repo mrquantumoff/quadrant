@@ -248,8 +248,9 @@ class _InstallModPageState extends State<InstallModPage> {
           "User-Agent": await generateUserAgent(),
         },
       );
-      final resJSON = json.decode(membersRes.body);
+      final List<dynamic> resJSON = json.decode(membersRes.body);
       debugPrint(membersRes.body);
+      resJSON.sort((a, b) => a["ordering"] - b["ordering"]);
       for (dynamic member in resJSON) {
         members.add(
           ModMember(
@@ -456,7 +457,7 @@ class _InstallModPageState extends State<InstallModPage> {
                               margin: const EdgeInsets.only(right: 12),
                               child: ConstrainedBox(
                                 constraints:
-                                    const BoxConstraints(maxWidth: 540),
+                                    const BoxConstraints(maxWidth: 465),
                                 child: CarouselSlider(
                                   options: CarouselOptions(
                                     pageSnapping: true,
@@ -521,9 +522,16 @@ class _InstallModPageState extends State<InstallModPage> {
             ),
           ),
           Column(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  "${AppLocalizations.of(context)!.download}:",
+                  style: const TextStyle(fontSize: 24),
+                ),
+              ),
               Container(
                 margin: const EdgeInsets.symmetric(vertical: 12),
                 child: DropdownMenu(
