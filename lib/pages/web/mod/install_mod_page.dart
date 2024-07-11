@@ -278,9 +278,7 @@ class _InstallModPageState extends State<InstallModPage> {
     }
 
     String desc = widget.mod.description;
-    String displayName = widget.mod.name.length >= 36
-        ? widget.mod.name.replaceRange(36, null, "...")
-        : widget.mod.name;
+    String displayName = widget.mod.name;
     NumberFormat numberFormatter = NumberFormat.compact(
       explicitSign: false,
       locale: AppLocalizations.of(context)!.localeName,
@@ -477,6 +475,15 @@ class _InstallModPageState extends State<InstallModPage> {
               ),
             ),
           ),
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                "${AppLocalizations.of(context)!.owners}:",
+                style: const TextStyle(fontSize: 24),
+              ),
+            ),
+          ),
           Card.outlined(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 180),
@@ -495,24 +502,14 @@ class _InstallModPageState extends State<InstallModPage> {
                     );
                   }
 
-                  return Container(
-                    margin: const EdgeInsets.symmetric(vertical: 24),
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      shrinkWrap: true,
-                      children: <Widget>[
-                            Center(
-                              child: Container(
-                                margin:
-                                    const EdgeInsets.symmetric(horizontal: 12),
-                                child: Text(
-                                  "${AppLocalizations.of(context)!.owners}:",
-                                  style: const TextStyle(fontSize: 24),
-                                ),
-                              ),
-                            ),
-                          ] +
-                          snapshot.data!,
+                  return Center(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 24),
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        shrinkWrap: true,
+                        children: snapshot.data!,
+                      ),
                     ),
                   );
                 },

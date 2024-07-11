@@ -11,6 +11,13 @@ import 'dart:convert';
 import 'package:quadrant/pages/web/mod/mod.dart';
 import 'package:quadrant/pages/web/modpack_update_page/modpack_update_page.dart/update_modpack.dart';
 
+enum SortBy {
+  name,
+  downloads,
+  sourceModrinth,
+  sourceCurseforge,
+}
+
 class UserAgentClient extends http.BaseClient {
   final String userAgent;
   final http.Client _inner;
@@ -47,7 +54,7 @@ class WebSourcesPage extends StatefulWidget {
 
 class _WebSourcesPageState extends State<WebSourcesPage> {
   TextEditingController searchFieldController = TextEditingController();
-  List<Widget> searchResults = [];
+  List<Mod> searchResults = [];
   bool areButtonsEnabled = true;
   bool isLoading = false;
 
@@ -57,7 +64,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     });
   }
 
-  void setSearchResults(List<Widget> newSearchResults) {
+  void setSearchResults(List<Mod> newSearchResults) {
     setState(() {
       searchResults = newSearchResults;
     });
@@ -374,6 +381,75 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                               ),
                             ),
                             trailing: [
+                              Container(
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                child: PopupMenuButton(
+                                  icon: const Icon(Icons.sort),
+                                  tooltip: AppLocalizations.of(context)!.sortBy,
+                                  onSelected: (value) {
+                                    List<Mod> newResults =
+                                        List.from(searchResults);
+                                    switch (value) {
+                                      case SortBy.downloads:
+                                        newResults.sort(
+                                          (a, b) =>
+                                              b.downloadCount - a.downloadCount,
+                                        );
+                                        break;
+                                      case SortBy.name:
+                                        newResults.sort(
+                                          (a, b) => a.name.compareTo(b.name),
+                                        );
+                                        break;
+                                      case SortBy.sourceModrinth:
+                                        newResults.sort(
+                                          (a, b) => b.source.name
+                                              .compareTo(a.source.name),
+                                        );
+                                        break;
+                                      case SortBy.sourceCurseforge:
+                                        newResults.sort(
+                                          (a, b) => a.source.name
+                                              .compareTo(b.source.name),
+                                        );
+                                        break;
+                                    }
+                                    setState(() {
+                                      searchResults = newResults;
+                                    });
+                                  },
+                                  itemBuilder: (context) {
+                                    return [
+                                      PopupMenuItem(
+                                        value: SortBy.downloads,
+                                        child: Text(
+                                            AppLocalizations.of(context)!
+                                                .downloadCount),
+                                      ),
+                                      PopupMenuItem(
+                                        value: SortBy.name,
+                                        child: Text(
+                                            AppLocalizations.of(context)!.name),
+                                      ),
+                                      PopupMenuItem(
+                                        value: SortBy.sourceModrinth,
+                                        child: Text(
+                                          AppLocalizations.of(context)!
+                                              .sourceModrinth,
+                                        ),
+                                      ),
+                                      PopupMenuItem(
+                                        value: SortBy.sourceCurseforge,
+                                        child: Text(
+                                          AppLocalizations.of(context)!
+                                              .sourceCurseforge,
+                                        ),
+                                      ),
+                                    ];
+                                  },
+                                ),
+                              ),
                               FilledButton.icon(
                                 onPressed: searchModsFunction,
                                 label:

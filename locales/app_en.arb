@@ -220,5 +220,10 @@
   "invited": "You have been invited to collaborate on a Quadrant Sync modpack by {name}",
   "acceptQuadrantIDTOS": "By continuing with this process, you accept the fact that you have read the Quadrant ID Terms of Service and accepted them.",
   "quadrantIDToS": "Quadrant ID Terms of Service",
-  "licensedUnder": "Licensed under {license}"
+  "licensedUnder": "Licensed under {license}",
+  "sortBy": "Sort by",
+  "alphabet": "Alphabet",
+  "downloadCount": "Download count",
+  "sourceModrinth": "Source (Modrinth)",
+  "sourceCurseforge": "Source (Curseforge)"
 }

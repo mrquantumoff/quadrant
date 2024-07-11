@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:quadrant/draggable_appbar.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 
 class Notification extends StatefulWidget {
@@ -272,7 +273,15 @@ class _NotificationsState extends State<Notifications> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: DraggableAppBar(
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.account),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Get.back(),
+          ),
+        ),
+      ),
       body: FutureBuilder(
         future: () async {
           http.Response res = await http.get(
