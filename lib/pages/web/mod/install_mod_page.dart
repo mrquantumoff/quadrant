@@ -229,8 +229,6 @@ class _InstallModPageState extends State<InstallModPage> {
 
     List<ModMember> members = [];
     if (widget.mod.source == ModSource.curseForge) {
-      debugPrint("Raw members: ${widget.mod.rawMod["authors"]}");
-
       List<dynamic> rawMembers = widget.mod.rawMod["authors"];
       for (dynamic author in rawMembers) {
         members.add(
@@ -249,7 +247,6 @@ class _InstallModPageState extends State<InstallModPage> {
         },
       );
       final List<dynamic> resJSON = json.decode(membersRes.body);
-      debugPrint(membersRes.body);
       resJSON.sort((a, b) => a["ordering"] - b["ordering"]);
       for (dynamic member in resJSON) {
         members.add(
@@ -268,7 +265,6 @@ class _InstallModPageState extends State<InstallModPage> {
     String license = "?";
 
     if (widget.mod.source == ModSource.modRinth) {
-      debugPrint(widget.mod.rawMod["license"]);
       license = widget.mod.rawMod["license"];
     }
 
@@ -427,18 +423,20 @@ class _InstallModPageState extends State<InstallModPage> {
                                   ),
                                 ),
                               ),
-                              Container(
-                                margin: const EdgeInsets.only(
-                                  bottom: 8,
-                                ),
-                                child: Text(
-                                  AppLocalizations.of(context)!
-                                      .licensedUnder(license),
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
+                              license == "?"
+                                  ? Container()
+                                  : Container(
+                                      margin: const EdgeInsets.only(
+                                        bottom: 8,
+                                      ),
+                                      child: Text(
+                                        AppLocalizations.of(context)!
+                                            .licensedUnder(license),
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
                             ],
                           ),
                         ],
