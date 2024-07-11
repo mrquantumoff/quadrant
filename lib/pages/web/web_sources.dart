@@ -77,12 +77,12 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   }
 
   Future<List<Mod>> searchMods(
-      String searchText, ModClass modsClass, ModSource modSource) async {
+      String query, ModClass modsClass, ModSource modSource) async {
     List<Mod> widgets = [];
 
     if (modSource == ModSource.curseForge) {
       String rawUri =
-          'https://api.curseforge.com/v1/mods/search?gameId=432&searchFilter=$searchText&sortOrder=desc&classId=${modsClass.value}';
+          'https://api.curseforge.com/v1/mods/search?gameId=432&searchFilter=$query&sortOrder=desc&classId=${modsClass.value}';
 
       if (modsClass == ModClass.shaderPack) {
         rawUri = '$rawUri&categoryId=4547';
@@ -158,7 +158,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
         facets = '$facets, ["categories:${GetStorage().read("lastUsedAPI")}"]';
       }
       String rawUri =
-          'https://api.modrinth.com/v2/search?query=$searchText&limit=50&facets=[$facets]';
+          'https://api.modrinth.com/v2/search?query=$query&limit=50&facets=[$facets]';
       Uri uri = Uri.parse(
         rawUri,
       );
@@ -217,6 +217,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
 
       return bCount - aCount;
     });
+
     return widgets;
   }
 
@@ -415,9 +416,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                                         );
                                         break;
                                     }
-                                    setState(() {
-                                      searchResults = newResults;
-                                    });
+                                    setSearchResults(newResults);
                                   },
                                   itemBuilder: (context) {
                                     return [

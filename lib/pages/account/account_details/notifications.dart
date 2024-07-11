@@ -206,51 +206,53 @@ class _NotificationState extends State<Notification> {
       ];
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Card(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
-          child: Column(
-            children: children +
-                (read || !showRead
-                    ? []
-                    : [
-                        const SizedBox(
-                          height: 12,
-                        ),
-                        FilledButton.icon(
-                          onPressed: () async {
-                            http.Response res = await http.post(
-                              Uri.parse(
-                                  "https://api.mrquantumoff.dev/api/v3/account/notifications/read"),
-                              headers: {
-                                "User-Agent": await generateUserAgent(),
-                                "Authorization": "Bearer ${widget.token}",
-                                "Content-Type": "application/json",
-                              },
-                              body: json.encode({
-                                "notification_id": widget.notificationId,
-                              }),
-                            );
-                            debugPrint(res.body);
-                            if (res.statusCode == 200) {
-                              setState(() {
-                                read = true;
-                              });
-                              widget.setReload(res.body);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(res.body),
-                                ),
+    return Visibility.maintain(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        child: Card(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+            child: Column(
+              children: children +
+                  (read || !showRead
+                      ? []
+                      : [
+                          const SizedBox(
+                            height: 12,
+                          ),
+                          FilledButton.icon(
+                            onPressed: () async {
+                              http.Response res = await http.post(
+                                Uri.parse(
+                                    "https://api.mrquantumoff.dev/api/v3/account/notifications/read"),
+                                headers: {
+                                  "User-Agent": await generateUserAgent(),
+                                  "Authorization": "Bearer ${widget.token}",
+                                  "Content-Type": "application/json",
+                                },
+                                body: json.encode({
+                                  "notification_id": widget.notificationId,
+                                }),
                               );
-                            }
-                          },
-                          label: Text(AppLocalizations.of(context)!.read),
-                          icon: const Icon(Icons.mark_email_read),
-                        )
-                      ]),
+                              debugPrint(res.body);
+                              if (res.statusCode == 200) {
+                                setState(() {
+                                  read = true;
+                                });
+                                widget.setReload(res.body);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(res.body),
+                                  ),
+                                );
+                              }
+                            },
+                            label: Text(AppLocalizations.of(context)!.read),
+                            icon: const Icon(Icons.mark_email_read),
+                          )
+                        ]),
+            ),
           ),
         ),
       ),
