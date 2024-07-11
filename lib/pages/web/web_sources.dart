@@ -57,8 +57,12 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   List<Mod> searchResults = [];
   bool areButtonsEnabled = true;
   bool isLoading = false;
+  bool isSearched = false;
 
   void setIsLoading(bool value) {
+    if (isSearched = false) {
+      isSearched = true;
+    }
     setState(() {
       isLoading = value;
     });
@@ -235,7 +239,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
           await searchMods("", ModClass.mod, ModSource.modRinth);
       List<Mod> finalMods = curseForgeMods + modRinthMods;
       finalMods.shuffle();
-      if (isLoading) {
+      if (!isSearched) {
         setState(() {
           isLoading = false;
           searchResults = finalMods;
