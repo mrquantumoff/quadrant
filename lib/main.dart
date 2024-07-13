@@ -40,6 +40,7 @@ void main(List<String> args) async {
   await GetStorage.init();
   WidgetsFlutterBinding.ensureInitialized();
   dataCollectionInit();
+  initConfig();
   await localNotifier.setup(
     appName: 'quadrant',
     // The parameter shortcutPolicy only works on Windows
@@ -116,46 +117,6 @@ void main(List<String> args) async {
 
   debugPrint(await generateUserAgent());
 
-  if (GetStorage().read("clipIcons") == null) {
-    GetStorage().writeInMemory("clipIcons", true);
-  }
-  if (GetStorage().read("lastRSSfetched") == null) {
-    GetStorage().writeInMemory("lastRSSfetched",
-        DateTime.now().subtract(const Duration(days: 14)).toIso8601String());
-  }
-  if (GetStorage().read("curseforge") == null) {
-    GetStorage().writeInMemory("curseForge", true);
-  }
-  if (GetStorage().read("modrinth") == null) {
-    GetStorage().writeInMemory("modrinth", true);
-  }
-  if (GetStorage().read("devMode") == null) {
-    GetStorage().writeInMemory("devMode", false);
-  }
-  if (GetStorage().read("rssFeeds") == null) {
-    GetStorage().writeInMemory("rssFeeds", true);
-  }
-  if (GetStorage().read("silentNews") == null) {
-    GetStorage().writeInMemory("silentNews", false);
-  }
-  if (GetStorage().read("autoQuadrantSync") == null) {
-    GetStorage().writeInMemory("autoQuadrantSync", true);
-  }
-  if (GetStorage().read("showUnupgradeableMods") == null) {
-    GetStorage().writeInMemory("showUnupgradeableMods", false);
-  }
-  if (GetStorage().read("lastPage") == null) {
-    GetStorage().writeInMemory("lastPage", 0);
-  }
-  if (GetStorage().read("extendedNavigation") == null) {
-    GetStorage().writeInMemory("extendedNavigation", false);
-  }
-  if (GetStorage().read("experimentalFeatures") == null) {
-    GetStorage().writeInMemory("experimentalFeatures", false);
-  }
-  if (GetStorage().read("dontShowUserDataRecommendation") == null) {
-    GetStorage().writeInMemory("dontShowUserDataRecommendation", false);
-  }
   debugPrint("$args");
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     if (args.contains("autostart")) {
