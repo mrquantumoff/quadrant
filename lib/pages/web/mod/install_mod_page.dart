@@ -190,7 +190,6 @@ class _InstallModPageState extends State<InstallModPage> {
   void dispose() {
     super.dispose();
     progressValue = 0;
-    progressValue = 0;
     apiFieldEnabled =
         (widget.modClass == ModClass.mod && widget.installFileId == null);
     versionFieldEnabled = (widget.installFileId == null);
