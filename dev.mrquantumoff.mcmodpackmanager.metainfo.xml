@@ -43,6 +43,16 @@
 
   <releases>
 
+    <release date="2024-08-01" version="24.8.0">
+      <description>
+        <p>Redesigned mod install page</p>
+        <p>Small design changes</p>
+        <p>Added sorting by name and source in search</p>
+        <p>Avoid losing your old mods folder after applying your first modpack</p>
+        <p>Bug fixes</p>
+      </description>
+    </release>
+
     <release date="2024-07-07" version="24.7.3">
       <description>
         <p>Bug fixes</p>
