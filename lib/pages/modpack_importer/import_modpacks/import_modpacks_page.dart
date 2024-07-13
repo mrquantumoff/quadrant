@@ -105,6 +105,20 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
       modLoader = jsonFile["modLoader"];
       version = jsonFile["version"];
       modpack = jsonFile["name"];
+      if ((modpack.contains("\\") ||
+          modpack.contains("?") ||
+          modpack.contains(">") ||
+          modpack.contains("<") ||
+          modpack.contains(":") ||
+          modpack.contains("\"") ||
+          modpack.contains("/") ||
+          modpack.contains("|") ||
+          modpack.contains("*"))) {
+        modpack = modpack.replaceAllMapped(RegExp('[<>:"/\\|?*]'), (_) => "_");
+        Map modpackConfig = json.decode(rawFile);
+        modpackConfig["name"] = modpack;
+        rawFile = json.encode(modpackConfig);
+      }
       List<dynamic> sourceMods = jsonFile["mods"];
       List<Widget> newMods = [];
       try {
