@@ -50,7 +50,7 @@ void main(List<String> args) async {
   // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
 
   await trayManager.setIcon(
-    Platform.isWindows ? 'assets/icons/tray.ico' : 'icons/tray.png',
+    Platform.isWindows ? 'assets/icons/tray.ico' : 'assets/icons/tray.png',
   );
   Menu menu = Menu(
     items: [

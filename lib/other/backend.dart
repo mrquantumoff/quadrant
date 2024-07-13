@@ -4,11 +4,13 @@ import 'dart:math';
 import 'package:clipboard/clipboard.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:io/io.dart' as io;
 import 'package:local_notifier/local_notifier.dart';
 import 'package:quadrant/pages/modpack_importer/import_modpacks/import_modpacks_page.dart';
 import 'package:quadrant/pages/modpack_importer/import_modpacks/synced_modpack.dart';
@@ -52,22 +54,40 @@ List<String> getModpacks({bool hideFree = true}) {
   return modpacks;
 }
 
-bool applyModpack(String? modpack) {
+Future<bool> applyModpack(String? modpack) async {
   var minecraftFolder = getMinecraftFolder();
 
   if (modpack == null) return false;
+  if ((modpack.contains("\\") ||
+      modpack.contains("?") ||
+      modpack.contains(">") ||
+      modpack.contains("<") ||
+      modpack.contains(":") ||
+      modpack.contains("\"") ||
+      modpack.contains("/") ||
+      modpack.contains("|") ||
+      modpack.contains("*"))) {
+    modpack = modpack.replaceAllMapped(RegExp('[<>:"/\\|?*]'), (_) => "_");
+  }
 
   Directory modpackFolder =
       Directory("${minecraftFolder.path}/modpacks/$modpack");
-  if (!modpackFolder.existsSync()) return false;
+  if (!await modpackFolder.exists()) return false;
 
   Directory modsFolder = Directory("${minecraftFolder.path}/mods");
-  Link link = Link(modsFolder.path);
 
-  if (modsFolder.existsSync() &&
-      modsFolder.resolveSymbolicLinksSync() != modsFolder.path) {
+  String modsPath = modsFolder.path.replaceAll("\\", "/");
+
+  if (await modsFolder.exists() &&
+      (await modsFolder.resolveSymbolicLinks()).replaceAll("\\", "/") !=
+          modsPath) {
+    Link link = Link(modsFolder.path);
+
     try {
-      link.updateSync(
+      if (kDebugMode) {
+        debugPrint("Updating mods folder");
+      }
+      await link.update(
         modpackFolder.path,
       );
       return true;
@@ -76,10 +96,20 @@ bool applyModpack(String? modpack) {
       return false;
     }
   } else if (modsFolder.existsSync()) {
-    modsFolder.deleteSync(recursive: true);
+    Link link = Link(modsFolder.path);
 
     try {
-      link.createSync(
+      if (kDebugMode) {
+        debugPrint("Replacing mods folder");
+      }
+
+      Directory oldModsFolder = Directory(
+          "${minecraftFolder.path}/modpacks/mods-${DateTime.now().millisecondsSinceEpoch}");
+
+      await io.copyPath(modsFolder.path, oldModsFolder.path);
+      await modsFolder.delete(recursive: true);
+
+      await link.create(
         modpackFolder.path,
         recursive: true,
       );
@@ -89,8 +119,13 @@ bool applyModpack(String? modpack) {
       return false;
     }
   } else {
+    Link link = Link(modsFolder.path);
+
+    if (kDebugMode) {
+      debugPrint("Creating mods folder");
+    }
     try {
-      link.createSync(
+      await link.create(
         modpackFolder.path,
         recursive: true,
       );
@@ -102,12 +137,12 @@ bool applyModpack(String? modpack) {
   }
 }
 
-bool clearModpack() {
+Future<bool> clearModpack() async {
   Directory minecraftFolder = getMinecraftFolder();
   Directory freeModpacks = Directory("${minecraftFolder.path}/modpacks/free");
   try {
-    freeModpacks.createSync(recursive: true);
-    return applyModpack("free");
+    await freeModpacks.create(recursive: true);
+    return await applyModpack("free");
   } catch (e) {
     return false;
   }
@@ -461,6 +496,22 @@ Future<void> syncModpack(
     BuildContext context, String modConfigRaw, bool overwrite) async {
   Map modConfig = json.decode(modConfigRaw);
   String selectedModpack = modConfig["name"];
+
+  if ((selectedModpack.contains("\\") ||
+      selectedModpack.contains("?") ||
+      selectedModpack.contains(">") ||
+      selectedModpack.contains("<") ||
+      selectedModpack.contains(":") ||
+      selectedModpack.contains("\"") ||
+      selectedModpack.contains("/") ||
+      selectedModpack.contains("|") ||
+      selectedModpack.contains("*"))) {
+    selectedModpack = selectedModpack.replaceAllMapped(
+      RegExp('[<>:"/\\|?*]'),
+      (_) => "_",
+    );
+  }
+
   File selectedModpackSyncFile = File(
     "${getMinecraftFolder().path}/modpacks/$selectedModpack/quadrantSync.json",
   );

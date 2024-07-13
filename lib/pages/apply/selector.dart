@@ -91,13 +91,13 @@ class _SelectorState extends State<Selector> {
               padding: const EdgeInsets.symmetric(vertical: 15),
               child: FilledButton(
                 onPressed: areButtonsActive
-                    ? () {
+                    ? () async {
                         setState(
                           () {
                             areButtonsActive = false;
                           },
                         );
-                        bool res = applyModpack(selectedModpack);
+                        bool res = await applyModpack(selectedModpack);
                         if (res) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -152,13 +152,13 @@ class _SelectorState extends State<Selector> {
               padding: const EdgeInsets.symmetric(vertical: 15),
               child: FilledButton.tonal(
                 onPressed: areButtonsActive
-                    ? () {
+                    ? () async {
                         setState(
                           () {
                             areButtonsActive = false;
                           },
                         );
-                        bool res = clearModpack();
+                        bool res = await clearModpack();
                         if (res) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
