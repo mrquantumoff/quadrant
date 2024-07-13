@@ -239,7 +239,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
           await searchMods("", ModClass.mod, ModSource.modRinth);
       List<Mod> finalMods = curseForgeMods + modRinthMods;
       finalMods.shuffle();
-      if (!isSearched) {
+      if (!isSearched && context.mounted) {
         setState(() {
           isLoading = false;
           searchResults = finalMods;
@@ -250,10 +250,11 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
 
   @override
   void dispose() {
+    areButtonsEnabled = false;
+    searchFieldController.dispose();
+    searchResults = [];
+    isSearched = true;
     super.dispose();
-    // areButtonsEnabled = false;
-    // searchFieldController.dispose();
-    // searchResults = [];
   }
 
   void searchModsFunction({bool forceSearch = false}) async {

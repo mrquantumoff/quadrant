@@ -188,7 +188,6 @@ class _InstallModPageState extends State<InstallModPage> {
 
   @override
   void dispose() {
-    super.dispose();
     progressValue = 0;
     apiFieldEnabled =
         (widget.modClass == ModClass.mod && widget.installFileId == null);
@@ -201,6 +200,7 @@ class _InstallModPageState extends State<InstallModPage> {
         ? GetStorage().read("lastUsedVersion") ?? ""
         : "";
     areButttonsActive = false;
+    super.dispose();
   }
 
   void setProgressValue(double newValue) {
