@@ -717,6 +717,7 @@ void dataCollectionInit() async {
       collectUserDataByDefault = true;
     }
     GetStorage().write("collectUserData", collectUserDataByDefault);
+    dataCollectionInit();
   }
 }
 
@@ -826,7 +827,7 @@ void collectUserInfo({bool saveToFile = false}) async {
 
     if (GetStorage().read("collectUserData") == true &&
         GetStorage().read("devMode") == false) {
-      var result = await http.post(
+      await http.post(
         Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/usage/submit"),
         headers: {
           "User-Agent": await generateUserAgent(),
@@ -834,10 +835,6 @@ void collectUserInfo({bool saveToFile = false}) async {
         },
         body: postBody,
       );
-      if (result.body.contains("Updated") || result.body.contains("Created")) {
-        GetStorage().write("lastDataSent", DateTime.now().toUtc().toString());
-      }
-      // debugPrint(result.body);
     }
     if (saveToFile) {
       var filePickerResult =
