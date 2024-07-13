@@ -125,7 +125,7 @@ class _InstallModPageState extends State<InstallModPage> {
     });
   }
 
-  Future<List<Widget>> getDependencies(Mod mod, String modVersion) async {
+  Future<List<Mod>> getDependencies(Mod mod, String modVersion) async {
     List<Mod> mods = [];
 
     debugPrint("Getting dependencies");
@@ -190,7 +190,17 @@ class _InstallModPageState extends State<InstallModPage> {
   void dispose() {
     super.dispose();
     progressValue = 0;
-
+    progressValue = 0;
+    apiFieldEnabled =
+        (widget.modClass == ModClass.mod && widget.installFileId == null);
+    versionFieldEnabled = (widget.installFileId == null);
+    versionFieldController.dispose();
+    apiFieldController.dispose();
+    dependencyVersionFieldController.dispose();
+    modpackFieldController.dispose();
+    lastVersion = widget.installFileId == null
+        ? GetStorage().read("lastUsedVersion") ?? ""
+        : "";
     areButttonsActive = false;
   }
 
@@ -265,11 +275,16 @@ class _InstallModPageState extends State<InstallModPage> {
     String license = "?";
 
     if (widget.mod.source == ModSource.modRinth) {
-      license = widget.mod.rawMod["license"];
+      debugPrint("${widget.mod.rawMod["license"]}");
+      try {
+        license = widget.mod.rawMod["license"]["id"];
+      } catch (e) {
+        license = widget.mod.rawMod["license"];
+      }
     }
 
     void updateDependencies() async {
-      List<Widget> mods = await getDependencies(
+      List<Mod> mods = await getDependencies(
           widget.mod, dependencyVersionFieldController.text);
       setState(() {
         dependencies = mods;
