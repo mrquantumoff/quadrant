@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:quadrant/pages/web/mod/install_mod_page.dart';
+import 'package:quadrant/pages/web/web_sources.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 enum ModSource { curseForge, modRinth, online }
@@ -48,6 +49,7 @@ class Mod extends StatefulWidget {
     required this.id,
     required this.downloadCount,
     required this.setAreParentButtonsActive,
+    required this.getAreParentButtonsActive,
     required this.source,
     required this.modClass,
     required this.slug,
@@ -60,6 +62,7 @@ class Mod extends StatefulWidget {
     this.modpackToUpdate = "",
     this.newVersionUrl = "",
     this.deletable = false,
+    this.autoInstall = false,
   });
 
   final String name;
@@ -73,6 +76,7 @@ class Mod extends StatefulWidget {
   final bool downloadable;
   final bool showPreVersion;
   final bool deletable;
+  final bool autoInstall;
   final String preVersion;
   final String newVersionUrl;
   final String modpackToUpdate;
@@ -80,6 +84,382 @@ class Mod extends StatefulWidget {
   final List<String> thumbnailUrl;
   final Map rawMod;
   Function(bool) setAreParentButtonsActive;
+  bool Function() getAreParentButtonsActive;
+
+  void install(
+    BuildContext context,
+    String version,
+    String api,
+    String modpack,
+    Function(bool) setAreButtonsActive,
+    String apiKey, {
+    int? installFileId,
+    Function(double)? setProgressValue,
+  }) async {
+    setAreButtonsActive(false);
+
+    GetStorage().writeInMemory("lastUsedVersion", version);
+    GetStorage().writeInMemory("lastUsedAPI", api);
+    GetStorage().writeInMemory("lastUsedModpack", modpack);
+    if (source == ModSource.curseForge) {
+      GetStorage().write(
+          "curseForgeUsage", (GetStorage().read("curseForgeUsage") ?? 0) + 1);
+    } else {
+      GetStorage().write(
+          "modrinthUsage", (GetStorage().read("modrinthUsage") ?? 0) + 1);
+    }
+    bool isNormalNoVersion = (version.trim() == "" ||
+        ((api.trim() == "" || modpack.trim() == "") &&
+            modClass == ModClass.mod));
+    if ((isNormalNoVersion && installFileId == null) ||
+        (modpack.trim() == "" &&
+            installFileId != null &&
+            modClass == ModClass.mod)) {
+      setAreButtonsActive(true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.noVersion,
+          ),
+        ),
+      );
+      return;
+    }
+    debugPrint(api);
+    List<ModFile> fileMod = [];
+
+    if (source == ModSource.curseForge) {
+      Uri getFilesUri = Uri.parse(
+          "https://api.curseforge.com/v1/mods/$id/files?gameVersion=${version.trim()}&sortOrder=desc&modLoaderType=${api.trim()}");
+      if ((modClass == ModClass.resourcePack ||
+              modClass == ModClass.shaderPack) &&
+          installFileId == null) {
+        getFilesUri = Uri.parse(
+            "https://api.curseforge.com/v1/mods/$id/files?gameVersion=${version.trim()}&sortOrder=desc");
+      } else if (installFileId != null) {
+        getFilesUri = Uri.parse(
+            "https://api.curseforge.com/v1/mods/$id/files/$installFileId");
+      }
+      debugPrint("Installing mods url: $getFilesUri");
+      http.Response response = await http.get(getFilesUri, headers: {
+        "User-Agent": await generateUserAgent(),
+        "X-API-Key": apiKey,
+      });
+      Map responseJson = json.decode(response.body);
+      if (installFileId == null) {
+        if ((responseJson["data"] as List<dynamic>) == []) {
+          setAreButtonsActive(true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                AppLocalizations.of(context)!.noVersion,
+              ),
+            ),
+          );
+        }
+        for (var mod in responseJson["data"]) {
+          try {
+            DateTime fileDate = DateTime.parse(mod["fileDate"]);
+            List<dynamic> gameVersions = mod["gameVersions"];
+            String fileName = mod["fileName"];
+            String downloadUrl = mod["downloadUrl"];
+
+            fileMod.add(
+              ModFile(
+                fileDate: fileDate,
+                gameVersions: gameVersions,
+                fileName: fileName,
+                downloadUrl: downloadUrl,
+              ),
+            );
+          } catch (e) {
+            debugPrint("No download url found");
+          }
+        }
+
+        fileMod.sort(
+          (a, b) => b.fileDate!.compareTo(a.fileDate!),
+        );
+        debugPrint(fileMod.toString());
+        if (fileMod.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.noVersion),
+            ),
+          );
+          setAreButtonsActive(true);
+
+          return;
+        }
+      }
+      late ModFile currentModFile;
+      if (installFileId != null) {
+        currentModFile = ModFile(
+          downloadUrl: responseJson["data"]["downloadUrl"],
+          fileName: responseJson["data"]["fileName"],
+          gameVersions: [],
+          fileDate: DateTime.parse(
+            responseJson["data"]["fileDate"],
+          ),
+        );
+      }
+
+      if (installFileId == null) {
+        currentModFile = fileMod[0];
+      }
+      String modDownloadUrl = currentModFile.downloadUrl;
+
+      var request = http.Request(
+        "GET",
+        Uri.parse(modDownloadUrl),
+      );
+      final http.StreamedResponse streamedResponse =
+          await UserAgentClient(await generateUserAgent(), http.Client())
+              .send(request);
+      final contentLength = streamedResponse.contentLength;
+
+      File modDestFile = File(
+          "${getMinecraftFolder().path}/modpacks/$modpack/${currentModFile.fileName}");
+      if (modClass == ModClass.resourcePack) {
+        modDestFile = File(
+            "${getMinecraftFolder().path}/resourcepacks/${currentModFile.fileName}");
+      } else if (modClass == ModClass.shaderPack) {
+        modDestFile = File(
+            "${getMinecraftFolder().path}/shaderpacks/${currentModFile.fileName}");
+      }
+      if (await modDestFile.exists()) {
+        modDestFile.delete();
+      }
+      await modDestFile.create(recursive: true);
+      debugPrint(modDestFile.path);
+      List<int> bytes = [];
+      streamedResponse.stream.listen(
+        (List<int> newBytes) {
+          bytes.addAll(newBytes);
+          final downloadedLength = bytes.length;
+          if (setProgressValue != null) {
+            setProgressValue(downloadedLength / (contentLength ?? 1));
+          }
+        },
+        onDone: () async {
+          await modDestFile.writeAsBytes(bytes, flush: true);
+          if (setProgressValue != null) {
+            setProgressValue(1);
+          }
+          debugPrint("Downloaded");
+          setAreButtonsActive(true);
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.downloadSuccess),
+            ),
+          );
+          File modpackConfigFile = File(
+              "${getMinecraftFolder().path}/modpacks/$modpack/modConfig.json");
+
+          debugPrint(modpackConfigFile.path);
+          if (!modpackConfigFile.existsSync()) {
+            return;
+          }
+          String modpackConfigRaw = await modpackConfigFile.readAsString();
+          Map modpackConfig = json.decode(modpackConfigRaw);
+          List<dynamic> modsIndex = modpackConfig["mods"] ?? [];
+          bool doesExist = false;
+          for (Map<dynamic, dynamic> modItem in modsIndex) {
+            if (modItem["id"] == id) {
+              doesExist = true;
+              return;
+            }
+          }
+          if (doesExist) {
+            return;
+          }
+          modsIndex.add(
+            {
+              "id": id,
+              "source": source.toString(),
+              "downloadUrl": currentModFile.downloadUrl,
+            },
+          );
+          Map newModpackConfig = {
+            "modLoader": modpackConfig["modLoader"],
+            "version": modpackConfig["version"],
+            "mods": modsIndex,
+            "name": modpackConfig["name"]
+          };
+          String finalModpackConfig = json.encode(newModpackConfig);
+          debugPrint(finalModpackConfig);
+
+          await modpackConfigFile.writeAsString(finalModpackConfig);
+          File modpackSyncFile = File(
+              "${getMinecraftFolder().path}/modpacks/$modpack/quadrantSync.json");
+          if (GetStorage().read("autoQuadrantSync") == true &&
+              modpackSyncFile.existsSync()) {
+            await syncModpack(context, finalModpackConfig, false);
+          }
+        },
+        onError: (e) {
+          debugPrint(e);
+        },
+        cancelOnError: true,
+      );
+    } else {
+      Uri getFilesUri = Uri.parse(
+          "https://api.modrinth.com/v2/project/$id/version?loaders=[\"${api.toLowerCase()}\"]&game_versions=[\"$version\"]");
+      if (modClass == ModClass.resourcePack ||
+          modClass == ModClass.shaderPack) {
+        getFilesUri = Uri.parse(
+            "https://api.modrinth.com/v2/project/$id/version?game_versions=[\"$version\"]");
+      }
+      debugPrint("Installing mods url: $getFilesUri");
+      setAreButtonsActive(false);
+      http.Response response = await http.get(getFilesUri, headers: {
+        "User-Agent": await generateUserAgent(),
+      });
+      dynamic responseJson = json.decode(response.body);
+      debugPrint(responseJson.toString());
+      List<ModFile> fileMod = [];
+
+      debugPrint(responseJson.toString());
+      try {
+        if (responseJson[0]["files"] == null) {}
+      } catch (e) {
+        debugPrint("Files are null");
+        setAreButtonsActive(true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.noVersion,
+            ),
+          ),
+        );
+
+        return;
+      }
+      for (var mod in (responseJson[0]["files"])) {
+        // bool primary = mod["primary"];
+        // if (!primary) {
+        //   continue;
+        // }
+        String fileName = mod["filename"];
+        String downloadUrl = mod["url"];
+
+        fileMod.add(
+          ModFile(
+            fileDate: null,
+            gameVersions: [],
+            fileName: fileName,
+            downloadUrl: downloadUrl,
+          ),
+        );
+      }
+
+      debugPrint(fileMod.toString());
+      if (fileMod.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.noVersion),
+          ),
+        );
+        setAreButtonsActive(true);
+
+        return;
+      }
+      var currentModFile = fileMod[0];
+      var request = http.Request(
+        "GET",
+        Uri.parse(currentModFile.downloadUrl),
+      );
+      final http.StreamedResponse streamedResponse =
+          await UserAgentClient(await generateUserAgent(), http.Client())
+              .send(request);
+      final contentLength = streamedResponse.contentLength;
+
+      File modDestFile = File(
+          "${getMinecraftFolder().path}/modpacks/$modpack/${currentModFile.fileName}");
+      if (modClass == ModClass.resourcePack) {
+        modDestFile = File(
+            "${getMinecraftFolder().path}/resourcepacks/${currentModFile.fileName}");
+      } else if (modClass == ModClass.shaderPack) {
+        modDestFile = File(
+            "${getMinecraftFolder().path}/shaderpacks/${currentModFile.fileName}");
+      }
+      if (await modDestFile.exists()) {
+        modDestFile.delete();
+      }
+      await modDestFile.create(recursive: true);
+      debugPrint(modDestFile.path);
+      List<int> bytes = [];
+      streamedResponse.stream.listen(
+        (List<int> newBytes) {
+          bytes.addAll(newBytes);
+          final downloadedLength = bytes.length;
+          if (setProgressValue != null) {
+            setProgressValue(downloadedLength / (contentLength ?? 1));
+          }
+        },
+        onDone: () async {
+          await modDestFile.writeAsBytes(bytes, flush: true);
+          if (setProgressValue != null) {
+            setProgressValue(1);
+          }
+          debugPrint("Downloaded");
+          setAreButtonsActive(true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.downloadSuccess),
+            ),
+          );
+          File modpackConfigFile = File(
+              "${getMinecraftFolder().path}/modpacks/$modpack/modConfig.json");
+          debugPrint(modpackConfigFile.path);
+          if (!modpackConfigFile.existsSync()) {
+            return;
+          }
+          String modpackConfigRaw = await modpackConfigFile.readAsString();
+          Map modpackConfig = json.decode(modpackConfigRaw);
+          List<dynamic> modsIndex = modpackConfig["mods"] ?? [];
+          bool doesExist = false;
+          for (Map<dynamic, dynamic> modItem in modsIndex) {
+            if ((modItem["id"] ?? "") == id) {
+              doesExist = true;
+              return;
+            }
+          }
+          if (doesExist) {
+            return;
+          }
+          modsIndex.add(
+            {
+              "id": id,
+              "source": source.toString(),
+              "downloadUrl": currentModFile.downloadUrl,
+            },
+          );
+          Map newModpackConfig = {
+            "modLoader": modpackConfig["modLoader"],
+            "version": modpackConfig["version"],
+            "mods": modsIndex,
+            "name": modpackConfig["name"],
+          };
+          String finalModpackConfig = json.encode(newModpackConfig);
+          debugPrint(finalModpackConfig);
+
+          await modpackConfigFile.writeAsString(finalModpackConfig);
+          File modpackSyncFile = File(
+              "${getMinecraftFolder().path}/modpacks/$modpack/quadrantSync.json");
+          if (GetStorage().read("autoQuadrantSync") == true &&
+              modpackSyncFile.existsSync()) {
+            await syncModpack(context, finalModpackConfig, false);
+          }
+        },
+        onError: (e) {
+          debugPrint(e);
+        },
+        cancelOnError: true,
+      );
+    }
+  }
 
   @override
   State<Mod> createState() => _ModState();
@@ -162,6 +542,13 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
 
   final String apiKey =
       const String.fromEnvironment("ETERNAL_API_KEY").replaceAll("\"", "");
+  double progressValue = 0;
+
+  void setProgressValue(double newValue) {
+    setState(() {
+      progressValue = newValue;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -192,8 +579,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
       return Container();
     }
 
-    return Visibility(
-      maintainState: widget.showPreVersion,
+    return Visibility.maintain(
       child: OpenContainer(
         closedBuilder: (context, action) {
           return Card.outlined(
@@ -299,7 +685,9 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                     Container(
                       margin:
                           const EdgeInsets.only(top: 8, bottom: 8, right: 8),
-                      child: widget.downloadable
+                      child: widget.downloadable &&
+                              !widget.autoInstall &&
+                              widget.getAreParentButtonsActive()
                           ? FilledButton.icon(
                               onPressed: () {
                                 if (GetStorage().read("experimentalFeatures")) {
@@ -315,6 +703,33 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                                     ),
                                   );
                                 }
+                              },
+                              icon: const Icon(Icons.file_download),
+                              label:
+                                  Text(AppLocalizations.of(context)!.download),
+                            )
+                          : null,
+                    ),
+                    Container(
+                      margin:
+                          const EdgeInsets.only(top: 8, bottom: 8, right: 8),
+                      child: widget.downloadable && widget.autoInstall
+                          ? FilledButton.icon(
+                              onPressed: () async {
+                                String version =
+                                    GetStorage().read("lastUsedVersion");
+                                String api = GetStorage().read("lastUsedAPI");
+                                String modpack =
+                                    GetStorage().read("lastUsedModpack");
+                                widget.install(
+                                  context,
+                                  version,
+                                  api,
+                                  modpack,
+                                  widget.setAreParentButtonsActive,
+                                  apiKey,
+                                  setProgressValue: setProgressValue,
+                                );
                               },
                               icon: const Icon(Icons.file_download),
                               label:
@@ -514,6 +929,11 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                     ],
                   ),
                 ),
+                widget.autoInstall
+                    ? LinearProgressIndicator(
+                        value: progressValue,
+                      )
+                    : Container(),
               ],
             ),
           );

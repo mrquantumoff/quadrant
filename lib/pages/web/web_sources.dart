@@ -7,6 +7,7 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:quadrant/draggable_appbar.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/web/filter_mods.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
@@ -83,6 +84,10 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     });
   }
 
+  bool getAreButtonsActive() {
+    return areButtonsEnabled;
+  }
+
   Future<List<Mod>> searchMods(
       String query, ModClass modsClass, ModSource modSource) async {
     List<Mod> widgets = [];
@@ -141,9 +146,11 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               slug: slug,
               rawMod: mod,
               setAreParentButtonsActive: setAreButtonsEnabled,
+              getAreParentButtonsActive: getAreButtonsActive,
               downloadCount: downloadCount,
               source: ModSource.curseForge,
               modClass: modsClass,
+              autoInstall: widget.filterOn,
               thumbnailUrl: screenshots,
             ),
           );
@@ -209,9 +216,11 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               slug: slug,
               modIconUrl: icon,
               setAreParentButtonsActive: setAreButtonsEnabled,
+              getAreParentButtonsActive: getAreButtonsActive,
               downloadCount: downloadCount,
               source: ModSource.modRinth,
               modClass: modsClass,
+              autoInstall: widget.filterOn,
               thumbnailUrl: screenshots,
             ),
           );
@@ -347,7 +356,12 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: widget.filterOn
-          ? null
+          ? DraggableAppBar(
+              appBar: AppBar(
+                leading: Container(),
+                title: Text(AppLocalizations.of(context)!.web),
+              ),
+            )
           : AppBar(
               title: Text(AppLocalizations.of(context)!.web),
             ),
@@ -366,7 +380,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                 children: [
                   Row(
                     children: [
-                      widget.filterOn
+                      widget.filterOn && areButtonsEnabled
                           ? Container(
                               margin: const EdgeInsets.only(left: 15),
                               child: IconButton(

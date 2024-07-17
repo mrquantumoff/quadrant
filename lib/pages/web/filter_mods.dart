@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
+import 'package:quadrant/draggable_appbar.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/web/web_sources.dart';
 
@@ -66,14 +67,16 @@ class _FilterModsState extends State<FilterMods> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Get.back();
-          },
+      appBar: DraggableAppBar(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Get.back();
+            },
+          ),
+          title: Text(AppLocalizations.of(context)!.search),
         ),
-        title: Text(AppLocalizations.of(context)!.search),
       ),
       body: Center(
         child: Column(

@@ -392,6 +392,9 @@ Future<Mod> getMod(
         thumbnailUrl: screenshots,
         id: resJSON["id"].toString(),
         setAreParentButtonsActive: setAreParentButtonsActive,
+        getAreParentButtonsActive: () {
+          return true;
+        },
         slug: resJSON["slug"].toString(),
         rawMod: resJSON,
         modClass: modClass,
@@ -481,6 +484,9 @@ Future<Mod> getMod(
       slug: resJSON["slug"],
       modClass: modClass,
       downloadable: downloadable,
+      getAreParentButtonsActive: () {
+        return true;
+      },
       preVersion: preVersion,
       showPreVersion: versionShow,
       versionTarget: versionTarget,
@@ -649,6 +655,9 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
       rawMod: mod,
       modClass: modClass,
       thumbnailUrl: screenshots,
+      getAreParentButtonsActive: () {
+        return true;
+      },
     );
     Uri uri = Uri.parse(
       'https://api.modrinth.com/v2/tag/game_version',
