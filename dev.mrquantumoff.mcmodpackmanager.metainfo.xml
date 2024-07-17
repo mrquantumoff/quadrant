@@ -47,6 +47,8 @@
         <p>Redesigned mod install page</p>
         <p>Small design changes</p>
         <p>Added sorting by name and source in search</p>
+        <p>Added filtering your search by the currently applied modpack.</p>
+        <p>Added automatically installing mods, when filters are on (experimental)</p>
         <p>Avoid losing your old mods folder after applying your first modpack</p>
         <p>Bug fixes</p>
       </description>
