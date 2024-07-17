@@ -50,7 +50,7 @@ void main(List<String> args) async {
   // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
 
   await trayManager.setIcon(
-    Platform.isWindows ? 'assets/icons/tray.ico' : 'icons/tray.png',
+    Platform.isWindows ? 'assets/icons/tray.ico' : 'assets/icons/tray.png',
   );
   Menu menu = Menu(
     items: [
@@ -687,6 +687,7 @@ class _QuadrantState extends State<Quadrant>
     try {
       http.Response res =
           await http.get(Uri.parse("https://api.mrquantumoff.dev/blog.rss"));
+
       if (res.statusCode != 200) return;
       String rawFeed = res.body;
 
@@ -704,7 +705,7 @@ class _QuadrantState extends State<Quadrant>
         areAnyNews = false;
         String itemTimestamp = item.pubDate!;
         debugPrint("itemTimestamp");
-        var format = DateFormat("E, dd MMM y H:m:s +0000");
+        var format = DateFormat("E, dd MMM y H:m:s");
         DateTime itemDate = format.parse(itemTimestamp);
         bool cond2 =
             itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
@@ -715,7 +716,8 @@ class _QuadrantState extends State<Quadrant>
 
         if (((cond1 && cond2) || cond4) &&
             cond3 &&
-            categories.contains("Minecraft Modpack Manager")) {
+            (categories.contains("Quadrant") ||
+                categories.contains("Minecraft Modpack Manager"))) {
           var newSeenItems =
               (GetStorage().read<List<dynamic>>("seenItems") ?? []);
           newSeenItems.add(item.guid!);
