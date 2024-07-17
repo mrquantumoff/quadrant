@@ -37,6 +37,10 @@ Section
     CreateShortcut "$SMPROGRAMS\Quadrant.lnk" "$INSTDIR\Release\quadrant.exe"
     CreateShortcut "$SMPROGRAMS\Uninstall Quadrant.lnk" "$INSTDIR\uninstall.exe"
 
+    # Create a shortcut in the Startup folder with arguments
+    CreateShortcut "$SMSTARTUP\Quadrant (not from microsoft store).lnk" "$INSTDIR\Release\quadrant.exe" "autostart"
+
+
     File /r "build\windows\x64\runner\Release"
     File "assets\icons\logo.ico"
 
@@ -66,6 +70,8 @@ Section "uninstall"
     # second, remove the link from the start menu
     Delete "$SMPROGRAMS\Quadrant.lnk"
     Delete "$SMPROGRAMS\Uninstall Quadrant.lnk"
+    # Remove the shortcut from the Startup folder
+    Delete "$SMSTARTUP\Quadrant (not from microsoft store).lnk"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "Publisher"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "UninstallString"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "URLInfoAbout"
@@ -74,6 +80,7 @@ Section "uninstall"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "DisplayIcon"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "NoModify"
     DeleteRegValue HKLM "$APP_REGISTRY_PATH" "NoRepair"
+    DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "Quadrant (Manual install)"
     DeleteRegKey HKLM "$APP_REGISTRY_PATH"
     Delete "$INSTDIR\*"
     RMDir /r "$INSTDIR"

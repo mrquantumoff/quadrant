@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/other/restart_app.dart';
 import 'package:quadrant/pages/settings/send_feedback/send_feedpack.dart';
@@ -144,6 +145,9 @@ class _SettingsState extends State<Settings> {
         margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
         child: ListView(
           children: [
+            const SizedBox(
+              height: 4,
+            ),
             DropdownMenu(
               width: 300,
               controller: _controller,
@@ -236,6 +240,32 @@ class _SettingsState extends State<Settings> {
                   },
                   label: Text(AppLocalizations.of(context)!.quadrantIDToS),
                   icon: const Icon(Icons.open_in_browser),
+                ),
+              ),
+            ),
+            Container(
+              alignment: AlignmentDirectional.topStart,
+              margin: const EdgeInsets.only(top: 12),
+              child: TextButton.icon(
+                onPressed: () async {
+                  var package = await PackageInfo.fromPlatform();
+                  showAboutDialog(
+                    context: context,
+                    applicationLegalese:
+                        "Copyright (c) 2022-2024 qnt/MrQuantumOFF (Demir Yerli), licensed to you under MPL-2.0",
+                    applicationName: AppLocalizations.of(context)!.productName,
+                    applicationVersion:
+                        "${package.appName} v${package.version}+${package.buildNumber}",
+                    applicationIcon: Image.asset(
+                      "assets/icons/logo256.png",
+                      width: 64,
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.info),
+                label: Text(
+                  AppLocalizations.of(context)!.details,
+                  style: const TextStyle(fontSize: 16),
                 ),
               ),
             ),

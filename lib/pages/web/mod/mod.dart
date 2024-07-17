@@ -51,6 +51,8 @@ class Mod extends StatefulWidget {
     required this.source,
     required this.modClass,
     required this.slug,
+    required this.thumbnailUrl,
+    required this.rawMod,
     this.downloadable = true,
     this.showPreVersion = false,
     this.preVersion = "",
@@ -75,6 +77,8 @@ class Mod extends StatefulWidget {
   final String newVersionUrl;
   final String modpackToUpdate;
   final String versionTarget;
+  final List<String> thumbnailUrl;
+  final Map rawMod;
   Function(bool) setAreParentButtonsActive;
 
   @override
@@ -192,7 +196,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
       maintainState: widget.showPreVersion,
       child: OpenContainer(
         closedBuilder: (context, action) {
-          return Card(
+          return Card.outlined(
             // elevation: 12,
             clipBehavior: Clip.antiAlias,
             margin: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),

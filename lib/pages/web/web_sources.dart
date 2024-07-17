@@ -11,6 +11,13 @@ import 'dart:convert';
 import 'package:quadrant/pages/web/mod/mod.dart';
 import 'package:quadrant/pages/web/modpack_update_page/modpack_update_page.dart/update_modpack.dart';
 
+enum SortBy {
+  name,
+  downloads,
+  sourceModrinth,
+  sourceCurseforge,
+}
+
 class UserAgentClient extends http.BaseClient {
   final String userAgent;
   final http.Client _inner;
@@ -47,17 +54,21 @@ class WebSourcesPage extends StatefulWidget {
 
 class _WebSourcesPageState extends State<WebSourcesPage> {
   TextEditingController searchFieldController = TextEditingController();
-  List<Widget> searchResults = [];
+  List<Mod> searchResults = [];
   bool areButtonsEnabled = true;
   bool isLoading = false;
+  bool isSearched = false;
 
   void setIsLoading(bool value) {
+    if (isSearched = false) {
+      isSearched = true;
+    }
     setState(() {
       isLoading = value;
     });
   }
 
-  void setSearchResults(List<Widget> newSearchResults) {
+  void setSearchResults(List<Mod> newSearchResults) {
     setState(() {
       searchResults = newSearchResults;
     });
@@ -70,12 +81,12 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   }
 
   Future<List<Mod>> searchMods(
-      String searchText, ModClass modsClass, ModSource modSource) async {
+      String query, ModClass modsClass, ModSource modSource) async {
     List<Mod> widgets = [];
 
     if (modSource == ModSource.curseForge) {
       String rawUri =
-          'https://api.curseforge.com/v1/mods/search?gameId=432&searchFilter=$searchText&sortOrder=desc&classId=${modsClass.value}';
+          'https://api.curseforge.com/v1/mods/search?gameId=432&searchFilter=$query&sortOrder=desc&classId=${modsClass.value}';
 
       if (modsClass == ModClass.shaderPack) {
         rawUri = '$rawUri&categoryId=4547';
@@ -95,14 +106,14 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
         "X-API-Key": apiKey,
       });
       Map responseJson = json.decode(response.body);
-      for (var mod in responseJson["data"]) {
+      for (Map mod in responseJson["data"]) {
         try {
           String name = mod["name"];
           String summary = mod["summary"];
           int modId = mod["id"];
 
           String modIconUrl =
-              "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo.png";
+              "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo.png";
           int downloadCount = mod["downloadCount"];
           try {
             String mModIconUrl = mod["logo"]["thumbnailUrl"].toString().trim();
@@ -113,6 +124,10 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
             modIconUrl = mModIconUrl;
             // ignore: empty_catches
           } catch (e) {}
+          List<String> screenshots = [];
+          for (dynamic screenshot in mod["screenshots"]) {
+            screenshots.add(screenshot["thumbnailUrl"]);
+          }
           String slug = mod["slug"];
           widgets.add(
             Mod(
@@ -121,10 +136,12 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               id: modId.toString(),
               modIconUrl: modIconUrl,
               slug: slug,
+              rawMod: mod,
               setAreParentButtonsActive: setAreButtonsEnabled,
               downloadCount: downloadCount,
               source: ModSource.curseForge,
               modClass: modsClass,
+              thumbnailUrl: screenshots,
             ),
           );
         } catch (e) {
@@ -145,7 +162,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
         facets = '$facets, ["categories:${GetStorage().read("lastUsedAPI")}"]';
       }
       String rawUri =
-          'https://api.modrinth.com/v2/search?query=$searchText&limit=50&facets=[$facets]';
+          'https://api.modrinth.com/v2/search?query=$query&limit=50&facets=[$facets]';
       Uri uri = Uri.parse(
         rawUri,
       );
@@ -162,9 +179,13 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
           String id = mod["project_id"];
           String slug = mod["slug"];
           String icon =
-              "https://github.com/mrquantumoff/mcmodpackmanager_reborn/raw/master/assets/icons/logo256.png";
+              "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo256.png";
           // Not all mods have icons
+          List<String> screenshots = [];
 
+          for (dynamic screenshot in mod["gallery"] ?? []) {
+            screenshots.add(screenshot.toString());
+          }
           try {
             String mModIconUrl = mod["icon_url"].toString().trim();
             if (mModIconUrl == "") {
@@ -180,12 +201,14 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               description: desc,
               name: name,
               id: id,
+              rawMod: mod,
               slug: slug,
               modIconUrl: icon,
               setAreParentButtonsActive: setAreButtonsEnabled,
               downloadCount: downloadCount,
               source: ModSource.modRinth,
               modClass: modsClass,
+              thumbnailUrl: screenshots,
             ),
           );
         }
@@ -193,8 +216,12 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     }
 
     widgets.sort((a, b) {
-      return (a.downloadCount > b.downloadCount) ? 0 : 1;
+      int aCount = a.downloadCount;
+      int bCount = b.downloadCount;
+
+      return bCount - aCount;
     });
+
     return widgets;
   }
 
@@ -203,19 +230,34 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
   @override
   void initState() {
     super.initState();
+    isLoading = true;
     // searchModsFunction(forceSearch: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      List<Mod> curseForgeMods =
+          await searchMods("", ModClass.mod, ModSource.curseForge);
+      List<Mod> modRinthMods =
+          await searchMods("", ModClass.mod, ModSource.modRinth);
+      List<Mod> finalMods = curseForgeMods + modRinthMods;
+      finalMods.shuffle();
+      if (!isSearched && context.mounted) {
+        setState(() {
+          isLoading = false;
+          searchResults = finalMods;
+        });
+      }
+    });
   }
 
   @override
   void dispose() {
+    areButtonsEnabled = false;
+    searchFieldController.dispose();
+    searchResults = [];
+    isSearched = true;
     super.dispose();
-    // areButtonsEnabled = false;
-    // searchFieldController.dispose();
-    // searchResults = [];
   }
 
   void searchModsFunction({bool forceSearch = false}) async {
-    if (searchFieldController.text.trim() == "" && !forceSearch) return;
     bool isCurseForgeAllowed = await checkCurseForge();
     setIsLoading(true);
 
@@ -345,6 +387,73 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                               ),
                             ),
                             trailing: [
+                              Container(
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 12),
+                                child: PopupMenuButton(
+                                  icon: const Icon(Icons.sort),
+                                  tooltip: AppLocalizations.of(context)!.sortBy,
+                                  onSelected: (value) {
+                                    List<Mod> newResults =
+                                        List.from(searchResults);
+                                    switch (value) {
+                                      case SortBy.downloads:
+                                        newResults.sort(
+                                          (a, b) =>
+                                              b.downloadCount - a.downloadCount,
+                                        );
+                                        break;
+                                      case SortBy.name:
+                                        newResults.sort(
+                                          (a, b) => a.name.compareTo(b.name),
+                                        );
+                                        break;
+                                      case SortBy.sourceModrinth:
+                                        newResults.sort(
+                                          (a, b) => b.source.name
+                                              .compareTo(a.source.name),
+                                        );
+                                        break;
+                                      case SortBy.sourceCurseforge:
+                                        newResults.sort(
+                                          (a, b) => a.source.name
+                                              .compareTo(b.source.name),
+                                        );
+                                        break;
+                                    }
+                                    setSearchResults(newResults);
+                                  },
+                                  itemBuilder: (context) {
+                                    return [
+                                      PopupMenuItem(
+                                        value: SortBy.downloads,
+                                        child: Text(
+                                            AppLocalizations.of(context)!
+                                                .downloadCount),
+                                      ),
+                                      PopupMenuItem(
+                                        value: SortBy.name,
+                                        child: Text(
+                                            AppLocalizations.of(context)!.name),
+                                      ),
+                                      PopupMenuItem(
+                                        value: SortBy.sourceModrinth,
+                                        child: Text(
+                                          AppLocalizations.of(context)!
+                                              .sourceModrinth,
+                                        ),
+                                      ),
+                                      PopupMenuItem(
+                                        value: SortBy.sourceCurseforge,
+                                        child: Text(
+                                          AppLocalizations.of(context)!
+                                              .sourceCurseforge,
+                                        ),
+                                      ),
+                                    ];
+                                  },
+                                ),
+                              ),
                               FilledButton.icon(
                                 onPressed: searchModsFunction,
                                 label:

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
+import 'package:quadrant/draggable_appbar.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 
 class Notification extends StatefulWidget {
@@ -205,51 +206,54 @@ class _NotificationState extends State<Notification> {
       ];
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Card(
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
-          child: Column(
-            children: children +
-                (read || !showRead
-                    ? []
-                    : [
-                        const SizedBox(
-                          height: 12,
-                        ),
-                        FilledButton.icon(
-                          onPressed: () async {
-                            http.Response res = await http.post(
-                              Uri.parse(
-                                  "https://api.mrquantumoff.dev/api/v3/account/notifications/read"),
-                              headers: {
-                                "User-Agent": await generateUserAgent(),
-                                "Authorization": "Bearer ${widget.token}",
-                                "Content-Type": "application/json",
-                              },
-                              body: json.encode({
-                                "notification_id": widget.notificationId,
-                              }),
-                            );
-                            debugPrint(res.body);
-                            if (res.statusCode == 200) {
-                              setState(() {
-                                read = true;
-                              });
-                              widget.setReload(res.body);
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(res.body),
-                                ),
+    return Visibility.maintain(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        child: Card(
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+            child: Column(
+              children: children +
+                  (read || !showRead
+                      ? []
+                      : [
+                          const SizedBox(
+                            height: 12,
+                          ),
+                          FilledButton.icon(
+                            onPressed: () async {
+                              http.Response res = await http.post(
+                                Uri.parse(
+                                    "https://api.mrquantumoff.dev/api/v3/account/notifications/read"),
+                                headers: {
+                                  "User-Agent": await generateUserAgent(),
+                                  "Authorization": "Bearer ${widget.token}",
+                                  "Content-Type": "application/json",
+                                },
+                                body: json.encode({
+                                  "notification_id": widget.notificationId,
+                                }),
                               );
-                            }
-                          },
-                          label: Text(AppLocalizations.of(context)!.read),
-                          icon: const Icon(Icons.mark_email_read),
-                        )
-                      ]),
+                              debugPrint(res.body);
+                              if (res.statusCode == 200) {
+                                setState(() {
+                                  read = true;
+                                });
+                                widget.setReload(res.body);
+                                Get.back();
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(res.body),
+                                  ),
+                                );
+                              }
+                            },
+                            label: Text(AppLocalizations.of(context)!.read),
+                            icon: const Icon(Icons.mark_email_read),
+                          )
+                        ]),
+            ),
           ),
         ),
       ),
@@ -272,7 +276,15 @@ class _NotificationsState extends State<Notifications> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: DraggableAppBar(
+        appBar: AppBar(
+          title: Text(AppLocalizations.of(context)!.account),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Get.back(),
+          ),
+        ),
+      ),
       body: FutureBuilder(
         future: () async {
           http.Response res = await http.get(

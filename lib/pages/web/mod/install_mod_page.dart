@@ -3,17 +3,59 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:intl/intl.dart';
+import 'package:quadrant/draggable_appbar.dart';
 import 'package:quadrant/other/backend.dart';
 import "package:http/http.dart" as http;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:quadrant/pages/web/web_sources.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:quadrant/pages/web/mod/mod.dart';
+
+class ModMember extends StatelessWidget {
+  const ModMember({super.key, required this.name, required this.url});
+
+  final String name;
+  final String url;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Card(
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(fontSize: 24),
+              ),
+              const SizedBox(
+                height: 12,
+              ),
+              FilledButton.tonalIcon(
+                onPressed: () async {
+                  await launchUrl(Uri.parse(url));
+                },
+                label: Text(AppLocalizations.of(context)!.openInTheWeb),
+                icon: const Icon(
+                  Icons.open_in_browser,
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class InstallModPage extends StatefulWidget {
   const InstallModPage({
@@ -46,7 +88,6 @@ class _InstallModPageState extends State<InstallModPage> {
   late bool apiFieldEnabled;
   late bool versionFieldEnabled;
   late double progressValue;
-
   late String lastVersion;
 
   List<Widget> dependencies = [
@@ -84,7 +125,7 @@ class _InstallModPageState extends State<InstallModPage> {
     });
   }
 
-  Future<List<Widget>> getDependencies(Mod mod, String modVersion) async {
+  Future<List<Mod>> getDependencies(Mod mod, String modVersion) async {
     List<Mod> mods = [];
 
     debugPrint("Getting dependencies");
@@ -137,15 +178,7 @@ class _InstallModPageState extends State<InstallModPage> {
       }
     }
     if (mods.isEmpty) {
-      return [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 24),
-          child: Text(
-            AppLocalizations.of(context)!.emptyDependencies,
-            style: const TextStyle(fontSize: 24),
-          ),
-        )
-      ];
+      return [];
     }
     return mods;
   }
@@ -155,10 +188,19 @@ class _InstallModPageState extends State<InstallModPage> {
 
   @override
   void dispose() {
-    super.dispose();
     progressValue = 0;
-
+    apiFieldEnabled =
+        (widget.modClass == ModClass.mod && widget.installFileId == null);
+    versionFieldEnabled = (widget.installFileId == null);
+    versionFieldController.dispose();
+    apiFieldController.dispose();
+    dependencyVersionFieldController.dispose();
+    modpackFieldController.dispose();
+    lastVersion = widget.installFileId == null
+        ? GetStorage().read("lastUsedVersion") ?? ""
+        : "";
     areButttonsActive = false;
+    super.dispose();
   }
 
   void setProgressValue(double newValue) {
@@ -191,10 +233,57 @@ class _InstallModPageState extends State<InstallModPage> {
     }
   }
 
+  Future<List<ModMember>> getMembers() async {
+    debugPrint("Getting members");
+
+    List<ModMember> members = [];
+    if (widget.mod.source == ModSource.curseForge) {
+      List<dynamic> rawMembers = widget.mod.rawMod["authors"];
+      for (dynamic author in rawMembers) {
+        members.add(
+          ModMember(
+            name: author["name"],
+            url: author["url"],
+          ),
+        );
+      }
+    } else if (widget.mod.source == ModSource.modRinth) {
+      http.Response membersRes = await http.get(
+        Uri.parse(
+            "https://api.modrinth.com/v2/project/${widget.mod.id}/members"),
+        headers: {
+          "User-Agent": await generateUserAgent(),
+        },
+      );
+      final List<dynamic> resJSON = json.decode(membersRes.body);
+      resJSON.sort((a, b) => a["ordering"] - b["ordering"]);
+      for (dynamic member in resJSON) {
+        members.add(
+          ModMember(
+            name: member["user"]["username"],
+            url: "https://modrinth.com/user/${member["user"]["id"]}",
+          ),
+        );
+      }
+    }
+    return members;
+  }
+
   @override
   Widget build(BuildContext context) {
+    String license = "?";
+
+    if (widget.mod.source == ModSource.modRinth) {
+      debugPrint("${widget.mod.rawMod["license"]}");
+      try {
+        license = widget.mod.rawMod["license"]["id"];
+      } catch (e) {
+        license = widget.mod.rawMod["license"];
+      }
+    }
+
     void updateDependencies() async {
-      List<Widget> mods = await getDependencies(
+      List<Mod> mods = await getDependencies(
           widget.mod, dependencyVersionFieldController.text);
       setState(() {
         dependencies = mods;
@@ -203,124 +292,255 @@ class _InstallModPageState extends State<InstallModPage> {
     }
 
     String desc = widget.mod.description;
-    String displayName = widget.mod.name.length >= 36
-        ? widget.mod.name.replaceRange(36, null, "...")
-        : widget.mod.name;
+    String displayName = widget.mod.name;
     NumberFormat numberFormatter = NumberFormat.compact(
-        explicitSign: false, locale: AppLocalizations.of(context)!.localeName);
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: areButttonsActive
-              ? () {
-                  Get.back();
-                }
-              : () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(AppLocalizations.of(context)!
-                          .downloadIsAlreadyInProgress),
-                    ),
-                  );
-                },
+      explicitSign: false,
+      locale: AppLocalizations.of(context)!.localeName,
+    );
+
+    List<Widget> screenshots = [];
+
+    for (String screenshot in widget.mod.thumbnailUrl) {
+      screenshots.add(
+        Image.network(
+          screenshot,
+          fit: BoxFit.contain,
         ),
-        title: Text(AppLocalizations.of(context)!.download),
+      );
+    }
+
+    return Scaffold(
+      appBar: DraggableAppBar(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: areButttonsActive
+                ? () {
+                    Get.back();
+                  }
+                : () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(AppLocalizations.of(context)!
+                            .downloadIsAlreadyInProgress),
+                      ),
+                    );
+                  },
+          ),
+          title: Text(AppLocalizations.of(context)!.download),
+        ),
       ),
       body: ListView(
         children: [
-          Card(
+          Card.outlined(
             child: SingleChildScrollView(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
-                  minHeight: 360,
+                  minHeight: 370,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Center(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                            GetStorage().read("clipIcons") == true ? 80 : 0),
-                        child: Image(
-                          image: NetworkImage(widget.mod.modIconUrl),
-                          alignment: Alignment.centerRight,
-                          height: 96,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return const CircularProgressIndicator();
-                          },
-                          width: 96,
-                        ),
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(top: 12, left: 12),
-                          child: Text(
-                            displayName,
-                            style: const TextStyle(fontSize: 32),
+                    screenshots.isEmpty
+                        ? Container()
+                        : const SizedBox(
+                            width: 12,
                           ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(left: 14, top: 20),
-                          child: Row(
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(left: 0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(
+                                  GetStorage().read("clipIcons") == true
+                                      ? 80
+                                      : 0),
+                              child: Image(
+                                image: NetworkImage(widget.mod.modIconUrl),
+                                alignment: Alignment.centerRight,
+                                height: 96,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return const CircularProgressIndicator();
+                                },
+                                width: 96,
+                              ),
+                            ),
+                          ),
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              const Icon(Icons.download,
-                                  color: Colors.grey, size: 28),
-                              Text(
-                                numberFormatter
-                                    .format(widget.mod.downloadCount),
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  color: Colors.grey,
+                              Container(
+                                margin: const EdgeInsets.only(top: 12, left: 0),
+                                child: Text(
+                                  displayName,
+                                  style: const TextStyle(fontSize: 32),
+                                ),
+                              ),
+                              Container(
+                                margin:
+                                    const EdgeInsets.only(left: 16, top: 24),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.download,
+                                        color: Colors.grey, size: 28),
+                                    Text(
+                                      numberFormatter
+                                          .format(widget.mod.downloadCount),
+                                      style: const TextStyle(
+                                        fontSize: 24,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 640),
+                                child: Container(
+                                  margin: const EdgeInsets.only(left: 0),
+                                  child: SingleChildScrollView(
+                                    child: Text(
+                                      desc,
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                margin: const EdgeInsets.only(
+                                  top: 8,
+                                  bottom: 8,
+                                ),
+                                child: Text(
+                                  getModpackTypeString(),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                              license == "?"
+                                  ? Container()
+                                  : Container(
+                                      margin: const EdgeInsets.only(
+                                        bottom: 8,
+                                      ),
+                                      child: Text(
+                                        AppLocalizations.of(context)!
+                                            .licensedUnder(license),
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 256),
-                          child: SingleChildScrollView(
-                            child: Text(
-                              desc,
-                              style: const TextStyle(fontSize: 24),
-                            ),
+                    screenshots.isEmpty
+                        ? Container()
+                        : const SizedBox(
+                            width: 128,
                           ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.only(
-                              top: 8, bottom: 8, left: 18),
-                          child: Text(
-                            getModpackTypeString(),
-                            style: const TextStyle(
-                              fontSize: 16,
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: screenshots.isEmpty
+                          ? null
+                          : Card.outlined(
+                              margin: const EdgeInsets.only(right: 12),
+                              child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 465),
+                                child: CarouselSlider(
+                                  options: CarouselOptions(
+                                    pageSnapping: true,
+                                    enableInfiniteScroll: true,
+                                    enlargeFactor: 5,
+                                    enlargeStrategy:
+                                        CenterPageEnlargeStrategy.scale,
+                                    scrollDirection: Axis.horizontal,
+                                    height: 304,
+                                    autoPlay: true,
+                                  ),
+                                  items: screenshots,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
               ),
             ),
           ),
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                "${AppLocalizations.of(context)!.owners}:",
+                style: const TextStyle(fontSize: 24),
+              ),
+            ),
+          ),
+          Card.outlined(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 180),
+              child: FutureBuilder(
+                future: getMembers(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(
+                      child: CircularProgressIndicator(),
+                    );
+                  } else if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        snapshot.error.toString(),
+                      ),
+                    );
+                  }
+
+                  return Center(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 24),
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        shrinkWrap: true,
+                        children: snapshot.data!,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
           Column(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  "${AppLocalizations.of(context)!.download}:",
+                  style: const TextStyle(fontSize: 24),
+                ),
+              ),
               Container(
                 margin: const EdgeInsets.symmetric(vertical: 12),
                 child: DropdownMenu(
@@ -329,6 +549,9 @@ class _InstallModPageState extends State<InstallModPage> {
                   initialSelection: widget.installFileId == null
                       ? GetStorage().read("lastUsedVersion")
                       : null,
+                  enableSearch: true,
+                  width: 840,
+                  enableFilter: true,
                   onSelected: (val) {
                     setState(() {
                       dependencyVersionFieldController.text = val;
@@ -336,7 +559,6 @@ class _InstallModPageState extends State<InstallModPage> {
                     updateDependencies();
                   },
                   label: Text(AppLocalizations.of(context)!.chooseVersion),
-                  width: 840,
                   enabled: versionFieldEnabled,
                 ),
               ),
@@ -904,17 +1126,27 @@ class _InstallModPageState extends State<InstallModPage> {
                         onSelected: (newValue) => updateDependencies(),
                       ),
                     ),
-                    SizedBox(
-                      height: 720,
-                      child: GridView.extent(
-                        maxCrossAxisExtent: 540,
-                        mainAxisSpacing: 15,
-                        crossAxisSpacing: 0,
-                        childAspectRatio: 1.35,
-                        padding: const EdgeInsets.only(bottom: 0),
-                        children: dependencies,
-                      ),
-                    ),
+                    dependencies.isNotEmpty
+                        ? SizedBox(
+                            height: 720,
+                            child: GridView.extent(
+                              maxCrossAxisExtent: 540,
+                              mainAxisSpacing: 15,
+                              crossAxisSpacing: 0,
+                              childAspectRatio: 1.35,
+                              padding: const EdgeInsets.only(bottom: 0),
+                              children: dependencies,
+                            ),
+                          )
+                        : Container(
+                            margin: const EdgeInsets.only(bottom: 64),
+                            child: Center(
+                              child: Text(
+                                AppLocalizations.of(context)!.emptyDependencies,
+                                style: const TextStyle(fontSize: 24),
+                              ),
+                            ),
+                          ),
                   ],
                 ),
               ),

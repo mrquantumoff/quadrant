@@ -33,7 +33,7 @@ class SyncedModpack extends StatefulWidget {
   final int lastSynced;
   final Function(String) reload;
   final String username;
-  Function(String rawFile, {bool switchTabs})? getMods;
+  Function(String rawFile, {bool switchTabs, int newTimestamp})? getMods;
   final String token;
 
   @override
@@ -119,6 +119,7 @@ class _SyncedModpackState extends State<SyncedModpack> {
                               await widget.getMods!(
                                 json.encode(modConfig),
                                 switchTabs: true,
+                                newTimestamp: widget.lastSynced,
                               );
                             }
                           },
@@ -166,6 +167,16 @@ class _SyncedModpackState extends State<SyncedModpack> {
               child: ExpansionTile(
                 maintainState: true,
                 expandedAlignment: Alignment.centerLeft,
+                collapsedShape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(24),
+                  ),
+                ),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(24),
+                  ),
+                ),
                 title: Text(
                   AppLocalizations.of(context)!.details,
                   style: const TextStyle(fontSize: 24),

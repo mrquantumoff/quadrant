@@ -40,6 +40,7 @@ void main(List<String> args) async {
   await GetStorage.init();
   WidgetsFlutterBinding.ensureInitialized();
   dataCollectionInit();
+  initConfig();
   await localNotifier.setup(
     appName: 'quadrant',
     // The parameter shortcutPolicy only works on Windows
@@ -116,46 +117,6 @@ void main(List<String> args) async {
 
   debugPrint(await generateUserAgent());
 
-  if (GetStorage().read("clipIcons") == null) {
-    GetStorage().writeInMemory("clipIcons", true);
-  }
-  if (GetStorage().read("lastRSSfetched") == null) {
-    GetStorage().writeInMemory("lastRSSfetched",
-        DateTime.now().subtract(const Duration(days: 14)).toIso8601String());
-  }
-  if (GetStorage().read("curseforge") == null) {
-    GetStorage().writeInMemory("curseForge", true);
-  }
-  if (GetStorage().read("modrinth") == null) {
-    GetStorage().writeInMemory("modrinth", true);
-  }
-  if (GetStorage().read("devMode") == null) {
-    GetStorage().writeInMemory("devMode", false);
-  }
-  if (GetStorage().read("rssFeeds") == null) {
-    GetStorage().writeInMemory("rssFeeds", true);
-  }
-  if (GetStorage().read("silentNews") == null) {
-    GetStorage().writeInMemory("silentNews", false);
-  }
-  if (GetStorage().read("autoQuadrantSync") == null) {
-    GetStorage().writeInMemory("autoQuadrantSync", true);
-  }
-  if (GetStorage().read("showUnupgradeableMods") == null) {
-    GetStorage().writeInMemory("showUnupgradeableMods", false);
-  }
-  if (GetStorage().read("lastPage") == null) {
-    GetStorage().writeInMemory("lastPage", 0);
-  }
-  if (GetStorage().read("extendedNavigation") == null) {
-    GetStorage().writeInMemory("extendedNavigation", false);
-  }
-  if (GetStorage().read("experimentalFeatures") == null) {
-    GetStorage().writeInMemory("experimentalFeatures", false);
-  }
-  if (GetStorage().read("dontShowUserDataRecommendation") == null) {
-    GetStorage().writeInMemory("dontShowUserDataRecommendation", false);
-  }
   debugPrint("$args");
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     if (args.contains("autostart")) {
@@ -166,7 +127,6 @@ void main(List<String> args) async {
     }
   });
   void accountUpdate(Timer t) async {
-    debugPrint("checkingAccountUpdatesBackground!");
     checkAccountUpdates();
   }
 
@@ -330,7 +290,6 @@ class _QuadrantState extends State<Quadrant>
     checkAccountTimer = Timer.periodic(
       const Duration(seconds: 10),
       (Timer t) async {
-        debugPrint("checkingAccountUpdates!");
         try {
           await checkAccountUpdates(context);
         } catch (e) {
@@ -341,7 +300,9 @@ class _QuadrantState extends State<Quadrant>
     checkRSSTimer = Timer.periodic(
       const Duration(seconds: 180),
       (Timer t) async {
-        debugPrint("checkingRSSUpdates!");
+        if (GetStorage().read("devMode")) {
+          debugPrint("checkingRSSUpdates!");
+        }
         await checkRSS(context);
       },
     );
@@ -395,7 +356,6 @@ class _QuadrantState extends State<Quadrant>
   }
 
   Future<void> clearUselessBanners() async {
-    debugPrint("Clearing banners");
     if (!areAnyUpdates && !areAnyNews) {
       ScaffoldMessenger.of(context).clearMaterialBanners();
     }
@@ -566,7 +526,7 @@ class _QuadrantState extends State<Quadrant>
     const storage = FlutterSecureStorage();
     String? token = await storage.read(key: "quadrant_id_token");
     if (token == null) {
-      // throw Exception(AppLocalizations.of(context)!.noQuadrantID);
+      return;
     }
     http.Response res = await http.get(
         Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/sync/get"),
@@ -604,7 +564,6 @@ class _QuadrantState extends State<Quadrant>
         });
       }
     }
-    debugPrint("$accountNotifications notifications");
 
     List<SyncedModpack> syncedModpacks = [];
     List<dynamic> data = json.decode(res.body);
@@ -618,7 +577,7 @@ class _QuadrantState extends State<Quadrant>
           modLoader: modpack["mod_loader"],
           lastSynced: modpack["last_synced"],
           reload: (value) {},
-          token: token ?? "",
+          token: token,
           username: userInfo["login"],
         ),
       );
@@ -685,9 +644,7 @@ class _QuadrantState extends State<Quadrant>
 
   Future<void> checkRSS(BuildContext context) async {
     try {
-      http.Response res =
-          await http.get(Uri.parse("https://api.mrquantumoff.dev/blog.rss"));
-
+      http.Response res = await http.get(Uri.parse("https://blog.mrquantumoff.dev/rss/"));
       if (res.statusCode != 200) return;
       String rawFeed = res.body;
 
@@ -704,16 +661,16 @@ class _QuadrantState extends State<Quadrant>
             .contains(item.guid!);
         areAnyNews = false;
         String itemTimestamp = item.pubDate!;
-        debugPrint("itemTimestamp");
         var format = DateFormat("E, dd MMM y H:m:s");
         DateTime itemDate = format.parse(itemTimestamp);
         bool cond2 =
             itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
         bool cond3 = GetStorage().read("rssFeeds") == true;
         bool cond4 = GetStorage().read("devMode") == true;
-        debugPrint(
-            "\n\nName: ${item.title}\n\nDate: $itemTimestamp\n\nSeen: $cond1\nIs within last 2 weeks: $cond2\nAre RSS feeds enabled: $cond3\nIs DevMode Enabled:  $cond4\n\n");
-
+        if (GetStorage().read("devMode")) {
+          debugPrint(
+              "\n\nName: ${item.title}\n\nDate: $itemTimestamp\n\nSeen: $cond1\nIs within last 2 weeks: $cond2\nAre RSS feeds enabled: $cond3\nIs DevMode Enabled:  $cond4\n\n");
+        }
         if (((cond1 && cond2) || cond4) &&
             cond3 &&
             (categories.contains("Quadrant") ||
@@ -846,31 +803,9 @@ class _QuadrantState extends State<Quadrant>
     return Scaffold(
       appBar: DraggableAppBar(
         appBar: AppBar(
+          toolbarHeight: 56,
+          primary: true,
           title: Text(AppLocalizations.of(context)!.productName),
-          actions: [
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              child: IconButton(
-                onPressed: currentPage == 3
-                    ? null
-                    : () async {
-                        windowManager.minimize();
-                      },
-                icon: const Icon(Icons.minimize),
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              child: IconButton(
-                onPressed: currentPage == 3
-                    ? null
-                    : () async {
-                        windowManager.hide();
-                      },
-                icon: const Icon(Icons.close),
-              ),
-            ),
-          ],
         ),
       ),
       body: Row(

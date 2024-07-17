@@ -48,6 +48,7 @@
 > [!WARNING]
 >
 > #### If app fails to apply your modpacks after installation, delete your mods folder.
+> #### The app relies on time being synced correctly on your machine. If you encounter issues with features like Quadrant ID / Quadrant Share / Quadrant Sync, make sure that your time is set correctly. If that doesn't help, check the [status](https://status.bultek.com.ua/status/mrquantumoff) page
 
 > [!TIP]
 >

@@ -212,5 +212,11 @@
   "kick": "Вигнати",
   "invited": "{name} запросив вас для спільного керування своїм модпаком.",
   "acceptQuadrantIDTOS": "Продовжуючи цей процес, ви погоджуєтеся з тим, що прочитали умови використання Quadrant ID і прийняли їх.",
-  "quadrantIDToS": "Умови використання Quadrant ID"
+  "quadrantIDToS": "Умови використання Quadrant ID",
+  "licensedUnder": "Ліцензовано за {license}",
+  "sortBy": "Сортувати за",
+  "alphabet": "Алфавіт",
+  "downloadCount": "Кількість завантажень",
+  "sourceModrinth": "Джерело (Modrinth)",
+  "sourceCurseforge": "Джерело (Curseforge)"
 }

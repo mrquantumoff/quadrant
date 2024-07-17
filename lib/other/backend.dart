@@ -4,11 +4,13 @@ import 'dart:math';
 import 'package:clipboard/clipboard.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:io/io.dart' as io;
 import 'package:local_notifier/local_notifier.dart';
 import 'package:quadrant/pages/modpack_importer/import_modpacks/import_modpacks_page.dart';
 import 'package:quadrant/pages/modpack_importer/import_modpacks/synced_modpack.dart';
@@ -52,22 +54,40 @@ List<String> getModpacks({bool hideFree = true}) {
   return modpacks;
 }
 
-bool applyModpack(String? modpack) {
+Future<bool> applyModpack(String? modpack) async {
   var minecraftFolder = getMinecraftFolder();
 
   if (modpack == null) return false;
+  if ((modpack.contains("\\") ||
+      modpack.contains("?") ||
+      modpack.contains(">") ||
+      modpack.contains("<") ||
+      modpack.contains(":") ||
+      modpack.contains("\"") ||
+      modpack.contains("/") ||
+      modpack.contains("|") ||
+      modpack.contains("*"))) {
+    modpack = modpack.replaceAllMapped(RegExp('[<>:"/\\|?*]'), (_) => "_");
+  }
 
   Directory modpackFolder =
       Directory("${minecraftFolder.path}/modpacks/$modpack");
-  if (!modpackFolder.existsSync()) return false;
+  if (!await modpackFolder.exists()) return false;
 
   Directory modsFolder = Directory("${minecraftFolder.path}/mods");
-  Link link = Link(modsFolder.path);
 
-  if (modsFolder.existsSync() &&
-      modsFolder.resolveSymbolicLinksSync() != modsFolder.path) {
+  String modsPath = modsFolder.path.replaceAll("\\", "/");
+
+  if (await modsFolder.exists() &&
+      (await modsFolder.resolveSymbolicLinks()).replaceAll("\\", "/") !=
+          modsPath) {
+    Link link = Link(modsFolder.path);
+
     try {
-      link.updateSync(
+      if (kDebugMode) {
+        debugPrint("Updating mods folder");
+      }
+      await link.update(
         modpackFolder.path,
       );
       return true;
@@ -76,10 +96,20 @@ bool applyModpack(String? modpack) {
       return false;
     }
   } else if (modsFolder.existsSync()) {
-    modsFolder.deleteSync(recursive: true);
+    Link link = Link(modsFolder.path);
 
     try {
-      link.createSync(
+      if (kDebugMode) {
+        debugPrint("Replacing mods folder");
+      }
+
+      Directory oldModsFolder = Directory(
+          "${minecraftFolder.path}/modpacks/mods-${DateTime.now().millisecondsSinceEpoch}");
+
+      await io.copyPath(modsFolder.path, oldModsFolder.path);
+      await modsFolder.delete(recursive: true);
+
+      await link.create(
         modpackFolder.path,
         recursive: true,
       );
@@ -89,8 +119,13 @@ bool applyModpack(String? modpack) {
       return false;
     }
   } else {
+    Link link = Link(modsFolder.path);
+
+    if (kDebugMode) {
+      debugPrint("Creating mods folder");
+    }
     try {
-      link.createSync(
+      await link.create(
         modpackFolder.path,
         recursive: true,
       );
@@ -102,12 +137,12 @@ bool applyModpack(String? modpack) {
   }
 }
 
-bool clearModpack() {
+Future<bool> clearModpack() async {
   Directory minecraftFolder = getMinecraftFolder();
   Directory freeModpacks = Directory("${minecraftFolder.path}/modpacks/free");
   try {
-    freeModpacks.createSync(recursive: true);
-    return applyModpack("free");
+    await freeModpacks.create(recursive: true);
+    return await applyModpack("free");
   } catch (e) {
     return false;
   }
@@ -336,10 +371,16 @@ Future<Mod> getMod(
         }
       }
 
+      List<String> screenshots = [];
+
+      for (dynamic screenshot in resJSON["screenshots"]) {
+        screenshots.add(screenshot["thumbnailUrl"]);
+      }
+
       String logo =
           "https://raw.githubusercontent.com/mrquantumoff/quadrant/master/assets/icons/logo.png";
       if (resJSON["logo"] != null) {
-        logo = resJSON["logo"]["thumbnailUrl"];
+        logo = resJSON["logo"]["url"];
       }
 
       debugPrint("Mod ID gotten: ${resJSON["id"]}");
@@ -348,9 +389,11 @@ Future<Mod> getMod(
         description: resJSON["summary"].toString(),
         downloadCount: int.parse(resJSON["downloadCount"].toString()),
         modIconUrl: logo,
+        thumbnailUrl: screenshots,
         id: resJSON["id"].toString(),
         setAreParentButtonsActive: setAreParentButtonsActive,
         slug: resJSON["slug"].toString(),
+        rawMod: resJSON,
         modClass: modClass,
         source: ModSource.curseForge,
         downloadable: downloadable,
@@ -376,6 +419,13 @@ Future<Mod> getMod(
     );
 
     final resJSON = json.decode(res.body);
+
+    List<String> screenshots = [];
+
+    for (dynamic screenshot in resJSON["gallery"] ?? []) {
+      screenshots.add(screenshot["url"]);
+    }
+
     late ModClass modClass;
     final modClassString = resJSON["project_type"];
     if (modClassString == "mod") {
@@ -424,6 +474,7 @@ Future<Mod> getMod(
       description: resJSON["description"],
       modIconUrl: resJSON["icon_url"],
       id: resJSON["id"],
+      rawMod: resJSON,
       downloadCount: resJSON["downloads"],
       setAreParentButtonsActive: setAreParentButtonsActive,
       source: ModSource.modRinth,
@@ -436,6 +487,7 @@ Future<Mod> getMod(
       modpackToUpdate: modpack,
       newVersionUrl: latestVersionUrl,
       deletable: deletable,
+      thumbnailUrl: screenshots,
     );
   }
 }
@@ -444,6 +496,22 @@ Future<void> syncModpack(
     BuildContext context, String modConfigRaw, bool overwrite) async {
   Map modConfig = json.decode(modConfigRaw);
   String selectedModpack = modConfig["name"];
+
+  if ((selectedModpack.contains("\\") ||
+      selectedModpack.contains("?") ||
+      selectedModpack.contains(">") ||
+      selectedModpack.contains("<") ||
+      selectedModpack.contains(":") ||
+      selectedModpack.contains("\"") ||
+      selectedModpack.contains("/") ||
+      selectedModpack.contains("|") ||
+      selectedModpack.contains("*"))) {
+    selectedModpack = selectedModpack.replaceAllMapped(
+      RegExp('[<>:"/\\|?*]'),
+      (_) => "_",
+    );
+  }
+
   File selectedModpackSyncFile = File(
     "${getMinecraftFolder().path}/modpacks/$selectedModpack/quadrantSync.json",
   );
@@ -534,6 +602,7 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
     String summary = mod["summary"];
     String modIconUrl =
         "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo.png";
+    List<String> screenshots = [];
     int downloadCount = mod["downloadCount"];
     try {
       String mModIconUrl = mod["logo"]["thumbnailUrl"].toString().trim();
@@ -544,6 +613,11 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
       modIconUrl = mModIconUrl;
       // ignore: empty_catches
     } catch (e) {}
+
+    for (dynamic screenshot in mod["screenshots"]) {
+      screenshots.add(screenshot["thumbnailUrl"]);
+    }
+
     String slug = mod["slug"];
     List<dynamic> categories = mod["categories"];
     late ModClass modClass;
@@ -572,7 +646,9 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
       setAreParentButtonsActive: (bool newValue) {},
       downloadCount: downloadCount,
       source: ModSource.curseForge,
+      rawMod: mod,
       modClass: modClass,
+      thumbnailUrl: screenshots,
     );
     Uri uri = Uri.parse(
       'https://api.modrinth.com/v2/tag/game_version',
@@ -641,6 +717,7 @@ void dataCollectionInit() async {
       collectUserDataByDefault = true;
     }
     GetStorage().write("collectUserData", collectUserDataByDefault);
+    dataCollectionInit();
   }
 }
 
@@ -750,7 +827,7 @@ void collectUserInfo({bool saveToFile = false}) async {
 
     if (GetStorage().read("collectUserData") == true &&
         GetStorage().read("devMode") == false) {
-      var result = await http.post(
+      await http.post(
         Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/usage/submit"),
         headers: {
           "User-Agent": await generateUserAgent(),
@@ -758,10 +835,6 @@ void collectUserInfo({bool saveToFile = false}) async {
         },
         body: postBody,
       );
-      if (result.body.contains("Updated") || result.body.contains("Created")) {
-        GetStorage().write("lastDataSent", DateTime.now().toUtc().toString());
-      }
-      // debugPrint(result.body);
     }
     if (saveToFile) {
       var filePickerResult =
@@ -990,10 +1063,13 @@ Future<void> checkAccountUpdates() async {
       bool cond3 = !await windowManager.isFocused();
       bool cond4 =
           GetStorage().read("isModpack_${modpack.modpackId}Updated") == false;
-      debugPrint("Is AutoSync on: $cond2");
-      debugPrint("Are modpacks being updated: $cond4");
-      debugPrint("Is modpack synced: $cond1");
-      debugPrint("Is window not focused: $cond3");
+
+      if (GetStorage().read("devMode") == true) {
+        debugPrint("Is AutoSync on: $cond2");
+        debugPrint("Are modpacks being updated: $cond4");
+        debugPrint("Is modpack synced: $cond1");
+        debugPrint("Is window not focused: $cond3");
+      }
       if (cond1 && cond2 && cond3 && cond4) {
         try {
           debugPrint("AutoSyncing ${modpack.name}");
@@ -1073,5 +1149,48 @@ Future<void> checkAccountUpdates() async {
     } catch (e) {
       debugPrint("$e");
     }
+  }
+}
+
+void initConfig() {
+  if (GetStorage().read("clipIcons") == null) {
+    GetStorage().writeInMemory("clipIcons", true);
+  }
+  if (GetStorage().read("lastRSSfetched") == null) {
+    GetStorage().writeInMemory("lastRSSfetched",
+        DateTime.now().subtract(const Duration(days: 14)).toIso8601String());
+  }
+  if (GetStorage().read("curseforge") == null) {
+    GetStorage().writeInMemory("curseForge", true);
+  }
+  if (GetStorage().read("modrinth") == null) {
+    GetStorage().writeInMemory("modrinth", true);
+  }
+  if (GetStorage().read("devMode") == null) {
+    GetStorage().writeInMemory("devMode", false);
+  }
+  if (GetStorage().read("rssFeeds") == null) {
+    GetStorage().writeInMemory("rssFeeds", true);
+  }
+  if (GetStorage().read("silentNews") == null) {
+    GetStorage().writeInMemory("silentNews", false);
+  }
+  if (GetStorage().read("autoQuadrantSync") == null) {
+    GetStorage().writeInMemory("autoQuadrantSync", true);
+  }
+  if (GetStorage().read("showUnupgradeableMods") == null) {
+    GetStorage().writeInMemory("showUnupgradeableMods", false);
+  }
+  if (GetStorage().read("lastPage") == null) {
+    GetStorage().writeInMemory("lastPage", 0);
+  }
+  if (GetStorage().read("extendedNavigation") == null) {
+    GetStorage().writeInMemory("extendedNavigation", false);
+  }
+  if (GetStorage().read("experimentalFeatures") == null) {
+    GetStorage().writeInMemory("experimentalFeatures", false);
+  }
+  if (GetStorage().read("dontShowUserDataRecommendation") == null) {
+    GetStorage().writeInMemory("dontShowUserDataRecommendation", false);
   }
 }

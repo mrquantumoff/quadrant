@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:quadrant/draggable_appbar.dart';
 import 'package:quadrant/other/backend.dart';
 
 class ModpackCreator extends StatefulWidget {
@@ -51,25 +52,27 @@ class _ModpackCreatorState extends State<ModpackCreator> {
   Widget build(BuildContext context) {
     getVersions();
     return Scaffold(
-      appBar: AppBar(
-        title: widget.update
-            ? Text(AppLocalizations.of(context)!.update)
-            : Text(AppLocalizations.of(context)!.createModpack),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: areButttonsActive
-              ? () {
-                  Get.back();
-                }
-              : () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        AppLocalizations.of(context)!.buttonsAreDisabled,
+      appBar: DraggableAppBar(
+        appBar: AppBar(
+          title: widget.update
+              ? Text(AppLocalizations.of(context)!.update)
+              : Text(AppLocalizations.of(context)!.createModpack),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: areButttonsActive
+                ? () {
+                    Get.back();
+                  }
+                : () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          AppLocalizations.of(context)!.buttonsAreDisabled,
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+          ),
         ),
       ),
       body: Center(

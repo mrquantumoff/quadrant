@@ -2,7 +2,7 @@ name: quadrant
 description: Manage your modpacks and mods with ease.
 publish_to: 'none'
 
-version: 24.7.4+0
+version: 24.8.0+0
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -18,7 +18,7 @@ dependencies:
   get_storage_qnt:
     git:
       url: https://github.com/mrquantumoff/get_storage_qnt.git
-      ref: v3.0.0
+      ref: v3.1.0
   flutter_localizations:
     sdk: flutter
   intl: any
@@ -41,6 +41,8 @@ dependencies:
   animations: ^2.0.11
   tray_manager: ^0.2.3
   local_notifier: ^0.1.6
+  carousel_slider: ^4.2.1
+  io: ^1.0.4
 
 dependency_overrides:
   win32: any
@@ -82,7 +84,7 @@ msix_config:
   publisher_display_name: MrQuantumOFF (Demir Yerli)
   publisher: CN=010914FC-8843-4963-A3FE-E3E06E6D9F53
   identity_name: 58734MrQuantumOFFDemirYer.MinecraftModpackManagerR
-  msix_version: 24.7.4.0
+  msix_version: 24.8.0.0
   logo_path: .\assets\icons\logo.ico
   startup_task: # <-- Startup Task
     enabled: true # optional (default: true)

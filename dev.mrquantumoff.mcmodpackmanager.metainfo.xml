@@ -42,13 +42,22 @@
   </branding>
 
   <releases>
-
+    <release date="2024-08-01" version="24.8.0">
+      <description>
+        <p>Redesigned mod install page</p>
+        <p>Small design changes</p>
+        <p>Added sorting by name and source in search</p>
+        <p>Avoid losing your old mods folder after applying your first modpack</p>
+        <p>Bug fixes</p>
+      </description>
+    </release>
+    
     <release date="2024-07-17" version="24.7.4">
       <description>
         <p>Bug fixes</p>
       </description>
-    </release>
-
+    </releasee>
+    
     <release date="2024-07-07" version="24.7.3">
       <description>
         <p>Bug fixes</p>
@@ -764,22 +773,17 @@
   <screenshots>
     <screenshot type="default">
       <image>
-        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/linux1.png
+        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/1.png
       </image>
     </screenshot>
     <screenshot type="default">
       <image>
-        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/linux2.png
+        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/2.png
       </image>
     </screenshot>
     <screenshot type="default">
       <image>
-        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/linux3.png
-      </image>
-    </screenshot>
-    <screenshot type="default">
-      <image>
-	https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/linux4.png
+        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/3.png
       </image>
     </screenshot>
   </screenshots>
