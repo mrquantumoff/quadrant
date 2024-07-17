@@ -43,6 +43,12 @@
 
   <releases>
 
+    <release date="2024-07-17" version="24.7.4">
+      <description>
+        <p>Bug fixes</p>
+      </description>
+    </release>
+
     <release date="2024-07-07" version="24.7.3">
       <description>
         <p>Bug fixes</p>
