@@ -645,7 +645,7 @@ class _QuadrantState extends State<Quadrant>
   Future<void> checkRSS(BuildContext context) async {
     try {
       http.Response res =
-          await http.get(Uri.parse("https://api.mrquantumoff.dev/blog.rss"));
+          await http.get(Uri.parse("https://blog.mrquantumoff.dev/rss/"));
       if (res.statusCode != 200) return;
       String rawFeed = res.body;
 
@@ -662,7 +662,7 @@ class _QuadrantState extends State<Quadrant>
             .contains(item.guid!);
         areAnyNews = false;
         String itemTimestamp = item.pubDate!;
-        var format = DateFormat("E, dd MMM y H:m:s +0000");
+        var format = DateFormat("E, dd MMM y H:m:s");
         DateTime itemDate = format.parse(itemTimestamp);
         bool cond2 =
             itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
