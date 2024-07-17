@@ -215,7 +215,11 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                         borderRadius: BorderRadius.circular(
                             GetStorage().read("clipIcons") == true ? 80 : 0),
                         child: Image(
-                          image: NetworkImage(widget.modIconUrl),
+                          image: NetworkImage(
+                            widget.modIconUrl.trim().isEmpty
+                                ? "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo256.png"
+                                : widget.modIconUrl.trim(),
+                          ),
                           alignment: Alignment.centerRight,
                           height: 64,
                           loadingBuilder: (context, child, loadingProgress) {

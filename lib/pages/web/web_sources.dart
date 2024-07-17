@@ -162,7 +162,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
         facets = '$facets, ["categories:${GetStorage().read("lastUsedAPI")}"]';
       }
       String rawUri =
-          'https://api.modrinth.com/v2/search?query=$query&limit=50&facets=[$facets]';
+          'https://api.modrinth.com/v2/search?query=$query&limit=100&facets=[$facets]';
       Uri uri = Uri.parse(
         rawUri,
       );
