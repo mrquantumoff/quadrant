@@ -161,9 +161,10 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return DynamicColorBuilder(
-        builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
-      return ThemeProvider(darkTheme: darkDynamic, lightTheme: lightDynamic);
-    });
+      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+        return ThemeProvider(darkTheme: darkDynamic, lightTheme: lightDynamic);
+      },
+    );
   }
 }
 
@@ -179,8 +180,6 @@ class ThemeProvider extends StatefulWidget {
 }
 
 class _ThemeProviderState extends State<ThemeProvider> {
-  bool shouldUseMaterial3 = true;
-
   String locale = GetStorage().read("locale") ?? "native";
 
   @override
@@ -237,13 +236,17 @@ class _ThemeProviderState extends State<ThemeProvider> {
       home: Quadrant(
         setLocale: setLocale,
       ),
-      darkTheme: ThemeData.from(
-        useMaterial3: shouldUseMaterial3,
+      darkTheme: ThemeData(
+        useMaterial3: true,
         colorScheme: (widget.darkTheme ?? const ColorScheme.dark()),
+        appBarTheme: const AppBarTheme(surfaceTintColor: Colors.transparent),
+        splashColor: Colors.black,
       ),
-      theme: ThemeData.from(
-        useMaterial3: shouldUseMaterial3,
+      theme: ThemeData(
+        useMaterial3: true,
         colorScheme: (widget.lightTheme ?? const ColorScheme.light()),
+        appBarTheme: const AppBarTheme(surfaceTintColor: Colors.transparent),
+        splashColor: Colors.black,
       ),
     );
   }
@@ -644,7 +647,8 @@ class _QuadrantState extends State<Quadrant>
 
   Future<void> checkRSS(BuildContext context) async {
     try {
-      http.Response res = await http.get(Uri.parse("https://blog.mrquantumoff.dev/rss/"));
+      http.Response res =
+          await http.get(Uri.parse("https://blog.mrquantumoff.dev/rss/"));
       if (res.statusCode != 200) return;
       String rawFeed = res.body;
 
