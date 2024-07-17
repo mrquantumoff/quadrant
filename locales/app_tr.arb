@@ -218,5 +218,6 @@
   "alphabet": "Alfabe",
   "downloadCount": "İndirme sayısı",
   "sourceModrinth": "Kaynak (Modrinth)",
-  "sourceCurseforge": "Kaynak (Curseforge)"
+  "sourceCurseforge": "Kaynak (Curseforge)",
+  "filterBySelectedModpack": "Filter by the currently selected"
 }

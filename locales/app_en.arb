@@ -225,5 +225,6 @@
   "alphabet": "Alphabet",
   "downloadCount": "Download count",
   "sourceModrinth": "Source (Modrinth)",
-  "sourceCurseforge": "Source (Curseforge)"
+  "sourceCurseforge": "Source (Curseforge)",
+  "filterBySelectedModpack": "Şu anda seçili olan modpack ile filtrele"
 }

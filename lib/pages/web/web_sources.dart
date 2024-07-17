@@ -1,10 +1,13 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/web/filter_mods.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'dart:convert';
@@ -166,6 +169,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
       Uri uri = Uri.parse(
         rawUri,
       );
+      debugPrint(uri.toString());
       http.Response response = await http.get(uri, headers: {
         "User-Agent": await generateUserAgent(),
         "X-API-Key": apiKey,
@@ -480,6 +484,33 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                           child: !widget.filterOn
                               ? ActionChip(
                                   onPressed: () async {
+                                    File currentModpackFile = File(
+                                        "${getMinecraftFolder().path}/mods/modConfig.json");
+                                    if (!await currentModpackFile.exists()) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            AppLocalizations.of(context)!
+                                                .chooseModpack,
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    Map modpackConfig = json.decode(
+                                      await currentModpackFile.readAsString(),
+                                    );
+                                    String name = modpackConfig["name"];
+                                    String version = modpackConfig["version"];
+                                    String api = modpackConfig["modLoader"];
+
+                                    GetStorage().writeInMemory(
+                                        "lastUsedVersion", version);
+                                    GetStorage()
+                                        .writeInMemory("lastUsedAPI", api);
+                                    GetStorage()
+                                        .writeInMemory("lastUsedModpack", name);
                                     Get.to(
                                       () => const FilterMods(),
                                       transition: Transition.topLevel,
@@ -488,6 +519,26 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                                   avatar: const Icon(Icons.filter_alt),
                                   label: Text(
                                       AppLocalizations.of(context)!.filter),
+                                )
+                              : Container(),
+                        ),
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          child: !widget.filterOn
+                              ? ActionChip(
+                                  onPressed: () async {
+                                    Get.to(
+                                      () => const WebSourcesPage(
+                                        filterOn: true,
+                                      ),
+                                      transition: Transition.topLevel,
+                                    );
+                                  },
+                                  avatar: const Icon(Icons.filter_alt_outlined),
+                                  label: Text(
+                                    AppLocalizations.of(context)!
+                                        .filterBySelectedModpack,
+                                  ),
                                 )
                               : Container(),
                         ),

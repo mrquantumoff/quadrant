@@ -218,5 +218,6 @@
   "alphabet": "Алфавіт",
   "downloadCount": "Кількість завантажень",
   "sourceModrinth": "Джерело (Modrinth)",
-  "sourceCurseforge": "Джерело (Curseforge)"
+  "sourceCurseforge": "Джерело (Curseforge)",
+  "filterBySelectedModpack": "Фільтрувати за обраним модпаком"
 }
