@@ -644,8 +644,7 @@ class _QuadrantState extends State<Quadrant>
 
   Future<void> checkRSS(BuildContext context) async {
     try {
-      http.Response res =
-          await http.get(Uri.parse("https://blog.mrquantumoff.dev/rss/"));
+      http.Response res = await http.get(Uri.parse("https://blog.mrquantumoff.dev/rss/"));
       if (res.statusCode != 200) return;
       String rawFeed = res.body;
 
@@ -674,7 +673,8 @@ class _QuadrantState extends State<Quadrant>
         }
         if (((cond1 && cond2) || cond4) &&
             cond3 &&
-            categories.contains("Minecraft Modpack Manager")) {
+            (categories.contains("Quadrant") ||
+                categories.contains("Minecraft Modpack Manager"))) {
           var newSeenItems =
               (GetStorage().read<List<dynamic>>("seenItems") ?? []);
           newSeenItems.add(item.guid!);
