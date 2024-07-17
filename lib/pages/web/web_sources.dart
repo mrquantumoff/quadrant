@@ -150,7 +150,8 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               downloadCount: downloadCount,
               source: ModSource.curseForge,
               modClass: modsClass,
-              autoInstall: widget.filterOn,
+              autoInstall: GetStorage().read("experimentalFeatures") == true &&
+                  widget.filterOn,
               thumbnailUrl: screenshots,
             ),
           );
@@ -220,7 +221,8 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               downloadCount: downloadCount,
               source: ModSource.modRinth,
               modClass: modsClass,
-              autoInstall: widget.filterOn,
+              autoInstall: GetStorage().read("experimentalFeatures") == true &&
+                  widget.filterOn,
               thumbnailUrl: screenshots,
             ),
           );
