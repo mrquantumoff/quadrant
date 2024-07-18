@@ -41,11 +41,7 @@ class _LoadingModState extends State<LoadingMod> {
       future: getMod(
         widget.modId,
         widget.source,
-        (val) => {
-          setState(
-            () {},
-          )
-        },
+        widget.setAreParentButtonsActive,
         deletable: widget.deletable,
         preVersion: widget.preVersion,
         versionShow: widget.showPreVersion,

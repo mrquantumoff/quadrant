@@ -78,7 +78,7 @@ class _UpdateModpackState extends State<UpdateModpack> {
             Container(
               margin: const EdgeInsets.symmetric(vertical: 12),
               child: FutureBuilder(
-                future: getVersions(),
+                future: getVersionsEntries(),
                 builder: ((BuildContext context, snapshot) {
                   if (snapshot.hasError) {
                     return DropdownMenu(
@@ -113,7 +113,8 @@ class _UpdateModpackState extends State<UpdateModpack> {
                       label: Text(AppLocalizations.of(context)!.chooseModpack),
                       width: 840,
                       onSelected: (dynamic newValue) async {
-                        String latestVersion = (await getVersions())[0].value;
+                        String latestVersion =
+                            (await getVersionsEntries())[0].value;
                         setState(() {
                           versionFieldController.text = latestVersion;
                           apiFieldEnabled = false;

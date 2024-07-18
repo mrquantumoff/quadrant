@@ -66,6 +66,9 @@ void main(List<String> args) async {
   );
   await trayManager.setContextMenu(menu);
 
+  // Initialize all the versions
+  await getVersions(onInit: true);
+
   // The protocol handler package only works on Windows/MacOS. Linux has a stupider implementation of protocol handling
   if (Platform.isWindows || Platform.isMacOS) {
     await protocolHandler.register('curseforge');

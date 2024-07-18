@@ -392,9 +392,6 @@ Future<Mod> getMod(
         thumbnailUrl: screenshots,
         id: resJSON["id"].toString(),
         setAreParentButtonsActive: setAreParentButtonsActive,
-        getAreParentButtonsActive: () {
-          return true;
-        },
         slug: resJSON["slug"].toString(),
         rawMod: resJSON,
         modClass: modClass,
@@ -484,9 +481,6 @@ Future<Mod> getMod(
       slug: resJSON["slug"],
       modClass: modClass,
       downloadable: downloadable,
-      getAreParentButtonsActive: () {
-        return true;
-      },
       preVersion: preVersion,
       showPreVersion: versionShow,
       versionTarget: versionTarget,
@@ -655,34 +649,10 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
       rawMod: mod,
       modClass: modClass,
       thumbnailUrl: screenshots,
-      getAreParentButtonsActive: () {
-        return true;
-      },
     );
-    Uri uri = Uri.parse(
-      'https://api.modrinth.com/v2/tag/game_version',
-    );
-    List<dynamic> vrs = json.decode((await http.get(
-      uri,
-      headers: {
-        "User-Agent": await generateUserAgent(),
-      },
-    ))
-        .body);
-    List<String> versions = [];
-    for (var v in vrs) {
-      if (v["version_type"] == "release") {
-        versions.add(v["version"].toString());
-      }
-    }
-    List<DropdownMenuEntry> versionItems = [];
-    List<DropdownMenuEntry> modpackItems = [];
 
-    for (var version in versions) {
-      versionItems.add(
-        DropdownMenuEntry(label: version.toString(), value: version),
-      );
-    }
+    List<DropdownMenuEntry> versionItems = await getVersionsEntries();
+    List<DropdownMenuEntry> modpackItems = [];
 
     List<String> modpacks = getModpacks(hideFree: false);
 
@@ -758,25 +728,41 @@ Future<MachineIdAndOS> getMachineIdAndOs() async {
       machineId: base64Url.encode(utf8.encode(machineIdUnencoded)), os: os);
 }
 
-Future<List<DropdownMenuEntry>> getVersions() async {
-  List<DropdownMenuEntry> items = [];
-  Uri uri = Uri.parse(
-    'https://api.modrinth.com/v2/tag/game_version',
-  );
-  List<dynamic> vrs = json.decode((await http.get(
-    uri,
-    headers: {
-      "User-Agent": await generateUserAgent(),
-    },
-  ))
-      .body);
+Future<List<String>> getVersions({bool onInit = false}) async {
   List<String> versions = [];
-  for (var v in vrs) {
-    if (v["version_type"] == "release") {
-      versions.add(v["version"].toString());
+
+  if (onInit) {
+    List<String> newVersions = [];
+
+    Uri uri = Uri.parse(
+      'https://api.modrinth.com/v2/tag/game_version',
+    );
+    http.Response res = await http.get(
+      uri,
+      headers: {
+        "User-Agent": await generateUserAgent(),
+      },
+    );
+    debugPrint("Minecraft versions: ${res.body}");
+    dynamic vrs = json.decode(res.body);
+
+    for (var v in vrs) {
+      if (v["version_type"] == "release") {
+        newVersions.add(v["version"].toString());
+      }
     }
+    versions = newVersions;
+    GetStorage().write("mcVersions", newVersions);
   }
 
+  versions = GetStorage().read("mcVersions") ?? versions;
+
+  return versions;
+}
+
+Future<List<DropdownMenuEntry>> getVersionsEntries() async {
+  List<DropdownMenuEntry> items = [];
+  List<String> versions = await getVersions();
   for (var version in versions) {
     items.add(
       DropdownMenuEntry(label: version.toString(), value: version),

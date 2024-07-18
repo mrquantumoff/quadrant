@@ -86,7 +86,7 @@ class _FilterModsState extends State<FilterMods> {
             Container(
               margin: const EdgeInsets.symmetric(vertical: 12),
               child: FutureBuilder(
-                future: getVersions(),
+                future: getVersionsEntries(),
                 builder: ((BuildContext context, snapshot) {
                   if (snapshot.hasError) {
                     return DropdownMenu(

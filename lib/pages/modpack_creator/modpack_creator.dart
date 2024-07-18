@@ -50,7 +50,7 @@ class _ModpackCreatorState extends State<ModpackCreator> {
 
   @override
   Widget build(BuildContext context) {
-    getVersions();
+    getVersionsEntries();
     return Scaffold(
       appBar: DraggableAppBar(
         appBar: AppBar(
@@ -83,7 +83,7 @@ class _ModpackCreatorState extends State<ModpackCreator> {
             Container(
               margin: const EdgeInsets.symmetric(vertical: 12),
               child: FutureBuilder(
-                future: getVersions(),
+                future: getVersionsEntries(),
                 builder: ((BuildContext context, snapshot) {
                   if (snapshot.hasError) {
                     return DropdownMenu(

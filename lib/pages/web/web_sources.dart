@@ -84,10 +84,6 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     });
   }
 
-  bool getAreButtonsActive() {
-    return areButtonsEnabled;
-  }
-
   Future<List<Mod>> searchMods(
       String query, ModClass modsClass, ModSource modSource) async {
     List<Mod> widgets = [];
@@ -146,7 +142,6 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               slug: slug,
               rawMod: mod,
               setAreParentButtonsActive: setAreButtonsEnabled,
-              getAreParentButtonsActive: getAreButtonsActive,
               downloadCount: downloadCount,
               source: ModSource.curseForge,
               modClass: modsClass,
@@ -217,7 +212,6 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               slug: slug,
               modIconUrl: icon,
               setAreParentButtonsActive: setAreButtonsEnabled,
-              getAreParentButtonsActive: getAreButtonsActive,
               downloadCount: downloadCount,
               source: ModSource.modRinth,
               modClass: modsClass,

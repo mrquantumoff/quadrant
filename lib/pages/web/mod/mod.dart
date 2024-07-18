@@ -10,7 +10,6 @@ import 'package:get_storage_qnt/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:quadrant/other/backend.dart';
-import 'package:quadrant/other/restart_app.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:quadrant/pages/web/mod/install_mod_page.dart';
 import 'package:quadrant/pages/web/web_sources.dart';
@@ -50,7 +49,6 @@ class Mod extends StatefulWidget {
     required this.id,
     required this.downloadCount,
     required this.setAreParentButtonsActive,
-    required this.getAreParentButtonsActive,
     required this.source,
     required this.modClass,
     required this.slug,
@@ -85,7 +83,6 @@ class Mod extends StatefulWidget {
   final List<String> thumbnailUrl;
   final Map rawMod;
   Function(bool) setAreParentButtonsActive;
-  bool Function() getAreParentButtonsActive;
 
   void install(
     BuildContext context,
@@ -487,28 +484,9 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
 
   void updateModpackInfo() async {
     try {
-      Uri uri = Uri.parse(
-        'https://api.modrinth.com/v2/tag/game_version',
-      );
-      List<dynamic> vrs = json.decode((await http.get(
-        uri,
-        headers: {
-          "User-Agent": await generateUserAgent(),
-        },
-      ))
-          .body);
-      List<String> versions = [];
-      for (var v in vrs) {
-        if (v["version_type"] == "release") {
-          versions.add(v["version"].toString());
-        }
-      }
+      List<DropdownMenuEntry> versions = await getVersionsEntries();
 
-      for (var version in versions) {
-        versionItems.add(
-          DropdownMenuEntry(label: version.toString(), value: version),
-        );
-      }
+      versionItems = versions;
 
       List<String> modpacks = getModpacks(hideFree: false);
 
@@ -720,9 +698,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                     Container(
                       margin:
                           const EdgeInsets.only(top: 8, bottom: 8, right: 8),
-                      child: widget.downloadable &&
-                              !widget.autoInstall &&
-                              widget.getAreParentButtonsActive()
+                      child: widget.downloadable && !widget.autoInstall
                           ? FilledButton.icon(
                               onPressed: () {
                                 if (GetStorage().read("experimentalFeatures")) {
@@ -796,6 +772,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                       child: widget.deletable
                           ? FilledButton.icon(
                               onPressed: () async {
+                                widget.setAreParentButtonsActive(false);
                                 try {
                                   String fileName =
                                       Uri.decodeComponent(widget.preVersion);
@@ -841,7 +818,6 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                                       context, newModConfigRaw, false);
                                 }
                                 widget.setAreParentButtonsActive(true);
-                                RestartWidget.restartApp(context);
                               },
                               icon: const Icon(Icons.delete),
                               label: Text(AppLocalizations.of(context)!.delete),
