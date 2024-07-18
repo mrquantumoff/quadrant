@@ -22,6 +22,7 @@ class _AccountDetailsState extends State<AccountDetails> {
   String reload = "account";
 
   Future<Widget> accountDetails(BuildContext context, String reload) async {
+    // Verify account details
     String accountToken = (await storage.read(key: "quadrant_id_token"))!;
 
     if (JwtDecoder.isExpired(accountToken)) {
@@ -37,6 +38,7 @@ class _AccountDetailsState extends State<AccountDetails> {
     );
 
     if (res.statusCode != 200) {
+      // If the token is not valid, log out of the account and ask the user to login again.
       debugPrint("${res.body} (${res.statusCode})");
       await storage.delete(key: "quadrant_id_token");
       RestartWidget.restartApp(context);
@@ -51,6 +53,8 @@ class _AccountDetailsState extends State<AccountDetails> {
         ],
       );
     }
+
+    // Parse the user data
     Map<String, dynamic> user = json.decode(res.body);
     String name = user["name"];
     String username = user["login"];
@@ -65,7 +69,7 @@ class _AccountDetailsState extends State<AccountDetails> {
         unreadNotifications.add(not);
       }
     }
-
+    // Display the user data
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
