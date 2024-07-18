@@ -219,5 +219,6 @@
   "downloadCount": "Кількість завантажень",
   "sourceModrinth": "Джерело (Modrinth)",
   "sourceCurseforge": "Джерело (Curseforge)",
-  "filterBySelectedModpack": "Фільтрувати за обраним модпаком"
+  "filterBySelectedModpack": "Фільтрувати за обраним модпаком",
+  "installed": "Встановлено"
 }

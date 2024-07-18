@@ -578,7 +578,20 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
     if (hide) {
       return Container();
     }
-
+    bool installable = true;
+    if (widget.autoInstall) {
+      String modpack = GetStorage().read("lastUsedModpack");
+      File modConfigFile =
+          File("${getMinecraftFolder().path}/modpacks/$modpack/modConfig.json");
+      Map modConfig = json.decode(modConfigFile.readAsStringSync());
+      List<dynamic> mods = modConfig["mods"];
+      for (dynamic mod in mods) {
+        if (mod["id"] == widget.id) {
+          installable = false;
+          break;
+        }
+      }
+    }
     return Visibility.maintain(
       child: OpenContainer(
         closedBuilder: (context, action) {
@@ -678,6 +691,15 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                     ),
                   ],
                 ),
+                widget.autoInstall
+                    ? Container(
+                        margin: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 48),
+                        child: LinearProgressIndicator(
+                          value: progressValue,
+                        ),
+                      )
+                    : Container(),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -714,27 +736,40 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                       margin:
                           const EdgeInsets.only(top: 8, bottom: 8, right: 8),
                       child: widget.downloadable && widget.autoInstall
-                          ? FilledButton.icon(
-                              onPressed: () async {
-                                String version =
-                                    GetStorage().read("lastUsedVersion");
-                                String api = GetStorage().read("lastUsedAPI");
-                                String modpack =
-                                    GetStorage().read("lastUsedModpack");
-                                widget.install(
-                                  context,
-                                  version,
-                                  api,
-                                  modpack,
-                                  widget.setAreParentButtonsActive,
-                                  apiKey,
-                                  setProgressValue: setProgressValue,
-                                );
-                              },
-                              icon: const Icon(Icons.file_download),
-                              label:
-                                  Text(AppLocalizations.of(context)!.download),
-                            )
+                          ? progressValue < 1 && installable
+                              ? FilledButton.icon(
+                                  onPressed: () async {
+                                    String version =
+                                        GetStorage().read("lastUsedVersion");
+                                    String api =
+                                        GetStorage().read("lastUsedAPI");
+                                    String modpack =
+                                        GetStorage().read("lastUsedModpack");
+                                    widget.install(
+                                      context,
+                                      version,
+                                      api,
+                                      modpack,
+                                      widget.setAreParentButtonsActive,
+                                      apiKey,
+                                      setProgressValue: setProgressValue,
+                                    );
+                                  },
+                                  icon: const Icon(Icons.file_download),
+                                  label: Text(
+                                      AppLocalizations.of(context)!.download),
+                                )
+                              : OutlinedButton.icon(
+                                  onPressed: () {},
+                                  label: Text(
+                                      AppLocalizations.of(context)!.installed),
+                                  icon: const Icon(
+                                    Icons.check_circle_outline,
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.greenAccent,
+                                  ),
+                                )
                           : null,
                     ),
                     Container(
@@ -929,11 +964,6 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                     ],
                   ),
                 ),
-                widget.autoInstall
-                    ? LinearProgressIndicator(
-                        value: progressValue,
-                      )
-                    : Container(),
               ],
             ),
           );

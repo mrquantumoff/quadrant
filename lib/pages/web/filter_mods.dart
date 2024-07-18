@@ -200,6 +200,10 @@ class _FilterModsState extends State<FilterMods> {
                 GetStorage().writeInMemory("lastUsedVersion", version);
                 GetStorage().writeInMemory("lastUsedAPI", api);
                 GetStorage().writeInMemory("lastUsedModpack", modpack);
+
+                debugPrint(
+                    "\nLast used version : $version\nLast used API: $api\nLast used modpack: $modpack\n");
+
                 Get.to(
                   () => WebSourcesPage(
                     filterOn: true,

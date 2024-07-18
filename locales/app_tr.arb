@@ -219,5 +219,6 @@
   "downloadCount": "İndirme sayısı",
   "sourceModrinth": "Kaynak (Modrinth)",
   "sourceCurseforge": "Kaynak (Curseforge)",
-  "filterBySelectedModpack": "Şu anda seçili olan modpack ile filtrele"
+  "filterBySelectedModpack": "Şu anda seçili olan modpack ile filtrele",
+  "installed": "Yüklendi"
 }

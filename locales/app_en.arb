@@ -226,5 +226,6 @@
   "downloadCount": "Download count",
   "sourceModrinth": "Source (Modrinth)",
   "sourceCurseforge": "Source (Curseforge)",
-  "filterBySelectedModpack": "Filter by the currently selected modpack"
+  "filterBySelectedModpack": "Filter by the currently selected modpack",
+  "installed": "Installed"
 }
