@@ -47,9 +47,7 @@ void main(List<String> args) async {
     shortcutPolicy: ShortcutPolicy.requireCreate,
   );
 
-  // Register a custom protocol
-  // For macOS platform needs to declare the scheme in ios/Runner/Info.plist
-
+  // Create the tray icon, required for the app to run in the background properly.
   await trayManager.setIcon(
     Platform.isWindows ? 'assets/icons/tray.ico' : 'assets/icons/tray.png',
   );
@@ -68,11 +66,12 @@ void main(List<String> args) async {
   );
   await trayManager.setContextMenu(menu);
 
+  // The protocol handler package only works on Windows/MacOS. Linux has a stupider implementation of protocol handling
   if (Platform.isWindows || Platform.isMacOS) {
     await protocolHandler.register('curseforge');
     await protocolHandler.register('quadrant');
   } else {
-    // Linux can use arguments from the cli
+    // Linux has to parse the cli input. This implementation doesn't handle multiple instances of the same window. I do want to fix this one day, but so far it's not a priority.
     for (String arg in args) {
       if (arg.startsWith("curseforge://install") ||
           arg.startsWith("quadrant://")) {
@@ -80,6 +79,8 @@ void main(List<String> args) async {
       }
     }
   }
+
+  // Make sure that the Quadrant ID login hasn't expired, and is set up properly
   const storage = FlutterSecureStorage();
   String? token = await storage.read(key: "quadrant_id_token");
   try {
@@ -96,6 +97,8 @@ void main(List<String> args) async {
   } catch (e) {
     // print(e);
   }
+
+  // Configure the application window.
   WindowOptions windowOptions = const WindowOptions(
     size: Size(1366, 768),
     center: false,
@@ -106,18 +109,12 @@ void main(List<String> args) async {
     fullScreen: false,
   );
 
-  var tempDir = await getTemporaryDirectory();
-
-  for (var file in tempDir.listSync()) {
-    if (file.path.split("/").last.split("\\").last.startsWith("modpack-") &&
-        file.path.endsWith(".zip")) {
-      file.delete();
-    }
-  }
-
+  // Prints the app version
   debugPrint(await generateUserAgent());
 
   debugPrint("$args");
+
+  // If the app is autostarted, it should be hidden in order to not disturb users.
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     if (args.contains("autostart")) {
       await windowManager.hide();
@@ -126,6 +123,8 @@ void main(List<String> args) async {
       await windowManager.focus();
     }
   });
+
+  // Setup Quadrant AutoSync
   void accountUpdate(Timer t) async {
     checkAccountUpdates();
   }
@@ -134,6 +133,8 @@ void main(List<String> args) async {
     const Duration(seconds: 10),
     accountUpdate,
   );
+
+  // Start the app
   runApp(
     const RestartWidget(
       child: MyApp(),
@@ -154,12 +155,14 @@ class _MyAppState extends State<MyApp> {
     super.initState();
   }
 
+  // The app can only be quit using the tray icon.
   Future<AppExitResponse> onExit() async {
     return AppExitResponse.cancel;
   }
 
   @override
   Widget build(BuildContext context) {
+    // Use the user's accent color
     return DynamicColorBuilder(
       builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
         return ThemeProvider(darkTheme: darkDynamic, lightTheme: lightDynamic);
@@ -185,7 +188,7 @@ class _ThemeProviderState extends State<ThemeProvider> {
   @override
   void initState() {
     super.initState();
-
+// Default to the system's locale, if the user has not overriden the default locale.
     setLocale(GetStorage().read("locale") ?? "native");
     debugPrint("Initiated $locale");
   }
@@ -194,6 +197,7 @@ class _ThemeProviderState extends State<ThemeProvider> {
     debugPrint((await getApplicationSupportDirectory()).path);
     bool hasBeenSet = false;
     for (var loc in AppLocalizations.supportedLocales) {
+      // If a specific locale is being selected, not the system locale
       if (loc.languageCode == value && value != "native") {
         GetStorage().write("locale", value);
         setState(() {
@@ -203,6 +207,7 @@ class _ThemeProviderState extends State<ThemeProvider> {
         });
       }
     }
+    // If something goes wrong default to the system locale
     if (!hasBeenSet && value != "native") {
       GetStorage().write("locale", "en");
       setState(() {
@@ -211,6 +216,7 @@ class _ThemeProviderState extends State<ThemeProvider> {
         hasBeenSet = true;
       });
     } else if (value == "native") {
+      // Get the system locale and apply it if it's available.
       final String defaultLocale = Platform.localeName
           .split("_")
           .first; // Returns locale string in the form 'en_US'
@@ -221,6 +227,7 @@ class _ThemeProviderState extends State<ThemeProvider> {
 
   @override
   Widget build(BuildContext context) {
+    // If the minecraft folder has not been overwriten, get the default minecraft folder path.
     if (GetStorage().read("minecraftFolder") == null) {
       debugPrint("Mc folder is null");
       GetStorage()
@@ -268,7 +275,6 @@ class _QuadrantState extends State<Quadrant>
   @override
   void dispose() {
     protocolHandler.removeListener(this);
-
     checkRSSTimer?.cancel();
     clearBanners?.cancel();
     pages = [];
@@ -276,11 +282,13 @@ class _QuadrantState extends State<Quadrant>
     super.dispose();
   }
 
+  // Try to get the page on which the app was closed last time.
   int currentPage = (GetStorage().read("lastPage") ?? 0) <= 3
       ? GetStorage().read("lastPage")
       : 0;
   List<Widget> pages = [];
 
+  // The amount of unread notifications
   int accountNotifications = 0;
 
   @override
@@ -288,6 +296,7 @@ class _QuadrantState extends State<Quadrant>
     trayManager.addListener(this);
     super.initState();
 
+    // This checks for account updates while the app is in the foreground.
     checkAccountTimer = Timer.periodic(
       const Duration(seconds: 10),
       (Timer t) async {
@@ -298,6 +307,7 @@ class _QuadrantState extends State<Quadrant>
         }
       },
     );
+    // Checks for news related to Quadrant
     checkRSSTimer = Timer.periodic(
       const Duration(seconds: 180),
       (Timer t) async {
@@ -307,7 +317,8 @@ class _QuadrantState extends State<Quadrant>
         await checkRSS(context);
       },
     );
-    clearBanners = Timer.periodic(const Duration(seconds: 15), (Timer t) async {
+    // Clear banners that are no longer required
+    clearBanners = Timer.periodic(const Duration(seconds: 5), (Timer t) async {
       await clearUselessBanners();
     });
 
@@ -327,12 +338,13 @@ class _QuadrantState extends State<Quadrant>
 
   @override
   void onTrayIconRightMouseDown() async {
-    // do something, for example pop up the menu
+    // Show the context menu
     await trayManager.popUpContextMenu();
   }
 
   @override
   void onTrayIconMouseDown() async {
+    // Show the window
     await windowManager.show();
     await windowManager.focus();
     await windowManager.center();
@@ -340,19 +352,13 @@ class _QuadrantState extends State<Quadrant>
 
   @override
   void onTrayMenuItemClick(MenuItem menuItem) async {
-    if (menuItem.key == 'show_window') {
-      windowManager.focus();
-    } else if (menuItem.key == 'exit_app') {
-      exit(0);
-    }
     switch (menuItem.key) {
       case "show_window":
         windowManager.show();
         windowManager.focus();
         break;
       case "exit_app":
-        windowManager.close();
-        break;
+        exit(0);
     }
   }
 
@@ -369,12 +375,15 @@ class _QuadrantState extends State<Quadrant>
 
     Uri uri = Uri.parse(url);
     try {
+      // Handle curseforge mods installation
       if (url.startsWith("curseforge://")) {
         // Example: curseforge://install?addonId=238222&fileId=4473386
         int modId = int.parse(uri.queryParameters["addonId"]!);
         int fileId = int.parse(uri.queryParameters["fileId"]!);
         installModByProtocol(modId, fileId, protocolFail);
-      } else if (url.startsWith("quadrant://modrinthopen")) {
+      }
+      // Handle modrinth mod installation
+      else if (url.startsWith("quadrant://modrinthopen")) {
         // Example: quadrant://modrinthopen?id=AANobbMI
         String id = uri.queryParameters["id"]!;
         Mod mod = await getMod(id, ModSource.modRinth, (val) => null);
@@ -421,7 +430,9 @@ class _QuadrantState extends State<Quadrant>
           preventDuplicates: false,
           transition: Transition.upToDown,
         );
-      } else if (url.startsWith("quadrant://login")) {
+      }
+      // Handle login requests
+      else if (url.startsWith("quadrant://login")) {
         // Example: quadrant://login?code=AANobbMI
         String code = uri.queryParameters["code"]!;
         String state = uri.queryParameters["state"]!;
@@ -436,6 +447,7 @@ class _QuadrantState extends State<Quadrant>
           exit(1);
         }
 
+        // Get a token from Quadrant ID
         http.Response res = await http.post(
           Uri.parse(
               "https://api.mrquantumoff.dev/api/v3/account/oauth2/token/access"),
@@ -457,11 +469,10 @@ class _QuadrantState extends State<Quadrant>
               content: Text(AppLocalizations.of(context)!.invalidData),
             ),
           );
-          exit(2);
         }
         String token = jsonDecode(res.body)["access_token"];
         String scope = jsonDecode(res.body)["scope"];
-
+        // Verify the scopes that are granted by the API
         if (!scope.contains("user_data") ||
             !scope.contains("quadrant_sync") ||
             !scope.contains("notifications")) {
@@ -471,7 +482,6 @@ class _QuadrantState extends State<Quadrant>
               content: Text(AppLocalizations.of(context)!.invalidData),
             ),
           );
-          exit(3);
         }
 
         const storage = FlutterSecureStorage();
@@ -479,7 +489,7 @@ class _QuadrantState extends State<Quadrant>
           return;
         }
         await storage.write(key: "quadrant_id_token", value: token);
-
+        // Move the user to the Quadrant ID page
         setState(() {
           currentPage = 4;
           GetStorage().write("lastPage", 4);
@@ -492,6 +502,7 @@ class _QuadrantState extends State<Quadrant>
   }
 
   void protocolFail() {
+    // If something goes wrong the Protocol Handler
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         duration: const Duration(seconds: 1),
@@ -500,26 +511,6 @@ class _QuadrantState extends State<Quadrant>
     );
   }
 
-  // void checkConnectivity(
-  //     ConnectivityResult connectivityResult, BuildContext context) async {
-  //   if (connectivityResult == ConnectivityResult.wifi ||
-  //       connectivityResult == ConnectivityResult.ethernet) {
-  //     return;
-  //   }
-  //   showDialog(
-  //     context: context,
-  //     builder: (BuildContext context) {
-  //       return AlertDialog(
-  //         title: Text(
-  //           AppLocalizations.of(context)!.noConnectivity,
-  //         ),
-  //         content: Text(
-  //           AppLocalizations.of(context)!.noConnectivityDetailed,
-  //         ),
-  //       );
-  //     },
-  //   );
-  // }
   bool areAnyUpdates = false;
   bool areAnyNews = false;
 
@@ -529,12 +520,14 @@ class _QuadrantState extends State<Quadrant>
     if (token == null) {
       return;
     }
+    // Grt the latest Quadrant Sync data
     http.Response res = await http.get(
         Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/sync/get"),
         headers: {
           "User-Agent": await generateUserAgent(),
           "Authorization": "Bearer $token"
         });
+    // Get the latest Quadrant ID notifications
     http.Response userInfoRes = await http.get(
       Uri.parse("https://api.mrquantumoff.dev/api/v3/account/info/get"),
       headers: {
@@ -559,13 +552,14 @@ class _QuadrantState extends State<Quadrant>
     List<dynamic> notifications = userInfo["notifications"];
     accountNotifications = 0;
     for (dynamic notification in notifications) {
+      // Add unread notifications
       if (notification["read"] == false) {
         setState(() {
           accountNotifications = accountNotifications + 1;
         });
       }
     }
-
+// Check for Quadrant Sync updates
     List<SyncedModpack> syncedModpacks = [];
     List<dynamic> data = json.decode(res.body);
     for (var modpack in data) {
@@ -590,6 +584,7 @@ class _QuadrantState extends State<Quadrant>
 
     List<String> localModpacks = getModpacks();
     List<SyncedModpack> localSyncedModpacks = [];
+    // Check which local modpacks correspond to cloud modpacks, and if there any of them that are not synced properly, notify the user
     for (SyncedModpack modpack in syncedModpacks) {
       if (localModpacks.contains(modpack.name)) {
         localSyncedModpacks.add(modpack);
@@ -653,6 +648,7 @@ class _QuadrantState extends State<Quadrant>
       var feed = RssFeed.parse(rawFeed);
       List<RssItem> items = feed.items;
       // items = items.reversed.toList();
+      // If there is an item that is less than 2 weeks old, has not been displayed yet, and is tagged with Quadrant, display it.
       for (var item in items) {
         // debugPrint(item.title);
         List<String> categories = [];
@@ -681,6 +677,7 @@ class _QuadrantState extends State<Quadrant>
               (GetStorage().read<List<dynamic>>("seenItems") ?? []);
           newSeenItems.add(item.guid!);
           GetStorage().write("seenItems", newSeenItems);
+          // If the user chose the Quadrant news to be silent
           if (GetStorage().read("silentNews") == true) {
             areAnyNews = true;
             ScaffoldMessenger.of(context).showMaterialBanner(
@@ -736,6 +733,7 @@ class _QuadrantState extends State<Quadrant>
     }
   }
 
+  // If the user doesn't have telemetry enabled, remind them about the features they're missing out on.
   void checkDataCollection(BuildContext context) async {
     if (GetStorage().read("collectUserData") == true ||
         GetStorage().read("dontShowTelemetryRecommendation") == true) {
@@ -780,6 +778,7 @@ class _QuadrantState extends State<Quadrant>
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Initialize all the checks.
       try {
         checkDataCollection(context);
         checkRSS(context);
@@ -792,7 +791,7 @@ class _QuadrantState extends State<Quadrant>
         debugPrint("Failed to check for something: $e");
       }
     });
-
+    // Handle linux protocol handling
     if (GetStorage().read("protocolArgument") != null && Platform.isLinux) {
       debugPrint("Protocol received");
       onProtocolUrlReceived(
@@ -832,7 +831,7 @@ class _QuadrantState extends State<Quadrant>
                 label: Text(AppLocalizations.of(context)!.web),
               ),
               NavigationRailDestination(
-                icon: const Icon(Icons.import_export_rounded),
+                icon: const Icon(Icons.sync_rounded),
                 label: Text(AppLocalizations.of(context)!.importMods),
               ),
               NavigationRailDestination(
