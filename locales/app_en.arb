@@ -227,5 +227,6 @@
   "sourceModrinth": "Source (Modrinth)",
   "sourceCurseforge": "Source (Curseforge)",
   "filterBySelectedModpack": "Filter by the currently selected modpack",
-  "installed": "Installed"
+  "installed": "Installed",
+  "failedToDelete": "Failed to delete your mod ({reason})"
 }

@@ -486,35 +486,39 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
   List<DropdownMenuEntry> modpackItems = [];
 
   void updateModpackInfo() async {
-    Uri uri = Uri.parse(
-      'https://api.modrinth.com/v2/tag/game_version',
-    );
-    List<dynamic> vrs = json.decode((await http.get(
-      uri,
-      headers: {
-        "User-Agent": await generateUserAgent(),
-      },
-    ))
-        .body);
-    List<String> versions = [];
-    for (var v in vrs) {
-      if (v["version_type"] == "release") {
-        versions.add(v["version"].toString());
+    try {
+      Uri uri = Uri.parse(
+        'https://api.modrinth.com/v2/tag/game_version',
+      );
+      List<dynamic> vrs = json.decode((await http.get(
+        uri,
+        headers: {
+          "User-Agent": await generateUserAgent(),
+        },
+      ))
+          .body);
+      List<String> versions = [];
+      for (var v in vrs) {
+        if (v["version_type"] == "release") {
+          versions.add(v["version"].toString());
+        }
       }
-    }
 
-    for (var version in versions) {
-      versionItems.add(
-        DropdownMenuEntry(label: version.toString(), value: version),
-      );
-    }
+      for (var version in versions) {
+        versionItems.add(
+          DropdownMenuEntry(label: version.toString(), value: version),
+        );
+      }
 
-    List<String> modpacks = getModpacks(hideFree: false);
+      List<String> modpacks = getModpacks(hideFree: false);
 
-    for (var modpack in modpacks) {
-      modpackItems.add(
-        DropdownMenuEntry(label: modpack, value: modpack),
-      );
+      for (var modpack in modpacks) {
+        modpackItems.add(
+          DropdownMenuEntry(label: modpack, value: modpack),
+        );
+      }
+    } catch (e) {
+      debugPrint(e.toString());
     }
   }
 
@@ -564,7 +568,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
         ? widget.name.replaceRange(24, null, "...")
         : widget.name;
 
-    // If there are new lines in the description we hide theme
+    // If there are new lines in the description we hide them
     desc = desc.contains("\n") ? "${desc.split("\n").first}..." : desc;
 
     bool isNewVersionUrl = widget.newVersionUrl.trim().isEmpty;
@@ -582,21 +586,24 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
     bool installable = true;
 
     String modpack = GetStorage().read("lastUsedModpack") ?? "";
-    File modConfigFile =
-        File("${getMinecraftFolder().path}/modpacks/$modpack/modConfig.json");
-    if (!widget.autoInstall) {
-      modConfigFile = File("${getMinecraftFolder().path}/mods/modConfig.json");
-    }
-    if (modConfigFile.existsSync()) {
-      Map modConfig = json.decode(modConfigFile.readAsStringSync());
-      List<dynamic> mods = modConfig["mods"];
-      for (dynamic mod in mods) {
-        if (mod["id"] == widget.id) {
-          installable = false;
-          break;
+    try {
+      File modConfigFile =
+          File("${getMinecraftFolder().path}/modpacks/$modpack/modConfig.json");
+      if (!widget.autoInstall) {
+        modConfigFile =
+            File("${getMinecraftFolder().path}/mods/modConfig.json");
+      }
+      if (modConfigFile.existsSync()) {
+        Map modConfig = json.decode(modConfigFile.readAsStringSync());
+        List<dynamic> mods = modConfig["mods"];
+        for (dynamic mod in mods) {
+          if (mod["id"] == widget.id) {
+            installable = false;
+            break;
+          }
         }
       }
-    }
+    } catch (e) {}
 
     return Visibility.maintain(
       child: OpenContainer(
@@ -789,10 +796,28 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                       child: widget.deletable
                           ? FilledButton.icon(
                               onPressed: () async {
-                                File modFile = File(
-                                    "${getMinecraftFolder().path}/modpacks/${widget.modpackToUpdate}/${widget.preVersion}");
-                                if (await modFile.exists()) {
-                                  await modFile.delete();
+                                try {
+                                  String fileName =
+                                      Uri.decodeComponent(widget.preVersion);
+                                  File modFile = File(
+                                      "${getMinecraftFolder().path}/modpacks/${widget.modpackToUpdate}/$fileName");
+                                  debugPrint(modFile.path);
+                                  if (await modFile.exists()) {
+                                    await modFile.delete(recursive: true);
+                                  }
+                                } catch (e) {
+                                  debugPrint(e.toString());
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        AppLocalizations.of(context)!
+                                            .failedToDelete(
+                                          e.toString(),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                  return;
                                 }
                                 File modConfigFile = File(
                                     "${getMinecraftFolder().path}/modpacks/${widget.modpackToUpdate}/modConfig.json");

@@ -528,13 +528,15 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                                     GetStorage()
                                         .writeInMemory("lastUsedModpack", name);
                                     Get.to(
-                                      () => const FilterMods(),
+                                      () => const WebSourcesPage(
+                                        filterOn: true,
+                                      ),
                                       transition: Transition.topLevel,
                                     );
                                   },
                                   avatar: const Icon(Icons.filter_alt),
-                                  label: Text(
-                                      AppLocalizations.of(context)!.filter),
+                                  label: Text(AppLocalizations.of(context)!
+                                      .filterBySelectedModpack),
                                 )
                               : Container(),
                         ),
@@ -544,16 +546,13 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
                               ? ActionChip(
                                   onPressed: () async {
                                     Get.to(
-                                      () => const WebSourcesPage(
-                                        filterOn: true,
-                                      ),
+                                      () => const FilterMods(),
                                       transition: Transition.topLevel,
                                     );
                                   },
                                   avatar: const Icon(Icons.filter_alt_outlined),
                                   label: Text(
-                                    AppLocalizations.of(context)!
-                                        .filterBySelectedModpack,
+                                    AppLocalizations.of(context)!.filter,
                                   ),
                                 )
                               : Container(),
