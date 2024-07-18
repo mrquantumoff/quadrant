@@ -53,6 +53,7 @@ class _EditDetailsState extends State<EditDetails> {
   }
 
   Future<Widget> editAccount(BuildContext context) async {
+    // Verify the account token
     String accountToken = (await storage.read(key: "quadrant_id_token"))!;
 
     if (JwtDecoder.isExpired(accountToken)) {
@@ -71,6 +72,7 @@ class _EditDetailsState extends State<EditDetails> {
       await storage.delete(key: "quadrant_id_token");
       RestartWidget.restartApp(context);
     } else if (res.statusCode != 200) {
+      // If the API returns a result different from 403, something else must be wrong.
       debugPrint(res.statusCode as String?);
 
       return Column(
@@ -84,6 +86,8 @@ class _EditDetailsState extends State<EditDetails> {
         ],
       );
     }
+
+    // Parse the existing user details
     Map<String, dynamic> user = json.decode(res.body);
 
     // debugPrint(accountToken);
@@ -196,8 +200,8 @@ class _EditDetailsState extends State<EditDetails> {
             children: [
               FilledButton.tonal(
                 onPressed: () async {
-                  launchUrlString(
-                      "https://mrquantumoff.dev/account?quadrant_id_token=$accountToken");
+                  // If the user wants to edit details, such as 2FA, or delete their account, they must do it from the Quadrant ID website.
+                  launchUrlString("https://mrquantumoff.dev/account");
                 },
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -226,6 +230,9 @@ class _EditDetailsState extends State<EditDetails> {
                           "password": oldPasswordController.text,
                           "reset_sessions": resetSessions
                         };
+                        // Add all the updated fields
+
+                        // Password
                         if (newPasswordController.text != "" &&
                             newPasswordController.text ==
                                 confirmNewPasswordController.text) {
@@ -247,17 +254,21 @@ class _EditDetailsState extends State<EditDetails> {
                           return;
                         }
 
+                        // Display name
                         if (name != nameController.text) {
                           requestBody.addAll({
                             "name": nameController.text,
                           });
                         }
+
+                        // Username
                         if (username != usernameController.text) {
                           requestBody.addAll({
                             "login": usernameController.text,
                           });
                         }
 
+                        // Try to update the user data
                         http.Response res = await http.patch(
                           Uri.parse(
                               "https://api.mrquantumoff.dev/api/v3/account/data/update"),
@@ -279,6 +290,7 @@ class _EditDetailsState extends State<EditDetails> {
                           return;
                         }
                         if (resetSessions) {
+                          // If the user wanted the sessions to be reset, it means that the current session will be invalid too.
                           await storage.delete(key: "quadrant_id_token");
                           Get.back();
                         }
