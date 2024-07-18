@@ -240,13 +240,11 @@ class _ThemeProviderState extends State<ThemeProvider> {
         useMaterial3: true,
         colorScheme: (widget.darkTheme ?? const ColorScheme.dark()),
         appBarTheme: const AppBarTheme(surfaceTintColor: Colors.transparent),
-        splashColor: Colors.black,
       ),
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: (widget.lightTheme ?? const ColorScheme.light()),
         appBarTheme: const AppBarTheme(surfaceTintColor: Colors.transparent),
-        splashColor: Colors.black,
       ),
     );
   }

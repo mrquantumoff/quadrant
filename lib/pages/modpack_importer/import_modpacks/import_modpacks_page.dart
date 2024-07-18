@@ -135,8 +135,12 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
             source = ModSource.online;
           }
           if (source == ModSource.curseForge || source == ModSource.modRinth) {
-            LoadingMod mod =
-                LoadingMod(modId: id, source: source, downloadable: false);
+            LoadingMod mod = LoadingMod(
+              modId: id,
+              source: source,
+              downloadable: false,
+              setAreParentButtonsActive: (p0) {},
+            );
             newMods.add(mod);
           }
           if (source == ModSource.online) {

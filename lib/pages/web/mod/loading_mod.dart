@@ -8,6 +8,7 @@ class LoadingMod extends StatefulWidget {
     super.key,
     required this.modId,
     required this.source,
+    required this.setAreParentButtonsActive,
     this.downloadable = true,
     this.showPreVersion = false,
     this.deletable = false,
@@ -27,6 +28,7 @@ class LoadingMod extends StatefulWidget {
   String versionTarget = "";
   String modLoader = "Forge";
   String modpack = "free";
+  Function(bool) setAreParentButtonsActive;
 
   @override
   State<LoadingMod> createState() => _LoadingModState();

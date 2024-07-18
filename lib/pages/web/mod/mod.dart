@@ -10,6 +10,7 @@ import 'package:get_storage_qnt/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:quadrant/other/backend.dart';
+import 'package:quadrant/other/restart_app.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
 import 'package:quadrant/pages/web/mod/install_mod_page.dart';
 import 'package:quadrant/pages/web/web_sources.dart';
@@ -805,6 +806,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                                       context, newModConfigRaw, false);
                                 }
                                 widget.setAreParentButtonsActive(true);
+                                RestartWidget.restartApp(context);
                               },
                               icon: const Icon(Icons.delete),
                               label: Text(AppLocalizations.of(context)!.delete),

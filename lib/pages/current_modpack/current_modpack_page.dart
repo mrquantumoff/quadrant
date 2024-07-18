@@ -17,9 +17,24 @@ class CurrentModpackPage extends StatefulWidget {
 }
 
 class _CurrentModpackPageState extends State<CurrentModpackPage> {
+  late bool buttonsActive;
+
+  void setButtonsActive(bool newValue) {
+    setState(() {
+      buttonsActive = newValue;
+    });
+  }
+
   @override
   void initState() {
+    buttonsActive = true;
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    buttonsActive = false;
+    super.dispose();
   }
 
   void getCurrentModpack() {
@@ -37,7 +52,7 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
     });
   }
 
-  Future<List<LoadingMod>> fetchMods() async {
+  Future<List<LoadingMod>> fetchMods(bool buttonsActive) async {
     List<dynamic> rawMods = currentModpack["mods"] ?? [];
     // rawMods.sort();
     List<LoadingMod> mods = [];
@@ -59,6 +74,7 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
         modpack: currentModpack["name"],
         preVersion: rawMod["downloadUrl"].toString().split("/").last,
         deletable: true,
+        setAreParentButtonsActive: setButtonsActive,
       );
       mods.add(mod);
       // debugPrint(mod.id);
@@ -96,7 +112,7 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
       ),
       body: Center(
         child: FutureBuilder(
-          future: fetchMods(),
+          future: fetchMods(buttonsActive),
           builder: ((context, snapshot) {
             if (snapshot.hasData) {
               return GridView.extent(
