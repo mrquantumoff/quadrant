@@ -580,10 +580,14 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
       return Container();
     }
     bool installable = true;
-    if (widget.autoInstall) {
-      String modpack = GetStorage().read("lastUsedModpack");
-      File modConfigFile =
-          File("${getMinecraftFolder().path}/modpacks/$modpack/modConfig.json");
+
+    String modpack = GetStorage().read("lastUsedModpack") ?? "";
+    File modConfigFile =
+        File("${getMinecraftFolder().path}/modpacks/$modpack/modConfig.json");
+    if (!widget.autoInstall) {
+      modConfigFile = File("${getMinecraftFolder().path}/mods/modConfig.json");
+    }
+    if (modConfigFile.existsSync()) {
       Map modConfig = json.decode(modConfigFile.readAsStringSync());
       List<dynamic> mods = modConfig["mods"];
       for (dynamic mod in mods) {
@@ -593,6 +597,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
         }
       }
     }
+
     return Visibility.maintain(
       child: OpenContainer(
         closedBuilder: (context, action) {
@@ -727,9 +732,14 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                                   );
                                 }
                               },
-                              icon: const Icon(Icons.file_download),
-                              label:
-                                  Text(AppLocalizations.of(context)!.download),
+                              icon: installable
+                                  ? const Icon(Icons.download)
+                                  : const Icon(Icons.check_circle_outline),
+                              label: Text(
+                                installable
+                                    ? AppLocalizations.of(context)!.download
+                                    : AppLocalizations.of(context)!.installed,
+                              ),
                             )
                           : null,
                     ),
