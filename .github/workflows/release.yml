@@ -102,7 +102,7 @@ jobs:
         if: matrix.platform == 'macos-latest'
         run: |
           flutter pub get
-          flutter build macos --release --buld-number ${{github.run_number}} --split-debug-info --obfuscate --dart-define QUADRANT_OAUTH2_CLIENT_SECRET='${{secrets.CLIENT_SECRET}}' --dart-define QUADRANT_OAUTH2_CLIENT_ID='${{secrets.CLIENT_ID}}' --dart-define QUADRANT_QNT_API_KEY='${{secrets.QUADRANT_QNT_API_KEY}}' --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
+          flutter build macos --release --build-number ${{github.run_number}} --split-debug-info --obfuscate --dart-define QUADRANT_OAUTH2_CLIENT_SECRET='${{secrets.CLIENT_SECRET}}' --dart-define QUADRANT_OAUTH2_CLIENT_ID='${{secrets.CLIENT_ID}}' --dart-define QUADRANT_QNT_API_KEY='${{secrets.QUADRANT_QNT_API_KEY}}' --dart-define ETERNAL_API_KEY='${{ secrets.ETERNAL_API_KEY }}'
           tar -czvf macOSBuild.tar.gz build/macos/Build/Products/Release/Quadrant.app
           # For future use
           # pkgbuild --install-location /Applications --component "./build/macos/Build/Products/Release/Minecraft Modpack Manager Reborn.app" ./mcmodpackmanagerMacOS.pkg --identifier dev.mrquantumoff.mcmodpackmanager
