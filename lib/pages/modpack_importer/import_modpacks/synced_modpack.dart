@@ -64,6 +64,19 @@ class _SyncedModpackState extends State<SyncedModpack> {
       }
     }
 
+    Future<dynamic> getOwners() async {
+      http.Response res = await http.get(
+        Uri.parse(
+            "https://api.mrquantumoff.dev/api/v3/quadrant/sync/get?show_owners=true&modpack_id=${widget.modpackId}"),
+        headers: {
+          "User-Agent": await generateUserAgent(),
+          "Authorization": "Bearer ${widget.token}"
+        },
+      );
+
+      return res;
+    }
+
     return Card(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 24),
@@ -185,18 +198,7 @@ class _SyncedModpackState extends State<SyncedModpack> {
                   Container(
                     margin: const EdgeInsets.only(left: 32),
                     child: FutureBuilder(
-                      future: () async {
-                        http.Response res = await http.get(
-                          Uri.parse(
-                              "https://api.mrquantumoff.dev/api/v3/quadrant/sync/get?show_owners=true&modpack_id=${widget.modpackId}"),
-                          headers: {
-                            "User-Agent": await generateUserAgent(),
-                            "Authorization": "Bearer ${widget.token}"
-                          },
-                        );
-
-                        return res;
-                      }(),
+                      future: getOwners(),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
                           return const Center(
