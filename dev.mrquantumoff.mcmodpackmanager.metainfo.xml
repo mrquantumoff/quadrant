@@ -51,6 +51,7 @@
         <p>Added automatically installing mods, when filters are on (experimental)</p>
         <p>Avoid losing your old mods folder after applying your first modpack</p>
         <p>As a part of the experimental features, you can now install mods without opening thee install mod page, when you have a filter on.</p>
+        <p>QoL improvements</p>
         <p>Bug fixes</p>
       </description>
     </release>
