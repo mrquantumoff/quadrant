@@ -163,10 +163,7 @@ class _ModpackCreatorState extends State<ModpackCreator> {
                     String modpackName = modpackFieldController.text;
                     Directory modpackDir = Directory(
                         "${getMinecraftFolder().path}/modpacks/$oldModpackName");
-                    if ((await modpackDir.exists() && !widget.update) ||
-                        (Directory("${getMinecraftFolder().path}/modpacks/$modpackName")
-                                .existsSync() &&
-                            widget.update)) {
+                    if ((await modpackDir.exists() && !widget.update)) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -194,6 +191,7 @@ class _ModpackCreatorState extends State<ModpackCreator> {
                             .replaceAll(oldModpackName, modpackName));
                       }
                     }
+
                     List<dynamic> mods = [];
                     File indexFile = File("${modpackDir.path}/modConfig.json");
                     if (widget.update) {
@@ -216,6 +214,14 @@ class _ModpackCreatorState extends State<ModpackCreator> {
                     await indexFile.writeAsString(
                       json.encode(modConfig),
                     );
+                    if (widget.update) {
+                      File quadrantSyncFile = File(
+                          "${getMinecraftFolder().path}/modpacks/$modpackName/quadrantSync.json");
+                      if (await quadrantSyncFile.exists()) {
+                        await syncModpack(
+                            context, json.encode(modConfig), false);
+                      }
+                    }
                     Get.back();
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
