@@ -215,8 +215,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
               downloadCount: downloadCount,
               source: ModSource.modRinth,
               modClass: modsClass,
-              autoInstall: GetStorage().read("experimentalFeatures") == true &&
-                  widget.filterOn,
+              autoInstall: widget.filterOn,
               thumbnailUrl: screenshots,
             ),
           );
