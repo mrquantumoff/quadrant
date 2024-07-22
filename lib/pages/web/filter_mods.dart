@@ -197,6 +197,16 @@ class _FilterModsState extends State<FilterMods> {
                 String api = apiFieldController.value.text;
                 String modpack = modpackFieldController.value.text;
 
+                if (modpack.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content:
+                          Text(AppLocalizations.of(context)!.chooseModpack),
+                    ),
+                  );
+                  return;
+                }
+
                 GetStorage().writeInMemory("lastUsedVersion", version);
                 GetStorage().writeInMemory("lastUsedAPI", api);
                 GetStorage().writeInMemory("lastUsedModpack", modpack);
