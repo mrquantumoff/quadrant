@@ -42,6 +42,13 @@
   </branding>
 
   <releases>
+
+    <release date="2024-07-22" version="24.8.0">
+      <description>
+        <p>Bug fixes</p>
+      </description>
+    </release>
+
     <release date="2024-07-22" version="24.8.0">
       <description>
         <p>Redesigned mod install page</p>
