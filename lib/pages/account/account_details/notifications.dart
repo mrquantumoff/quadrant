@@ -94,12 +94,14 @@ class _NotificationState extends State<Notification> {
                           "accept": true,
                         }),
                       );
-                      debugPrint("${res.body} (${res.statusCode})");
+                      debugPrint(
+                          "${utf8.decode(res.bodyBytes)} (${res.statusCode})");
                       if (res.statusCode != 200) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: SnackBar(
-                              content: Text("${res.body} (${res.statusCode})"),
+                              content: Text(
+                                  "${utf8.decode(res.bodyBytes)} (${res.statusCode})"),
                             ),
                           ),
                         );
@@ -119,14 +121,15 @@ class _NotificationState extends State<Notification> {
                           },
                         ),
                       );
-                      debugPrint("${readRes.body} (${readRes.statusCode})");
+                      debugPrint(
+                          "${utf8.decode(readRes.bodyBytes)} (${readRes.statusCode})");
 
                       if (readRes.statusCode != 200) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: SnackBar(
                               content: Text(
-                                  "${readRes.body} (${readRes.statusCode})"),
+                                  "${utf8.decode(readRes.bodyBytes)} (${readRes.statusCode})"),
                             ),
                           ),
                         );
@@ -155,12 +158,14 @@ class _NotificationState extends State<Notification> {
                           "accept": false,
                         }),
                       );
-                      debugPrint("${res.body} (${res.statusCode})");
+                      debugPrint(
+                          "${utf8.decode(res.bodyBytes)} (${res.statusCode})");
                       if (res.statusCode != 200) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: SnackBar(
-                              content: Text("${res.body} (${res.statusCode})"),
+                              content: Text(
+                                  "${utf8.decode(res.bodyBytes)} (${res.statusCode})"),
                             ),
                           ),
                         );
@@ -180,14 +185,15 @@ class _NotificationState extends State<Notification> {
                           },
                         ),
                       );
-                      debugPrint("${readRes.body} (${readRes.statusCode})");
+                      debugPrint(
+                          "${utf8.decode(readRes.bodyBytes)} (${readRes.statusCode})");
 
                       if (readRes.statusCode != 200) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: SnackBar(
                               content: Text(
-                                  "${readRes.body} (${readRes.statusCode})"),
+                                  "${utf8.decode(readRes.bodyBytes)} (${readRes.statusCode})"),
                             ),
                           ),
                         );
@@ -239,17 +245,17 @@ class _NotificationState extends State<Notification> {
                                   "notification_id": widget.notificationId,
                                 }),
                               );
-                              debugPrint(res.body);
+                              debugPrint(utf8.decode(res.bodyBytes));
                               if (res.statusCode == 200) {
                                 setState(() {
                                   read = true;
                                 });
-                                widget.setReload(res.body);
+                                widget.setReload(utf8.decode(res.bodyBytes));
                                 Get.back();
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text(res.body),
+                                    content: Text(utf8.decode(res.bodyBytes)),
                                   ),
                                 );
                               }
@@ -300,12 +306,12 @@ class _NotificationsState extends State<Notifications> {
               "Authorization": "Bearer ${widget.token}",
             },
           );
-          debugPrint(res.body);
+          debugPrint(utf8.decode(res.bodyBytes));
           if (res.statusCode == 200) {
-            return res.body;
+            return utf8.decode(res.bodyBytes);
           }
 
-          throw Exception(res.body);
+          throw Exception(utf8.decode(res.bodyBytes));
         }(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {

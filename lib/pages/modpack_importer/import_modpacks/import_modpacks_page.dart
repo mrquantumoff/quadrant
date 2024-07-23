@@ -189,9 +189,9 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
         });
 
     if (res.statusCode != 200) {
-      throw Exception(res.body);
+      throw Exception(utf8.decode(res.bodyBytes));
     }
-    List<dynamic> data = json.decode(res.body);
+    List<dynamic> data = json.decode(utf8.decode(res.bodyBytes));
 
     if (data.isEmpty) {
       return await getSyncedModpacks(reload);
@@ -256,7 +256,7 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   const Icon(Icons.error),
-                                  Text(res.body)
+                                  Text(utf8.decode(res.bodyBytes))
                                 ],
                               ),
                             ),
@@ -297,12 +297,12 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
         });
 
     if (res.statusCode != 200) {
-      throw Exception(res.body);
+      throw Exception(utf8.decode(res.bodyBytes));
     }
     List<SyncedModpack> syncedModpacks = [];
-    List<dynamic> data = json.decode(res.body);
+    List<dynamic> data = json.decode(utf8.decode(res.bodyBytes));
 
-    debugPrint(res.body);
+    debugPrint(utf8.decode(res.bodyBytes));
 
     http.Response userInfoRes = await http.get(
       Uri.parse("https://api.mrquantumoff.dev/api/v3/account/info/get"),
@@ -311,10 +311,10 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
         "Authorization": "Bearer $token"
       },
     );
-    Map userInfo = json.decode(userInfoRes.body);
+    Map userInfo = json.decode(utf8.decode(userInfoRes.bodyBytes));
 
     if (userInfoRes.statusCode != 200) {
-      throw Exception(res.body);
+      throw Exception(utf8.decode(userInfoRes.bodyBytes));
     }
 
     for (var modpack in data) {
@@ -498,7 +498,8 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
                                           });
                                           return;
                                         }
-                                        var decoded = json.decode(res.body);
+                                        var decoded = json
+                                            .decode(utf8.decode(res.bodyBytes));
                                         debugPrint(decoded["mod_config"]);
 
                                         getMods(

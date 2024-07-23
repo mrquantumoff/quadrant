@@ -213,7 +213,7 @@ class _SyncedModpackState extends State<SyncedModpack> {
                           );
                         }
                         List<dynamic> modpackRaw =
-                            json.decode(snapshot.data!.body);
+                            json.decode(utf8.decode(snapshot.data!.bodyBytes));
                         Map modpack = modpackRaw[0];
                         List<dynamic> owners = modpack["owners"];
                         String modpackId = modpack["modpack_id"];

@@ -143,7 +143,7 @@ class Mod extends StatefulWidget {
         "User-Agent": await generateUserAgent(),
         "X-API-Key": apiKey,
       });
-      Map responseJson = json.decode(response.body);
+      Map responseJson = json.decode(utf8.decode(response.bodyBytes));
       if (installFileId == null) {
         if ((responseJson["data"] as List<dynamic>) == []) {
           setAreButtonsActive(true);
@@ -314,7 +314,7 @@ class Mod extends StatefulWidget {
       http.Response response = await http.get(getFilesUri, headers: {
         "User-Agent": await generateUserAgent(),
       });
-      dynamic responseJson = json.decode(response.body);
+      dynamic responseJson = json.decode(utf8.decode(response.bodyBytes));
       debugPrint(responseJson.toString());
       List<ModFile> fileMod = [];
 

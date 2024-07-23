@@ -82,13 +82,13 @@ class _EditDetailsState extends State<EditDetails> {
           Text(
             AppLocalizations.of(context)!.unknown,
           ),
-          Text(res.body),
+          Text(utf8.decode(res.bodyBytes)),
         ],
       );
     }
 
     // Parse the existing user details
-    Map<String, dynamic> user = json.decode(res.body);
+    Map<String, dynamic> user = json.decode(utf8.decode(res.bodyBytes));
 
     // debugPrint(accountToken);
 
@@ -284,7 +284,7 @@ class _EditDetailsState extends State<EditDetails> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                  "${AppLocalizations.of(context)!.unknown}: ${res.body}"),
+                                  "${AppLocalizations.of(context)!.unknown}: ${utf8.decode(res.bodyBytes)}"),
                             ),
                           );
                           return;

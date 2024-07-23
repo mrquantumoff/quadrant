@@ -109,7 +109,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
         "User-Agent": await generateUserAgent(),
         "X-API-Key": apiKey,
       });
-      Map responseJson = json.decode(response.body);
+      Map responseJson = json.decode(utf8.decode(response.bodyBytes));
       for (Map mod in responseJson["data"]) {
         try {
           String name = mod["name"];
@@ -177,7 +177,7 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
         "User-Agent": await generateUserAgent(),
         "X-API-Key": apiKey,
       });
-      Map responseJson = json.decode(response.body);
+      Map responseJson = json.decode(utf8.decode(response.bodyBytes));
       if (responseJson["hits"] != null) {
         for (var mod in responseJson["hits"]) {
           String name = mod["title"];

@@ -466,15 +466,15 @@ class _QuadrantState extends State<Quadrant>
         );
 
         if (res.statusCode != 200) {
-          debugPrint("${res.statusCode} ${res.body}");
+          debugPrint("${res.statusCode} ${utf8.decode(res.bodyBytes)}");
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(AppLocalizations.of(context)!.invalidData),
             ),
           );
         }
-        String token = jsonDecode(res.body)["access_token"];
-        String scope = jsonDecode(res.body)["scope"];
+        String token = jsonDecode(utf8.decode(res.bodyBytes))["access_token"];
+        String scope = jsonDecode(utf8.decode(res.bodyBytes))["scope"];
         // Verify the scopes that are granted by the API
         if (!scope.contains("user_data") ||
             !scope.contains("quadrant_sync") ||
@@ -549,7 +549,8 @@ class _QuadrantState extends State<Quadrant>
       return;
     }
     if (res.statusCode != 200) {
-      debugPrint("ACCOUNT UPDATE ERROR: ${res.body} (${res.statusCode})");
+      debugPrint(
+          "ACCOUNT UPDATE ERROR: ${utf8.decode(res.bodyBytes)} (${res.statusCode})");
       return;
     }
     List<dynamic> notifications = userInfo["notifications"];
@@ -564,7 +565,7 @@ class _QuadrantState extends State<Quadrant>
     }
 // Check for Quadrant Sync updates
     List<SyncedModpack> syncedModpacks = [];
-    List<dynamic> data = json.decode(res.body);
+    List<dynamic> data = json.decode(utf8.decode(res.bodyBytes));
     for (var modpack in data) {
       syncedModpacks.add(
         SyncedModpack(
@@ -646,7 +647,7 @@ class _QuadrantState extends State<Quadrant>
       http.Response res =
           await http.get(Uri.parse("https://blog.mrquantumoff.dev/rss/"));
       if (res.statusCode != 200) return;
-      String rawFeed = res.body;
+      String rawFeed = utf8.decode(res.bodyBytes);
 
       var feed = RssFeed.parse(rawFeed);
       List<RssItem> items = feed.items;

@@ -39,7 +39,7 @@ class _AccountDetailsState extends State<AccountDetails> {
 
     if (res.statusCode != 200) {
       // If the token is not valid, log out of the account and ask the user to login again.
-      debugPrint("${res.body} (${res.statusCode})");
+      debugPrint("${utf8.decode(res.bodyBytes)} (${res.statusCode})");
       await storage.delete(key: "quadrant_id_token");
       RestartWidget.restartApp(context);
       return Column(
@@ -49,13 +49,13 @@ class _AccountDetailsState extends State<AccountDetails> {
           Text(
             AppLocalizations.of(context)!.unknown,
           ),
-          Text(res.body),
+          Text(utf8.decode(res.bodyBytes)),
         ],
       );
     }
 
     // Parse the user data
-    Map<String, dynamic> user = json.decode(res.body);
+    Map<String, dynamic> user = json.decode(utf8.decode(res.bodyBytes));
     String name = user["name"];
     String username = user["login"];
     String email = user["email"];

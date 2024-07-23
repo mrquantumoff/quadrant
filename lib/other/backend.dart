@@ -201,7 +201,7 @@ Future<Map<String, String>> getReleaseInfo() async {
   }
   http.Response latestReleaseResponse =
       await http.get(apiLink, headers: headers);
-  Map response = json.decode(latestReleaseResponse.body);
+  Map response = json.decode(utf8.decode(latestReleaseResponse.bodyBytes));
   dynamic latestRelease = response["tag_name"].toString();
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
 
@@ -240,7 +240,7 @@ Future<void> shareModpack(BuildContext context, String content) async {
           "mod_config": content,
         }));
     if (res.statusCode == 201) {
-      var decoded = json.decode(res.body);
+      var decoded = json.decode(utf8.decode(res.bodyBytes));
 
       await FlutterClipboard.copy(
         decoded["code"].toString(),
@@ -280,7 +280,7 @@ Future<void> shareModpack(BuildContext context, String content) async {
     return;
   }
 
-  var decoded = json.decode(res.body);
+  var decoded = json.decode(utf8.decode(res.bodyBytes));
 
   await FlutterClipboard.copy(
     decoded["code"].toString(),
@@ -321,7 +321,7 @@ Future<Mod> getMod(
         headers: headers,
       );
 
-      final resJSON = json.decode(res.body)["data"];
+      final resJSON = json.decode(utf8.decode(res.bodyBytes))["data"];
 
       int modClassId = resJSON["classId"];
 
@@ -345,8 +345,8 @@ Future<Mod> getMod(
             headers: headers,
           );
 
-          Map parsed = json.decode(res.body);
-          // debugPrint("\n\n${res.body}\n\n");
+          Map parsed = json.decode(utf8.decode(res.bodyBytes));
+          // debugPrint("\n\n${utf8.decode(res.bodyBytes)}\n\n");
           List<Map> gameVersions = [];
           for (Map item in parsed["data"]) {
             if (item["gameVersions"].contains(modLoader)) {
@@ -418,7 +418,7 @@ Future<Mod> getMod(
       headers: headers,
     );
 
-    final resJSON = json.decode(res.body);
+    final resJSON = json.decode(utf8.decode(res.bodyBytes));
 
     List<String> screenshots = [];
 
@@ -447,7 +447,7 @@ Future<Mod> getMod(
         headers: headers,
       );
 
-      List parsed = json.decode(res.body);
+      List parsed = json.decode(utf8.decode(res.bodyBytes));
       try {
         for (dynamic item in parsed) {
           dynamic primaryFile;
@@ -561,14 +561,16 @@ Future<void> syncModpack(
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          res.body,
+          utf8.decode(res.bodyBytes),
         ),
       ),
     );
     return;
   }
   await selectedModpackSyncFile.writeAsString(
-    json.encode({"last_synced": json.decode(res.body)["last_synced"]}),
+    json.encode({
+      "last_synced": json.decode(utf8.decode(res.bodyBytes))["last_synced"]
+    }),
   );
   if (overwrite) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -596,7 +598,7 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
       },
     );
     debugPrint("Mod ID: $id\nFile ID: $fileId");
-    Map responseJson = json.decode(res.body);
+    Map responseJson = json.decode(utf8.decode(res.bodyBytes));
     Map mod = responseJson["data"];
     String name = mod["name"];
     String summary = mod["summary"];
@@ -743,8 +745,8 @@ Future<List<String>> getVersions({bool onInit = false}) async {
         "User-Agent": await generateUserAgent(),
       },
     );
-    debugPrint("Minecraft versions: ${res.body}");
-    dynamic vrs = json.decode(res.body);
+    debugPrint("Minecraft versions: ${utf8.decode(res.bodyBytes)}");
+    dynamic vrs = json.decode(utf8.decode(res.bodyBytes));
 
     for (var v in vrs) {
       if (v["version_type"] == "release") {
@@ -800,7 +802,7 @@ void collectUserInfo({bool saveToFile = false}) async {
     var res = await http.get(
       Uri.parse("https://api.myip.com"),
     );
-    Map responseJSON = json.decode(res.body);
+    Map responseJSON = json.decode(utf8.decode(res.bodyBytes));
     final String country = responseJSON["country"] ?? "Unknown";
     final int modrinthUsage = GetStorage().read("modrinthUsage") ?? 0;
     final int curseForgeUsage = GetStorage().read("curseForgeUsage") ?? 0;
@@ -978,15 +980,16 @@ Future<void> checkAccountUpdates() async {
       "Authorization": "Bearer $token"
     },
   );
-  Map userInfo = json.decode(userInfoRes.body);
+  Map userInfo = json.decode(utf8.decode(userInfoRes.bodyBytes));
 
   if (userInfoRes.statusCode != 200) {
     debugPrint(
-        "ACCOUNT UPDATE ERROR: ${userInfoRes.body} (${userInfoRes.statusCode})");
+        "ACCOUNT UPDATE ERROR: ${utf8.decode(userInfoRes.bodyBytes)} (${userInfoRes.statusCode})");
     return;
   }
   if (res.statusCode != 200) {
-    debugPrint("ACCOUNT UPDATE ERROR : ${res.body} (${res.statusCode})");
+    debugPrint(
+        "ACCOUNT UPDATE ERROR : ${utf8.decode(res.bodyBytes)} (${res.statusCode})");
     return;
   }
   List<dynamic> notifications = userInfo["notifications"];
@@ -1014,7 +1017,7 @@ Future<void> checkAccountUpdates() async {
   }
 
   List<SyncedModpack> syncedModpacks = [];
-  List<dynamic> data = json.decode(res.body);
+  List<dynamic> data = json.decode(utf8.decode(res.bodyBytes));
   for (var modpack in data) {
     syncedModpacks.add(
       SyncedModpack(

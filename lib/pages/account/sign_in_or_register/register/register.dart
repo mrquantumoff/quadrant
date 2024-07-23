@@ -220,7 +220,7 @@ class _RegisterStep2State extends State<RegisterStep2> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            response.body,
+                            utf8.decode(response.bodyBytes),
                           ),
                         ),
                       );
