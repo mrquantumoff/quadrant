@@ -51,6 +51,7 @@ class _SyncedModpackState extends State<SyncedModpack> {
         .format(DateTime.fromMillisecondsSinceEpoch(widget.lastSynced));
 
     String localSyncedLocalDate = "-";
+    int localSyncDateMillis = 0;
 
     File modpackSyncFile = File(
         "${getMinecraftFolder().path}/modpacks/${widget.name}/quadrantSync.json");
@@ -59,6 +60,8 @@ class _SyncedModpackState extends State<SyncedModpack> {
         localSyncedLocalDate = DateFormat('EEEE, dd.MM.yy, HH:mm', tag).format(
             DateTime.fromMillisecondsSinceEpoch(json
                 .decode(modpackSyncFile.readAsStringSync())["last_synced"]));
+        localSyncDateMillis =
+            json.decode(modpackSyncFile.readAsStringSync())["last_synced"];
       } catch (e) {
         debugPrint("$e");
       }
@@ -136,8 +139,12 @@ class _SyncedModpackState extends State<SyncedModpack> {
                               );
                             }
                           },
-                          icon: const Icon(Icons.download),
-                          label: Text(AppLocalizations.of(context)!.download),
+                          icon: localSyncDateMillis < widget.lastSynced
+                              ? const Icon(Icons.update)
+                              : const Icon(Icons.download),
+                          label: localSyncDateMillis < widget.lastSynced
+                              ? Text(AppLocalizations.of(context)!.update)
+                              : Text(AppLocalizations.of(context)!.download),
                           style: FilledButton.styleFrom(
                             minimumSize: const Size(360, 48),
                           ),
