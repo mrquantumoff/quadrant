@@ -43,6 +43,13 @@
 
   <releases>
 
+    <release date="2024-09-04" version="24.9.0">
+      <description>
+        <p>Now when a modpack is not up to date, the button says "Update", instead of "Download"</p>
+        <p>Dependency updates</p>
+      </description>
+    </release>
+
     <release date="2024-07-23" version="24.8.2">
       <description>
         <p>Bug fixes</p>
