@@ -860,7 +860,9 @@ class _QuadrantState extends State<Quadrant>
             },
           ),
           const VerticalDivider(thickness: 1, width: 1),
-          Expanded(child: pages[currentPage])
+          Expanded(
+            child: pages[currentPage],
+          )
         ],
       ),
     );

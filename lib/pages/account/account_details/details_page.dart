@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
@@ -73,134 +74,145 @@ class _AccountDetailsState extends State<AccountDetails> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          AppLocalizations.of(context)!.hello(name),
-          style: const TextStyle(fontSize: 24),
-        ),
-        Text(
-          AppLocalizations.of(context)!
-              .unreadNotifications(unreadNotifications.length),
-          style: const TextStyle(fontSize: 18),
-        ),
-        Container(
-          margin: const EdgeInsets.only(top: 12),
-          child: FilledButton.icon(
-            onPressed: () async {
-              Get.to(
-                () => Notifications(token: accountToken, setReload: setReload),
-              );
-            },
-            label: Text(AppLocalizations.of(context)!.read),
-            icon: const Icon(Icons.notifications),
+      children: AnimateList(
+        interval: 0.ms,
+        effects: [
+          BlurEffect(
+            duration: 500.ms,
+            begin: const Offset(10, 10),
+            end: const Offset(0, 0),
+          )
+        ],
+        children: [
+          Text(
+            AppLocalizations.of(context)!.hello(name),
+            style: const TextStyle(fontSize: 24),
           ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Card(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                "${AppLocalizations.of(context)!.username}: $username",
-                style: const TextStyle(fontSize: 24),
-              ),
+          Text(
+            AppLocalizations.of(context)!
+                .unreadNotifications(unreadNotifications.length),
+            style: const TextStyle(fontSize: 18),
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            child: FilledButton.icon(
+              onPressed: () async {
+                Get.to(
+                  () =>
+                      Notifications(token: accountToken, setReload: setReload),
+                );
+              },
+              label: Text(AppLocalizations.of(context)!.read),
+              icon: const Icon(Icons.notifications),
             ),
           ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Card(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                "${AppLocalizations.of(context)!.email}: $email",
-                style: const TextStyle(fontSize: 24),
-              ),
-            ),
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Card(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                "${AppLocalizations.of(context)!.syncLimit}: $syncLimit",
-                style: const TextStyle(fontSize: 24),
-              ),
-            ),
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Card(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                "${AppLocalizations.of(context)!.shareLimit}: $shareLimit",
-                style: const TextStyle(fontSize: 24),
-              ),
-            ),
-          ),
-        ),
-        Center(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FilledButton(
-                onPressed: () async {
-                  await storage.delete(key: "quadrant_id_token");
-                  RestartWidget.restartApp(context);
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(AppLocalizations.of(context)!.signout),
-                    const SizedBox(
-                      width: 4,
-                    ),
-                    const Icon(
-                      Icons.logout,
-                      size: 16,
-                    ),
-                  ],
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Card(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  "${AppLocalizations.of(context)!.username}: $username",
+                  style: const TextStyle(fontSize: 24),
                 ),
               ),
-              const SizedBox(
-                width: 8,
-              ),
-              FilledButton(
-                onPressed: () async {
-                  Get.to(
-                    () => const EditDetails(),
-                    transition: Transition.fadeIn,
-                  );
-                },
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(AppLocalizations.of(context)!.edit),
-                    const SizedBox(
-                      width: 4,
-                    ),
-                    const Icon(
-                      Icons.edit,
-                      size: 16,
-                    ),
-                  ],
-                ),
-              )
-            ],
+            ),
           ),
-        )
-      ],
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Card(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  "${AppLocalizations.of(context)!.email}: $email",
+                  style: const TextStyle(fontSize: 24),
+                ),
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Card(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  "${AppLocalizations.of(context)!.syncLimit}: $syncLimit",
+                  style: const TextStyle(fontSize: 24),
+                ),
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Card(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                child: Text(
+                  "${AppLocalizations.of(context)!.shareLimit}: $shareLimit",
+                  style: const TextStyle(fontSize: 24),
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                FilledButton(
+                  onPressed: () async {
+                    await storage.delete(key: "quadrant_id_token");
+                    RestartWidget.restartApp(context);
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(AppLocalizations.of(context)!.signout),
+                      const SizedBox(
+                        width: 4,
+                      ),
+                      const Icon(
+                        Icons.logout,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(
+                  width: 8,
+                ),
+                FilledButton(
+                  onPressed: () async {
+                    Get.to(
+                      () => const EditDetails(),
+                      transition: Transition.fadeIn,
+                    );
+                  },
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(AppLocalizations.of(context)!.edit),
+                      const SizedBox(
+                        width: 4,
+                      ),
+                      const Icon(
+                        Icons.edit,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          )
+        ],
+      ),
     );
   }
 
