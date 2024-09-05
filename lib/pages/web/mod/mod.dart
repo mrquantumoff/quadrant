@@ -4,7 +4,9 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
@@ -369,10 +371,13 @@ class Mod extends StatefulWidget {
         "GET",
         Uri.parse(currentModFile.downloadUrl),
       );
-      final http.StreamedResponse streamedResponse =
-          await UserAgentClient(await generateUserAgent(), http.Client())
-              .send(request);
-      final contentLength = streamedResponse.contentLength;
+      List<int> bytes = [];
+
+      FileInfo? cachedFile = await QuadrantCacheManager.instance
+          .getFileFromCache(currentModFile.downloadUrl);
+      if (cachedFile != null) {
+        bytes = await cachedFile.file.readAsBytes();
+      }
 
       File modDestFile = File(
           "${getMinecraftFolder().path}/modpacks/$modpack/${currentModFile.fileName}");
@@ -388,7 +393,75 @@ class Mod extends StatefulWidget {
       }
       await modDestFile.create(recursive: true);
       debugPrint(modDestFile.path);
-      List<int> bytes = [];
+      void done() async {
+        await modDestFile.writeAsBytes(bytes, flush: true);
+        await QuadrantCacheManager.instance
+            .putFile(currentModFile.downloadUrl, Uint8List.fromList(bytes));
+        if (setProgressValue != null) {
+          setProgressValue(1);
+        }
+        debugPrint("Downloaded");
+        setAreButtonsActive(true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.downloadSuccess),
+          ),
+        );
+        File modpackConfigFile = File(
+            "${getMinecraftFolder().path}/modpacks/$modpack/modConfig.json");
+        debugPrint(modpackConfigFile.path);
+        if (!modpackConfigFile.existsSync()) {
+          return;
+        }
+        String modpackConfigRaw = await modpackConfigFile.readAsString();
+        Map modpackConfig = json.decode(modpackConfigRaw);
+        List<dynamic> modsIndex = modpackConfig["mods"] ?? [];
+        bool doesExist = false;
+        for (Map<dynamic, dynamic> modItem in modsIndex) {
+          if ((modItem["id"] ?? "") == id) {
+            doesExist = true;
+            return;
+          }
+        }
+        if (doesExist) {
+          return;
+        }
+        modsIndex.add(
+          {
+            "id": id,
+            "source": source.toString(),
+            "downloadUrl": currentModFile.downloadUrl,
+          },
+        );
+        Map newModpackConfig = {
+          "modLoader": modpackConfig["modLoader"],
+          "version": modpackConfig["version"],
+          "mods": modsIndex,
+          "name": modpackConfig["name"],
+        };
+        String finalModpackConfig = json.encode(newModpackConfig);
+        debugPrint(finalModpackConfig);
+
+        await modpackConfigFile.writeAsString(finalModpackConfig);
+        File modpackSyncFile = File(
+            "${getMinecraftFolder().path}/modpacks/$modpack/quadrantSync.json");
+        if (GetStorage().read("autoQuadrantSync") == true &&
+            modpackSyncFile.existsSync()) {
+          await syncModpack(context, finalModpackConfig, false);
+        }
+      }
+
+      if (bytes.isNotEmpty) {
+        debugPrint("Using cached mod");
+        done();
+        return;
+      }
+
+      final http.StreamedResponse streamedResponse =
+          await UserAgentClient(await generateUserAgent(), http.Client())
+              .send(request);
+      final contentLength = streamedResponse.contentLength;
+
       streamedResponse.stream.listen(
         (List<int> newBytes) {
           bytes.addAll(newBytes);
@@ -397,61 +470,7 @@ class Mod extends StatefulWidget {
             setProgressValue(downloadedLength / (contentLength ?? 1));
           }
         },
-        onDone: () async {
-          await modDestFile.writeAsBytes(bytes, flush: true);
-          if (setProgressValue != null) {
-            setProgressValue(1);
-          }
-          debugPrint("Downloaded");
-          setAreButtonsActive(true);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context)!.downloadSuccess),
-            ),
-          );
-          File modpackConfigFile = File(
-              "${getMinecraftFolder().path}/modpacks/$modpack/modConfig.json");
-          debugPrint(modpackConfigFile.path);
-          if (!modpackConfigFile.existsSync()) {
-            return;
-          }
-          String modpackConfigRaw = await modpackConfigFile.readAsString();
-          Map modpackConfig = json.decode(modpackConfigRaw);
-          List<dynamic> modsIndex = modpackConfig["mods"] ?? [];
-          bool doesExist = false;
-          for (Map<dynamic, dynamic> modItem in modsIndex) {
-            if ((modItem["id"] ?? "") == id) {
-              doesExist = true;
-              return;
-            }
-          }
-          if (doesExist) {
-            return;
-          }
-          modsIndex.add(
-            {
-              "id": id,
-              "source": source.toString(),
-              "downloadUrl": currentModFile.downloadUrl,
-            },
-          );
-          Map newModpackConfig = {
-            "modLoader": modpackConfig["modLoader"],
-            "version": modpackConfig["version"],
-            "mods": modsIndex,
-            "name": modpackConfig["name"],
-          };
-          String finalModpackConfig = json.encode(newModpackConfig);
-          debugPrint(finalModpackConfig);
-
-          await modpackConfigFile.writeAsString(finalModpackConfig);
-          File modpackSyncFile = File(
-              "${getMinecraftFolder().path}/modpacks/$modpack/quadrantSync.json");
-          if (GetStorage().read("autoQuadrantSync") == true &&
-              modpackSyncFile.existsSync()) {
-            await syncModpack(context, finalModpackConfig, false);
-          }
-        },
+        onDone: done,
         onError: (e) {
           debugPrint(e);
         },

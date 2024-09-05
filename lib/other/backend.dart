@@ -5,6 +5,7 @@ import 'package:clipboard/clipboard.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
@@ -1191,4 +1192,18 @@ void initConfig() {
   if (GetStorage().read("dontShowUserDataRecommendation") == null) {
     GetStorage().writeInMemory("dontShowUserDataRecommendation", false);
   }
+}
+
+class QuadrantCacheManager {
+  static const key = 'quadrantCache';
+  static CacheManager instance = CacheManager(
+    Config(
+      key,
+      stalePeriod: const Duration(days: 30),
+      maxNrOfCacheObjects: 500,
+      repo: JsonCacheInfoRepository(databaseName: key),
+      fileSystem: IOFileSystem(key),
+      fileService: HttpFileService(),
+    ),
+  );
 }

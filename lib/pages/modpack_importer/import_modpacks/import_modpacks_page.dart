@@ -601,20 +601,23 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
                                         continue;
                                       }
 
-                                      final http.Response res = await http.get(
-                                        Uri.parse(downloadUrl),
+                                      final File cachedFile =
+                                          await QuadrantCacheManager.instance
+                                              .getSingleFile(
+                                        downloadUrl,
                                         headers: {
                                           "User-Agent":
                                               await generateUserAgent(),
                                         },
                                       );
 
-                                      List<int> bytes = res.bodyBytes;
                                       setProgressValue(
                                           modIndex / modDownloadUrls.length);
                                       downloadedMods.add(
                                         DownloadedMod(
-                                            bytes: bytes, file: modDestFile),
+                                          bytes: await cachedFile.readAsBytes(),
+                                          file: modDestFile,
+                                        ),
                                       );
                                     }
 
