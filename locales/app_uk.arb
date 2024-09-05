@@ -221,5 +221,7 @@
   "sourceCurseforge": "Джерело (Curseforge)",
   "filterBySelectedModpack": "Фільтрувати за обраним модпаком",
   "installed": "Встановлено",
-  "failedToDelete": "Помилка при видаленні вашого мода ({reason})"
+  "failedToDelete": "Помилка при видаленні вашого мода ({reason})",
+  "clearCache": "Очистити кеш",
+  "cacheStorageLimit": "Час життя кешу"
 }

@@ -205,7 +205,6 @@ Future<Map<String, String>> getReleaseInfo() async {
   Map response = json.decode(utf8.decode(latestReleaseResponse.bodyBytes));
   dynamic latestRelease = response["tag_name"].toString();
   PackageInfo packageInfo = await PackageInfo.fromPlatform();
-
   return {
     "latestRelease": latestRelease,
     "currentRelease": packageInfo.version,
@@ -1192,6 +1191,10 @@ void initConfig() {
   if (GetStorage().read("dontShowUserDataRecommendation") == null) {
     GetStorage().writeInMemory("dontShowUserDataRecommendation", false);
   }
+  if (GetStorage().read("cacheKeepAlive") == null ||
+      GetStorage().read("cacheKeepAlive").runtimeType != int) {
+    GetStorage().writeInMemory("cacheKeepAlive", 30);
+  }
 }
 
 class QuadrantCacheManager {
@@ -1199,8 +1202,8 @@ class QuadrantCacheManager {
   static CacheManager instance = CacheManager(
     Config(
       key,
-      stalePeriod: const Duration(days: 30),
-      maxNrOfCacheObjects: 500,
+      stalePeriod: Duration(days: GetStorage().read("cacheKeepAlive")),
+      maxNrOfCacheObjects: 768,
       repo: JsonCacheInfoRepository(databaseName: key),
       fileSystem: IOFileSystem(key),
       fileService: HttpFileService(),

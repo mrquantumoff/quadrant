@@ -221,5 +221,7 @@
   "sourceCurseforge": "Kaynak (Curseforge)",
   "filterBySelectedModpack": "Şu anda seçili olan modpack ile filtrele",
   "installed": "Yüklendi",
-  "failedToDelete": "Modunuz silinemedi ({reason})"
+  "failedToDelete": "Modunuz silinemedi ({reason})",
+  "clearCache": "Önbelleği temizle",
+  "cacheStorageLimit": "Maksimum önbellek yaşı"
 }

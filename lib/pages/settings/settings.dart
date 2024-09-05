@@ -29,11 +29,11 @@ class _SettingsState extends State<Settings> {
   bool devMode = GetStorage().read("devMode") ?? false;
   bool rssFeeds = GetStorage().read("rssFeeds");
   bool silentNews = GetStorage().read("silentNews");
-
   bool autoQuadrantSync = GetStorage().read("autoQuadrantSync");
   bool extendedNavigation = GetStorage().read("extendedNavigation");
   bool showUnupgradeableMods = GetStorage().read("showUnupgradeableMods");
   bool experimentalFeatures = GetStorage().read("experimentalFeatures");
+  int cacheStorageLimit = GetStorage().read("cacheKeepAlive");
 
   @override
   void dispose() {
@@ -50,6 +50,13 @@ class _SettingsState extends State<Settings> {
     GetStorage().write("clipIcons", newValue);
     setState(() {
       clipButtons = newValue;
+    });
+  }
+
+  void setCacheKeepAlive(int newValue) {
+    GetStorage().write("cacheKeepAlive", newValue.toInt());
+    setState(() {
+      cacheStorageLimit = newValue.toInt();
     });
   }
 
@@ -679,6 +686,45 @@ class _SettingsState extends State<Settings> {
                     child: Text(
                       AppLocalizations.of(context)!.autoQuadrantSync,
                     ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              alignment: AlignmentDirectional.topStart,
+              margin: const EdgeInsets.only(top: 12),
+              child: Container(
+                margin: const EdgeInsets.only(top: 0, bottom: 6),
+                child: TextButton.icon(
+                  onPressed: () async {
+                    await QuadrantCacheManager.instance.emptyCache();
+                  },
+                  label: Text(
+                    AppLocalizations.of(context)!.clearCache,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  icon: const Icon(Icons.delete),
+                ),
+              ),
+            ),
+            Container(
+              alignment: AlignmentDirectional.topStart,
+              margin: const EdgeInsets.only(top: 12),
+              child: Column(
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.cacheStorageLimit,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  Slider(
+                    value: cacheStorageLimit.toDouble(),
+                    label: "$cacheStorageLimit",
+                    min: 1,
+                    max: 100,
+                    divisions: 99,
+                    onChanged: (value) {
+                      setCacheKeepAlive(value.toInt());
+                    },
                   ),
                 ],
               ),

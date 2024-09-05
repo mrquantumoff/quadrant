@@ -228,5 +228,7 @@
   "sourceCurseforge": "Source (Curseforge)",
   "filterBySelectedModpack": "Filter by the currently selected modpack",
   "installed": "Installed",
-  "failedToDelete": "Failed to delete your mod ({reason})"
+  "failedToDelete": "Failed to delete your mod ({reason})",
+  "clearCache": "Clear cache",
+  "cacheStorageLimit": "Maximum cache age"
 }
