@@ -144,13 +144,6 @@
   "currentModpack": "Mevcut mod paketi",
   "delete": "Sil",
   "modCount": "{amount} mod",
-  "@modCount": {
-    "placeholders": {
-      "amount": {
-        "type": "num"
-      }
-    }
-  },
   "submitBugReport": "Bir hata raporu gönderin",
   "mods": "Modlar",
   "resourcePacks": "Kaynak paketleri",

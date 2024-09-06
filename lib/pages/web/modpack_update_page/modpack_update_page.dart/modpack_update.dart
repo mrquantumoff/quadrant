@@ -25,7 +25,6 @@ class UpdateModpackPage extends StatefulWidget {
 }
 
 class _UpdateModpackPageState extends State<UpdateModpackPage> {
-  List<Widget> items = [];
   bool hasGotMods = false;
 
   Future<List<Mod>> getFullMods() async {
@@ -63,8 +62,13 @@ class _UpdateModpackPageState extends State<UpdateModpackPage> {
     }
 
     hasGotMods = true;
+    setState(() {
+      items = mods;
+    });
     return mods;
   }
+
+  List<Widget> items = [];
 
   @override
   Widget build(BuildContext context) {
@@ -77,42 +81,36 @@ class _UpdateModpackPageState extends State<UpdateModpackPage> {
               Get.back();
             },
           ),
-          title: Text(AppLocalizations.of(context)!.update),
+          title: Text(
+              "${AppLocalizations.of(context)!.update} | ${AppLocalizations.of(context)!.modCount("${items.length}/${widget.currentMods.length}")}"),
         ),
       ),
       body: Center(
-        child: Visibility(
-          maintainAnimation: true,
-          maintainInteractivity: true,
-          maintainSemantics: true,
-          maintainSize: true,
-          maintainState: true,
-          child: FutureBuilder(
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              } else if (snapshot.hasError) {
-                return Column(
-                  children: [
-                    const Icon(Icons.error),
-                    Text(AppLocalizations.of(context)!.unknown)
-                  ],
-                );
-              } else {
-                return GridView.extent(
-                  maxCrossAxisExtent: 840,
-                  mainAxisSpacing: 15,
-                  crossAxisSpacing: 0,
-                  childAspectRatio: 1.35,
-                  padding: const EdgeInsets.only(bottom: 120),
-                  children: snapshot.data ?? [],
-                );
-              }
-            },
-            future: getFullMods(),
-          ),
+        child: FutureBuilder(
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            } else if (snapshot.hasError) {
+              return Column(
+                children: [
+                  const Icon(Icons.error),
+                  Text(AppLocalizations.of(context)!.unknown)
+                ],
+              );
+            } else {
+              return GridView.extent(
+                maxCrossAxisExtent: 840,
+                mainAxisSpacing: 15,
+                crossAxisSpacing: 0,
+                childAspectRatio: 1.35,
+                padding: const EdgeInsets.only(bottom: 120),
+                children: items,
+              );
+            }
+          },
+          future: getFullMods(),
         ),
       ),
     );

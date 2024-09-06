@@ -151,13 +151,6 @@
   "currentModpack": "Current modpack",
   "delete": "Delete",
   "modCount": "{amount} Mod(s)",
-  "@modCount": {
-    "placeholders": {
-      "amount": {
-        "type": "num"
-      }
-    }
-  },
   "submitBugReport": "Submit a bug report",
   "mods": "Mods",
   "resourcePacks": "Resource packs",
