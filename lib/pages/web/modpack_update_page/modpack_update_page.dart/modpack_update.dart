@@ -64,11 +64,14 @@ class _UpdateModpackPageState extends State<UpdateModpackPage> {
     hasGotMods = true;
     setState(() {
       items = mods;
+      updateableItems =
+          mods.where((mod) => mod.newVersionUrl.isNotEmpty).toList();
     });
     return mods;
   }
 
   List<Widget> items = [];
+  List<Widget> updateableItems = [];
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +85,7 @@ class _UpdateModpackPageState extends State<UpdateModpackPage> {
             },
           ),
           title: Text(
-              "${AppLocalizations.of(context)!.update} | ${AppLocalizations.of(context)!.modCount("${items.length}/${widget.currentMods.length}")}"),
+              "${AppLocalizations.of(context)!.update} | ${AppLocalizations.of(context)!.modCount("${updateableItems.length}/${widget.currentMods.length}")}"),
         ),
       ),
       body: Center(
