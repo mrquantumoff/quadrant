@@ -876,8 +876,10 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                                           showUpdateButton = false;
                                           areButttonsActive = false;
                                         });
-                                        http.Response res = await http.get(
-                                            Uri.parse(widget.newVersionUrl));
+                                        File res = await QuadrantCacheManager
+                                            .instance
+                                            .getSingleFile(
+                                                widget.newVersionUrl);
                                         Directory modpackFolder = Directory(
                                             "${getMinecraftFolder().path}/modpacks/${widget.modpackToUpdate}");
                                         File resFile = File(
@@ -886,9 +888,10 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                                           await resFile.create(recursive: true);
                                         }
                                         await resFile.writeAsBytes(
-                                            res.bodyBytes,
-                                            flush: true,
-                                            mode: FileMode.write);
+                                          await res.readAsBytes(),
+                                          flush: true,
+                                          mode: FileMode.write,
+                                        );
                                         File modConfig = File(
                                             "${modpackFolder.path}/modConfig.json");
                                         Map modConf = json.decode(
