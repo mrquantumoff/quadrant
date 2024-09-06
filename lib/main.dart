@@ -39,8 +39,9 @@ void main(List<String> args) async {
   await windowManager.ensureInitialized();
   await GetStorage.init();
   WidgetsFlutterBinding.ensureInitialized();
-  dataCollectionInit();
   initConfig();
+
+  dataCollectionInit();
   await localNotifier.setup(
     appName: 'quadrant',
     // The parameter shortcutPolicy only works on Windows
