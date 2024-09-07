@@ -50,7 +50,9 @@ void main(List<String> args) async {
 
   // Create the tray icon, required for the app to run in the background properly.
   await trayManager.setIcon(
-    Platform.isWindows ? 'assets/icons/tray.ico' : 'assets/icons/tray.png',
+    Platform.isWindows
+        ? 'assets/icons/tray.ico'
+        : '/usr/share/icons/hicolor/256x256/apps/dev.mrquantumoff.mcmodpackmanager.tray.png',
   );
   Menu menu = Menu(
     items: [
@@ -669,7 +671,7 @@ class _QuadrantState extends State<Quadrant>
         bool cond2 =
             itemDate.add(const Duration(days: 14)).isAfter(DateTime.now());
         bool cond3 = GetStorage().read("rssFeeds") == true;
-        bool cond4 = GetStorage().read("devMode") == true;
+        bool cond4 = false; // Used to be if DevMode is enabled
         if (GetStorage().read("devMode")) {
           debugPrint(
               "\n\nName: ${item.title}\n\nDate: $itemTimestamp\n\nSeen: $cond1\nIs within last 2 weeks: $cond2\nAre RSS feeds enabled: $cond3\nIs DevMode Enabled:  $cond4\n\n");

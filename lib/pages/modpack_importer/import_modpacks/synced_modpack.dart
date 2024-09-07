@@ -154,10 +154,12 @@ class _SyncedModpackState extends State<SyncedModpack> {
                                   );
                                 }
                               },
-                              icon: localSyncDateMillis < widget.lastSynced
+                              icon: (localSyncDateMillis < widget.lastSynced &&
+                                      localSyncDateMillis != 0)
                                   ? const Icon(Icons.update)
                                   : const Icon(Icons.download),
-                              label: localSyncDateMillis < widget.lastSynced
+                              label: (localSyncDateMillis < widget.lastSynced &&
+                                      localSyncDateMillis != 0)
                                   ? Text(AppLocalizations.of(context)!.update)
                                   : Text(
                                       AppLocalizations.of(context)!.download),

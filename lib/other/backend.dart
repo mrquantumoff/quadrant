@@ -997,7 +997,7 @@ Future<void> checkAccountUpdates() async {
     if (notification["read"] == false) {
       Map notificationBody = json.decode(notification["message"]);
       debugPrint("$notification");
-      List<String> shownNotifications =
+      List<dynamic> shownNotifications =
           GetStorage().read("shownNotifications") ?? [];
       if (!shownNotifications.contains(notification["notification_id"])) {
         LocalNotification localNotification = LocalNotification(
