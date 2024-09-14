@@ -56,7 +56,7 @@ List<String> getModpacks({bool hideFree = true}) {
   return modpacks;
 }
 
-Future<List<ModpackPreview>> getModpackPreviews(int refreshMoment) async {
+Future<List<ModpackPreview>> getModpackPreviews({String? searchQuery}) async {
   List<String> modpacks = getModpacks();
 
   List<ModpackPreview> previews = [];
@@ -66,16 +66,8 @@ Future<List<ModpackPreview>> getModpackPreviews(int refreshMoment) async {
         "${getMinecraftFolder().path}/modpacks/$modpackName/modConfig.json");
     File syncConfig = File(
         "${getMinecraftFolder().path}/modpacks/$modpackName/quadrantSync.json");
-    Directory modpackDir =
-        Directory("${getMinecraftFolder().path}/modpacks/$modpackName");
-    List<FileSystemEntity> modpackEntities = modpackDir.listSync();
-    int modCount = modpackEntities
-        .where(
-          (item) => (item.statSync().type == FileSystemEntityType.file &&
-              item.path.endsWith(".jar")),
-        )
-        .toList()
-        .length;
+
+    int modCount = 0;
     String loader = "-";
     String mcVersion = "-";
     int lastSynced = 0;
@@ -94,6 +86,13 @@ Future<List<ModpackPreview>> getModpackPreviews(int refreshMoment) async {
     if (await syncConfig.exists()) {
       Map modConfig = json.decode(await syncConfig.readAsString());
       lastSynced = modConfig["last_synced"];
+    }
+    if (searchQuery != null) {
+      if (searchQuery.toLowerCase().contains(loader.toLowerCase()) ||
+          searchQuery.toLowerCase().contains(modpackName.toLowerCase()) ||
+          searchQuery.toLowerCase().contains(mcVersion.toLowerCase())) {
+        break;
+      }
     }
     previews.add(
       ModpackPreview(

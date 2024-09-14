@@ -2,6 +2,7 @@
   "@@locale": "en",
   "productName": "Quadrant for Minecraft",
   "apply": "Apply",
+  "applied": "Applied",
   "clear": "Clear",
   "modpack": "Modpack",
   "reload": "Reload options",

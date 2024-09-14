@@ -2,6 +2,7 @@
   "@@locale": "tr",
   "productName": "Quadrant",
   "apply": "Uygula",
+  "applied": "Uygulandı",
   "clear": "Temizle",
   "modpack": "Modpack",
   "reload": "Seçenekleri yeniden yükle",

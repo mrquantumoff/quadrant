@@ -18,29 +18,23 @@ class _AdvancedApplyPageState extends State<AdvancedApplyPage> {
   Timer? refreshTimer;
   List<ModpackPreview> currentPreviews = [];
 
+  late TextEditingController queryController;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      refreshTimer = Timer.periodic(
-        const Duration(seconds: 5),
-        (Timer t) async {
-          List<ModpackPreview> previews = await getModpackPreviews(refreshDate);
-          if (previews == currentPreviews) {
-            return;
-          }
-          setState(
-            () {
-              refreshDate = DateTime.now().millisecondsSinceEpoch;
-            },
-          );
-        },
-      );
+    queryController = TextEditingController();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      List<ModpackPreview> newPreviews = await getModpackPreviews();
+      setState(() {
+        currentPreviews = newPreviews;
+      });
     });
   }
 
   @override
   void dispose() {
+    queryController.dispose();
     refreshTimer?.cancel();
     super.dispose();
   }
@@ -95,39 +89,59 @@ class _AdvancedApplyPageState extends State<AdvancedApplyPage> {
           ),
         ],
       ),
-      body: FutureBuilder(
-        future: getModpackPreviews(refreshDate),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                children: [const Icon(Icons.error), Text("${snapshot.error}")],
-              ),
-            );
-          }
-          if (!snapshot.hasData) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-          currentPreviews = snapshot.data!;
-          return ListView(
-            children: AnimateList(
-              effects: [
-                MoveEffect(
-                    begin: const Offset(0, 850),
-                    duration: 200.ms,
-                    delay: 100.ms),
-                BlurEffect(
-                  end: const Offset(0, 0),
-                  begin: const Offset(10, 10),
-                  delay: 200.ms,
+      body: Column(
+        children: [
+          SearchBar(
+            hintText: AppLocalizations.of(context)!.search,
+            controller: queryController,
+            onChanged: (value) async {
+              List<ModpackPreview> newPreviews = await getModpackPreviews(
+                searchQuery: queryController.text.trim().isNotEmpty
+                    ? queryController.text.trim()
+                    : null,
+              );
+              setState(() {
+                currentPreviews = newPreviews;
+              });
+            },
+            trailing: [
+              FilledButton.icon(
+                onPressed: () async {
+                  List<ModpackPreview> newPreviews = await getModpackPreviews(
+                    searchQuery: queryController.text.trim().isNotEmpty
+                        ? queryController.text.trim()
+                        : null,
+                  );
+                  setState(() {
+                    currentPreviews = newPreviews;
+                  });
+                },
+                label: Text(
+                  AppLocalizations.of(context)!.search,
                 ),
-              ],
-              children: snapshot.data!,
+                icon: const Icon(Icons.search),
+              ),
+            ],
+          ),
+          Expanded(
+            child: ListView(
+              children: AnimateList(
+                effects: [
+                  MoveEffect(
+                      begin: const Offset(0, 850),
+                      duration: 200.ms,
+                      delay: 100.ms),
+                  BlurEffect(
+                    end: const Offset(0, 0),
+                    begin: const Offset(10, 10),
+                    delay: 200.ms,
+                  ),
+                ],
+                children: currentPreviews,
+              ),
             ),
-          );
-        },
+          )
+        ],
       ),
     );
   }
