@@ -13,6 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:io/io.dart' as io;
 import 'package:local_notifier/local_notifier.dart';
+import 'package:quadrant/pages/advanced_apply/modpack_preview.dart';
 import 'package:quadrant/pages/modpack_importer/import_modpacks/import_modpacks_page.dart';
 import 'package:quadrant/pages/modpack_importer/import_modpacks/synced_modpack.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
@@ -53,6 +54,60 @@ List<String> getModpacks({bool hideFree = true}) {
     }
   }
   return modpacks;
+}
+
+Future<List<ModpackPreview>> getModpackPreviews(int refreshMoment) async {
+  List<String> modpacks = getModpacks();
+
+  List<ModpackPreview> previews = [];
+
+  for (String modpackName in modpacks) {
+    File modpackConfig = File(
+        "${getMinecraftFolder().path}/modpacks/$modpackName/modConfig.json");
+    File syncConfig = File(
+        "${getMinecraftFolder().path}/modpacks/$modpackName/quadrantSync.json");
+    Directory modpackDir =
+        Directory("${getMinecraftFolder().path}/modpacks/$modpackName");
+    List<FileSystemEntity> modpackEntities = modpackDir.listSync();
+    int modCount = modpackEntities
+        .where(
+          (item) => (item.statSync().type == FileSystemEntityType.file &&
+              item.path.endsWith(".jar")),
+        )
+        .toList()
+        .length;
+    String loader = "-";
+    String mcVersion = "-";
+    int lastSynced = 0;
+    Map<dynamic, dynamic> modConfig = {
+      "name": modpackName,
+      "version": mcVersion,
+      "mods": [],
+      "modLoader": loader,
+    };
+    if (await modpackConfig.exists()) {
+      modConfig = json.decode(await modpackConfig.readAsString());
+      loader = modConfig["modLoader"] ?? "-";
+      mcVersion = modConfig["version"] ?? "-";
+      modCount = ((modConfig["mods"] ?? []) as List<dynamic>).length;
+    }
+    if (await syncConfig.exists()) {
+      Map modConfig = json.decode(await syncConfig.readAsString());
+      lastSynced = modConfig["last_synced"];
+    }
+    previews.add(
+      ModpackPreview(
+        name: modpackName,
+        loader: loader,
+        modCount: modCount,
+        lastSynced: lastSynced,
+        mcVersion: mcVersion,
+        modConfig: modConfig,
+      ),
+    );
+  }
+
+  return previews;
 }
 
 Future<bool> applyModpack(String? modpack) async {

@@ -14,6 +14,7 @@ import 'package:quadrant/draggable_appbar.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/other/restart_app.dart';
 import 'package:quadrant/pages/account/account.dart';
+import 'package:quadrant/pages/advanced_apply/advanced_apply.dart';
 import 'package:quadrant/pages/current_modpack/current_modpack_page.dart';
 import 'package:quadrant/pages/main_page.dart';
 import 'package:quadrant/pages/modpack_importer/import_modpacks/synced_modpack.dart';
@@ -329,7 +330,9 @@ class _QuadrantState extends State<Quadrant>
     });
 
     pages = [
-      const MainPage(),
+      GetStorage().read("experimentalFeatures")
+          ? const AdvancedApplyPage()
+          : const MainPage(),
       const CurrentModpackPage(),
       const WebSourcesPage(),
       ImportModpacksPage(),

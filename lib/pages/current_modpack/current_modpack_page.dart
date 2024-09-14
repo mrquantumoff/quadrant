@@ -91,7 +91,7 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "${AppLocalizations.of(context)!.currentModpack}: ${currentModpack["name"] ?? "-"} | ${currentModpack["modLoader"] ?? "-"} | ${currentModpack["version"] ?? "-"} | ${AppLocalizations.of(context)!.modCount(((currentModpack["mods"] ?? []) as List<dynamic>).length)}",
+          "${AppLocalizations.of(context)!.currentModpack}: ${currentModpack["name"] ?? "-"} | ${currentModpack["modLoader"] ?? "-"} ${currentModpack["version"] ?? "-"} | ${AppLocalizations.of(context)!.modCount(((currentModpack["mods"] ?? []) as List<dynamic>).length)}",
         ),
         actions: [
           Container(
