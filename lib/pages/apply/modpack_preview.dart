@@ -70,7 +70,7 @@ class _ModpackPreviewState extends State<ModpackPreview> {
                         FilledButton.tonalIcon(
                           onPressed: action,
                           label: Text(AppLocalizations.of(context)!.details),
-                          icon: const Icon(Icons.send),
+                          icon: const Icon(Icons.info),
                         )
                       ],
                     ),
