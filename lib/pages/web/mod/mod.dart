@@ -760,8 +760,9 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                             : null,
                       ),
                       Container(
-                        margin:
-                            const EdgeInsets.only(top: 8, bottom: 8, right: 8),
+                        margin: widget.downloadable && widget.autoInstall
+                            ? const EdgeInsets.only(top: 8, bottom: 8, right: 8)
+                            : null,
                         child: widget.downloadable && widget.autoInstall
                             ? progressValue < 1 && installable
                                 ? FilledButton.icon(
@@ -800,8 +801,9 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                             : null,
                       ),
                       Container(
-                        margin:
-                            const EdgeInsets.only(top: 8, bottom: 8, right: 8),
+                        margin: widget.deletable
+                            ? const EdgeInsets.only(top: 8, bottom: 8, right: 8)
+                            : null,
                         child: widget.deletable
                             ? FilledButton.icon(
                                 onPressed: () async {
