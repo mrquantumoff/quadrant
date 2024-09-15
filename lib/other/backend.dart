@@ -123,9 +123,23 @@ Future<List<ModpackPreview>> getModpackPreviews({String? searchQuery}) async {
         searchedPreviews.add(preview);
       }
     }
+    searchedPreviews.sort(
+      (a, b) {
+        if (a.isApplied) return -1000000000000;
+        if (b.isApplied) return 1000000000000;
+
+        return b.lastSynced - a.lastSynced;
+      },
+    );
     return searchedPreviews;
   }
-
+  previews.sort(
+    (a, b) {
+      if (a.isApplied) return -1000000000000;
+      if (b.isApplied) return 1000000000000;
+      return b.lastSynced - a.lastSynced;
+    },
+  );
   return previews;
 }
 
