@@ -29,6 +29,19 @@ class _AdvancedApplyPageState extends State<AdvancedApplyPage> {
       setState(() {
         currentPreviews = newPreviews;
       });
+      refreshTimer =
+          Timer.periodic(const Duration(milliseconds: 150), (_) async {
+        List<ModpackPreview> newPreviews = await getModpackPreviews(
+          searchQuery: queryController.text.trim().isNotEmpty
+              ? queryController.text.trim()
+              : null,
+        );
+        if (currentPreviews != newPreviews) {
+          setState(() {
+            currentPreviews = newPreviews;
+          });
+        }
+      });
     });
   }
 
@@ -91,22 +104,23 @@ class _AdvancedApplyPageState extends State<AdvancedApplyPage> {
       ),
       body: Column(
         children: [
-          SearchBar(
-            hintText: AppLocalizations.of(context)!.search,
-            controller: queryController,
-            onChanged: (value) async {
-              List<ModpackPreview> newPreviews = await getModpackPreviews(
-                searchQuery: queryController.text.trim().isNotEmpty
-                    ? queryController.text.trim()
-                    : null,
-              );
-              setState(() {
-                currentPreviews = newPreviews;
-              });
-            },
-            trailing: [
-              FilledButton.icon(
-                onPressed: () async {
+          ConstrainedBox(
+            constraints:
+                const BoxConstraints(maxHeight: 64, minWidth: double.maxFinite),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              child: SearchBar(
+                leading: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  child: const Icon(
+                    Icons.search,
+                    color: Colors.grey,
+                    size: 24,
+                  ),
+                ),
+                hintText: AppLocalizations.of(context)!.search,
+                controller: queryController,
+                onChanged: (value) async {
                   List<ModpackPreview> newPreviews = await getModpackPreviews(
                     searchQuery: queryController.text.trim().isNotEmpty
                         ? queryController.text.trim()
@@ -116,12 +130,30 @@ class _AdvancedApplyPageState extends State<AdvancedApplyPage> {
                     currentPreviews = newPreviews;
                   });
                 },
-                label: Text(
-                  AppLocalizations.of(context)!.search,
-                ),
-                icon: const Icon(Icons.search),
+                trailing: [
+                  FilledButton.icon(
+                    onPressed: () async {
+                      List<ModpackPreview> newPreviews =
+                          await getModpackPreviews(
+                        searchQuery: queryController.text.trim().isNotEmpty
+                            ? queryController.text.trim()
+                            : null,
+                      );
+                      setState(() {
+                        currentPreviews = newPreviews;
+                      });
+                    },
+                    label: Text(
+                      AppLocalizations.of(context)!.search,
+                    ),
+                    icon: const Icon(Icons.search),
+                  ),
+                ],
               ),
-            ],
+            ),
+          ),
+          const SizedBox(
+            height: 4,
           ),
           Expanded(
             child: ListView(

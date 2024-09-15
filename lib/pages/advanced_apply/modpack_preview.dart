@@ -16,6 +16,7 @@ class ModpackPreview extends StatefulWidget {
     required this.lastSynced,
     required this.mcVersion,
     required this.modConfig,
+    required this.isApplied,
   });
 
   String name;
@@ -24,27 +25,19 @@ class ModpackPreview extends StatefulWidget {
   String mcVersion;
   Map modConfig;
   int lastSynced;
+  bool isApplied;
 
   @override
   State<ModpackPreview> createState() => _ModpackPreviewState();
 }
 
 class _ModpackPreviewState extends State<ModpackPreview> {
-  bool isApplied = false;
-
   @override
   Widget build(BuildContext context) {
     var tag = Localizations.maybeLocaleOf(context)?.toLanguageTag();
 
     String date = DateFormat('EEEE, dd.MM.yy, HH:mm', tag)
         .format(DateTime.fromMillisecondsSinceEpoch(widget.lastSynced));
-
-    File currentModpackInfo =
-        File("${getMinecraftFolder().path}/mods/modConfig.json");
-    Map modConfig = json.decode(currentModpackInfo.readAsStringSync());
-    if (modConfig["name"] == widget.name) {
-      isApplied = true;
-    }
 
     return Card(
       child: Container(
@@ -78,7 +71,7 @@ class _ModpackPreviewState extends State<ModpackPreview> {
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  isApplied
+                  widget.isApplied
                       ? Container(
                           margin: const EdgeInsets.only(right: 12),
                           child: FilledButton.tonalIcon(
@@ -91,7 +84,7 @@ class _ModpackPreviewState extends State<ModpackPreview> {
                           margin: const EdgeInsets.only(right: 12),
                           child: FilledButton.icon(
                             onPressed: () async {
-                              if (isApplied) {
+                              if (widget.isApplied) {
                                 return;
                               }
 

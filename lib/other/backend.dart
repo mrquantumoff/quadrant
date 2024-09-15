@@ -77,6 +77,17 @@ Future<List<ModpackPreview>> getModpackPreviews({String? searchQuery}) async {
       "mods": [],
       "modLoader": loader,
     };
+    bool isApplied = false;
+
+    File currentModpackInfo =
+        File("${getMinecraftFolder().path}/mods/modConfig.json");
+    if (await currentModpackInfo.exists()) {
+      Map currentModConfig =
+          json.decode(await currentModpackInfo.readAsString());
+      if (currentModConfig["name"] == modpackName) {
+        isApplied = true;
+      }
+    }
     if (await modpackConfig.exists()) {
       modConfig = json.decode(await modpackConfig.readAsString());
       loader = modConfig["modLoader"] ?? "-";
@@ -96,6 +107,7 @@ Future<List<ModpackPreview>> getModpackPreviews({String? searchQuery}) async {
         lastSynced: lastSynced,
         mcVersion: mcVersion,
         modConfig: modConfig,
+        isApplied: isApplied,
       ),
     );
   }
