@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:animations/animations.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -636,18 +637,19 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(
                               GetStorage().read("clipIcons") == true ? 80 : 0),
-                          child: Image(
-                            image: NetworkImage(
-                              widget.modIconUrl.trim().isEmpty
-                                  ? "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo256.png"
-                                  : widget.modIconUrl.trim(),
-                            ),
+                          child: CachedNetworkImage(
+                            cacheManager: QuadrantImageCacheManager.instance,
+                            imageUrl: widget.modIconUrl.trim().isEmpty
+                                ? "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo256.png"
+                                : widget.modIconUrl.trim(),
+                            progressIndicatorBuilder:
+                                (context, url, downloadProgress) =>
+                                    CircularProgressIndicator(
+                                        value: downloadProgress.progress),
+                            errorWidget: (context, url, error) =>
+                                const Icon(Icons.error),
                             alignment: Alignment.centerRight,
                             height: 64,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const CircularProgressIndicator();
-                            },
                             width: 64,
                           ),
                         ),

@@ -58,9 +58,21 @@ class _ModpackPreviewState extends State<ModpackPreview> {
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.name,
-                      style: const TextStyle(fontSize: 36),
+                    Row(
+                      children: [
+                        Text(
+                          widget.name,
+                          style: const TextStyle(fontSize: 36),
+                        ),
+                        const SizedBox(
+                          width: 8,
+                        ),
+                        FilledButton.tonalIcon(
+                          onPressed: action,
+                          label: Text(AppLocalizations.of(context)!.details),
+                          icon: const Icon(Icons.send),
+                        )
+                      ],
                     ),
                     Container(
                       margin: const EdgeInsets.only(bottom: 12),

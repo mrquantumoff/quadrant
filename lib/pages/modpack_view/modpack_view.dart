@@ -42,7 +42,7 @@ class _ModpackViewState extends State<ModpackView> {
   }
 
   void getCurrentModpack() {
-    debugPrint("Modpack view: ${widget.modpack}");
+    debugPrint("Modpack view: ${widget.modpack?["name"]}");
     if (widget.modpack != null) {
       setState(() {
         currentModpack = currentModpack;

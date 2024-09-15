@@ -45,6 +45,7 @@ dependencies:
   io: ^1.0.4
   flutter_animate: ^4.5.0
   flutter_cache_manager: ^3.4.1
+  cached_network_image: ^3.4.1
 
 dependency_overrides:
   win32: any

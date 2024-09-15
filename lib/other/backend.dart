@@ -1284,3 +1284,17 @@ class QuadrantCacheManager {
     ),
   );
 }
+
+class QuadrantImageCacheManager {
+  static const key = 'quadrantImageCache';
+  static CacheManager instance = CacheManager(
+    Config(
+      key,
+      stalePeriod: const Duration(days: 90),
+      maxNrOfCacheObjects: 32768,
+      repo: JsonCacheInfoRepository(databaseName: key),
+      fileSystem: IOFileSystem(key),
+      fileService: HttpFileService(),
+    ),
+  );
+}
