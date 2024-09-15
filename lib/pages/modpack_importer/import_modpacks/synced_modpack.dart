@@ -100,10 +100,9 @@ class _SyncedModpackState extends State<SyncedModpack> {
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 24),
             child: Column(
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.max,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.center,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     Container(
                       margin: const EdgeInsets.only(left: 12, top: 0),
@@ -129,71 +128,66 @@ class _SyncedModpackState extends State<SyncedModpack> {
                         ],
                       ),
                     ),
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 12),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            FilledButton.icon(
-                              onPressed: () async {
-                                List mods = json.decode(widget.mods);
-                                debugPrint(mods.toString());
-                                Map modConfig = {
-                                  "name": widget.name,
-                                  "version": widget.mcVersion,
-                                  "mods": mods,
-                                  "modLoader": widget.modLoader
-                                };
-                                if (widget.getMods != null) {
-                                  await widget.getMods!(
-                                    json.encode(modConfig),
-                                    switchTabs: true,
-                                    newTimestamp: widget.lastSynced,
-                                  );
-                                }
-                              },
-                              icon: (localSyncDateMillis < widget.lastSynced &&
-                                      localSyncDateMillis != 0)
-                                  ? const Icon(Icons.update)
-                                  : const Icon(Icons.download),
-                              label: (localSyncDateMillis < widget.lastSynced &&
-                                      localSyncDateMillis != 0)
-                                  ? Text(AppLocalizations.of(context)!.update)
-                                  : Text(
-                                      AppLocalizations.of(context)!.download),
-                              style: FilledButton.styleFrom(
-                                minimumSize: const Size(360, 48),
-                              ),
+                    Container(
+                      margin: const EdgeInsets.only(top: 12),
+                      child: Row(
+                        children: [
+                          const SizedBox(
+                            width: 12,
+                          ),
+                          FilledButton.icon(
+                            onPressed: () async {
+                              List mods = json.decode(widget.mods);
+                              debugPrint(mods.toString());
+                              Map modConfig = {
+                                "name": widget.name,
+                                "version": widget.mcVersion,
+                                "mods": mods,
+                                "modLoader": widget.modLoader
+                              };
+                              if (widget.getMods != null) {
+                                await widget.getMods!(
+                                  json.encode(modConfig),
+                                  switchTabs: true,
+                                  newTimestamp: widget.lastSynced,
+                                );
+                              }
+                            },
+                            icon: (localSyncDateMillis < widget.lastSynced &&
+                                    localSyncDateMillis != 0)
+                                ? const Icon(Icons.update)
+                                : const Icon(Icons.download),
+                            label: (localSyncDateMillis < widget.lastSynced &&
+                                    localSyncDateMillis != 0)
+                                ? Text(AppLocalizations.of(context)!.update)
+                                : Text(AppLocalizations.of(context)!.download),
+                            style: FilledButton.styleFrom(
+                                // minimumSize: const Size(360, 48),
+                                ),
+                          ),
+                          const SizedBox(
+                            width: 12,
+                          ),
+                          FilledButton.icon(
+                            onPressed: () async {
+                              Map modConfig = {
+                                "name": widget.name,
+                                "version": widget.mcVersion,
+                                "mods": json.decode(widget.mods),
+                                "modLoader": widget.modLoader
+                              };
+                              String content = json.encode(modConfig);
+                              await shareModpack(context, content);
+                            },
+                            label: Text(AppLocalizations.of(context)!.share),
+                            icon: const Icon(Icons.share),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.blueAccent,
+                              foregroundColor: Colors.white,
+                              // minimumSize: const Size(360, 48),
                             ),
-                            const SizedBox(
-                              height: 12,
-                            ),
-                            const SizedBox(
-                              height: 12,
-                            ),
-                            FilledButton.icon(
-                              onPressed: () async {
-                                Map modConfig = {
-                                  "name": widget.name,
-                                  "version": widget.mcVersion,
-                                  "mods": json.decode(widget.mods),
-                                  "modLoader": widget.modLoader
-                                };
-                                String content = json.encode(modConfig);
-                                await shareModpack(context, content);
-                              },
-                              label: Text(AppLocalizations.of(context)!.share),
-                              icon: const Icon(Icons.share),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: Colors.blueAccent,
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size(360, 48),
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

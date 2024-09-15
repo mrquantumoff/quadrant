@@ -87,13 +87,7 @@ Future<List<ModpackPreview>> getModpackPreviews({String? searchQuery}) async {
       Map modConfig = json.decode(await syncConfig.readAsString());
       lastSynced = modConfig["last_synced"];
     }
-    if (searchQuery != null) {
-      if (searchQuery.toLowerCase().contains(loader.toLowerCase()) ||
-          searchQuery.toLowerCase().contains(modpackName.toLowerCase()) ||
-          searchQuery.toLowerCase().contains(mcVersion.toLowerCase())) {
-        break;
-      }
-    }
+
     previews.add(
       ModpackPreview(
         name: modpackName,
@@ -104,6 +98,20 @@ Future<List<ModpackPreview>> getModpackPreviews({String? searchQuery}) async {
         modConfig: modConfig,
       ),
     );
+  }
+
+  if (searchQuery != null) {
+    String query = searchQuery.trim().toLowerCase();
+    List<ModpackPreview> searchedPreviews = [];
+    debugPrint("Search Query: $query");
+    for (var preview in previews) {
+      if (preview.loader.toLowerCase().contains(query) ||
+          preview.mcVersion.toLowerCase().contains(query) ||
+          preview.name.toLowerCase().contains(query)) {
+        searchedPreviews.add(preview);
+      }
+    }
+    return searchedPreviews;
   }
 
   return previews;
