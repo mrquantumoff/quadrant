@@ -238,6 +238,7 @@ class _ModpackPreviewState extends State<ModpackPreview> {
       openBuilder: (context, action) => ModpackView(
         modpack: widget.modConfig,
       ),
+      tappable: false,
       closedColor: Colors.transparent,
       openColor: Colors.transparent,
     );
