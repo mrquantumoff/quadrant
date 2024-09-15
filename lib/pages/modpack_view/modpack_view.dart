@@ -4,19 +4,22 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
+import 'package:quadrant/draggable_appbar.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/web/mod/loading_mod.dart';
 import 'package:quadrant/pages/web/mod/mod.dart';
 import 'package:quadrant/pages/web/modpack_update_page/modpack_update_page.dart/update_modpack.dart';
 
-class CurrentModpackPage extends StatefulWidget {
-  const CurrentModpackPage({super.key});
+class ModpackView extends StatefulWidget {
+  ModpackView({super.key, this.modpack});
+
+  Map? modpack;
 
   @override
-  State<CurrentModpackPage> createState() => _CurrentModpackPageState();
+  State<ModpackView> createState() => _ModpackViewState();
 }
 
-class _CurrentModpackPageState extends State<CurrentModpackPage> {
+class _ModpackViewState extends State<ModpackView> {
   late bool buttonsActive;
 
   void setButtonsActive(bool newValue) {
@@ -28,6 +31,7 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
   @override
   void initState() {
     buttonsActive = true;
+    currentModpack = widget.modpack == null ? {} : widget.modpack!;
     super.initState();
   }
 
@@ -38,6 +42,13 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
   }
 
   void getCurrentModpack() {
+    debugPrint("Modpack view: ${widget.modpack}");
+    if (widget.modpack != null) {
+      setState(() {
+        currentModpack = currentModpack;
+      });
+      return;
+    }
     File currentModConfig =
         File("${getMinecraftFolder().path}/mods/modConfig.json");
     if (!currentModConfig.existsSync()) {
@@ -83,32 +94,42 @@ class _CurrentModpackPageState extends State<CurrentModpackPage> {
     return mods;
   }
 
-  Map currentModpack = {};
+  late Map currentModpack;
 
   @override
   Widget build(BuildContext context) {
     getCurrentModpack();
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          "${AppLocalizations.of(context)!.currentModpack}: ${currentModpack["name"] ?? "-"} | ${currentModpack["modLoader"] ?? "-"} ${currentModpack["version"] ?? "-"} | ${AppLocalizations.of(context)!.modCount(((currentModpack["mods"] ?? []) as List<dynamic>).length)}",
-        ),
-        actions: [
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12),
-            child: FilledButton.icon(
-              onPressed: () {
-                Get.to(
-                  () => UpdateModpack(
-                    preSelectedModpack: currentModpack["name"],
-                  ),
-                );
-              },
-              icon: const Icon(Icons.update),
-              label: Text(AppLocalizations.of(context)!.update),
-            ),
+      appBar: DraggableAppBar(
+        appBar: AppBar(
+          leading: widget.modpack != null
+              ? IconButton(
+                  onPressed: () {
+                    Get.back();
+                  },
+                  icon: const Icon(Icons.arrow_back),
+                )
+              : null,
+          title: Text(
+            "${AppLocalizations.of(context)!.currentModpack}: ${currentModpack["name"] ?? "-"} | ${currentModpack["modLoader"] ?? "-"} ${currentModpack["version"] ?? "-"} | ${AppLocalizations.of(context)!.modCount(((currentModpack["mods"] ?? []) as List<dynamic>).length)}",
           ),
-        ],
+          actions: [
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              child: FilledButton.icon(
+                onPressed: () {
+                  Get.to(
+                    () => UpdateModpack(
+                      preSelectedModpack: currentModpack["name"],
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.update),
+                label: Text(AppLocalizations.of(context)!.update),
+              ),
+            ),
+          ],
+        ),
       ),
       body: Center(
         child: FutureBuilder(
