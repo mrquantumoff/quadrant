@@ -5,17 +5,17 @@ import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:get/get.dart';
 import 'package:quadrant/other/backend.dart';
-import 'package:quadrant/pages/advanced_apply/modpack_preview.dart';
+import 'package:quadrant/pages/apply/modpack_preview.dart';
 import 'package:quadrant/pages/modpack_creator/modpack_creator.dart';
 
-class AdvancedApplyPage extends StatefulWidget {
-  const AdvancedApplyPage({super.key});
+class ApplyPage extends StatefulWidget {
+  const ApplyPage({super.key});
 
   @override
-  State<AdvancedApplyPage> createState() => _AdvancedApplyPageState();
+  State<ApplyPage> createState() => _ApplyPageState();
 }
 
-class _AdvancedApplyPageState extends State<AdvancedApplyPage> {
+class _ApplyPageState extends State<ApplyPage> {
   int refreshDate = DateTime.now().millisecondsSinceEpoch;
   Timer? refreshTimer;
   List<ModpackPreview> currentPreviews = [];

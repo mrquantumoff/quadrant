@@ -13,7 +13,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:io/io.dart' as io;
 import 'package:local_notifier/local_notifier.dart';
-import 'package:quadrant/pages/advanced_apply/modpack_preview.dart';
+import 'package:quadrant/pages/apply/modpack_preview.dart';
 import 'package:quadrant/pages/modpack_importer/import_modpacks/import_modpacks_page.dart';
 import 'package:quadrant/pages/modpack_importer/import_modpacks/synced_modpack.dart';
 import 'package:quadrant/pages/web/generate_user_agent.dart';
