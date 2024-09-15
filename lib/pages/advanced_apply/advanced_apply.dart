@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:get/get.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/advanced_apply/modpack_preview.dart';
+import 'package:quadrant/pages/modpack_creator/modpack_creator.dart';
 
 class AdvancedApplyPage extends StatefulWidget {
   const AdvancedApplyPage({super.key});
@@ -97,6 +99,21 @@ class _AdvancedApplyPageState extends State<AdvancedApplyPage> {
                     );
                     break;
                 }
+              },
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+            child: ActionChip(
+              label: Text(
+                AppLocalizations.of(context)!.createModpack,
+              ),
+              avatar: const Icon(Icons.create),
+              onPressed: () async {
+                Get.to(
+                  () => const ModpackCreator(modpack: ""),
+                  transition: Transition.topLevel,
+                );
               },
             ),
           ),

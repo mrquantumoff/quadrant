@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:quadrant/other/backend.dart';
+import 'package:quadrant/pages/modpack_creator/modpack_creator.dart';
 
 class ModpackPreview extends StatefulWidget {
   ModpackPreview({
@@ -65,11 +68,12 @@ class _ModpackPreviewState extends State<ModpackPreview> {
                 ],
               ),
             ),
-            Container(
-              margin: const EdgeInsets.only(right: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 32),
+              // margin: const EdgeInsets.only(right: 12),
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                dragStartBehavior: DragStartBehavior.down,
                 children: [
                   widget.isApplied
                       ? Container(
@@ -177,6 +181,22 @@ class _ModpackPreviewState extends State<ModpackPreview> {
                         // foregroundColor: Colors.white,
                         // minimumSize: const Size(360, 48),
                         ),
+                  ),
+                  const SizedBox(
+                    width: 12,
+                  ),
+                  FilledButton.tonalIcon(
+                    onPressed: () async {
+                      Get.to(
+                        () => ModpackCreator(
+                          modpack: widget.name,
+                          update: true,
+                        ),
+                        transition: Transition.topLevel,
+                      );
+                    },
+                    label: Text(AppLocalizations.of(context)!.update),
+                    icon: const Icon(Icons.edit),
                   ),
                   const SizedBox(
                     width: 12,

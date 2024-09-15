@@ -149,6 +149,19 @@ void main(List<String> args) async {
   );
 }
 
+class QuadrantScroll extends MaterialScrollBehavior {
+  // Override behavior methods and getters like dragDevices
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.trackpad,
+        PointerDeviceKind.stylus,
+
+        // etc.
+      };
+}
+
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -247,6 +260,7 @@ class _ThemeProviderState extends State<ThemeProvider> {
       supportedLocales: AppLocalizations.supportedLocales,
       locale: Locale.fromSubtags(languageCode: locale),
       defaultTransition: Transition.rightToLeft,
+      scrollBehavior: QuadrantScroll(),
       home: Quadrant(
         setLocale: setLocale,
       ),
