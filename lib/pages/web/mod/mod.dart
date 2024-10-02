@@ -9,7 +9,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
-import 'package:get/get.dart';
 import 'package:get_storage_qnt/get_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -735,20 +734,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                         child: widget.downloadable && !widget.autoInstall
                             ? FilledButton.icon(
                                 onPressed: () {
-                                  if (GetStorage()
-                                      .read("experimentalFeatures")) {
-                                    action();
-                                  } else {
-                                    Get.to(
-                                      () => InstallModPage(
-                                        versions: versionItems,
-                                        mod: widget,
-                                        modpacks: modpackItems,
-                                        source: widget.source,
-                                        modClass: widget.modClass,
-                                      ),
-                                    );
-                                  }
+                                  action();
                                 },
                                 icon: installable
                                     ? const Icon(Icons.download)
@@ -1046,8 +1032,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
           closedElevation: 0,
           openElevation: 0,
           transitionDuration: Durations.long2,
-          tappable:
-              widget.downloadable && GetStorage().read("experimentalFeatures"),
+          tappable: widget.downloadable,
         ),
       ),
     );
