@@ -2,8 +2,6 @@
 
 import 'dart:convert';
 import 'dart:io';
-
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:get/get.dart';
@@ -297,8 +295,8 @@ class _InstallModPageState extends State<InstallModPage> {
       locale: AppLocalizations.of(context)!.localeName,
     );
 
-    List<Widget> screenshots = [];
-
+    List<Image> screenshots = [];
+    List<String> screenshotUrls = [];
     for (String screenshot in widget.mod.thumbnailUrl) {
       screenshots.add(
         Image.network(
@@ -306,6 +304,7 @@ class _InstallModPageState extends State<InstallModPage> {
           fit: BoxFit.contain,
         ),
       );
+      screenshotUrls.add(screenshot);
     }
 
     return Scaffold(
@@ -462,23 +461,37 @@ class _InstallModPageState extends State<InstallModPage> {
                       alignment: Alignment.centerRight,
                       child: screenshots.isEmpty
                           ? null
-                          : Card.outlined(
+                          : Card.filled(
                               margin: const EdgeInsets.only(right: 12),
-                              child: ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxWidth: 465),
-                                child: CarouselSlider(
-                                  options: CarouselOptions(
-                                    pageSnapping: true,
-                                    enableInfiniteScroll: true,
-                                    enlargeFactor: 5,
-                                    enlargeStrategy:
-                                        CenterPageEnlargeStrategy.scale,
+                              child: Padding(
+                                padding: EdgeInsets.all(12),
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                      maxWidth: 480, maxHeight: 240),
+
+                                  //     CarouselSlider(
+                                  //   options: CarouselOptions(
+                                  //     pageSnapping: true,
+                                  //     enableInfiniteScroll: true,
+                                  //     enlargeFactor: 5,
+                                  //     enlargeStrategy:
+                                  //         CenterPageEnlargeStrategy.scale,
+                                  //     scrollDirection: Axis.horizontal,
+                                  //     height: 304,
+                                  //     autoPlay: true,
+                                  //   ),
+                                  //   items: screenshots,
+                                  // ),
+                                  child: CarouselView(
+                                    itemSnapping: true,
+                                    itemExtent: 360,
                                     scrollDirection: Axis.horizontal,
-                                    height: 304,
-                                    autoPlay: true,
+                                    children: screenshots,
+                                    onTap: (value) async {
+                                      await launchUrl(
+                                          Uri.parse(screenshotUrls[value]));
+                                    },
                                   ),
-                                  items: screenshots,
                                 ),
                               ),
                             ),
