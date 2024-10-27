@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
@@ -7,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:quadrant/other/backend.dart';
 import 'package:quadrant/pages/apply/modpack_preview.dart';
 import 'package:quadrant/pages/modpack_creator/modpack_creator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ApplyPage extends StatefulWidget {
   const ApplyPage({super.key});
@@ -91,6 +93,10 @@ class _ApplyPageState extends State<ApplyPage> {
                     );
                     break;
                   case false:
+                    if (Platform.isWindows) {
+                      await launchUrl(Uri.parse(
+                          "https://github.com/mrquantumoff/quadrant/wiki/Fixing-Windows-issues"));
+                    }
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
