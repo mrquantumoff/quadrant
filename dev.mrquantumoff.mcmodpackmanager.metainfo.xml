@@ -43,6 +43,13 @@
 
   <releases>
 
+    <release date="2024-11-02" version="24.11.0">
+      <description>
+        <p>Redesigned some smaller parts of the interface</p>
+        <p>Dependency updates, bug fixes, QoL improvements</p>
+      </description>
+    </release>
+
     <release date="2024-10-02" version="24.10.0">
       <description>
         <p>Redesigned "Apply" page, with improved functionality</p>
