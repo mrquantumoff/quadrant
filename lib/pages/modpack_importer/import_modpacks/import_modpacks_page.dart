@@ -53,7 +53,7 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
     super.initState();
     tabController =
         TabController(length: 2, vsync: this, initialIndex: widget.page);
-    future = getSyncedModpacksOld(reload);
+    future = getSyncedModpacks(reload);
   }
 
   TextEditingController modpackEntryController = TextEditingController();
@@ -173,114 +173,6 @@ class _ImportModpacksPageState extends State<ImportModpacksPage>
         ),
       );
     }
-  }
-
-  Future<List<Widget>> getSyncedModpacksOld(String reload) async {
-    const storage = FlutterSecureStorage();
-    String? token = await storage.read(key: "quadrant_id_token");
-    if (token == null) {
-      throw Exception(AppLocalizations.of(context)!.noQuadrantID);
-    }
-    http.Response res = await http.get(
-        Uri.parse("https://api.mrquantumoff.dev/api/v2/get/quadrant_sync"),
-        headers: {
-          "User-Agent": await generateUserAgent(),
-          "Authorization": "Bearer $token"
-        });
-
-    if (res.statusCode != 200) {
-      throw Exception(utf8.decode(res.bodyBytes));
-    }
-    List<dynamic> data = json.decode(utf8.decode(res.bodyBytes));
-
-    if (data.isEmpty) {
-      return await getSyncedModpacks(reload);
-    }
-    return [
-      SizedBox(
-        width: 640,
-        height: 192,
-        child: Card(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                AppLocalizations.of(context)!.youNeedToMigrateData,
-                style: const TextStyle(fontSize: 18),
-              ),
-              const SizedBox(
-                height: 24,
-              ),
-              FilledButton.icon(
-                onPressed: () async {
-                  setState(() {
-                    reload = "";
-                    future = () async {
-                      return <Widget>[
-                        const SizedBox(
-                          width: 640,
-                          height: 640,
-                          child: Card(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                CircularProgressIndicator(),
-                              ],
-                            ),
-                          ),
-                        )
-                      ];
-                    }();
-                  });
-                  http.Response res = await http.get(
-                    Uri.parse(
-                        "https://api.mrquantumoff.dev/api/v3/quadrant/sync/migrate"),
-                    headers: {
-                      "User-Agent": await generateUserAgent(),
-                      "Authorization": "Bearer $token"
-                    },
-                  );
-                  if (res.statusCode != 200) {
-                    setState(() {
-                      reload = "";
-                      future = () async {
-                        return <Widget>[
-                          SizedBox(
-                            width: 640,
-                            height: 640,
-                            child: Card(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.error),
-                                  Text(utf8.decode(res.bodyBytes))
-                                ],
-                              ),
-                            ),
-                          )
-                        ];
-                      }();
-                    });
-                  } else {
-                    setState(() {
-                      future = getSyncedModpacks(reload);
-                      reload = "";
-                    });
-                  }
-                },
-                label: Text(AppLocalizations.of(context)!.migrate),
-                icon: const Icon(
-                  Icons.upgrade,
-                ),
-              )
-            ],
-          ),
-        ),
-      )
-    ];
   }
 
   Future<List<SyncedModpack>> getSyncedModpacks(String reload) async {
