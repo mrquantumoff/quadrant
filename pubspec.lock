@@ -401,11 +401,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "v3.1.0"
-      resolved-ref: c576d95f3fccf022b6da0887d7fec19599d9fe80
+      ref: "v3.2.0"
+      resolved-ref: "9fd36621fcd780c686ae2703784b740dac86317d"
       url: "https://github.com/mrquantumoff/get_storage_qnt.git"
     source: git
-    version: "3.0.0"
+    version: "3.2.0"
   http:
     dependency: "direct main"
     description:
