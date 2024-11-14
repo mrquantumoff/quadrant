@@ -22,18 +22,20 @@ class _SettingsState extends State<Settings> {
   late TextEditingController _controller;
   late String mcFolder;
   late String latestVersion;
-  bool clipButtons = GetStorage().read("clipIcons");
-  bool collectData = GetStorage().read("collectUserData");
-  bool curseForge = GetStorage().read("curseForge");
-  bool modrinth = GetStorage().read("modrinth");
-  bool devMode = GetStorage().read("devMode") ?? false;
-  bool rssFeeds = GetStorage().read("rssFeeds");
-  bool silentNews = GetStorage().read("silentNews");
-  bool autoQuadrantSync = GetStorage().read("autoQuadrantSync");
-  bool extendedNavigation = GetStorage().read("extendedNavigation");
-  bool showUnupgradeableMods = GetStorage().read("showUnupgradeableMods");
-  bool experimentalFeatures = GetStorage().read("experimentalFeatures");
-  int cacheStorageLimit = GetStorage().read("cacheKeepAlive");
+  final box = GetStorage();
+  late bool clipButtons = box.read("clipIcons");
+  late bool collectData = box.read("collectUserData");
+  late bool curseForge = box.read("curseForge");
+  late bool modrinth = box.read("modrinth");
+  late bool devMode = box.read("devMode") ?? false;
+  late bool rssFeeds = box.read("rssFeeds");
+  late bool silentNews = box.read("silentNews");
+  late bool autoQuadrantSync = box.read("autoQuadrantSync");
+  late bool extendedNavigation = box.read("extendedNavigation");
+  late bool showUnupgradeableMods = box.read("showUnupgradeableMods");
+  late bool experimentalFeatures = box.read("experimentalFeatures");
+  late int cacheStorageLimit = box.read("cacheKeepAlive");
+  late bool syncSettings = box.read("syncSettings");
 
   @override
   void dispose() {
@@ -47,59 +49,104 @@ class _SettingsState extends State<Settings> {
   }
 
   void setClipButtons(bool newValue) {
-    GetStorage().write("clipIcons", newValue);
+    box.write("clipIcons", newValue);
+    box.write(
+      "lastSettingsUpdated",
+      DateTime.now().toUtc().toIso8601String(),
+    );
+    submitSettingsSync();
     setState(() {
       clipButtons = newValue;
     });
   }
 
+  void setSettingSync(bool newValue) {
+    box.write("syncSettings", newValue);
+    if (newValue) {
+      submitSettingsSync();
+    }
+    setState(() {
+      syncSettings = newValue;
+    });
+  }
+
   void setCacheKeepAlive(int newValue) {
-    GetStorage().write("cacheKeepAlive", newValue.toInt());
+    box.write("cacheKeepAlive", newValue.toInt());
+    box.write(
+      "lastSettingsUpdated",
+      DateTime.now().toUtc().toIso8601String(),
+    );
+    submitSettingsSync();
     setState(() {
       cacheStorageLimit = newValue.toInt();
     });
   }
 
   void setDevMode(bool newValue) {
-    GetStorage().write("devMode", newValue);
+    box.write("devMode", newValue);
     setState(() {
       devMode = newValue;
     });
   }
 
   void setShowUnupgradeableMods(bool newValue) {
-    GetStorage().write("showUnupgradeableMods", newValue);
+    box.write("showUnupgradeableMods", newValue);
+    box.write(
+      "lastSettingsUpdated",
+      DateTime.now().toUtc().toIso8601String(),
+    );
+    submitSettingsSync();
     setState(() {
       showUnupgradeableMods = newValue;
     });
   }
 
   void setRSSFeeds(bool newValue) {
-    GetStorage().write("rssFeeds", newValue);
+    box.write("rssFeeds", newValue);
+    box.write(
+      "lastSettingsUpdated",
+      DateTime.now().toUtc().toIso8601String(),
+    );
+    submitSettingsSync();
     setState(() {
       rssFeeds = newValue;
     });
   }
 
   void setSilentNews(bool newValue) {
-    GetStorage().write("silentNews", newValue);
+    box.write("silentNews", newValue);
+    box.write(
+      "lastSettingsUpdated",
+      DateTime.now().toUtc().toIso8601String(),
+    );
+    submitSettingsSync();
     setState(() {
       silentNews = newValue;
     });
   }
 
   void setCollectData(bool newValue) {
-    GetStorage().write("collectUserData", newValue);
+    box.write("collectUserData", newValue);
     if (!newValue) {
-      GetStorage().write("dontShowTelemetryRecommendation", false);
+      box.write("dontShowTelemetryRecommendation", false);
     }
+    box.write(
+      "lastSettingsUpdated",
+      DateTime.now().toUtc().toIso8601String(),
+    );
+    submitSettingsSync();
     setState(() {
       collectData = newValue;
     });
   }
 
   void setExpFeatures(bool newValue) {
-    GetStorage().write("experimentalFeatures", newValue);
+    box.write("experimentalFeatures", newValue);
+    box.write(
+      "lastSettingsUpdated",
+      DateTime.now().toUtc().toIso8601String(),
+    );
+    submitSettingsSync();
     setState(() {
       experimentalFeatures = newValue;
     });
@@ -114,28 +161,44 @@ class _SettingsState extends State<Settings> {
   }
 
   void setModrinth(bool newValue) {
-    GetStorage().write("modrinth", newValue);
+    box.write("modrinth", newValue);
+    box.write(
+      "lastSettingsUpdated",
+      DateTime.now().toUtc().toIso8601String(),
+    );
     setState(() {
       modrinth = newValue;
     });
   }
 
   void setCurseForge(bool newValue) {
-    GetStorage().write("curseForge", newValue);
+    box.write("curseForge", newValue);
+    box.write(
+      "lastSettingsUpdated",
+      DateTime.now().toUtc().toIso8601String(),
+    );
     setState(() {
       curseForge = newValue;
     });
   }
 
   void setAutoQuadrantSync(bool newValue) {
-    GetStorage().write("autoQuadrantSync", newValue);
+    box.write("autoQuadrantSync", newValue);
+    box.write(
+      "lastSettingsUpdated",
+      DateTime.now().toUtc().toIso8601String(),
+    );
     setState(() {
       autoQuadrantSync = newValue;
     });
   }
 
   void setExtendedNavigation(bool newValue) {
-    GetStorage().write("extendedNavigation", newValue);
+    box.write("extendedNavigation", newValue);
+    box.write(
+      "lastSettingsUpdated",
+      DateTime.now().toUtc().toIso8601String(),
+    );
     setState(() {
       extendedNavigation = newValue;
     });
@@ -424,7 +487,7 @@ class _SettingsState extends State<Settings> {
                   child: TextButton.icon(
                     icon: const Icon(Icons.open_in_browser),
                     onPressed: () async {
-                      if (GetStorage().read("collectUserData")) {
+                      if (box.read("collectUserData")) {
                         MachineIdAndOS info = await getMachineIdAndOs();
 
                         await launchUrl(
@@ -685,6 +748,28 @@ class _SettingsState extends State<Settings> {
                     margin: const EdgeInsets.only(top: 8.5),
                     child: Text(
                       AppLocalizations.of(context)!.autoQuadrantSync,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsetsDirectional.only(end: 12),
+                    child: Switch(
+                      value: syncSettings,
+                      onChanged: setSettingSync,
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 8.5),
+                    child: Text(
+                      AppLocalizations.of(context)!.quadrantSettingsSync,
                     ),
                   ),
                 ],

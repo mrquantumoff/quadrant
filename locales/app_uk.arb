@@ -218,6 +218,7 @@
   "failedToDelete": "Помилка при видаленні вашого мода ({reason})",
   "clearCache": "Очистити кеш",
   "cacheStorageLimit": "Час життя кешу",
+  "quadrantSettingsSync": "Синхронізувати налаштування Quadrant за допомогою Quadrant ID",
   "@productName": {},
   "@apply": {},
   "@applied": {},

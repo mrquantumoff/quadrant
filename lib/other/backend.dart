@@ -672,6 +672,63 @@ Future<void> syncModpack(
   }
 }
 
+void submitSettingsSync() async {
+  const storage = FlutterSecureStorage();
+  String? token = await storage.read(key: "quadrant_id_token");
+  if (token == null) {
+    return;
+  }
+  final box = GetStorage();
+  if (box.read("syncSettings") == false) {
+    return;
+  }
+  bool clipButtons = box.read("clipIcons");
+  bool collectData = box.read("collectUserData");
+  bool curseForge = box.read("curseForge");
+  bool modrinth = box.read("modrinth");
+  bool rssFeeds = box.read("rssFeeds");
+  bool silentNews = box.read("silentNews");
+  bool autoQuadrantSync = box.read("autoQuadrantSync");
+  bool extendedNavigation = box.read("extendedNavigation");
+  bool showUnupgradeableMods = box.read("showUnupgradeableMods");
+  bool experimentalFeatures = box.read("experimentalFeatures");
+  int cacheStorageLimit = box.read("cacheKeepAlive");
+  String lastSettingsUpdated = box.read("lastSettingsUpdated");
+  Map<String, dynamic> settings = {
+    "clipButtons": clipButtons,
+    "collectData": collectData,
+    "curseForge": curseForge,
+    "modrinth": modrinth,
+    "rssFeeds": rssFeeds,
+    "silentNews": silentNews,
+    "autoQuadrantSync": autoQuadrantSync,
+    "extendedNavigation": extendedNavigation,
+    "showUnupgradeableMods": showUnupgradeableMods,
+    "experimentalFeatures": experimentalFeatures,
+    "cacheStorageLimit": cacheStorageLimit,
+    "lastSettingsUpdated": lastSettingsUpdated,
+  };
+  String settingsEncoded = json.encode(settings);
+
+  Map request = {
+    "settings": settingsEncoded,
+    "sync_date": box.read("lastSettingsUpdated"),
+  };
+  http.Response res = await http.post(
+    Uri.parse(
+        "https://api.mrquantumoff.dev/api/v3/quadrant/settings_sync/submit"),
+    body: json.encode(request),
+    headers: {
+      "User-Agent": await generateUserAgent(),
+      "Authorization": "Bearer $token"
+    },
+  );
+  if (res.statusCode != 200) {
+    throw Exception(res.body);
+  }
+  debugPrint("Settings Synced");
+}
+
 void installModByProtocol(int modId, int fileId, Function() fail) async {
   try {
     final String apiKey =
@@ -833,7 +890,7 @@ Future<List<String>> getVersions({bool onInit = false}) async {
         "User-Agent": await generateUserAgent(),
       },
     );
-    debugPrint("Minecraft versions: ${utf8.decode(res.bodyBytes)}");
+    // debugPrint("Minecraft versions: ${utf8.decode(res.bodyBytes)}");
     dynamic vrs = json.decode(utf8.decode(res.bodyBytes));
 
     for (var v in vrs) {
@@ -1068,6 +1125,42 @@ Future<void> checkAccountUpdates() async {
       "Authorization": "Bearer $token"
     },
   );
+  http.Response settingsSyncRes = await http.get(
+    Uri.parse("https://api.mrquantumoff.dev/api/v3/quadrant/settings_sync/get"),
+    headers: {
+      "User-Agent": await generateUserAgent(),
+      "Authorization": "Bearer $token"
+    },
+  );
+
+  if (settingsSyncRes.statusCode == 200 &&
+      GetStorage().read("syncSettings") == true) {
+    Map settingsSync = json.decode(
+      utf8.decode(settingsSyncRes.bodyBytes),
+    );
+    DateTime cloudSyncDate = DateTime.parse(settingsSync["sync_date"]);
+    DateTime lastModifiedDate =
+        DateTime.parse(GetStorage().read("lastSettingsUpdated"));
+    if (cloudSyncDate.isAfter(lastModifiedDate) &&
+        cloudSyncDate != lastModifiedDate) {
+      Map settings = json.decode(settingsSync["settings"]);
+      settings.forEach(
+        (key, value) {
+          debugPrint("Synced Settings: $key => $value");
+          GetStorage().write(key, value);
+        },
+      );
+    } else {
+      submitSettingsSync();
+    }
+  } else if (GetStorage().read("syncSettings") == true) {
+    try {
+      submitSettingsSync();
+    } catch (e) {
+      debugPrint("$e");
+    }
+  }
+
   Map userInfo = json.decode(utf8.decode(userInfoRes.bodyBytes));
 
   if (userInfoRes.statusCode != 200) {
@@ -1282,6 +1375,13 @@ void initConfig() {
   if (GetStorage().read("cacheKeepAlive") == null ||
       GetStorage().read("cacheKeepAlive").runtimeType != int) {
     GetStorage().writeInMemory("cacheKeepAlive", 30);
+  }
+  if (GetStorage().read("syncSettings") == null) {
+    GetStorage().writeInMemory("syncSettings", true);
+  }
+  if (GetStorage().read("lastSettingsUpdated") == null) {
+    GetStorage().writeInMemory(
+        "lastSettingsUpdated", DateTime.now().toUtc().toIso8601String());
   }
 }
 

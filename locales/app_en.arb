@@ -396,5 +396,7 @@
   "clearCache": "Clear cache",
   "@clearCache": {},
   "cacheStorageLimit": "Maximum cache age",
-  "@cacheStorageLimit": {}
+  "@cacheStorageLimit": {},
+  "quadrantSettingsSync": "Sync Quadrant settings with Quadrant ID",
+  "@quadrantSettingsSync": {}
 }
