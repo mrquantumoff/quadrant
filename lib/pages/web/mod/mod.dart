@@ -712,15 +712,7 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                             )
                           ],
                         ),
-                      ).animate(
-                        effects: [
-                          BlurEffect(
-                            end: Offset(0, 0),
-                            begin: Offset(5, 5),
-                            duration: Duration(milliseconds: 1200),
-                          ),
-                        ],
-                      ),
+                      )
                     ],
                   ),
                   widget.autoInstall
