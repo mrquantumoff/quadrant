@@ -605,17 +605,6 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
 
     return Visibility.maintain(
       child: Animate(
-        effects: [
-          FadeEffect(
-            duration: 400.ms,
-          ),
-          BlurEffect(
-            delay: 200.ms,
-            duration: 300.ms,
-            end: const Offset(0, 0),
-            begin: const Offset(10, 10),
-          ),
-        ],
         child: OpenContainer(
           closedBuilder: (context, action) {
             return Card.outlined(
@@ -1008,6 +997,18 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                             : Container(),
                       ],
                     ),
+                  ),
+                ],
+              ).animate(
+                effects: [
+                  FadeEffect(
+                    duration: 400.ms,
+                  ),
+                  BlurEffect(
+                    delay: 200.ms,
+                    duration: 300.ms,
+                    end: const Offset(0, 0),
+                    begin: const Offset(10, 10),
                   ),
                 ],
               ),
