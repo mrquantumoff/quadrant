@@ -2,7 +2,7 @@ name: quadrant
 description: Manage your modpacks and mods with ease.
 publish_to: 'none'
 
-version: 24.11.0
+version: 24.12.0
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -31,7 +31,7 @@ dependencies:
   archive: ^3.6.1
   flutter_platform_alert: ^0.6.1
   url_launcher: ^6.3.1
-  flutter_svg: ^2.0.14
+  flutter_svg: ^2.0.16
   protocol_handler: ^0.2.0
   device_info_plus: ^11.1.1
   clipboard: ^0.1.3
@@ -39,10 +39,10 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   jwt_decoder: ^2.0.1
   animations: ^2.0.11
-  tray_manager: ^0.2.4
+  tray_manager: ^0.3.0
   local_notifier: ^0.1.6
   io: ^1.0.4
-  flutter_animate: ^4.5.0
+  flutter_animate: ^4.5.2
   flutter_cache_manager: ^3.4.1
   cached_network_image: ^3.4.1
 
@@ -86,7 +86,7 @@ msix_config:
   publisher_display_name: MrQuantumOFF (Demir Yerli)
   publisher: CN=010914FC-8843-4963-A3FE-E3E06E6D9F53
   identity_name: 58734MrQuantumOFFDemirYer.MinecraftModpackManagerR
-  msix_version: 24.11.0.0
+  msix_version: 24.12.0.0
   logo_path: .\assets\icons\logo.ico
   startup_task: # <-- Startup Task
     enabled: true # optional (default: true)

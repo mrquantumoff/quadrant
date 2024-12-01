@@ -250,10 +250,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_animate
-      sha256: "7c8a6594a9252dad30cc2ef16e33270b6248c4dedc3b3d06c86c4f3f4dc05ae5"
+      sha256: "7befe2d3252728afb77aecaaea1dec88a89d35b9b1d2eea6d04479e8af9117b5"
       url: "https://pub.dev"
     source: hosted
-    version: "4.5.0"
+    version: "4.5.2"
   flutter_cache_manager:
     dependency: "direct main"
     description:
@@ -367,10 +367,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_svg
-      sha256: "578bd8c508144fdaffd4f77b8ef2d8c523602275cd697cc3db284dbd762ef4ce"
+      sha256: "54900a1a1243f3c4a5506d853a2b5c2dbc38d5f27e52a52618a8054401431123"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.14"
+    version: "2.0.16"
   flutter_test:
     dependency: "direct dev"
     description: flutter
@@ -903,10 +903,10 @@ packages:
     dependency: "direct main"
     description:
       name: tray_manager
-      sha256: bdc3ac6c36f3d12d871459e4a9822705ce5a1165a17fa837103bc842719bf3f7
+      sha256: "3c03c70a9b14e89b17c15275c05f67fdd30950f3073ae523755ad9beb2ac7e35"
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.4"
+    version: "0.3.0"
   typed_data:
     dependency: transitive
     description:
