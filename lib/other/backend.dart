@@ -812,7 +812,6 @@ void installModByProtocol(int modId, int fileId, Function() fail) async {
       () => InstallModPage(
         versions: versionItems,
         mod: finalMod,
-        modpacks: modpackItems,
         source: ModSource.curseForge,
         modClass: modClass,
         installFileId: fileId,

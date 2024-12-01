@@ -712,6 +712,14 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
                             )
                           ],
                         ),
+                      ).animate(
+                        effects: [
+                          BlurEffect(
+                            end: Offset(0, 0),
+                            begin: Offset(5, 5),
+                            duration: Duration(milliseconds: 1200),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -1020,7 +1028,6 @@ class _ModState extends State<Mod> with AutomaticKeepAliveClientMixin {
             return InstallModPage(
               versions: versionItems,
               mod: widget,
-              modpacks: modpackItems,
               source: widget.source,
               modClass: widget.modClass,
             );

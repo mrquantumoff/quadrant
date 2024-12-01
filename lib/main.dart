@@ -452,7 +452,6 @@ class _QuadrantState extends State<Quadrant>
           () => InstallModPage(
             versions: versionItems,
             mod: mod,
-            modpacks: modpackItems,
             source: ModSource.modRinth,
             modClass: mod.modClass,
           ),
