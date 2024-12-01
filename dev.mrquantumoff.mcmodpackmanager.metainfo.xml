@@ -44,7 +44,7 @@
   <releases>
 
     <release date="2024-12-01" version="24.12.0">
-      <url type="details">https://example.org/changelog.html#version_1.0.0</url>
+      <url type="details">https://blog.mrquantumoff.dev/quadrants-v24-12/</url>
       <description>
         <p>Introducing Quadrant Settings Sync, a new way to sync your settings across your devices with Quadrant ID</p>
         <p>Added some new animations</p>
