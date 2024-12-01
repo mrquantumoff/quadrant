@@ -95,8 +95,9 @@ class _SyncedModpackState extends State<SyncedModpack> {
             delay: 200.ms,
           ),
         ],
-        child: Card(
-          child: Container(
+        child: Animate(
+          child: Card(
+              child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 24),
             child: Column(
               children: [
@@ -567,13 +568,25 @@ class _SyncedModpackState extends State<SyncedModpack> {
                             );
                           },
                         ),
+                      ).animate(
+                        effects: [
+                          FadeEffect(
+                            duration: 400.ms,
+                          ),
+                          BlurEffect(
+                            delay: 200.ms,
+                            duration: 300.ms,
+                            end: const Offset(0, 0),
+                            begin: const Offset(10, 10),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
               ],
             ),
-          ),
+          )),
         ),
       ),
     );
