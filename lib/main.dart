@@ -50,15 +50,18 @@ void main(List<String> args) async {
 
   // Create the tray icon, required for the app to run in the background properly.
   await trayManager.setIcon(
-    Platform.isWindows
-        ? 'assets/icons/tray.ico'
-        : '/usr/share/icons/hicolor/256x256/apps/dev.mrquantumoff.mcmodpackmanager.tray.png',
+    Platform.isWindows ? 'assets/icons/tray.ico' : 'assets/icons/tray.png',
   );
   Menu menu = Menu(
     items: [
       MenuItem(
         key: 'show_window',
         label: 'Show Window',
+      ),
+      MenuItem.separator(),
+      MenuItem(
+        key: 'sync_all',
+        label: 'Check for Quadrant Sync Updates',
       ),
       MenuItem.separator(),
       MenuItem(
@@ -379,6 +382,12 @@ class _QuadrantState extends State<Quadrant>
         break;
       case "exit_app":
         exit(0);
+      case "sync_all":
+        try {
+          await checkAccountUpdates(context);
+        } catch (e) {
+          debugPrint("$e");
+        }
     }
   }
 
