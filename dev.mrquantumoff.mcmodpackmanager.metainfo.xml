@@ -14,9 +14,9 @@
       NOTE: This app and its developer are not affiliated with Mojang Studios or Microsoft.
     </p>
   </description>
-  <url type="homepage">
-    https://mrquantumoff.dev/projects/quadrant
-  </url>
+  <url type="homepage">https://mrquantumoff.dev/projects/quadrant</url>
+  <url type="vcs-browser">https://github.com/mrquantumoff/quadrant</url>
+  <url type="bugtracker">https://github.com/mrquantumoff/quadrant/issues</url>
   <categories>
     <category>Game</category>
     <category>Utility</category>
@@ -42,6 +42,15 @@
   </branding>
 
   <releases>
+
+    <release date="2024-12-01" version="24.12.0">
+      <url type="details">https://example.org/changelog.html#version_1.0.0</url>
+      <description>
+        <p>Introducing Quadrant Settings Sync, a new way to sync your settings across your devices with Quadrant ID</p>
+        <p>Added some new animations</p>
+        <p>Dependency updates, bug fixes, QoL improvements</p>
+      </description>
+    </release>
 
     <release date="2024-11-02" version="24.11.0">
       <description>
