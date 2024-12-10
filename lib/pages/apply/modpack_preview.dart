@@ -251,8 +251,9 @@ class _ModpackPreviewState extends State<ModpackPreview> {
         modpack: widget.modConfig,
       ),
       tappable: false,
-      closedColor: Colors.transparent,
-      openColor: Colors.transparent,
+      closedColor: MediaQuery.of(context).platformBrightness == Brightness.dark
+          ? Colors.transparent
+          : Colors.white,
     );
   }
 }

@@ -8,7 +8,8 @@
   <description>
     <p>
       This is a powerful tool to manage your Minecraft: Java Edition mods.
-      With this app you can easily install mods, resourcepacks, shaders. You can also share you modpacks with your friends, and you can back up your modpacks to the cloud!
+      With this app you can easily install mods, resourcepacks, shaders. You can also share you
+      modpacks with your friends, and you can back up your modpacks to the cloud!
     </p>
     <p>
       NOTE: This app and its developer are not affiliated with Mojang Studios or Microsoft.
@@ -43,10 +44,18 @@
 
   <releases>
 
+    <release date="2024-12-10" version="24.12.1">
+      <url type="details">https://blog.mrquantumoff.dev/quadrants-v24-12/</url>
+      <description>
+        <p>Dependency updates, bug fixes</p>
+      </description>
+    </release>
+
     <release date="2024-12-01" version="24.12.0">
       <url type="details">https://blog.mrquantumoff.dev/quadrants-v24-12/</url>
       <description>
-        <p>Introducing Quadrant Settings Sync, a new way to sync your settings across your devices with Quadrant ID</p>
+        <p>Introducing Quadrant Settings Sync, a new way to sync your settings across your devices
+          with Quadrant ID</p>
         <p>Added some new animations</p>
         <p>Dependency updates, bug fixes, QoL improvements</p>
       </description>
@@ -102,7 +111,8 @@
         <p>Added filtering your search by the currently applied modpack.</p>
         <p>Added automatically installing mods, when filters are on (experimental)</p>
         <p>Avoid losing your old mods folder after applying your first modpack</p>
-        <p>As a part of the experimental features, you can now install mods without opening thee install mod page, when you have a filter on.</p>
+        <p>As a part of the experimental features, you can now install mods without opening thee
+          install mod page, when you have a filter on.</p>
         <p>QoL improvements</p>
         <p>Bug fixes</p>
       </description>
@@ -137,7 +147,8 @@
 
     <release date="2024-07-04" version="24.7.0">
       <description>
-        <p>Quadrant Sync has been revamped. You will have to manually migrate data from old Quadrant Sync.</p>
+        <p>Quadrant Sync has been revamped. You will have to manually migrate data from old Quadrant
+          Sync.</p>
         <p>The app has moved to MrQuantumOFF API v3</p>
       </description>
     </release>
@@ -212,7 +223,8 @@
 
     <release date="2024-05-13" version="24.5.5">
       <description>
-        <p>Fixed a few bugs, optimised some processes (Importing and getting modpacks from Quadrant Sync is now MUCH faster!)</p>
+        <p>Fixed a few bugs, optimised some processes (Importing and getting modpacks from Quadrant
+          Sync is now MUCH faster!)</p>
       </description>
     </release>
 
@@ -237,7 +249,9 @@
 
     <release date="2024-05-01" version="24.5.1">
       <description>
-        <p>Introducing Quadrant ID, read more detailed changes here: https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
+        <p>Introducing Quadrant ID, read more detailed changes here:
+          https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and
+          https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
         <p>The privacy policy has been updated!</p>
         <p>Dependency updates, bug fixes</p>
       </description>
@@ -245,7 +259,9 @@
 
     <release date="2024-04-22" version="24.5.0-preview3">
       <description>
-        <p>Introducing Quadrant ID, read more detailed changes here: https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
+        <p>Introducing Quadrant ID, read more detailed changes here:
+          https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and
+          https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
         <p>The privacy policy has been updated!</p>
         <p>Dependency updates, bug fixes</p>
       </description>
@@ -253,7 +269,9 @@
 
     <release date="2024-04-20" version="24.5.0-preview2">
       <description>
-        <p>Introducing Quadrant ID, read more detailed changes here: https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
+        <p>Introducing Quadrant ID, read more detailed changes here:
+          https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and
+          https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
         <p>The privacy policy has been updated!</p>
         <p>Dependency updates, bug fixes</p>
       </description>
@@ -261,7 +279,9 @@
 
     <release date="2024-04-20" version="24.5.0-preview">
       <description>
-        <p>Introducing Quadrant ID, read more detailed changes here: https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
+        <p>Introducing Quadrant ID, read more detailed changes here:
+          https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and
+          https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
         <p>The privacy policy has been updated!</p>
         <p>Dependency updates, bug fixes</p>
       </description>
@@ -269,7 +289,9 @@
 
     <release date="2024-04-20" version="24.5.0-preview">
       <description>
-        <p>Introducing Quadrant ID, read more detailed changes here: https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
+        <p>Introducing Quadrant ID, read more detailed changes here:
+          https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and
+          https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
         <p>The privacy policy has been updated!</p>
         <p>Dependency updates, bug fixes</p>
       </description>
@@ -379,7 +401,8 @@
 
     <release date="2023-09-16" version="23.09.0">
       <description>
-        <p>Starting with the 23.09 release of Quadrant, the project now uses a new versioning system, YY.MM.REVISION</p>
+        <p>Starting with the 23.09 release of Quadrant, the project now uses a new versioning
+          system, YY.MM.REVISION</p>
         <p>Dependency updates</p>
       </description>
     </release>
@@ -453,7 +476,8 @@
 
     <release date="2023-06-10" version="8.4.0">
       <description>
-        <p>Add support for news related to MC Modpack Manager from my RSS feed, add options to disable modrinth/curseforge</p>
+        <p>Add support for news related to MC Modpack Manager from my RSS feed, add options to
+          disable modrinth/curseforge</p>
       </description>
     </release>
 
