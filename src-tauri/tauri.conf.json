@@ -51,7 +51,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE3MEJDMDAxMjA4NjlBQ0MKUldUTW1vWWdBY0FMcCtkS3FwaTlKSzBaMHpXaW4ramRLS1ludmVyUEZpSUY3Mmc0cm1zeGUvRGIK",
       "endpoints": [
-        "https://api.mrquantumoff.dev/api/any/quadrant/updates/{{target}}//{{arch}}//{{current_version}}"
+        "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{target}}//{{arch}}//{{current_version}}"
       ],
       "windows": {
         "installMode": "passive"

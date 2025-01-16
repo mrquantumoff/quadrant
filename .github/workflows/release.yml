@@ -21,13 +21,20 @@ jobs:
             args: ""
 
     runs-on: ${{ matrix.platform }}
+    outputs:
+      assets: ${{steps.tauri.outputs.artifactPaths}}
+      version: ${{steps.tauri.outputs.appVersion}}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
 
       - name: setup node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: "pnpm"
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -49,7 +56,15 @@ jobs:
           QUADRANT_API_KEY=${{ secrets.QUADRANT_API_KEY }} > ./src-tauri/.env
           QUADRANT_OAUTH2_CLIENT_ID='${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}' >> ./src-tauri/.env
           QUADRANT_OAUTH2_CLIENT_SECRET='${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}' >> ./src-tauri/.env
+
+      - name: Cache Cargo Cache
+        uses: actions/cache@v4
+        with:
+          path: src-tauri/target/release
+          key: ${{ matrix.platform }}-cargo-cache
+
       - uses: tauri-apps/tauri-action@v0
+        id: tauri
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -61,3 +76,15 @@ jobs:
           releaseDraft: true
           prerelease: ${{ endsWith(github.ref_name, 'preview') }}
           args: ${{ matrix.args }}
+          bundleIdentifier: ${{matrix.platform == 'ubuntu-22.04' && 'dev.mrquantumoff.mcmodpackmanager'}}
+  submit_update:
+    runs-on: ubuntu-latest
+    needs: publish-tauri
+    steps:
+      - env:
+          VERSION: ${{needs.publish-tauri.outputs.version}}
+          ASSETS: ${{toJson(needs.publish-tauri.outputs.assets)}}
+        run: |
+          echo "App version: $VERSION"
+          echo "App assets: $ASSETS"
+          curl -s -X POST --data assets --header "Authorization: ${{secrets.VERSION_UPDATE_TRIGGER_TOKEN}}"

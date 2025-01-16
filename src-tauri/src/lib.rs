@@ -1,4 +1,7 @@
+use mc_mod::get_user_agent;
+use other::open_link;
 use tauri_plugin_cli::CliExt;
+use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 
 use config::init_config;
@@ -6,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconEvent},
-    Manager,
+    Manager, Url,
 };
 use tauri_plugin_updater::UpdaterExt;
 
@@ -200,8 +203,29 @@ pub async fn run() {
         .expect("error while running tauri application");
 }
 
-async fn update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
-    if let Some(update) = app.updater()?.check().await? {
+async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
+    let update_url = Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{{{target}}}}//{{{{arch}}}}//{{{{current_version}}}}"))?;
+
+    let mut update_urls: Vec<Url> = vec![update_url];
+
+    let update_config = app.store("updateConfig.json")?;
+
+    if update_config.get("channel").is_some() {
+        let channel = update_config.get("channel").unwrap();
+        let channel = channel.as_str().unwrap_or_else(|| "stable");
+        update_urls.push(Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/{}/{{{{target}}}}//{{{{arch}}}}//{{{{current_version}}}}",channel))?);
+    }
+    // Prefer the preview version if we're updating from a preview version
+    update_urls.reverse();
+
+    let updater = app
+        .updater_builder()
+        .endpoints(update_urls)?
+        .version_comparator(|current, update| current != update.version)
+        .header("User-Agent", get_user_agent())?
+        .build()?;
+
+    if let Some(update) = updater.check().await? {
         let mut downloaded = 0;
 
         // alternatively we could also call update.download() and update.install() separately
@@ -218,6 +242,14 @@ async fn update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
             .await?;
 
         println!("update installed");
+        let config = app.store("config.json")?;
+        if config.get("rssFeeds").is_some() {
+            let rss_feeds = config.get("rssFeeds").unwrap();
+            let rss_feeds = rss_feeds.as_bool().unwrap_or(true);
+            if rss_feeds {
+                open_link("https://blog.mrquantumoff.dev".to_string())?;
+            }
+        }
         app.restart();
     }
 
