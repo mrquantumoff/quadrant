@@ -50,12 +50,26 @@ jobs:
       - name: install frontend dependencies
         run: pnpm install # change this to npm, pnpm or bun depending on which one you use.
 
-      - name: Specify .env values
+      - name: Specify .env values (Ubuntu)
+        if: matrix.platform == 'ubuntu-22.04'
         run: |
           echo ETERNAL_API_TOKEN='${{ secrets.ETERNAL_API_TOKEN }}' >> ./src-tauri/.env
           QUADRANT_API_KEY=${{ secrets.QUADRANT_API_KEY }} > ./src-tauri/.env
           QUADRANT_OAUTH2_CLIENT_ID='${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}' >> ./src-tauri/.env
           QUADRANT_OAUTH2_CLIENT_SECRET='${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}' >> ./src-tauri/.env
+      - name: Specify .env values (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          # Define the path to the .env file
+          $envFilePath = "./src-tauri/.env"
+          # Append ETERNAL_API_TOKEN to the .env file
+          Add-Content -Path $envFilePath -Value "ETERNAL_API_TOKEN=`'${{secrets.ETERNAL_API_TOKEN}}'"
+          # Overwrite QUADRANT_API_KEY in the .env file (not append)
+          Set-Content -Path $envFilePath -Value "QUADRANT_API_KEY=${{ secrets.QUADRANT_API_KEY}}"
+          # Append QUADRANT_OAUTH2_CLIENT_ID to the .env file
+          Add-Content -Path $envFilePath -Value "QUADRANT_OAUTH2_CLIENT_ID=`'${{   secrets.QUADRANT_OAUTH2_CLIENT_ID }}'"
+          # Append QUADRANT_OAUTH2_CLIENT_SECRET to the .env file
+          Add-Content -Path $envFilePath -Value "QUADRANT_OAUTH2_CLIENT_SECRET=`'${{secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}'"
 
       - uses: Swatinem/rust-cache@v2
 
