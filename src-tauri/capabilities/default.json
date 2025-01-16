@@ -1,0 +1,39 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capability for the main window",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "core:app:default",
+    "fs:default",
+    "os:default",
+    "store:default",
+    "http:default",
+    {
+      "identifier": "fs:allow-watch",
+      "allow": [
+        {
+          "path": "$CONFIG/**",
+          "recursive": true
+        },
+        {
+          "path": "$HOME/**",
+          "recursive": true
+        }
+      ]
+    },
+    "deep-link:default",
+    "core:window:allow-set-focus",
+    "dialog:default",
+    "clipboard-manager:allow-read-text",
+    "notification:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-hide",
+    "core:window:allow-set-enabled",
+    "core:window:allow-minimize"
+  ]
+}

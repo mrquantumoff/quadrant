@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  font-family: "Inter";
+  @apply bg-slate-900 text-slate-50 overflow-x-hidden;
+}
+
+.content-main * {
+  @apply transition-all duration-75 ease-linear;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: local("Inter"), url("assets/Inter-Font.ttf"), url("./Inter-Font.ttf");
+}
+
+::-webkit-scrollbar {
+  @apply transition-all ease-linear duration-300 bg-slate-900 hover:bg-slate-800;
+}
+
+::-webkit-scrollbar-track {
+  max-height: 84px;
+  @apply bg-slate-900;
+}
+
+::-webkit-scrollbar-thumb {
+  max-height: 12px;
+  @apply bg-slate-500 hover:bg-slate-600 rounded-2xl mx-2 h-5;
+}
+
+.page {
+  width: 95%;
+}
+
+.center {
+  @apply grid place-items-center;
+}
+
+.disableSelect {
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}

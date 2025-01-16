@@ -1,7 +1,8 @@
 # Quadrant for Minecraft
 
-> An easy way to manage your modpacks, written in Dart and Flutter.
-> Formerly Minecraft Modpack Manager Reborn
+> An easy way to manage your modpacks, written in React and Rust.
+
+## This readme is outdated. It will be updated once, I ship the first public preview of Quadrant (Next)
 
 ### Installation guide:
 
@@ -48,6 +49,7 @@
 > [!WARNING]
 >
 > #### If app fails to apply your modpacks after installation, delete your mods folder.
+>
 > #### The app relies on time being synced correctly on your machine. If you encounter issues with features like Quadrant ID / Quadrant Share / Quadrant Sync, make sure that your time is set correctly. If that doesn't help, check the [status](https://status.bultek.com.ua/status/mrquantumoff) page
 
 > [!TIP]
