@@ -18,7 +18,7 @@ pub fn get_config_dir() -> Result<Option<PathBuf>, anyhow::Error> {
     }
     #[cfg(target_os = "linux")]
     {
-        let resolver = dirs::home_dir_dir();
+        let resolver = dirs::home_dir();
         Ok(resolver)
     }
 }
