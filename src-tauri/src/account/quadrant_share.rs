@@ -1,4 +1,3 @@
-use dotenvy_macro::dotenv;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_clipboard_manager::ClipboardExt;
@@ -89,7 +88,7 @@ pub async fn share_modpack_raw(
     if let Some(token) = &token {
         request = request.bearer_auth(token);
     } else {
-        request = request.header("Authorization", dotenv!("QUADRANT_API_KEY"));
+        request = request.header("Authorization", env!("QUADRANT_API_KEY"));
     }
     let response = request
         .send()
@@ -118,7 +117,7 @@ pub async fn get_quadrant_share_modpack(code: String) -> Result<InstalledModpack
         .get(&url)
         .query(query.as_slice())
         .header("User-Agent", get_user_agent())
-        .header("Authorization", dotenv!("QUADRANT_API_KEY"))
+        .header("Authorization", env!("QUADRANT_API_KEY"))
         .send()
         .await
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;

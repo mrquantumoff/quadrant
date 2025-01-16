@@ -10,7 +10,6 @@ use crate::{
     AppState,
 };
 use chrono::prelude::*;
-use dotenvy_macro::dotenv;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager};
@@ -88,8 +87,8 @@ pub async fn oauth2_login(code: String, app: AppHandle) -> Result<(), tauri::Err
     let url = format!("{}/account/oauth2/token/access", BASE_URL);
 
     let mut body = HashMap::new();
-    body.insert("client_id", dotenv!("QUADRANT_OAUTH2_CLIENT_ID"));
-    body.insert("client_secret", dotenv!("QUADRANT_OAUTH2_CLIENT_SECRET"));
+    body.insert("client_id", env!("QUADRANT_OAUTH2_CLIENT_ID"));
+    body.insert("client_secret", env!("QUADRANT_OAUTH2_CLIENT_SECRET"));
     body.insert("grant_type", "authorization_code");
     body.insert("code", &code);
 

@@ -2,8 +2,6 @@ pub const BASE_URL: &str = "https://api.curseforge.com/";
 pub const MINECRAFT_ID: i32 = 432;
 use std::path::PathBuf;
 
-use dotenvy_macro::dotenv;
-
 use tauri::AppHandle;
 use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
@@ -70,7 +68,7 @@ pub struct Module {
 
 #[tauri::command]
 pub async fn get_mod_curseforge(args: GetModArgs) -> Result<Mod, tauri::Error> {
-    let curseforge_token = dotenv!("ETERNAL_API_TOKEN");
+    let curseforge_token = env!("ETERNAL_API_TOKEN");
 
     let url = format!("{}v1/mods/{}", BASE_URL, args.id);
 
@@ -139,7 +137,7 @@ pub async fn get_mod_curseforge(args: GetModArgs) -> Result<Mod, tauri::Error> {
 
 #[tauri::command]
 pub async fn get_mod_owners_curseforge(id: String) -> Result<Vec<String>, tauri::Error> {
-    let curseforge_token = dotenv!("ETERNAL_API_TOKEN");
+    let curseforge_token = env!("ETERNAL_API_TOKEN");
 
     let url = format!("{}v1/mods/{}", BASE_URL, id);
 
@@ -169,7 +167,7 @@ pub async fn get_mod_owners_curseforge(id: String) -> Result<Vec<String>, tauri:
 
 #[tauri::command]
 pub async fn get_mod_deps_curseforge(id: String) -> Result<Vec<Mod>, tauri::Error> {
-    let curseforge_token = dotenv!("ETERNAL_API_TOKEN");
+    let curseforge_token = env!("ETERNAL_API_TOKEN");
     let url = format!("{}v1/mods/{}", BASE_URL, id);
 
     let client = reqwest::Client::new();
@@ -267,7 +265,7 @@ pub async fn search_mods_curseforge(
             mod_loader_type.to_curseforge_id()
         );
     }
-    let token = dotenv!("ETERNAL_API_TOKEN");
+    let token = env!("ETERNAL_API_TOKEN");
 
     // log::info!("CurseForge Raw URI: {}", raw_uri);
 
@@ -339,7 +337,7 @@ pub async fn get_latest_mod_version_curseforge(
     mod_type: ModType,
     file_id: Option<String>,
 ) -> Result<Option<ModFile>, anyhow::Error> {
-    let curseforge_token = dotenv!("ETERNAL_API_TOKEN");
+    let curseforge_token = env!("ETERNAL_API_TOKEN");
     // Get the mod file from the curseforge API
     let mut url = format!("{}v1/mods/{}/files", BASE_URL, id);
     let mut query = vec![("gameVersion", minecraft_version)];

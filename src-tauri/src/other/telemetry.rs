@@ -1,5 +1,4 @@
 use chrono::prelude::*;
-use dotenvy_macro::dotenv;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri_plugin_http::reqwest;
@@ -92,7 +91,7 @@ pub async fn send_telemetry(app: AppHandle) {
     let request = client
         .post(format!("{}/quadrant/usage/submit", BASE_URL))
         .json(&info)
-        .header("Authorization", dotenv!("QUADRANT_API_KEY"))
+        .header("Authorization", env!("QUADRANT_API_KEY"))
         .header("User-Agent", get_user_agent())
         .send()
         .await
@@ -108,7 +107,7 @@ pub async fn remove_telemetry(app: AppHandle) {
     let client = reqwest::Client::new();
     let request = client
         .delete(format!("{}/quadrant/usage/delete", BASE_URL))
-        .header("Authorization", dotenv!("QUADRANT_API_KEY"))
+        .header("Authorization", env!("QUADRANT_API_KEY"))
         .header("User-Agent", get_user_agent())
         .query(&[("hardware_id", hardware_id)])
         .send()
