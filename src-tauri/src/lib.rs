@@ -8,6 +8,8 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconEvent},
     Manager,
 };
+use tauri_plugin_updater::UpdaterExt;
+
 use tauri_plugin_deep_link::DeepLinkExt;
 pub mod account;
 pub mod config;
@@ -39,6 +41,8 @@ pub async fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
+            let mut autoupdate = true;
+
             #[cfg(desktop)]
             {
                 app.deep_link().register("quadrantnext")?;
@@ -81,14 +85,28 @@ pub async fn run() {
                             }
                         }
                     }
+                    let autoupdater_disabled = matches.args.get_key_value("noupdater");
+                    if autoupdater_disabled.is_some() {
+                        let autoupdater_disabled = autoupdater_disabled.unwrap();
+                        autoupdate = autoupdater_disabled.1.value == true;
+                    }
                 }
                 Err(_) => {
                     log::error!("No matches");
                 }
             }
-            futures::executor::block_on(other::telemetry::send_telemetry(
-                app.handle().clone().to_owned(),
-            ));
+            let handle = app.handle().clone();
+
+            if autoupdate && !cfg!(dev) {
+                tauri::async_runtime::spawn(async move {
+                    update(handle).await.unwrap();
+                });
+            }
+            let handle = app.handle().clone();
+
+            tauri::async_runtime::spawn(async move {
+                other::telemetry::send_telemetry(handle.clone().to_owned()).await;
+            });
 
             let app_handle = app.handle().clone();
             let mut interval_timer =
@@ -180,4 +198,28 @@ pub async fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+async fn update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
+    if let Some(update) = app.updater()?.check().await? {
+        let mut downloaded = 0;
+
+        // alternatively we could also call update.download() and update.install() separately
+        update
+            .download_and_install(
+                |chunk_length, content_length| {
+                    downloaded += chunk_length;
+                    log::info!("downloaded {downloaded} from {content_length:?}");
+                },
+                || {
+                    log::info!("download finished");
+                },
+            )
+            .await?;
+
+        println!("update installed");
+        app.restart();
+    }
+
+    Ok(())
 }
