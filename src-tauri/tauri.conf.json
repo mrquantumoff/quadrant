@@ -78,6 +78,7 @@
     "publisher": "MrQuantumOFF (Demir Yerli)",
     "copyright": "Copyright © 2025 MrQuantumOFF (Demir Yerli)",
     "homepage": "https://mrquantumoff.dev/projects/quadrant",
-    "license": "MPL-2.0"
+    "license": "MPL-2.0",
+    "createUpdaterArtifacts": true
   }
 }

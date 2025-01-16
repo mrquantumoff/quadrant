@@ -22,7 +22,7 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
     outputs:
-      assets: ${{steps.tauri.outputs.artifactPaths}}
+      assets: ${{steps.tauri.outputs.releaseUploadUrl}}
       version: ${{steps.tauri.outputs.appVersion}}
     steps:
       - uses: actions/checkout@v4
@@ -79,8 +79,6 @@ jobs:
     steps:
       - env:
           VERSION: ${{needs.publish-tauri.outputs.version}}
-          ASSETS: ${{toJson(needs.publish-tauri.outputs.assets)}}
         run: |
           echo "App version: $VERSION"
-          echo "App assets: $ASSETS"
-          curl -s -X POST --data assets --header "Authorization: ${{secrets.VERSION_UPDATE_TRIGGER_TOKEN}} https://api.mrquantumoff.dev/api/any/quadrant/updates/$VERSION"
+          curl -s -X PUT --header "Authorization: ${{secrets.VERSION_UPDATE_TRIGGER_TOKEN}} https://api.mrquantumoff.dev/api/any/quadrant/add_updates/$VERSION"
