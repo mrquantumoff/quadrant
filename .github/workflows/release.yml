@@ -43,7 +43,7 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libsecret1-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
         # webkitgtk 4.0 is for Tauri v1 - webkitgtk 4.1 is for Tauri v2.
         # You can remove the one that doesn't apply to your app to speed up the workflow a bit.
 
@@ -57,11 +57,7 @@ jobs:
           QUADRANT_OAUTH2_CLIENT_ID='${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}' >> ./src-tauri/.env
           QUADRANT_OAUTH2_CLIENT_SECRET='${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}' >> ./src-tauri/.env
 
-      - name: Cache Cargo Cache
-        uses: actions/cache@v4
-        with:
-          path: src-tauri/target/release
-          key: ${{ matrix.platform }}-cargo-cache
+      - uses: Swatinem/rust-cache@v2
 
       - uses: tauri-apps/tauri-action@v0
         id: tauri
@@ -74,7 +70,7 @@ jobs:
           releaseName: "Quadrant v__VERSION__"
           releaseBody: "See the assets to download this version and install. Check out the [changelog on my blog](https://blog.mrquantumoff.dev)"
           releaseDraft: true
-          prerelease: ${{ endsWith(github.ref_name, 'preview') }}
+          prerelease: ${{ !endsWith(github.ref_name, 'stable') }}
           args: ${{ matrix.args }}
           bundleIdentifier: ${{matrix.platform == 'ubuntu-22.04' && 'dev.mrquantumoff.mcmodpackmanager'}}
   submit_update:
@@ -87,4 +83,4 @@ jobs:
         run: |
           echo "App version: $VERSION"
           echo "App assets: $ASSETS"
-          curl -s -X POST --data assets --header "Authorization: ${{secrets.VERSION_UPDATE_TRIGGER_TOKEN}}"
+          curl -s -X POST --data assets --header "Authorization: ${{secrets.VERSION_UPDATE_TRIGGER_TOKEN}} https://api.mrquantumoff.dev/api/any/quadrant/updates/$VERSION"
