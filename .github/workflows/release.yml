@@ -66,13 +66,13 @@ jobs:
           QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
 
         with:
-          tagName: Quadrant v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
           releaseName: "Quadrant v__VERSION__"
           releaseBody: "See the assets to download this version and install. Check out the [changelog on my blog](https://blog.mrquantumoff.dev)"
-          releaseDraft: true
+          releaseDraft: false
           prerelease: ${{ !endsWith(github.ref_name, 'stable') }}
           args: ${{ matrix.args }}
           bundleIdentifier: ${{matrix.platform == 'ubuntu-22.04' && 'dev.mrquantumoff.mcmodpackmanager'}}
+          tagName: ${{github.ref_name}}
   submit_update:
     runs-on: ubuntu-latest
     needs: publish-tauri
