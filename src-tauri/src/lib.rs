@@ -51,7 +51,7 @@ pub async fn run() {
                 app.handle()
                     .plugin(tauri_plugin_autostart::init(
                         MacosLauncher::LaunchAgent,
-                        Some(vec!["autostart"]),
+                        Some(vec!["--autostart"]),
                     ))
                     .unwrap();
 
