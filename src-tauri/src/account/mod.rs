@@ -17,13 +17,13 @@ pub fn set_secret(key: String, value: String) -> Result<(), tauri::Error> {
 }
 
 pub fn get_account_token() -> Result<String, anyhow::Error> {
-    let entry = Entry::new("dev.mrquantumoff.quadrant", "accountToken")?;
+    let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", "accountToken")?;
     entry.get_password().map_err(|e| e.into())
 }
 
 #[tauri::command]
 pub fn clear_account_token() -> Result<(), tauri::Error> {
-    let entry = Entry::new("dev.mrquantumoff.quadrant", "accountToken")
+    let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", "accountToken")
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
     entry
         .delete_credential()
