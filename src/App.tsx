@@ -131,7 +131,7 @@ function App() {
         setUpdateDownloadProgress(e.payload)
       );
 
-      await listen("disableRightClick", (e: any) =>
+      await listen("disableRightClick", (_: any) =>
         document.addEventListener("contextmenu", (event) =>
           event.preventDefault()
         )
