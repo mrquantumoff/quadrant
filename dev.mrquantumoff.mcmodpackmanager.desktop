@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Exec=quadrant %u
+Exec=quadrant-next %u
 Terminal=false
 Categories=Utility;
-Name=Quadrant (Formerly Minecraft Modpack Manager)
+Name=Quadrant Next
 Icon=dev.mrquantumoff.mcmodpackmanager
-MimeType=x-scheme-handler/curseforge;x-scheme-handler/quadrant;
+MimeType=x-scheme-handler/curseforge;x-scheme-handler/quadrantnext;x-scheme-handler/modrinth;
