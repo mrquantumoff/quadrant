@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Exec=quadrant-next %u
+Exec=quadrant-next --noupdater %u
 Terminal=false
 Categories=Utility;
 Name=Quadrant Next
