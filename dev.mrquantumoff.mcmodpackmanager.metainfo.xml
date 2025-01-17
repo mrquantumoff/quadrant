@@ -3,7 +3,7 @@
   <id>dev.mrquantumoff.mcmodpackmanager</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MPL-2.0</project_license>
-  <name>Quadrant for Minecraft</name>
+  <name>Quadrant Next for Minecraft</name>
   <summary>Manage your mods and modpacks with ease.</summary>
   <description>
     <p>
@@ -38,11 +38,68 @@
   </keywords>
 
   <branding>
-    <color type="primary" scheme_preference="light">#1bd96a</color>
-    <color type="primary" scheme_preference="dark">#182942</color>
+    <color type="primary" scheme_preference="light">#059669</color>
+    <color type="primary" scheme_preference="dark">#475569</color>
   </branding>
 
   <releases>
+
+    <release date="2025-01-17" version="25.1.0-preview.7">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>App rewrite, new UI, improved performance, bug fixes</p>
+      </description>
+    </release>
+
+    <release date="2025-01-17" version="25.1.0-preview.6">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>App rewrite, new UI, improved performance, bug fixes</p>
+      </description>
+    </release>
+
+    <release date="2025-01-17" version="25.1.0-preview.5">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>App rewrite, new UI, improved performance, bug fixes</p>
+      </description>
+    </release>
+
+
+    <release date="2025-01-17" version="25.1.0-preview.4">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>App rewrite, new UI, improved performance, bug fixes</p>
+      </description>
+    </release>
+
+    <release date="2025-01-17" version="25.1.0-preview.3">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>App rewrite, new UI, improved performance, bug fixes</p>
+      </description>
+    </release>
+
+    <release date="2025-01-17" version="25.1.0-preview.2">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>App rewrite, new UI, improved performance, bug fixes</p>
+      </description>
+    </release>
+
+    <release date="2025-01-17" version="25.1.0-preview.1">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>App rewrite, new UI, improved performance, bug fixes</p>
+      </description>
+    </release>
+
+    <release date="2025-01-17" version="25.1.0-preview.0">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>App rewrite, new UI, improved performance, bug fixes</p>
+      </description>
+    </release>
 
     <release date="2024-12-10" version="24.12.1">
       <url type="details">https://blog.mrquantumoff.dev/quadrants-v24-12/</url>
@@ -860,17 +917,17 @@
   <screenshots>
     <screenshot type="default">
       <image>
-        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/1.png
+        https://github.com/mrquantumoff/quadrant/raw/next/screenshots/1.png
       </image>
     </screenshot>
     <screenshot type="default">
       <image>
-        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/2.png
+        https://github.com/mrquantumoff/quadrant/raw/next/screenshots/2.png
       </image>
     </screenshot>
     <screenshot type="default">
       <image>
-        https://github.com/mrquantumoff/quadrant/raw/master/Screenshots/3.png
+        https://github.com/mrquantumoff/quadrant/raw/next/screenshots/3.png
       </image>
     </screenshot>
   </screenshots>

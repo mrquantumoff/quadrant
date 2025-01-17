@@ -23,6 +23,10 @@
         {
           "path": "$HOME/**",
           "recursive": true
+        },
+        {
+          "path": "$HOME/.minecraft/**",
+          "recursive": true
         }
       ]
     },

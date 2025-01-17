@@ -50,7 +50,7 @@ export default function SettingsPage() {
       setRssFeeds((await box.get<boolean>("rssFeeds")) ?? false);
       setSilentNews((await box.get<boolean>("silentNews")) ?? false);
       setUpdateChannel(
-        (await updateChannelBox.get<string>("updateChannel")) ?? "stable"
+        (await updateChannelBox.get<string>("channel")) ?? "stable"
       );
       setAutoQuadrantSync(
         (await box.get<boolean>("autoQuadrantSync")) ?? false

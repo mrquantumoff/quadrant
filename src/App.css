@@ -4,7 +4,11 @@
 
 html {
   font-family: "Inter";
-  @apply bg-slate-900 text-slate-50 overflow-x-hidden;
+  @apply bg-slate-900 text-slate-50 overflow-x-hidden font-normal;
+}
+
+select {
+  -webkit-appearance: none;
 }
 
 .content-main * {

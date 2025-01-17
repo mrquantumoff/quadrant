@@ -212,7 +212,7 @@ export default function ApplyPage() {
                     y: -500,
                   }}
                   key={index}
-                  className="flex flex-col bg-slate-900 hover:bg-slate-950 p-4 rounded-2xl mx-5 my-5 h-fit hover:shadow-lg hover:shadow-slate-950 "
+                  className="flex flex-col bg-slate-900 hover:bg-slate-950 p-4 rounded-2xl mx-5 my-5 h-max hover:shadow-lg hover:shadow-slate-950 "
                 >
                   <h1 className="text-4xl font-extrabold max-w-56 w-56">
                     {modpack.name}
@@ -222,7 +222,7 @@ export default function ApplyPage() {
                     {t("modCount", { amount: modpack.mods.length })}{" "}
                     {modpack.lastSynced !== 0 && <span>| {dateString}</span>}
                   </p>
-                  <div className="my-2.5 flex h-16 overflow-x-hidden flex-row items-center justify-center text-center w-full">
+                  <div className="my-2.5 flex overflow-x-auto flex-wrap h-max flex-row items-center justify-start text-center w-full">
                     <Button
                       onClick={async () => {
                         if (modpack.isApplied) {
@@ -252,8 +252,8 @@ export default function ApplyPage() {
                       }}
                       className={
                         modpack.isApplied
-                          ? "flex items-center self-center bg-emerald-900 cursor-default w-full h-16 justify-center "
-                          : "flex items-center self-center bg-emerald-600 hover:bg-emerald-800 w-full h-16 justify-center"
+                          ? "flex items-center self-center bg-emerald-900 cursor-default w-max h-16 justify-center m-2"
+                          : "flex items-center self-center bg-emerald-600 hover:bg-emerald-800 w-max h-16 justify-center m-2"
                       }
                     >
                       {modpack.isApplied ? t("applied") : t("apply")}
@@ -273,7 +273,7 @@ export default function ApplyPage() {
                         }
                       }}
                       className={
-                        "flex items-center self-center bg-blue-600 hover:bg-blue-800 ml-2 w-full h-16 justify-center"
+                        "flex items-center self-center bg-blue-600 hover:bg-blue-800 m-2 w-max h-16 justify-center"
                       }
                     >
                       {t("share")}
@@ -304,7 +304,7 @@ export default function ApplyPage() {
                         }
                       }}
                       className={
-                        "flex items-center self-center bg-lime-600 hover:bg-lime-800 ml-2 w-full h-16 justify-center"
+                        "flex items-center self-center bg-lime-600 hover:bg-lime-800 m-2 w-max h-16 justify-center"
                       }
                     >
                       {t("sync")}
@@ -320,7 +320,7 @@ export default function ApplyPage() {
                         setModpackToUpdate(modpack);
                       }}
                       className={
-                        "flex items-center self-center bg-indigo-500 hover:bg-indigo-700 mx-2 w-full h-16 justify-center"
+                        "flex items-center self-center bg-indigo-500 hover:bg-indigo-700 m-2 w-max h-16 justify-center"
                       }
                     >
                       {t("update")}
@@ -346,7 +346,7 @@ export default function ApplyPage() {
                         }
                       }}
                       className={
-                        "flex items-center self-center bg-red-500 hover:bg-red-700  w-full h-16 justify-center"
+                        "flex items-center self-center bg-red-500 hover:bg-red-700  w-max h-16 m-2 justify-center"
                       }
                     >
                       {t("delete")}
@@ -373,7 +373,7 @@ export default function ApplyPage() {
                         });
                       }}
                       className={
-                        "flex items-center self-center bg-slate-500 hover:bg-slate-700  w-full ml-2 h-16 justify-center"
+                        "flex items-center self-center bg-slate-500 hover:bg-slate-700 w-max m-2 h-16 justify-center"
                       }
                     >
                       {t("details")}
