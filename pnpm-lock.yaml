@@ -48,7 +48,7 @@ importers:
         specifier: 2.2.0
         version: 2.2.0
       '@tauri-apps/plugin-updater':
-        specifier: ~2
+        specifier: ~2.3.1
         version: 2.3.1
       i18next:
         specifier: ^24.2.1

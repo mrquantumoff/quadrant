@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AccountInfo } from "../../../intefaces";
 import { clearAccountToken, getAccountInfo, openIn } from "../../../tools";
 import Button from "../../core/Button";
 import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { LazyStore } from "@tauri-apps/plugin-store";
-import { MdOpenInBrowser } from "react-icons/md";
+import { MdOpenInBrowser, MdOutlineAccountCircle } from "react-icons/md";
+import { ContentContext } from "../../../App";
+import FirstRegisterStep from "./RegisterPages/Step1";
 
 export default function AccountPage() {
   const { t } = useTranslation();
@@ -41,6 +43,8 @@ export default function AccountPage() {
   }, []);
 
   const config = new LazyStore("config.json");
+
+  const context = useContext(ContentContext);
 
   //   const;
   return accountInfo !== null ? (
@@ -108,7 +112,16 @@ export default function AccountPage() {
             {t("signIn")}
           </Button>
           <Button
-            onClick={async () => {}}
+            onClick={async () => {
+              context.changeContent({
+                content: <FirstRegisterStep />,
+                icon: <MdOutlineAccountCircle />,
+                title: t("register"),
+                main: false,
+                name: t("register"),
+                style: "",
+              });
+            }}
             className="bg-blue-500 hover:bg-blue-800 w-full ml-2"
           >
             {t("dontHaveAccount")}

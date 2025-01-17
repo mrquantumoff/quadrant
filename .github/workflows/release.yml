@@ -78,7 +78,7 @@ jobs:
     needs: publish-tauri
     steps:
       - env:
-          VERSION: ${{needs.publish-tauri.outputs.version}}
+          VERSION: ${{github.ref_name}}
         run: |
           echo "App version: $VERSION"
           curl -s -X PUT --header "Authorization: ${{secrets.VERSION_UPDATE_TRIGGER_TOKEN}} https://api.mrquantumoff.dev/api/any/quadrant/add_updates/$VERSION"
