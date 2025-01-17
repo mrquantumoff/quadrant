@@ -151,5 +151,8 @@
   "clearCache": "Clear cache",
   "cacheStorageLimit": "Maximum cache age",
   "quadrantSettingsSync": "Sync Quadrant settings with Quadrant ID",
-  "appUpdate": "Updating the app..."
+  "appUpdate": "Updating the app...",
+  "updateChannel": "Update channel",
+  "stable": "Stable",
+  "preview": "Preview"
 }

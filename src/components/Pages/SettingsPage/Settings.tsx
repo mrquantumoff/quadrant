@@ -1,7 +1,11 @@
 import { useTranslation } from "react-i18next";
 import Button from "../../core/Button";
 import { LazyStore } from "@tauri-apps/plugin-store";
-import { getMinecraftFolder, openIn } from "../../../tools";
+import {
+  getMinecraftFolder,
+  openIn,
+  requestCheckForUpdates,
+} from "../../../tools";
 import { Field, Label, Select, Switch } from "@headlessui/react";
 import quadrantLocale from "../../../i18n";
 import { useEffect, useState } from "react";
@@ -14,8 +18,10 @@ import { motion } from "motion/react";
 export default function SettingsPage() {
   const { t } = useTranslation();
   const box = new LazyStore("config.json");
+  const updateChannelBox = new LazyStore("updateConfig.json");
 
   const [currentLocale, setCurrentLocale] = useState("en");
+  const [updateChannel, setUpdateChannel] = useState("stable");
   const [clipButtons, setClipButtons] = useState(false);
   const [collectData, setCollectData] = useState(false);
   const [curseForge, setCurseForge] = useState(false);
@@ -43,6 +49,9 @@ export default function SettingsPage() {
       setDevMode((await box.get<boolean>("devMode")) ?? false);
       setRssFeeds((await box.get<boolean>("rssFeeds")) ?? false);
       setSilentNews((await box.get<boolean>("silentNews")) ?? false);
+      setUpdateChannel(
+        (await updateChannelBox.get<string>("updateChannel")) ?? "stable"
+      );
       setAutoQuadrantSync(
         (await box.get<boolean>("autoQuadrantSync")) ?? false
       );
@@ -82,24 +91,45 @@ export default function SettingsPage() {
           })}
         </p>
       </div>
-      <Select
-        className="my-4 bg-slate-800 p-4 rounded-2xl hover:bg-slate-700 w-1/4"
-        aria-label={t("locale")}
-        defaultValue={currentLocale}
-        value={currentLocale}
-        onChange={async (e) => {
-          e.preventDefault();
-          const newLocale = e.target.value;
-          await quadrantLocale.changeLanguage(newLocale);
-          await box.set("locale", newLocale);
-          setCurrentLocale(newLocale);
-          await box.save();
-        }}
-      >
-        <option value="en">English</option>
-        <option value="uk">Українська</option>
-        <option value="tr">Türkçe</option>
-      </Select>
+      <Field className={"flex flex-col font-bold my-4"}>
+        <Label>{t("updateChannel")}</Label>
+        <Select
+          className="my-4 bg-slate-800 p-4 rounded-2xl hover:bg-slate-700 w-1/4"
+          aria-label={t("locale")}
+          value={updateChannel}
+          onChange={async (e) => {
+            e.preventDefault();
+            e.preventDefault();
+            const newChannel = e.target.value;
+            await updateChannelBox.set("channel", newChannel);
+            setUpdateChannel(newChannel);
+            await updateChannelBox.save();
+            requestCheckForUpdates();
+          }}
+        >
+          <option value="stable">{t("stable")}</option>
+          <option value="preview">{t("preview")}</option>
+        </Select>
+      </Field>
+      <Field className={"flex flex-col font-bold my-4"}>
+        <Label>{t("language")}</Label>
+        <Select
+          className="my-4 bg-slate-800 p-4 rounded-2xl hover:bg-slate-700 w-1/4"
+          aria-label={t("language")}
+          value={currentLocale}
+          onChange={async (e) => {
+            const newLocale = e.target.value;
+            await quadrantLocale.changeLanguage(newLocale);
+            await box.set("locale", newLocale);
+            setCurrentLocale(newLocale);
+            await box.save();
+          }}
+        >
+          <option value="en">English</option>
+          <option value="uk">Українська</option>
+          <option value="tr">Türkçe</option>
+        </Select>
+      </Field>
       <div className="flex flex-col items-center align-middle w-full p-4 bg-slate-700 rounded-2xl">
         <p className="font-extrabold my-2 bg-slate-900 rounded-2xl p-4">
           {mcFolder}

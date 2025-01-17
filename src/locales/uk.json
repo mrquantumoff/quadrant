@@ -151,5 +151,8 @@
   "clearCache": "Очистити кеш",
   "cacheStorageLimit": "Час життя кешу",
   "quadrantSettingsSync": "Синхронізувати налаштування Quadrant за допомогою Quadrant ID",
-  "appUpdate": "Оновлюється застосунок..."
+  "appUpdate": "Оновлюється застосунок...",
+  "updateChannel": "Вітка оновлення",
+  "stable": "Стабільна",
+  "preview": "Тестувальна"
 }

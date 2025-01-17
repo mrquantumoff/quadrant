@@ -211,9 +211,15 @@ pub async fn run() {
             other::telemetry::send_telemetry,
             other::telemetry::remove_telemetry,
             modpacks::general::set_modpack_sync_date,
+            request_check_for_updates
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[tauri::command]
+async fn request_check_for_updates(app: tauri::AppHandle) -> Result<(), tauri::Error> {
+    update(app).await.map_err(|e| tauri::Error::from(e))
 }
 
 async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {

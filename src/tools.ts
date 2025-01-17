@@ -332,3 +332,7 @@ export async function answerInvite(
     answer: answer,
   });
 }
+
+export const requestCheckForUpdates = async () => {
+  await invoke("request_check_for_updates");
+};
