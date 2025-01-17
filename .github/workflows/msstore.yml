@@ -1,0 +1,64 @@
+name: "publish"
+
+on:
+  push:
+    tags:
+      - "msstore-v*"
+
+# This workflow will trigger on each push to the `release` branch to create or update a GitHub release, build your app, and upload the artifacts to the release.
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "windows-latest"
+            args: ""
+
+    runs-on: ${{ matrix.platform }}
+    outputs:
+      assets: ${{steps.tauri.outputs.releaseUploadUrl}}
+      version: ${{steps.tauri.outputs.appVersion}}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "pnpm"
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: install frontend dependencies
+        run: pnpm install # change this to npm, pnpm or bun depending on which one you use.
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - uses: tauri-apps/tauri-action@v0
+        id: tauri
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          ETERNAL_API_TOKEN: ${{ secrets.ETERNAL_API_TOKEN }}
+          QUADRANT_API_KEY: ${{ secrets.QUADRANT_API_KEY }}
+          QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
+          QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
+
+        with:
+          releaseName: "Quadrant v__VERSION__"
+          releaseBody: "See the assets to download this version and install. Check out the [changelog on my blog](https://blog.mrquantumoff.dev)"
+          releaseDraft: false
+          prerelease: ${{ !endsWith(github.ref_name, 'stable') }}
+          args: --config ./src-tauri/tauri.conf.msstore.json
+          tagName: ${{github.ref_name}}
