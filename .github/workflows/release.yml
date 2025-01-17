@@ -82,10 +82,13 @@ jobs:
         uses: booxmedialtd/ws-action-parse-semver@v1
         with:
           input_string: ${{github.ref_name}}
+      - uses: winterjung/split@v2
+        id: split
+        with:
+          msg: ${{steps.semver_parser.outputs.prerelease}}
+          separator: "."
       - env:
           VERSION: ${{github.ref_name}}
-          CHANNEL: ${{steps.semver_parser.outputs.prerelease}}
+          CHANNEL: ${{steps.split.outputs._0}}
         run: |
-          echo App version: $VERSION
-          echo Update channel: $CHANNEL
           curl -X PUT --header 'Authorization: ${{secrets.VERSION_UPDATE_TRIGGER_TOKEN}}' https://api.mrquantumoff.dev/api/any/quadrant/add_updates/$CHANNEL/$VERSION"
