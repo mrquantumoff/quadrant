@@ -8,7 +8,7 @@ pub(crate) const BASE_URL: &'static str = "https://api.mrquantumoff.dev/api/v3";
 
 #[tauri::command]
 pub fn set_secret(key: String, value: String) -> Result<(), tauri::Error> {
-    let entry = Entry::new("dev.mrquantumoff.quadrant", &key)
+    let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", &key)
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
     entry
         .set_password(&value)
