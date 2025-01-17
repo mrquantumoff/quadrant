@@ -131,6 +131,12 @@ function App() {
         setUpdateDownloadProgress(e.payload)
       );
 
+      await listen("disableRightClick", (e: any) =>
+        document.addEventListener("contextmenu", (event) =>
+          event.preventDefault()
+        )
+      );
+
       setExtendedNavigation(
         (await config.get<boolean>("extendedNavigation")) ?? false
       );

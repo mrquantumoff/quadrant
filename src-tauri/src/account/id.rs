@@ -75,8 +75,6 @@ pub async fn get_account_info() -> Result<AccountInfo, tauri::Error> {
 
     let response: AccountInfo = serde_json::from_str(&response_raw)?;
 
-    log::info!("Got account info!");
-
     Ok(response)
 }
 
@@ -155,7 +153,6 @@ pub async fn check_account_updates(app: AppHandle) -> Result<(), anyhow::Error> 
     }
     let account_info = account_info.unwrap();
     app.emit("refreshNotifications", account_info.notifications)?;
-    log::info!("Got new account info!");
     let config = app.store("config.json")?;
     let auto_quadrant_sync = config.get("autoQuadrantSync").unwrap().as_bool().unwrap();
     let auto_settings_sync = config.get("syncSettings").unwrap().as_bool().unwrap();

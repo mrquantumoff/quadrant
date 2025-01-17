@@ -1,5 +1,6 @@
 {
     "identifier": "dev.mrquantumoff.mcmodpackmanager",
+    "productName": "Quadrant (for Microsoft Store)",
     "bundle":  {
         "windows": {
             "webviewInstallMode": {

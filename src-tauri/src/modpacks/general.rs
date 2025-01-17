@@ -211,27 +211,31 @@ pub fn apply_modpack(name: String, app: AppHandle) -> Result<(), anyhow::Error> 
     let config = app.store("config.json")?;
     let binding = config.get("mcFolder").unwrap();
     let mc_folder = binding.as_str().unwrap();
-    let modpackpath = PathBuf::from(&mc_folder).join("modpacks").join(name);
+    let modpackpath = PathBuf::from(&mc_folder).join("modpacks").join(&name);
     let mods_path = PathBuf::from(&mc_folder).join("mods");
     if !modpackpath.exists() {
         return Err(anyhow::anyhow!("Modpack does not exist"));
     }
     if !mods_path.is_symlink() && mods_path.exists() {
+        log::info!("Renaming mods folder");
         std::fs::rename(
             &mods_path,
             PathBuf::from(&mc_folder)
                 .join("modpacks")
                 .join(format!("mods backup from {}", Utc::now().to_rfc2822())),
         )?;
-    }
-    if mods_path.exists() {
+    } else if mods_path.exists() {
         log::info!("Deleting mods folder");
         std::fs::remove_dir_all(&mods_path)?;
     }
     #[cfg(target_os = "windows")]
     {
         // std::os::windows::fs::
-        std::os::windows::fs::symlink_dir(modpackpath, mods_path)?;
+        let sym_res = std::os::windows::fs::symlink_dir(modpackpath, &mods_path);
+        if sym_res.is_err() {
+            std::fs::remove_dir_all(&mods_path)?;
+            apply_modpack(name, app)?
+        }
     }
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {

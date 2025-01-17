@@ -73,6 +73,11 @@ pub async fn run() {
                     autostart_manager.is_enabled().unwrap()
                 );
             }
+
+            if cfg!(dev) == false {
+                app.emit("disableRightClick", true).unwrap();
+            }
+
             init_config(app.handle().clone())?;
             app.manage(Mutex::new(AppState::default()));
             match app.cli().matches() {
