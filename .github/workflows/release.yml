@@ -77,8 +77,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: publish-tauri
     steps:
+      - name: Parse semver string
+        id: semver_parser
+        uses: booxmedialtd/ws-action-parse-semver@v1
+        with:
+          input_string: ${{github.ref_name}}
       - env:
           VERSION: ${{github.ref_name}}
+          CHANNEL: ${{steps.semver_parser.outputs.prerelease}}
         run: |
-          echo "App version: $VERSION"
-          curl -s -X PUT --header "Authorization: ${{secrets.VERSION_UPDATE_TRIGGER_TOKEN}}" https://api.mrquantumoff.dev/api/any/quadrant/add_updates/$VERSION"
+          echo App version: $VERSION
+          echo Update channel: $CHANNEL
+          curl -X PUT --header 'Authorization: ${{secrets.VERSION_UPDATE_TRIGGER_TOKEN}}' https://api.mrquantumoff.dev/api/any/quadrant/add_updates/$CHANNEL/$VERSION"
