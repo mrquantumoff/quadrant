@@ -2,25 +2,23 @@
 
 > An easy way to manage your modpacks, written in React and Rust.
 
-## This readme is outdated. It will be updated once, I ship the first public preview of Quadrant (Next)
-
 ### Installation guide:
 
-##### The app is available on these stores:
+<!-- ##### The app is available on these stores: -->
 
 ##### Read the warnings before installation!
 
-<a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
+<!-- <a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
     <img width="200" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
-</a>
+</a> -->
 
-<a href="https://www.microsoft.com/store/apps/9NLT70M0TVD0">
+<!-- <a href="https://www.microsoft.com/store/apps/9NLT70M0TVD0">
         <img width="200" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
-</a>
+</a> -->
 
-#### OR
+<!-- #### OR -->
 
-[Grab the latest build manually (Linux/Windows/macOS)](https://github.com/mrquantumoff/quadrant/releases/latest)
+[Grab the latest build manually (Linux/Windows)](https://github.com/mrquantumoff/quadrant/releases/latest)
 
 ### Working features
 
@@ -28,13 +26,9 @@
 
 - Clearing modpacks
 
-- Reloading modpacks in the list
-
-- Opening modpacks folder
-
 - Installing mods and resourcepacks (not modpacks) from curseforge/modrinth
 
-- Installing shaders from modrinth and (partially) curseforge
+- Installing shaders from modrinth and curseforge
 
 - Importing and exporting modpacks
 
@@ -58,14 +52,10 @@
 
 > [!WARNING]
 >
-> #### If your mods folder is not symlinked to modpacks/<anything>, your mods folder will be deleted after you apply/clear your modpack!
-
-> [!WARNING]
->
 > #### Before requesting to the delete the data collected by the app, please be sure that you are using the latest version.
 
-> [!WARNING]
+<!-- > [!WARNING]
 >
-> #### macOS support is build-only. I can't fix any macOS related issues without a macOS device to test them on.
+> #### macOS support is build-only. I can't fix any macOS related issues without a macOS device to test them on. -->
 
-###### [Logo's source (Figma)](https://www.figma.com/community/file/1222558477898371497)
+###### [Logo's source (Figma)](https://www.figma.com/community/file/1462090043700125406)

@@ -81,7 +81,7 @@ pub async fn search_mods_modrinth(
                 .to_string();
             let slug = mod_data["slug"].as_str().unwrap_or_default().to_string();
             let mut icon =
-                "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo256.png"
+                "https://raw.githubusercontent.com/mrquantumoff/quadrant/next/public/logonobg.png"
                     .to_string();
 
             let mut screenshots = Vec::new();
