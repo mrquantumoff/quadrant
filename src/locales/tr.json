@@ -150,5 +150,6 @@
   "failedToDelete": "Modunuz silinemedi ({{reason}})",
   "clearCache": "Önbelleği temizle",
   "cacheStorageLimit": "Maksimum önbellek yaşı",
-  "quadrantSettingsSync": "Quadrant ayarlarını Quadrant ID ile senkronize et"
+  "quadrantSettingsSync": "Quadrant ayarlarını Quadrant ID ile senkronize et",
+  "appUpdate": "Uygulama güncelleniyor..."
 }

@@ -91,4 +91,4 @@ jobs:
           VERSION: ${{github.ref_name}}
           CHANNEL: ${{steps.split.outputs._0}}
         run: |
-          curl -X PUT --header 'Authorization: ${{secrets.VERSION_UPDATE_TRIGGER_TOKEN}}' https://api.mrquantumoff.dev/api/any/quadrant/add_updates/$CHANNEL/$VERSION"
+          curl -X PUT --header 'Authorization: ${{secrets.VERSION_UPDATE_TRIGGER_TOKEN}}' https://api.mrquantumoff.dev/api/any/quadrant/add_updates/$CHANNEL/$VERSION

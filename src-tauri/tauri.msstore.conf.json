@@ -1,0 +1,11 @@
+{
+    "identifier": "dev.mrquantumoff.mcmodpackmanager",
+    "bundle":  {
+        "windows": {
+            "webviewInstallMode": {
+                "silent": true,
+                "type": "offlineInstaller"
+            }
+        }
+    }
+}

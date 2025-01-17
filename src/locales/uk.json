@@ -53,7 +53,7 @@
   "collectData": "Зібрати дані",
   "createModpack": "Створити новий модпак",
   "invalidData": "Дано не дійсні дані",
-  "update": "Оновити дані модпака",
+  "update": "Оновити",
   "updateModpackDetails": "Оновити деталі цього модпака",
   "clearModpackData": "Очистити дані модпака",
   "viewPublicUsage": "Переглянути загальнодоступні дані використання {{productName}}",
@@ -150,5 +150,6 @@
   "failedToDelete": "Помилка при видаленні вашого мода ({{reason}})",
   "clearCache": "Очистити кеш",
   "cacheStorageLimit": "Час життя кешу",
-  "quadrantSettingsSync": "Синхронізувати налаштування Quadrant за допомогою Quadrant ID"
+  "quadrantSettingsSync": "Синхронізувати налаштування Quadrant за допомогою Quadrant ID",
+  "appUpdate": "Оновлюється застосунок..."
 }

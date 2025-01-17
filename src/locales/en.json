@@ -150,5 +150,6 @@
   "failedToDelete": "Failed to delete your mod ({{reason}})",
   "clearCache": "Clear cache",
   "cacheStorageLimit": "Maximum cache age",
-  "quadrantSettingsSync": "Sync Quadrant settings with Quadrant ID"
+  "quadrantSettingsSync": "Sync Quadrant settings with Quadrant ID",
+  "appUpdate": "Updating the app..."
 }

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconEvent},
-    Manager, Url,
+    Emitter, Manager, Url,
 };
 use tauri_plugin_updater::UpdaterExt;
 
@@ -91,7 +91,10 @@ pub async fn run() {
                     let autoupdater_disabled = matches.args.get_key_value("noupdater");
                     if autoupdater_disabled.is_some() {
                         let autoupdater_disabled = autoupdater_disabled.unwrap();
-                        autoupdate = autoupdater_disabled.1.value == true;
+
+                        let value = autoupdater_disabled.1.value.as_bool().unwrap();
+
+                        autoupdate = !value;
                     }
                 }
                 Err(_) => {
@@ -99,10 +102,15 @@ pub async fn run() {
                 }
             }
             let handle = app.handle().clone();
-
-            if autoupdate && !cfg!(dev) {
+            log::info!("Autoupdate enabled: {}", autoupdate);
+            if autoupdate {
                 tauri::async_runtime::spawn(async move {
-                    update(handle).await.unwrap();
+                    let res = update(handle).await;
+                    if res.is_err() {
+                        log::error!("Failed to update, {}", res.err().unwrap());
+                        return;
+                    }
+                    res.unwrap();
                 });
             }
             let handle = app.handle().clone();
@@ -206,17 +214,21 @@ pub async fn run() {
 async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
     let update_url = Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{{{target}}}}//{{{{arch}}}}//{{{{current_version}}}}"))?;
 
-    let mut update_urls: Vec<Url> = vec![update_url];
+    let mut update_urls = vec![update_url];
 
     let update_config = app.store("updateConfig.json")?;
 
     if update_config.get("channel").is_some() {
         let channel = update_config.get("channel").unwrap();
         let channel = channel.as_str().unwrap_or_else(|| "stable");
-        update_urls.push(Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/{}/{{{{target}}}}//{{{{arch}}}}//{{{{current_version}}}}",channel))?);
+        if channel != "stable" {
+            update_urls.push(Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/{}/{{{{target}}}}//{{{{arch}}}}//{{{{current_version}}}}",channel))?);
+        }
     }
     // Prefer the preview version if we're updating from a preview version
     update_urls.reverse();
+
+    log::info!("Update URLs: {:?}", update_urls);
 
     let updater = app
         .updater_builder()
@@ -233,7 +245,9 @@ async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
             .download_and_install(
                 |chunk_length, content_length| {
                     downloaded += chunk_length;
-                    log::info!("downloaded {downloaded} from {content_length:?}");
+                    let progress = downloaded as f64 / content_length.unwrap() as f64;
+                    log::info!("downloaded {}", progress);
+                    app.emit("updateDownloadProgress", progress).unwrap();
                 },
                 || {
                     log::info!("download finished");
@@ -250,6 +264,7 @@ async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
                 open_link("https://blog.mrquantumoff.dev".to_string())?;
             }
         }
+        app.emit("updateDownloadProgress", 1).unwrap();
         app.restart();
     }
 
