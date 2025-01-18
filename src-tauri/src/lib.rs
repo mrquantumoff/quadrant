@@ -53,9 +53,12 @@ pub async fn run() {
             log::info!("Initializing deep links and autostart...");
             #[cfg(desktop)]
             {
-                app.deep_link().register("quadrantnext")?;
-                app.deep_link().register("curseforge")?;
-                app.deep_link().register("modrinth")?;
+                match app.deep_link().register_all() {
+                    Ok(_) => {}
+                    Err(e) => {
+                        log::error!("Failed to register deep links: {}", e);
+                    }
+                }
 
                 use tauri_plugin_autostart::MacosLauncher;
                 use tauri_plugin_autostart::ManagerExt;
@@ -81,6 +84,7 @@ pub async fn run() {
 
             if cfg!(dev) == false {
                 app.emit("disableRightClick", true).unwrap();
+                log::info!("Disabling right click...");
             }
 
             match app.cli().matches() {
@@ -92,7 +96,12 @@ pub async fn run() {
                         if autostart.1.value == true {
                             log::info!("Autostarting");
                             for window in app.webview_windows() {
-                                window.1.hide()?;
+                                match window.1.hide() {
+                                    Ok(_) => {}
+                                    Err(e) => {
+                                        log::error!("Failed to hide window: {}", e);
+                                    }
+                                }
                             }
                         }
                     }
@@ -100,7 +109,7 @@ pub async fn run() {
                     if autoupdater_disabled.is_some() {
                         let autoupdater_disabled = autoupdater_disabled.unwrap();
 
-                        let value = autoupdater_disabled.1.value.as_bool().unwrap();
+                        let value = autoupdater_disabled.1.value == true;
 
                         autoupdate = !value;
                     }
@@ -110,12 +119,13 @@ pub async fn run() {
                 }
             }
             let handle = app.handle().clone();
-            log::info!("Autoupdate enabled: {}", autoupdate);
+            log::info!("Autoupdate enabled: {}\nInitializing state...", autoupdate);
             app.manage(Mutex::new(AppState {
                 is_update_enabled: autoupdate,
                 ..Default::default()
             }));
             if autoupdate {
+                log::info!("Checking for updates...");
                 tauri::async_runtime::spawn(async move {
                     let res = update(handle).await;
                     if res.is_err() {
@@ -126,11 +136,12 @@ pub async fn run() {
                 });
             }
             let handle = app.handle().clone();
-
+            log::info!("Initializing telemetry...");
             tauri::async_runtime::spawn(async move {
                 other::telemetry::send_telemetry(handle.clone().to_owned()).await;
             });
 
+            log::info!("Starting the check for account updates...");
             let app_handle = app.handle().clone();
             let mut interval_timer =
                 tokio::time::interval(chrono::Duration::seconds(3).to_std().unwrap());
@@ -141,7 +152,7 @@ pub async fn run() {
                     let _task = account::id::check_account_updates(app_handle.clone()).await;
                 }
             });
-
+            log::info!("Initializing tray...");
             let tray = app.tray_by_id("main");
             if tray.is_some() {
                 let tray = tray.unwrap();
