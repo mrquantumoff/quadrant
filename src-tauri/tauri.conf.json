@@ -68,12 +68,10 @@
         // "files": {"/usr/share/applications/quadrant.desktop": "../quadrant.desktop", "/usr/share/icons/hicolor/256x256/apps/quadrant-next.png": "icons/256x256.png"}
       },
       "deb": {
-        "depends": ["libwebkit2gtk-4.1", "openssl", "curl", "wget", "libappindicator3-1", "librsvg2-2", "libsecret-1-0"],
-        "desktopTemplate": "../quadrant.desktop"
+        "depends": ["libwebkit2gtk-4.1", "openssl", "curl", "wget", "libappindicator3-1", "librsvg2-2", "libsecret-1-0"]
       },
       "rpm": {
-        "depends": ["webkit2gtk4.1", "openssl", "curl", "wget", "libappindicator", "librsvg2", "libsecret"],
-        "desktopTemplate": "../quadrant.desktop"
+        "depends": ["webkit2gtk4.1", "openssl", "curl", "wget", "libappindicator", "librsvg2", "libsecret"]
       }
     },
     "icon": [
