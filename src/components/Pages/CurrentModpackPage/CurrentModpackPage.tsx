@@ -8,33 +8,37 @@ import { motion } from "motion/react";
 
 export default function CurrentModpackPage() {
   const [currentModpack, setCurrentModpack] = useState<LocalModpack>();
+
+  const updateModpack = async () => {
+    const newModpack = (await getModpacks(false)).filter(
+      (modpack) => modpack.isApplied
+    )[0];
+    setCurrentModpack(newModpack);
+  };
+
   useEffect(() => {
     const effect = async () => {
       const newModpack = (await getModpacks(false)).filter(
         (modpack) => modpack.isApplied
       )[0];
       console.log(newModpack);
+      setCurrentModpack(newModpack);
+
+      const mcFolder = await path.join(await getMinecraftFolder(false), "mods");
+
       await watch(
-        await path.join(await getMinecraftFolder(false)),
-        async () => {
-          const newModpack = (await getModpacks(false)).filter(
-            (modpack) => modpack.isApplied
-          )[0];
-          if (newModpack !== currentModpack) setCurrentModpack(newModpack);
+        mcFolder,
+        () => {
+          updateModpack();
         },
         {
-          delayMs: 50,
+          delayMs: 500,
         }
       );
-      setCurrentModpack(newModpack);
     };
 
     effect();
   }, []);
-
-  useEffect(() => {
-    console.log("Current modpack changed!");
-  }, [currentModpack]);
 
   return (
     <>

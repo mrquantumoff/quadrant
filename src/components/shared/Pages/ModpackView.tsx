@@ -108,36 +108,13 @@ export default function ModpackView(modpack: LocalModpack) {
   };
 
   const { t } = useTranslation();
-  // useEffect(() => {
-  //   const effect = async () => {
-  //     await updateModpackDetails();
-  //     await watch(
-  //       await path.join(
-  //         await getMinecraftFolder(false),
-  //         "modpacks",
-  //         modpack.name
-  //       ),
-  //       async () => {
-  //         const modpacks = await getModpacks(false);
-  //         const newModpack = modpacks.filter(
-  //           (newModpack) => modpack.name === newModpack.name
-  //         )[0];
-  //         if (newModpack !== modpack) setModpack(newModpack);
-  //         setModpack(newModpack);
-  //       },
-  //       {
-  //         delayMs: 50,
-  //       }
-  //     );
-  //   };
-
-  //   effect().catch((e) => console.error(e));
-  // }, []);
-
   useEffect(() => {
-    console.log("Modpack update");
-    updateModpackDetails();
-  }, [modpack]);
+    const effect = async () => {
+      await updateModpackDetails();
+    };
+
+    effect().catch((e) => console.error(e));
+  }, []);
 
   return (
     <div className="w-auto p-4 rounded-2xl flex flex-1 flex-col">
