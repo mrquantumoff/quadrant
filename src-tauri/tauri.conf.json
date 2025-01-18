@@ -19,7 +19,10 @@
         "minWidth": 1280,
         "resizable": true,
         "devtools": true,
-        "decorations": false
+        "decorations": false,
+        "transparent": true,
+        "browserExtensionsEnabled": false,
+        "shadow": false
       }
     ],
     "security": {

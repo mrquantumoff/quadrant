@@ -417,16 +417,16 @@ function App() {
       <AnimatePresence>
         {updateDownloadProgress === 0 ? (
           <ContentContext.Provider value={contextFunctions}>
-            <main className="flex flex-1 p-0 h-svh w-svw disableSelect ">
-              <aside className="flex w-12 mr-10 ml-0.5">
-                <div className="w-16 mx-2 border-slate-700 ">
+            <main className="flex flex-1 p-0 h-screen w-screen disableSelect ">
+              <div className="flex items-center justify-center ">
+                <div className="w-16 mx-2 flex flex-col items-center justify-center border-slate-700 ">
                   {pages.map((p, i) => {
                     const isSelected = p.name == page.name;
                     return (
                       <button
                         data-selected={isSelected}
                         className={
-                          "text-center place-content-center grid justify-center align-center w-16 break-words relative min-h-fit  transition-all duration-200 ease-linear font-extrabold py-4 p-1 mt-2 ml-1 rounded-2xl " +
+                          "text-center place-content-center grid justify-center align-center w-16 break-words relative min-h-fit  transition-all duration-200 ease-linear font-extrabold py-4 p-1 my-1 rounded-2xl " +
                           p.style +
                           (page === p ? "bg-slate-600" : "bg-slate-800")
                         }
@@ -457,8 +457,8 @@ function App() {
                     );
                   })}
                 </div>
-                <div className="border-2 ml-2 h-svh border-slate-700"></div>
-              </aside>
+                <div className="border-2 h-svh border-slate-700"></div>
+              </div>
               <div className="flex flex-1 flex-col text-2xl w-full overflow-y-auto">
                 <div
                   data-tauri-drag-region

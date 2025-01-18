@@ -31,9 +31,39 @@ pub struct AppState {
 pub async fn run() {
     colog::init();
     log::info!("Initializing Tauri...");
-    tauri::Builder::default()
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {}))
+    let mut builder =
+        tauri::Builder::default().plugin(tauri_plugin_updater::Builder::new().build());
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
+            let w = app.get_webview_window("main").expect("no main window");
+            match w.show() {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("Failed to show window: {}", e);
+                }
+            }
+            match w.set_focus() {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("Failed to focus window: {}", e);
+                }
+            }
+            match w.unminimize() {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("Failed to unminimize window: {}", e);
+                }
+            }
+            match w.center() {
+                Ok(_) => {}
+                Err(e) => {
+                    log::error!("Failed to center window: {}", e);
+                }
+            }
+        }));
+    }
+    builder = builder
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_cli::init())
@@ -243,7 +273,8 @@ pub async fn run() {
             modpacks::general::set_modpack_sync_date,
             request_check_for_updates,
             is_autoupdate_enabled
-        ])
+        ]);
+    builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

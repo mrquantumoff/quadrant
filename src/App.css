@@ -5,7 +5,7 @@
 html {
   font-family: "Inter";
   @apply bg-slate-900 text-slate-50
-    overflow-x-hidden font-normal;
+    overflow-x-hidden font-normal rounded-2xl;
   font-synthesis: none !important;
 }
 
