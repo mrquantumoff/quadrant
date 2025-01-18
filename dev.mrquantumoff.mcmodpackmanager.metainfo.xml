@@ -44,6 +44,13 @@
 
   <releases>
 
+    <release date="2025-01-18" version="25.1.0-preview.10">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>App rewrite, new UI, improved performance, bug fixes</p>
+      </description>
+    </release>
+
     <release date="2025-01-18" version="25.1.0-preview.9">
       <url type="details">https://blog.mrquantumoff.dev</url>
       <description>
