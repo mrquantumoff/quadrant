@@ -63,6 +63,7 @@ jobs:
           QUADRANT_API_KEY: ${{ secrets.QUADRANT_API_KEY }}
           QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
           QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
+          NO_STRIP: ${{ matrix.platform == 'ubuntu-24.04' && 'true' }}
 
         with:
           releaseName: "Quadrant v__VERSION__"
@@ -71,7 +72,6 @@ jobs:
           prerelease: ${{ !endsWith(github.ref_name, 'stable') }}
           args: ${{ matrix.args }}
           tagName: ${{github.ref_name}}
-          tauriScript: pnpm nstauri
 
   submit_update:
     runs-on: ubuntu-latest
