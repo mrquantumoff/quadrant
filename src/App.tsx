@@ -436,6 +436,7 @@ function App() {
                           await config.save();
                           setPage(p);
                           setContent(p);
+                          setContentHistory([p]);
                         }}
                       >
                         <div className="grid place-content-center ">

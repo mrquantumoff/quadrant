@@ -354,8 +354,11 @@ export default function ApplyPage() {
                     </Button>
                     <Button
                       onClick={async () => {
+                        const randomString = Math.random()
+                          .toString(36)
+                          .substring(2, 10);
                         context.changeContent({
-                          name: modpack.name,
+                          name: modpack.name + randomString,
                           title: modpack.name,
                           style: "",
                           main: false,
