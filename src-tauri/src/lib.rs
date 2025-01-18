@@ -145,7 +145,8 @@ pub async fn run() {
                 let tray = tray.unwrap();
                 tray.set_title(Some("Quadrant"))?;
                 let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-                let menu = Menu::with_items(app, &[&quit_i])?;
+                let show_w = MenuItem::with_id(app, "show", "Show/Hide", true, None::<&str>)?;
+                let menu = Menu::with_items(app, &[&show_w, &quit_i])?;
 
                 tray.set_menu(Some(menu))?;
                 tray.set_show_menu_on_left_click(false)?;
@@ -168,6 +169,17 @@ pub async fn run() {
                 tray.on_menu_event(|app, event| match event.id.as_ref() {
                     "quit" => {
                         app.exit(0);
+                    }
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            if window.is_visible().unwrap() {
+                                window.hide().unwrap();
+                            } else {
+                                window.show().unwrap();
+                                window.set_focus().unwrap();
+                                window.unminimize().unwrap();
+                            }
+                        }
                     }
                     _ => {}
                 });

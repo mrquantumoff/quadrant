@@ -11,6 +11,12 @@ html {
 
 select {
   -webkit-appearance: none;
+  appearance: unset;
+}
+
+option {
+  -webkit-appearance: none;
+  appearance: unset;
 }
 
 .content-main * {
