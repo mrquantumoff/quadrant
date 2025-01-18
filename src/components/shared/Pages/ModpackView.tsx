@@ -1,22 +1,15 @@
 import quadrantLocale from "../../../i18n";
 import { IMod, LocalModpack, ModSource, ModType } from "../../../intefaces";
 import { useEffect, useState } from "react";
-import {
-  getMinecraftFolder,
-  getMod,
-  getModpacks,
-  getModUpdate,
-} from "../../../tools";
+import { getMod, getModUpdate } from "../../../tools";
 import Mod from "../Mod";
 import { useTranslation } from "react-i18next";
 import CircularProgress from "../../core/CircularProgress";
-import * as path from "@tauri-apps/api/path";
-import { watch } from "@tauri-apps/plugin-fs";
+
 import Button from "../../core/Button";
 import { MdUpdate } from "react-icons/md";
 
-export default function ModpackView(initialModpack: LocalModpack) {
-  const [modpack, setModpack] = useState(initialModpack);
+export default function ModpackView(modpack: LocalModpack) {
   const localMods = modpack.mods;
   const [mods, setMods] = useState<IMod[]>([]);
   const [updates, setUpdates] = useState<IMod[]>([]);
@@ -115,30 +108,31 @@ export default function ModpackView(initialModpack: LocalModpack) {
   };
 
   const { t } = useTranslation();
-  useEffect(() => {
-    const effect = async () => {
-      await updateModpackDetails();
-      await watch(
-        await path.join(
-          await getMinecraftFolder(false),
-          "modpacks",
-          modpack.name
-        ),
-        async () => {
-          const modpacks = await getModpacks(false);
-          const newModpack = modpacks.filter(
-            (newModpack) => modpack.name === newModpack.name
-          )[0];
-          setModpack(newModpack);
-        },
-        {
-          delayMs: 50,
-        }
-      );
-    };
+  // useEffect(() => {
+  //   const effect = async () => {
+  //     await updateModpackDetails();
+  //     await watch(
+  //       await path.join(
+  //         await getMinecraftFolder(false),
+  //         "modpacks",
+  //         modpack.name
+  //       ),
+  //       async () => {
+  //         const modpacks = await getModpacks(false);
+  //         const newModpack = modpacks.filter(
+  //           (newModpack) => modpack.name === newModpack.name
+  //         )[0];
+  //         if (newModpack !== modpack) setModpack(newModpack);
+  //         setModpack(newModpack);
+  //       },
+  //       {
+  //         delayMs: 50,
+  //       }
+  //     );
+  //   };
 
-    effect();
-  }, []);
+  //   effect().catch((e) => console.error(e));
+  // }, []);
 
   useEffect(() => {
     console.log("Modpack update");

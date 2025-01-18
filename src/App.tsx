@@ -127,9 +127,11 @@ function App() {
 
   useEffect(() => {
     const effect = async () => {
-      await listen("updateDownloadProgress", (e: any) =>
-        setUpdateDownloadProgress(e.payload)
-      );
+      await listen("updateDownloadProgress", async (e: any) => {
+        if (updateDownloadProgress !== e.payload) {
+          setUpdateDownloadProgress(e.payload);
+        }
+      });
 
       await listen("disableRightClick", (_: any) =>
         document.addEventListener("contextmenu", (event) =>

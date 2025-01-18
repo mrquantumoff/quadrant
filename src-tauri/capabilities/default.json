@@ -17,16 +17,16 @@
       "identifier": "fs:allow-watch",
       "allow": [
         {
-          "path": "$CONFIG/**",
-          "recursive": true
+          "path": "$CONFIG/**"
         },
         {
-          "path": "$HOME/**",
-          "recursive": true
+          "path": "$HOME/**/*"
         },
         {
-          "path": "$HOME/.minecraft/**",
-          "recursive": true
+          "path": "$HOME/.minecraft"
+        },
+        {
+          "path": "$HOME/.minecraft/modpacks"
         }
       ]
     },

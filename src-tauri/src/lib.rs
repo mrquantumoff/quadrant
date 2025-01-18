@@ -281,7 +281,7 @@ async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
     let updater = app
         .updater_builder()
         .endpoints(update_urls)?
-        .version_comparator(|current, update| current != update.version)
+        // .version_comparator(|current, update| current != update.version)
         .header("User-Agent", get_user_agent())?
         .build()?;
 

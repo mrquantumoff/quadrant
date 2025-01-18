@@ -113,7 +113,7 @@ export default function Mod(props: IModProps) {
             y: 50,
           }}
           whileInView={{ opacity: 1, y: 0, x: 0 }}
-          animate={{ y: 0, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
           whileHover={{ opacity: 1, y: -5, x: 0 }}
           exit={{
             opacity: 0,
