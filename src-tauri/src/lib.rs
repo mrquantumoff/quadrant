@@ -23,6 +23,7 @@ pub mod other;
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppState {
     pub updated_modpacks: Vec<String>,
+    pub is_update_enabled: bool,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -79,7 +80,7 @@ pub async fn run() {
             }
 
             init_config(app.handle().clone())?;
-            app.manage(Mutex::new(AppState::default()));
+
             match app.cli().matches() {
                 Ok(matches) => {
                     log::info!("Matches: {:?}", matches);
@@ -108,6 +109,10 @@ pub async fn run() {
             }
             let handle = app.handle().clone();
             log::info!("Autoupdate enabled: {}", autoupdate);
+            app.manage(Mutex::new(AppState {
+                is_update_enabled: autoupdate,
+                ..Default::default()
+            }));
             if autoupdate {
                 tauri::async_runtime::spawn(async move {
                     let res = update(handle).await;
@@ -211,7 +216,8 @@ pub async fn run() {
             other::telemetry::send_telemetry,
             other::telemetry::remove_telemetry,
             modpacks::general::set_modpack_sync_date,
-            request_check_for_updates
+            request_check_for_updates,
+            is_autoupdate_enabled
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -222,6 +228,12 @@ async fn request_check_for_updates(app: tauri::AppHandle) -> Result<(), tauri::E
     update(app).await.map_err(|e| tauri::Error::from(e))
 }
 
+#[tauri::command]
+async fn is_autoupdate_enabled(app: tauri::AppHandle) -> Result<bool, tauri::Error> {
+    let state = app.state::<Mutex<AppState>>();
+    let state = state.lock().await;
+    Ok(state.is_update_enabled)
+}
 async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
     let update_url = Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{{{target}}}}//{{{{arch}}}}//{{{{current_version}}}}"))?;
 

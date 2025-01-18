@@ -37,6 +37,7 @@ export default function SettingsPage() {
   const [currentVersion, setCurrentVersion] = useState("");
   const [currentTauriVersion, setCurrentTauriVersion] = useState("");
   const [extendedNavigation, setExtendedNavigation] = useState(false);
+  const [showUpdateSettings, setShowUpdateSettings] = useState(true);
 
   useEffect(() => {
     const initializeValues = async () => {
@@ -68,6 +69,7 @@ export default function SettingsPage() {
       setExtendedNavigation(
         (await box.get<boolean>("extendedNavigation")) ?? false
       );
+      setShowUpdateSettings(await invoke("is_autoupdate_enabled"));
     };
 
     initializeValues();
@@ -91,26 +93,30 @@ export default function SettingsPage() {
           })}
         </p>
       </div>
-      <Field className={"flex flex-col font-bold my-4"}>
-        <Label>{t("updateChannel")}</Label>
-        <Select
-          className="my-4 bg-slate-800 p-4 rounded-2xl hover:bg-slate-700 w-1/4"
-          aria-label={t("locale")}
-          value={updateChannel}
-          onChange={async (e) => {
-            e.preventDefault();
-            e.preventDefault();
-            const newChannel = e.target.value;
-            await updateChannelBox.set("channel", newChannel);
-            setUpdateChannel(newChannel);
-            await updateChannelBox.save();
-            requestCheckForUpdates();
-          }}
-        >
-          <option value="stable">{t("stable")}</option>
-          <option value="preview">{t("preview")}</option>
-        </Select>
-      </Field>
+      {showUpdateSettings ? (
+        <Field className={"flex flex-col font-bold my-4"}>
+          <Label>{t("updateChannel")}</Label>
+          <Select
+            className="my-4 bg-slate-800 p-4 rounded-2xl hover:bg-slate-700 w-1/4"
+            aria-label={t("locale")}
+            value={updateChannel}
+            onChange={async (e) => {
+              e.preventDefault();
+              e.preventDefault();
+              const newChannel = e.target.value;
+              await updateChannelBox.set("channel", newChannel);
+              setUpdateChannel(newChannel);
+              await updateChannelBox.save();
+              requestCheckForUpdates();
+            }}
+          >
+            <option value="stable">{t("stable")}</option>
+            <option value="preview">{t("preview")}</option>
+          </Select>
+        </Field>
+      ) : (
+        <></>
+      )}
       <Field className={"flex flex-col font-bold my-4"}>
         <Label>{t("language")}</Label>
         <Select
@@ -174,13 +180,14 @@ export default function SettingsPage() {
           }
           checked={collectData}
           onChange={async () => {
-            setCollectData(!collectData);
             if (!collectData) {
               await invoke("send_telemetry");
             } else {
               await invoke("remove_telemetry");
             }
-            await box.set("collectUserData", !collectData);
+            setCollectData(!collectData);
+
+            await box.set("collectUserData", collectData);
             await box.save();
           }}
         >

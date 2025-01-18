@@ -70,7 +70,6 @@ jobs:
           releaseDraft: false
           prerelease: ${{ !endsWith(github.ref_name, 'stable') }}
           args: ${{ matrix.args }}
-          bundleIdentifier: ${{matrix.platform == 'ubuntu-22.04' && 'dev.mrquantumoff.mcmodpackmanager'}}
           tagName: ${{github.ref_name}}
           tauriScript: pnpm nstauri
 

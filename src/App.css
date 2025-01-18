@@ -4,7 +4,9 @@
 
 html {
   font-family: "Inter";
-  @apply bg-slate-900 text-slate-50 overflow-x-hidden font-normal;
+  @apply bg-slate-900 text-slate-50
+    overflow-x-hidden font-normal;
+  font-synthesis: none !important;
 }
 
 select {
