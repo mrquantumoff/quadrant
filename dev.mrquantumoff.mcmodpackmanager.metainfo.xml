@@ -3,7 +3,7 @@
   <id>dev.mrquantumoff.mcmodpackmanager</id>
   <metadata_license>MIT</metadata_license>
   <project_license>MPL-2.0</project_license>
-  <name>Quadrant Next for Minecraft</name>
+  <name>Quadrant for Minecraft</name>
   <summary>Manage your mods and modpacks with ease.</summary>
   <description>
     <p>
@@ -43,6 +43,13 @@
   </branding>
 
   <releases>
+
+    <release date="2025-01-18" version="25.1.0-preview.8">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>App rewrite, new UI, improved performance, bug fixes</p>
+      </description>
+    </release>
 
     <release date="2025-01-17" version="25.1.0-preview.7">
       <url type="details">https://blog.mrquantumoff.dev</url>

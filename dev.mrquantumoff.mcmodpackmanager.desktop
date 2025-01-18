@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Exec=quadrant-next --noupdater %u
+Exec={{exec}} --noupdater %u
 Terminal=false
 Categories=Utility;
-Name=Quadrant Next
-Icon=dev.mrquantumoff.mcmodpackmanager
+Name={{name}}
+Icon={{icon}}
 MimeType=x-scheme-handler/curseforge;x-scheme-handler/quadrantnext;x-scheme-handler/modrinth;
