@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Exec={{exec}} %u
+Terminal=false
+Categories=Utility
+Name={{name}}
+Icon={{icon}}
+MimeType=x-scheme-handler/curseforge;x-scheme-handler/quadrantnext;x-scheme-handler/modrinth;

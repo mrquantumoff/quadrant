@@ -64,24 +64,34 @@
     "targets": ["nsis", "appimage", "deb", "rpm"],
     "linux": {
       "appimage": {
-        "bundleMediaFramework": true
+        "bundleMediaFramework": false,
+        // "files": {"/usr/share/applications/quadrant.desktop": "../quadrant.desktop", "/usr/share/icons/hicolor/256x256/apps/quadrant-next.png": "icons/256x256.png"}
       },
       "deb": {
         "depends": ["libwebkit2gtk-4.1", "openssl", "curl", "wget", "libappindicator3-1", "librsvg2-2", "libsecret-1-0"],
-        "desktopTemplate": "../dev.mrquantumoff.mcmodpackmanager.desktop"
+        "desktopTemplate": "../quadrant.desktop"
       },
       "rpm": {
-        "desktopTemplate": "../dev.mrquantumoff.mcmodpackmanager.desktop",
-        "depends": ["webkit2gtk4.1", "openssl", "curl", "wget", "libappindicator", "librsvg2", "libsecret"]
+        "depends": ["webkit2gtk4.1", "openssl", "curl", "wget", "libappindicator", "librsvg2", "libsecret"],
+        "desktopTemplate": "../quadrant.desktop"
       }
     },
     "icon": [
+      "icons/quadrant_next.png",
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "category": "Utility",
+    "licenseFile": "../LICENSE.rtf",
+    "shortDescription": "Manage your mods and modpacks with ease.",
+    "longDescription": "This is a powerful tool to manage your Minecraft: Java Edition mods. With this app you can easily install mods, resourcepacks, shaders. You can also share you modpacks with your friends, and you can back up your modpacks to the cloud!",
+    "fileAssociations": [{
+      "ext": ["modpackconfig.json", "modpackConfig", "quadrantModpack.json"],
+      "description": "Quadrant Modpack Config File"
+    }],
     "resources": ["../public"],
     "windows": {
       "webviewInstallMode": {
