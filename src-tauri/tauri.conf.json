@@ -64,8 +64,7 @@
     "targets": ["nsis", "appimage", "deb", "rpm"],
     "linux": {
       "appimage": {
-        "bundleMediaFramework": false,
-        // "files": {"/usr/share/applications/quadrant.desktop": "../quadrant.desktop", "/usr/share/icons/hicolor/256x256/apps/quadrant-next.png": "icons/256x256.png"}
+        "bundleMediaFramework": false
       },
       "deb": {
         "depends": ["libwebkit2gtk-4.1", "openssl", "curl", "wget", "libappindicator3-1", "librsvg2-2", "libsecret-1-0"]
