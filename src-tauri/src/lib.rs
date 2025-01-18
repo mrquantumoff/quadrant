@@ -30,6 +30,7 @@ pub struct AppState {
 #[allow(deprecated)]
 pub async fn run() {
     colog::init();
+    log::info!("Initializing Tauri...");
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_single_instance::init(|_app, _argv, _cwd| {}))
@@ -45,8 +46,11 @@ pub async fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
+            init_config(app.handle().clone())?;
+            log::info!("Initializing app...\nInitializing config...");
             let mut autoupdate = true;
 
+            log::info!("Initializing deep links and autostart...");
             #[cfg(desktop)]
             {
                 app.deep_link().register("quadrantnext")?;
@@ -78,8 +82,6 @@ pub async fn run() {
             if cfg!(dev) == false {
                 app.emit("disableRightClick", true).unwrap();
             }
-
-            init_config(app.handle().clone())?;
 
             match app.cli().matches() {
                 Ok(matches) => {

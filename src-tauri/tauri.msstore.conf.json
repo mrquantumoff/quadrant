@@ -1,7 +1,6 @@
 {
     "identifier": "dev.mrquantumoff.mcmodpackmanager",
     "productName": "Quadrant (for Microsoft Store)",
-    "version": "0.0.0",
     "bundle":  {
         "createUpdaterArtifacts": false,
         "windows": {
