@@ -7,7 +7,7 @@ import { getAccountInfo } from "../../../tools";
 import { motion } from "motion/react";
 import { InstalledModpack } from "../../../intefaces";
 import { listen } from "@tauri-apps/api/event";
-import { ContentContext } from "../../../App";
+import { ContentContext } from "../../../intefaces";
 import { MdCheck } from "react-icons/md";
 
 export interface IShareSyncContext {

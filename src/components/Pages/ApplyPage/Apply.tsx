@@ -43,7 +43,7 @@ import {
   MdSync,
 } from "react-icons/md";
 import LoaderOptions from "../../shared/LoaderOption";
-import { ContentContext } from "../../../App";
+import { ContentContext } from "../../../intefaces";
 import { listen } from "@tauri-apps/api/event";
 import ModpackView from "../../shared/Pages/ModpackView";
 export default function ApplyPage() {

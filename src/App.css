@@ -25,7 +25,7 @@ option {
 
 @font-face {
   font-family: "Inter";
-  src: local("Inter"), url("assets/Inter-Font.ttf"), url("./Inter-Font.ttf");
+  src: local("Inter"), url("$assets/Inter-Font.ttf"), url("./Inter-Font.ttf");
 }
 
 ::-webkit-scrollbar {
@@ -43,7 +43,7 @@ option {
 }
 
 .page {
-  width: 95%;
+  width: 100%;
 }
 
 .center {

@@ -12,7 +12,7 @@ import {
 import Mod from "../../shared/Mod";
 import { readText } from "@tauri-apps/plugin-clipboard-manager";
 import { listen } from "@tauri-apps/api/event";
-import { ContentContext } from "../../../App";
+import { ContentContext } from "../../../intefaces";
 import { useContext } from "react";
 import { invoke } from "@tauri-apps/api/core";
 

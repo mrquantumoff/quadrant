@@ -1,9 +1,18 @@
+import { createContext } from "react";
+
 export interface IContentContext {
   changePage: (name: string) => void;
   changeContent: (component: Page) => void;
   back: () => void;
   setSnackbar: (newSnackBarState: SnackbarState) => void;
 }
+
+export const ContentContext = createContext<IContentContext>({
+  back: async () => {},
+  changeContent: () => {},
+  changePage: () => {},
+  setSnackbar: (_: SnackbarState) => {},
+});
 
 export interface LocalModpack {
   name: string;

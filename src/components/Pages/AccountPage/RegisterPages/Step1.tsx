@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import Button from "../../../core/Button";
 import { useContext, useState } from "react";
 import { fetch } from "@tauri-apps/plugin-http";
-import { ContentContext } from "../../../../App";
+import { ContentContext } from "../../../../intefaces";
 import SecondRegisterStep from "./Step2";
 
 export default function FirstRegisterStep() {

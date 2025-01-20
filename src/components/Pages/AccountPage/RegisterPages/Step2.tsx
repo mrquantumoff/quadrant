@@ -2,10 +2,10 @@ import { Field, Fieldset, Input } from "@headlessui/react";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Button from "../../../core/Button";
-import { ContentContext } from "../../../../App";
+import { ContentContext } from "../../../../intefaces";
 import { fetch } from "@tauri-apps/plugin-http";
 
-export interface SecondRegisterStepProps {
+interface SecondRegisterStepProps {
   email: string;
 }
 

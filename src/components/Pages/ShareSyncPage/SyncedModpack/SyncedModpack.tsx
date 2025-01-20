@@ -42,7 +42,7 @@ import {
   kickMember,
   shareModpackRaw,
 } from "../../../../tools";
-import { ContentContext } from "../../../../App";
+import { ContentContext } from "../../../../intefaces";
 import { ShareSyncContext } from "../ShareSyncPage";
 import { invoke } from "@tauri-apps/api/core";
 

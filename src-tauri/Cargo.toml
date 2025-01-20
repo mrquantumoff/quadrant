@@ -19,9 +19,9 @@ tauri-build = { version = "2.0.5", features = [] }
 
 [dependencies]
 tauri = { version = "2.2.3", features = ["tray-icon", "config-json5"] }
-tauri-plugin-opener = "2.2.4"
+tauri-plugin-opener = "2.2.5"
 serde = { version = "1.0.217", features = ["derive"] }
-serde_json = "1.0.135"
+serde_json = "1.0.137"
 chrono = { version = "0.4.39", features = ["serde"] }
 anyhow = { version = "1.0.95" }
 dirs = "6.0.0"
@@ -50,18 +50,18 @@ tauri-plugin-clipboard-manager = "2.2.0"
 tauri-plugin-notification = "2.2.1"
 tauri-plugin-persisted-scope = "2.2.0"
 
-
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-tauri-plugin-autostart = "2"
-tauri-plugin-cli = "2"
-tauri-plugin-updater = "2"
-tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+tauri-plugin-autostart = "2.2.0"
+tauri-plugin-cli = "2.2.0"
+tauri-plugin-updater = "2.3.1"
+tauri-plugin-single-instance = { version = "2.2.1", features = ["deep-link"] }
 
 [profile.dev]
-opt-level = 0           # Use slightly better optimizations.
-overflow-checks = false # Disable integer overflow checks.
+opt-level = 0
+overflow-checks = false
 
 [profile.release]
-opt-level = 3                    # Use slightly better optimizations.
-overflow-checks = true           # Disable integer overflow checks.
-build-override.codegen-units = 1
+opt-level = 3
+overflow-checks = true
+codegen-units = 1
+lto = "fat"

@@ -6,7 +6,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
 import { LazyStore } from "@tauri-apps/plugin-store";
 import { MdOpenInBrowser, MdOutlineAccountCircle } from "react-icons/md";
-import { ContentContext } from "../../../App";
+import { ContentContext } from "../../../intefaces";
 import FirstRegisterStep from "./RegisterPages/Step1";
 
 export default function AccountPage() {

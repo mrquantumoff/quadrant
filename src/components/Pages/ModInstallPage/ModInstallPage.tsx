@@ -9,7 +9,7 @@ import {
   ModType,
 } from "../../../intefaces";
 import Button from "../../core/Button";
-import { ContentContext } from "../../../App";
+import { ContentContext } from "../../../intefaces";
 import { MdArrowBack, MdDownload, MdOpenInBrowser } from "react-icons/md";
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";

@@ -31,7 +31,7 @@ export default defineConfig(async () => ({
   },
   resolve: {
     alias: {
-      assets: "./public",
+      $assets: "./public",
     },
   },
   build: {

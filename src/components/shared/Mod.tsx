@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { IMod, ModLoader, ModSource } from "../../intefaces";
+import { ContentContext, IMod, ModLoader, ModSource } from "../../intefaces";
 import {
   MdDelete,
   MdDownload,
@@ -9,7 +9,6 @@ import {
 import { motion } from "motion/react";
 import { deleteMod, installMod, installRemoteFile, openIn } from "../../tools";
 import { useContext, useEffect, useState } from "react";
-import { ContentContext } from "../../App";
 import ModInstallPage from "../Pages/ModInstallPage/ModInstallPage";
 import { listen } from "@tauri-apps/api/event";
 import { LazyStore } from "@tauri-apps/plugin-store";

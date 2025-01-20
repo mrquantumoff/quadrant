@@ -1,6 +1,7 @@
-import { createContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AccountNotification,
+  ContentContext,
   IContentContext,
   ModLoader,
   ModSource,
@@ -55,12 +56,6 @@ import {
   requestPermission,
   sendNotification,
 } from "@tauri-apps/plugin-notification";
-export const ContentContext = createContext<IContentContext>({
-  back: async () => {},
-  changeContent: () => {},
-  changePage: () => {},
-  setSnackbar: (_: SnackbarState) => {},
-});
 
 function App() {
   const { t } = useTranslation();
@@ -214,11 +209,10 @@ function App() {
               main: false,
             });
           } else if (actionType === "modrinth:") {
-            const action = url!.pathname.split("/")[2];
-
-            // This gets the slug, not the ID, but it doesn't matter for Modrinth
-            const modId = url!.pathname.split("/")[3];
             console.log(url!.pathname.split("/"));
+
+            const action = url?.pathname.split("/")[2] ?? url?.host ?? "";
+
             console.log("Modrinth action:", action);
             if (
               action.includes("mod") ||
@@ -226,7 +220,14 @@ function App() {
               action.includes("shader")
             ) {
               console.log("Getting mod");
-              // const modId
+              // This gets the slug, not the ID, but it doesn't matter for Modrinth
+              let modId = "";
+              url?.pathname.split("/").forEach((val) => {
+                if (val !== "") {
+                  modId = val;
+                }
+              });
+              console.log("Modrinth mod ID: ", modId);
               const mod = await getMod(
                 {
                   deletable: false,
@@ -270,7 +271,7 @@ function App() {
           } else if (actionType === "quadrantnext:") {
             const actions = url!.pathname.split("/");
             console.log(actions);
-            if (!actions.includes("login") && url!.host!=="login") {
+            if (!actions.includes("login") && url!.host !== "login") {
               console.log("Not login");
               return;
             }
