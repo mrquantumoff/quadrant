@@ -17,23 +17,32 @@ pub async fn init_cache() -> Result<(), anyhow::Error> {
         .join("mrquantumoff.dev")
         .join("QuadrantNextCache");
     if !cache_dir.exists() {
+        log::info!("Creating cache directory");
         std::fs::create_dir_all(&cache_dir)?
     }
-    let config_file = cache_dir.join("cacheIndex.json");
+    let index_file = cache_dir.join("cacheIndex.json");
 
-    let mut config_raw = std::fs::read_to_string(&config_file)?;
+    if !index_file.exists() {
+        let empty_index: Vec<CacheIndex> = Vec::new();
+        std::fs::write(
+            &index_file,
+            serde_json::to_string_pretty(&empty_index)?.as_bytes(),
+        )?;
+    }
+
+    let mut config_raw = std::fs::read_to_string(&index_file)?;
 
     let file_conts = serde_json::from_str::<Vec<CacheIndex>>(&config_raw);
 
     if file_conts.is_err() {
         let empty_index: Vec<CacheIndex> = Vec::new();
         std::fs::write(
-            &config_file,
+            &index_file,
             serde_json::to_string_pretty(&empty_index)?.as_bytes(),
         )?;
     }
 
-    config_raw = std::fs::read_to_string(&config_file)?;
+    config_raw = std::fs::read_to_string(&index_file)?;
 
     let mut file_conts = serde_json::from_str::<Vec<CacheIndex>>(&config_raw)?;
 
@@ -51,7 +60,7 @@ pub async fn init_cache() -> Result<(), anyhow::Error> {
     }
     // Save the new file conts
     std::fs::write(
-        config_file,
+        index_file,
         serde_json::to_string_pretty(&file_conts)?.as_bytes(),
     )?;
 

@@ -70,10 +70,12 @@
         "bundleMediaFramework": false
       },
       "deb": {
-        "depends": ["libwebkit2gtk-4.1", "openssl", "curl", "wget", "libappindicator3-1", "librsvg2-2", "libsecret-1-0"]
+        "depends": ["libwebkit2gtk-4.1", "openssl", "curl", "wget", "libappindicator3-1", "librsvg2-2", "libsecret-1-0"],
+        "desktopTemplate": "../Quadrant.desktop"
       },
       "rpm": {
-        "depends": ["webkit2gtk4.1", "openssl", "curl", "wget", "libappindicator", "librsvg2", "libsecret"]
+        "depends": ["webkit2gtk4.1", "openssl", "curl", "wget", "libappindicator", "librsvg2", "libsecret"],
+        "desktopTemplate": "../Quadrant.desktop"
       }
     },
     "icon": [

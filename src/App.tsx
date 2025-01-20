@@ -164,12 +164,12 @@ function App() {
         console.log("deep link:", urls);
         for (const gottenUrl of urls) {
           const url = URL.parse(gottenUrl);
+          const actionType = url?.protocol;
           console.log("url:", url);
-          const window = getCurrentWindow();
-          await window.setFocus();
-          console.log("url protocol:", url?.protocol);
-          if (url?.protocol === "curseforge:") {
-            const action = url.pathname.replace("/", "");
+          await currentWindow.setFocus();
+          console.log("url protocol:", actionType);
+          if (actionType === "curseforge:") {
+            const action = url!.pathname.replace("/", "");
             console.log("CurseForge action:", action);
             if (action.includes("/install\\")) {
               console.log("CurseForge action is not install");
@@ -181,8 +181,8 @@ function App() {
               return;
             }
             console.log("Getting mod");
-            const modId = url.searchParams.get("addonId") ?? "";
-            const fileId = url.searchParams.get("fileId") ?? undefined;
+            const modId = url!.searchParams.get("addonId") ?? "";
+            const fileId = url!.searchParams.get("fileId") ?? undefined;
             const mod = await getMod(
               {
                 deletable: false,
@@ -213,12 +213,12 @@ function App() {
               style: "",
               main: false,
             });
-          } else if (url?.protocol === "modrinth:") {
-            const action = url.pathname.split("/")[2];
+          } else if (actionType === "modrinth:") {
+            const action = url!.pathname.split("/")[2];
 
             // This gets the slug, not the ID, but it doesn't matter for Modrinth
-            const modId = url.pathname.split("/")[3];
-            console.log(url.pathname.split("/"));
+            const modId = url!.pathname.split("/")[3];
+            console.log(url!.pathname.split("/"));
             console.log("Modrinth action:", action);
             if (
               action.includes("mod") ||
@@ -267,22 +267,23 @@ function App() {
               timeout: 5000,
             });
             return;
-          } else if (url?.protocol === "quadrantnext:") {
-            const actions = url.pathname.split("/");
+          } else if (actionType === "quadrantnext:") {
+            const actions = url!.pathname.split("/");
             console.log(actions);
-            if (!actions.includes("login")) {
+            if (!actions.includes("login") && url!.host!=="login") {
+              console.log("Not login");
               return;
             }
 
             const oAuthState = await config.get<string>("oauthState");
 
-            const providedState = url.searchParams.get("state");
+            const providedState = url!.searchParams.get("state");
             console.log("State: " + oAuthState);
             console.log("Provided state: " + providedState);
             if (providedState !== oAuthState) {
               return;
             }
-            const code = url.searchParams.get("code");
+            const code = url!.searchParams.get("code");
             console.log("Code: " + code);
             if (code === null) {
               return;

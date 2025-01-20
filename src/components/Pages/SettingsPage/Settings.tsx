@@ -27,8 +27,8 @@ export default function SettingsPage() {
   const [curseForge, setCurseForge] = useState(false);
   const [modrinth, setModrinth] = useState(false);
   const [devMode, setDevMode] = useState(false);
-  const [rssFeeds, setRssFeeds] = useState(false);
-  const [silentNews, setSilentNews] = useState(false);
+  // const [rssFeeds, setRssFeeds] = useState(false);
+  // const [silentNews, setSilentNews] = useState(false);
   const [autoQuadrantSync, setAutoQuadrantSync] = useState(false);
   const [showUnupgradeableMods, setShowUnupgradeableMods] = useState(false);
   const [experimentalFeatures, setExperimentalFeatures] = useState(false);
@@ -48,8 +48,8 @@ export default function SettingsPage() {
       setCurseForge((await box.get<boolean>("curseforge")) ?? false);
       setModrinth((await box.get<boolean>("modrinth")) ?? false);
       setDevMode((await box.get<boolean>("devMode")) ?? false);
-      setRssFeeds((await box.get<boolean>("rssFeeds")) ?? false);
-      setSilentNews((await box.get<boolean>("silentNews")) ?? false);
+      // setRssFeeds((await box.get<boolean>("rssFeeds")) ?? false);
+      // setSilentNews((await box.get<boolean>("silentNews")) ?? false);
       setUpdateChannel(
         (await updateChannelBox.get<string>("channel")) ?? "stable"
       );
@@ -309,7 +309,7 @@ export default function SettingsPage() {
         </Switch>
         <Label className="ml-4">{t("extendedNavigation")}</Label>
       </Field>
-      <Field className="flex items-center font-bold my-4">
+      {/* <Field className="flex items-center font-bold my-4">
         <Switch
           className={
             "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
@@ -346,7 +346,7 @@ export default function SettingsPage() {
           />
         </Switch>
         <Label className="ml-4">{t("silentNews")}</Label>
-      </Field>
+      </Field> */}
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={

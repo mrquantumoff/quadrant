@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_http::reqwest;
+use tauri_plugin_store::JsonValue;
 use tauri_plugin_store::StoreExt;
 
 use crate::{
@@ -126,6 +127,38 @@ pub struct MinecraftVersion {
     pub version_type: String,
 }
 
+impl From<JsonValue> for MinecraftVersion {
+    fn from(value: JsonValue) -> Self {
+        let value = value.as_object().unwrap();
+        let version = value.get("version").unwrap().as_str().unwrap().to_string();
+        let version_type = value
+            .get("version_type")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string();
+        Self {
+            version,
+            version_type,
+        }
+    }
+}
+
+impl From<MinecraftVersion> for JsonValue {
+    fn from(value: MinecraftVersion) -> Self {
+        let mut map = serde_json::Map::new();
+        map.insert(
+            "version".to_string(),
+            serde_json::Value::String(value.version),
+        );
+        map.insert(
+            "version_type".to_string(),
+            serde_json::Value::String(value.version_type),
+        );
+        JsonValue::Object(map)
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UniversalModFile {
     pub id: Option<String>,
@@ -165,8 +198,7 @@ impl From<ModrinthFile> for UniversalModFile {
     }
 }
 
-#[tauri::command]
-pub async fn get_versions() -> Result<Vec<MinecraftVersion>, tauri::Error> {
+pub async fn fetch_versions(app: AppHandle) -> Result<Vec<MinecraftVersion>, anyhow::Error> {
     let uri = "https://api.modrinth.com/v2/tag/game_version";
 
     let client = reqwest::Client::new();
@@ -177,9 +209,37 @@ pub async fn get_versions() -> Result<Vec<MinecraftVersion>, tauri::Error> {
         .await
         .map_err(anyhow::Error::from)?;
     let body: Vec<MinecraftVersion> = res.json().await.map_err(anyhow::Error::from)?;
+    let store = app.store("config.json")?;
+    store.set("mcVersions", body.clone());
+    Ok(body)
+}
+#[tauri::command]
+pub async fn get_versions(app: AppHandle) -> Result<Vec<MinecraftVersion>, tauri::Error> {
+    let store = app
+        .store("config.json")
+        .map_err(|e| anyhow::Error::from(e))?;
+    let body = store.get("mcVersions");
+    if body.is_none() {
+        let body = fetch_versions(app).await?;
+        store.set("mcVersions", body.clone());
+        return Ok(body);
+    }
+    let body = body.unwrap();
+    let body: Vec<MinecraftVersion> = body
+        .as_array()
+        .unwrap()
+        .iter()
+        .cloned()
+        .map(|v| v.into())
+        .collect();
+    if body.is_empty() {
+        let body = fetch_versions(app).await?;
+        store.set("mcVersions", body.clone());
+        return Ok(body);
+    }
     let body: Vec<MinecraftVersion> = body
         .into_iter()
-        .filter(|version| version.version_type == "release")
+        .filter(|version| version.version_type == "release" && !version.version.is_empty())
         .collect();
     Ok(body)
 }
