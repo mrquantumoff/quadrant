@@ -4,8 +4,6 @@ pub mod quadrant_settings_sync;
 pub mod quadrant_share;
 pub mod quadrant_sync;
 
-pub(crate) const BASE_URL: &'static str = "https://api.mrquantumoff.dev/api/v3";
-
 #[tauri::command]
 pub fn set_secret(key: String, value: String) -> Result<(), tauri::Error> {
     let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", &key)

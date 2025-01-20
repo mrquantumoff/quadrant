@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::mc_mod::get_user_agent;
+use crate::{mc_mod::get_user_agent, QNT_BASE_URL};
 use anyhow::anyhow;
 use chrono::prelude::*;
 use serde_json::{json, Value};
@@ -15,10 +15,7 @@ pub async fn get_quadrant_settings(app: AppHandle) -> Result<(), tauri::Error> {
 
     let client = reqwest::Client::new();
     let response = client
-        .get(format!(
-            "{}/quadrant/settings_sync/get",
-            crate::account::BASE_URL
-        ))
+        .get(format!("{}/quadrant/settings_sync/get", QNT_BASE_URL))
         .header("User-Agent", user_agent)
         .bearer_auth(token)
         .send()
@@ -111,10 +108,7 @@ pub async fn submit_quadrant_settings(app: AppHandle) -> Result<(), tauri::Error
     });
 
     let response = client
-        .post(format!(
-            "{}/quadrant/settings_sync/submit",
-            crate::account::BASE_URL
-        ))
+        .post(format!("{}/quadrant/settings_sync/submit", QNT_BASE_URL))
         .header("User-Agent", user_agent)
         .bearer_auth(token)
         .json(&json)

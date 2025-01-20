@@ -1,10 +1,9 @@
+use crate::{mc_mod::get_user_agent, QNT_BASE_URL};
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
-
-use crate::{account::BASE_URL, mc_mod::get_user_agent};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 
@@ -85,7 +84,7 @@ pub async fn send_telemetry(app: AppHandle) {
     let info = get_telemetry_info(app).await;
     let client = reqwest::Client::new();
     let request = client
-        .post(format!("{}/quadrant/usage/submit", BASE_URL))
+        .post(format!("{}/quadrant/usage/submit", QNT_BASE_URL))
         .json(&info)
         .header("Authorization", env!("QUADRANT_API_KEY"))
         .header("User-Agent", get_user_agent())
@@ -102,7 +101,7 @@ pub async fn remove_telemetry(app: AppHandle) {
     let hardware_id = hardware_id.as_str().unwrap();
     let client = reqwest::Client::new();
     let request = client
-        .delete(format!("{}/quadrant/usage/delete", BASE_URL))
+        .delete(format!("{}/quadrant/usage/delete", QNT_BASE_URL))
         .header("Authorization", env!("QUADRANT_API_KEY"))
         .header("User-Agent", get_user_agent())
         .query(&[("hardware_id", hardware_id)])

@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
 use cache::{add_cache_index, file_hash, get_cache_index};
+
+#[cfg(feature = "curseforge")]
 use curseforge::{
     download_mod_curseforge, get_latest_mod_version_curseforge, search_mods_curseforge, ModFile,
 };
@@ -21,7 +23,10 @@ use crate::{
 };
 
 pub mod cache;
+
+#[cfg(feature = "curseforge")]
 pub mod curseforge;
+
 pub mod modrinth;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Copy)]
@@ -168,6 +173,7 @@ pub struct UniversalModFile {
     pub size: u64,
 }
 
+#[cfg(feature = "curseforge")]
 impl From<ModFile> for UniversalModFile {
     fn from(value: ModFile) -> Self {
         Self {
@@ -302,19 +308,23 @@ pub async fn check_mod_updates(
     new_mod.autoinstallable = true;
     match mod_to_update.source {
         ModSource::CurseForge => {
-            let latest_file = get_latest_mod_version_curseforge(
-                mod_to_update.id,
-                minecraft_version,
-                mod_loader,
-                mod_to_update.mod_type,
-                None,
-            )
-            .await?;
-            if latest_file.is_some() {
-                let latest_file = UniversalModFile::from(latest_file.unwrap());
+            #[cfg(feature = "curseforge")]
+            {
+                let latest_file = get_latest_mod_version_curseforge(
+                    mod_to_update.id,
+                    minecraft_version,
+                    mod_loader,
+                    mod_to_update.mod_type,
+                    None,
+                )
+                .await?;
+                if latest_file.is_some() {
+                    let latest_file = UniversalModFile::from(latest_file.unwrap());
 
-                new_mod.new_version = Some(latest_file);
+                    new_mod.new_version = Some(latest_file);
+                }
             }
+            return Ok(None);
         }
         ModSource::Modrinth => {
             let latest_file = get_latest_mod_version_modrinth(
@@ -358,7 +368,12 @@ pub async fn search_mods(
     };
 
     match args.source {
-        ModSource::CurseForge => mods.append(&mut search_mods_curseforge(app, search_args).await?),
+        ModSource::CurseForge => {
+            #[cfg(feature = "curseforge")]
+            {
+                mods.append(&mut search_mods_curseforge(app, search_args).await?)
+            }
+        }
 
         ModSource::Modrinth => mods.append(&mut search_mods_modrinth(app, search_args).await?),
         _ => {}
@@ -408,21 +423,31 @@ pub async fn install_mod(
     source: ModSource,
     modpack: Option<String>,
     mod_type: ModType,
+    #[allow(unused_variables)] // This is used in the CurseForge feature
     file_id: Option<String>,
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
     let download_path = match source {
-        ModSource::CurseForge => download_mod_curseforge(
-            id.clone(),
-            minecraft_version,
-            mod_loader,
-            mod_type,
-            file_id,
-            app.clone(),
-        )
-        .await
-        .inspect_err(|e| log::error!("Error downloading CurseForge mod: {}", e))
-        .map_err(tauri::Error::from)?,
+        ModSource::CurseForge => {
+            #[cfg(feature = "curseforge")]
+            {
+                download_mod_curseforge(
+                    id.clone(),
+                    minecraft_version,
+                    mod_loader,
+                    mod_type,
+                    file_id,
+                    app.clone(),
+                )
+                .await
+                .inspect_err(|e| log::error!("Error downloading CurseForge mod: {}", e))
+                .map_err(tauri::Error::from)?
+            }
+            #[cfg(not(feature = "curseforge"))]
+            {
+                return Err(anyhow::Error::msg("CurseForge is not enabled").into());
+            }
+        }
 
         ModSource::Modrinth => download_mod_modrinth(
             id.clone(),

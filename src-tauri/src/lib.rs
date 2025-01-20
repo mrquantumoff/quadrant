@@ -14,7 +14,13 @@ use tauri::{
 use tauri_plugin_updater::UpdaterExt;
 
 use tauri_plugin_deep_link::DeepLinkExt;
+
+#[allow(dead_code)] // This is used in the  Quadrant ID feature
+pub(crate) const QNT_BASE_URL: &'static str = "https://api.mrquantumoff.dev/api/v3";
+
+#[cfg(feature = "quadrant_id")]
 pub mod account;
+
 pub mod config;
 pub mod mc_mod;
 pub mod modpacks;
@@ -166,23 +172,28 @@ pub async fn run() {
                     res.unwrap();
                 });
             }
-            let handle = app.handle().clone();
-            log::info!("Initializing telemetry...");
-            tauri::async_runtime::spawn(async move {
-                other::telemetry::send_telemetry(handle.clone().to_owned()).await;
-            });
+            #[cfg(feature = "telemetry")]
+            {
+                let handle = app.handle().clone();
+                log::info!("Initializing telemetry...");
+                tauri::async_runtime::spawn(async move {
+                    other::telemetry::send_telemetry(handle.clone().to_owned()).await;
+                });
+            }
+            #[cfg(feature = "quadrant_id")]
+            {
+                log::info!("Starting the check for account updates...");
+                let app_handle = app.handle().clone();
+                let mut interval_timer =
+                    tokio::time::interval(chrono::Duration::seconds(3).to_std().unwrap());
 
-            log::info!("Starting the check for account updates...");
-            let app_handle = app.handle().clone();
-            let mut interval_timer =
-                tokio::time::interval(chrono::Duration::seconds(3).to_std().unwrap());
-
-            let _ = tokio::task::spawn(async move {
-                loop {
-                    interval_timer.tick().await;
-                    let _task = account::id::check_account_updates(app_handle.clone()).await;
-                }
-            });
+                let _ = tokio::task::spawn(async move {
+                    loop {
+                        interval_timer.tick().await;
+                        let _task = account::id::check_account_updates(app_handle.clone()).await;
+                    }
+                });
+            }
             log::info!("Initializing tray...");
             let tray = app.tray_by_id("main");
             if tray.is_some() {
@@ -252,22 +263,40 @@ pub async fn run() {
             modpacks::manage_modpack::delete_modpack,
             modpacks::manage_modpack::open_modpacks_folder,
             modpacks::general::install_modpack,
-            mc_mod::curseforge::get_mod_curseforge,
             mc_mod::modrinth::get_mod_modrinth,
             mc_mod::search_mods,
             mc_mod::get_versions,
             mc_mod::get_user_url,
             mc_mod::install_mod,
-            mc_mod::curseforge::get_mod_owners_curseforge,
             mc_mod::modrinth::get_mod_owners_modrinth,
             mc_mod::modrinth::get_mod_deps_modrinth,
-            mc_mod::curseforge::get_mod_deps_curseforge,
             mc_mod::check_mod_updates,
             mc_mod::install_remote_file,
-            account::quadrant_share::get_quadrant_share_modpack,
             config::init_config,
             config::get_minecraft_folder,
             other::open_link,
+            modpacks::general::set_modpack_sync_date,
+            request_check_for_updates,
+            is_autoupdate_enabled
+        ]);
+    #[cfg(feature = "curseforge")]
+    {
+        builder = builder.invoke_handler(tauri::generate_handler![
+            mc_mod::curseforge::get_mod_curseforge,
+            mc_mod::curseforge::get_mod_owners_curseforge,
+            mc_mod::curseforge::get_mod_deps_curseforge,
+        ]);
+    }
+    #[cfg(feature = "telemetry")]
+    {
+        builder = builder.invoke_handler(tauri::generate_handler![
+            other::telemetry::send_telemetry,
+            other::telemetry::remove_telemetry,
+        ]);
+    }
+    #[cfg(feature = "quadrant_id")]
+    {
+        builder = builder.invoke_handler(tauri::generate_handler![
             account::set_secret,
             account::clear_account_token,
             account::id::get_account_info,
@@ -281,12 +310,9 @@ pub async fn run() {
             account::quadrant_sync::sync_modpack,
             account::quadrant_sync::delete_synced_modpack,
             account::quadrant_sync::answer_invite,
-            other::telemetry::send_telemetry,
-            other::telemetry::remove_telemetry,
-            modpacks::general::set_modpack_sync_date,
-            request_check_for_updates,
-            is_autoupdate_enabled
+            account::quadrant_share::get_quadrant_share_modpack,
         ]);
+    }
     builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

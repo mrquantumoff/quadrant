@@ -7,7 +7,7 @@ use crate::{
     },
     mc_mod::get_user_agent,
     modpacks::general::{get_modpacks, install_modpack, InstalledModpack},
-    AppState,
+    AppState, QNT_BASE_URL,
 };
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -18,7 +18,7 @@ use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 
-use super::{set_secret, BASE_URL};
+use super::set_secret;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountInfo {
@@ -58,7 +58,7 @@ pub async fn get_account_info() -> Result<AccountInfo, tauri::Error> {
     let client = reqwest::Client::new();
     let user_agent = get_user_agent();
 
-    let url = format!("{}/account/info/get", BASE_URL);
+    let url = format!("{}/account/info/get", QNT_BASE_URL);
 
     let request = client
         .get(&url)
@@ -82,7 +82,7 @@ pub async fn get_account_info() -> Result<AccountInfo, tauri::Error> {
 pub async fn oauth2_login(code: String, app: AppHandle) -> Result<(), tauri::Error> {
     let client = reqwest::Client::new();
     let user_agent = get_user_agent();
-    let url = format!("{}/account/oauth2/token/access", BASE_URL);
+    let url = format!("{}/account/oauth2/token/access", QNT_BASE_URL);
 
     let mut body = HashMap::new();
     body.insert("client_id", env!("QUADRANT_OAUTH2_CLIENT_ID"));
@@ -122,7 +122,7 @@ pub async fn read_notification(
     let token = crate::account::get_account_token()?;
     let client = reqwest::Client::new();
     let user_agent = get_user_agent();
-    let url = format!("{}/account/notifications/read", BASE_URL);
+    let url = format!("{}/account/notifications/read", QNT_BASE_URL);
     let request = client
         .post(&url)
         .header("User-Agent", user_agent)

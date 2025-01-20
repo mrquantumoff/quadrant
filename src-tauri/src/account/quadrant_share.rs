@@ -7,9 +7,8 @@ use tauri_plugin_store::StoreExt;
 use crate::{
     mc_mod::get_user_agent,
     modpacks::general::{get_modpacks, InstalledModpack},
+    QNT_BASE_URL,
 };
-
-use super::BASE_URL;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 
@@ -53,7 +52,7 @@ pub async fn share_modpack_raw(
     mod_config: InstalledModpack,
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
-    let mut url = format!("{}/quadrant/share/submit", BASE_URL);
+    let mut url = format!("{}/quadrant/share/submit", QNT_BASE_URL);
     let config = app.store("config.json").unwrap();
     let data_collection_enabled = config.get("collectUserData").unwrap();
     if !data_collection_enabled.as_bool().unwrap_or(false) {
@@ -110,7 +109,7 @@ pub async fn share_modpack_raw(
 
 #[tauri::command]
 pub async fn get_quadrant_share_modpack(code: String) -> Result<InstalledModpack, tauri::Error> {
-    let url = format!("{}/quadrant/share/get", BASE_URL);
+    let url = format!("{}/quadrant/share/get", QNT_BASE_URL);
     let query = &[("code", code)];
     let client = reqwest::Client::new();
     let request = client

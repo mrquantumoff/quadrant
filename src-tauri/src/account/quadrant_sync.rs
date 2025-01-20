@@ -11,9 +11,10 @@ use crate::{
     account::get_account_token,
     mc_mod::get_user_agent,
     modpacks::general::{LocalModpack, ModLoader},
+    QNT_BASE_URL,
 };
 
-use super::{id::read_notification, BASE_URL};
+use super::id::read_notification;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModpackOwner {
@@ -41,7 +42,7 @@ pub async fn get_synced_modpacks(
     if let Some(modpack_id) = modpack_id {
         query.push(("modpack_id", modpack_id));
     }
-    let url = format!("{}/quadrant/sync/get", crate::account::BASE_URL);
+    let url = format!("{}/quadrant/sync/get", QNT_BASE_URL);
     let client = reqwest::Client::new();
     let request = client
         .get(&url)
@@ -55,7 +56,7 @@ pub async fn get_synced_modpacks(
 
 #[tauri::command]
 pub async fn kick_member(modpack_id: String, username: String) -> Result<(), tauri::Error> {
-    let url = format!("{}/quadrant/sync/kick", crate::account::BASE_URL);
+    let url = format!("{}/quadrant/sync/kick", QNT_BASE_URL);
     let body = serde_json::json!({
         "modpack_id": modpack_id,
         "username": username});
@@ -79,7 +80,7 @@ pub async fn invite_member(
     username: String,
     admin: bool,
 ) -> Result<(), tauri::Error> {
-    let url = format!("{}/quadrant/sync/invite", crate::account::BASE_URL);
+    let url = format!("{}/quadrant/sync/invite", QNT_BASE_URL);
     let body = serde_json::json!({
         "modpack_id": modpack_id,
         "username": username,
@@ -100,7 +101,7 @@ pub async fn invite_member(
 
 #[tauri::command]
 pub async fn delete_synced_modpack(modpack_id: String) -> Result<(), tauri::Error> {
-    let url = format!("{}/quadrant/sync/delete", crate::account::BASE_URL);
+    let url = format!("{}/quadrant/sync/delete", QNT_BASE_URL);
     let body = serde_json::json!({
         "modpack_id": modpack_id,
     });
@@ -124,7 +125,7 @@ pub async fn sync_modpack(
     overwrite: bool,
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
-    let url = format!("{}/quadrant/sync/submit", crate::account::BASE_URL);
+    let url = format!("{}/quadrant/sync/submit", QNT_BASE_URL);
     let timestamp = Utc::now().timestamp();
     let body = serde_json::json!({
         "name": modpack.name,
@@ -174,7 +175,7 @@ pub async fn answer_invite(
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
     let token = crate::account::get_account_token()?;
-    let url = format!("{}/quadrant/sync/respond", BASE_URL);
+    let url = format!("{}/quadrant/sync/respond", QNT_BASE_URL);
     let client = reqwest::Client::new();
     let request = client
         .post(url)

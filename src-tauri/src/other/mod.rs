@@ -1,3 +1,4 @@
+#[cfg(feature = "telemetry")]
 pub mod telemetry;
 
 #[tauri::command]
