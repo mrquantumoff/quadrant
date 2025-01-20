@@ -277,42 +277,48 @@ pub async fn run() {
             other::open_link,
             modpacks::general::set_modpack_sync_date,
             request_check_for_updates,
-            is_autoupdate_enabled
-        ]);
-    #[cfg(feature = "curseforge")]
-    {
-        builder = builder.invoke_handler(tauri::generate_handler![
+            is_autoupdate_enabled,
+            #[cfg(feature = "curseforge")]
             mc_mod::curseforge::get_mod_curseforge,
+            #[cfg(feature = "curseforge")]
             mc_mod::curseforge::get_mod_owners_curseforge,
+            #[cfg(feature = "curseforge")]
             mc_mod::curseforge::get_mod_deps_curseforge,
-        ]);
-    }
-    #[cfg(feature = "telemetry")]
-    {
-        builder = builder.invoke_handler(tauri::generate_handler![
+            #[cfg(feature = "telemetry")]
             other::telemetry::send_telemetry,
+            #[cfg(feature = "telemetry")]
             other::telemetry::remove_telemetry,
-        ]);
-    }
-    #[cfg(feature = "quadrant_id")]
-    {
-        builder = builder.invoke_handler(tauri::generate_handler![
+            #[cfg(feature = "quadrant_id")]
             account::set_secret,
+            #[cfg(feature = "quadrant_id")]
             account::clear_account_token,
+            #[cfg(feature = "quadrant_id")]
             account::id::get_account_info,
+            #[cfg(feature = "quadrant_id")]
             account::id::oauth2_login,
+            #[cfg(feature = "quadrant_id")]
             account::id::read_notification,
+            #[cfg(feature = "quadrant_id")]
             account::quadrant_share::share_modpack,
+            #[cfg(feature = "quadrant_id")]
+            #[cfg(feature = "quadrant_id")]
             account::quadrant_share::share_modpack_raw,
+            #[cfg(feature = "quadrant_id")]
             account::quadrant_sync::get_synced_modpacks,
+            #[cfg(feature = "quadrant_id")]
             account::quadrant_sync::kick_member,
+            #[cfg(feature = "quadrant_id")]
             account::quadrant_sync::invite_member,
+            #[cfg(feature = "quadrant_id")]
             account::quadrant_sync::sync_modpack,
+            #[cfg(feature = "quadrant_id")]
             account::quadrant_sync::delete_synced_modpack,
+            #[cfg(feature = "quadrant_id")]
             account::quadrant_sync::answer_invite,
+            #[cfg(feature = "quadrant_id")]
             account::quadrant_share::get_quadrant_share_modpack,
         ]);
-    }
+
     builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

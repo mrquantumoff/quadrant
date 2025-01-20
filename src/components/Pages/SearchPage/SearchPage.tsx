@@ -160,9 +160,22 @@ export default function SearchPage() {
 
     setVersions(await getVersions());
     setModpacks(await getModpacks());
-    setVersion(lastVersion ?? modpacks[0].version);
-    setLoader(lastLoader ?? modpacks[0].modLoader);
-    setModpack(lastModpack ?? modpacks[0].name);
+    const modpacks = await getModpacks();
+    setVersion(lastVersion ?? modpacks[0].version ?? "");
+    setLoader(lastLoader ?? modpacks[0].modLoader ?? "");
+    setModpack(lastModpack ?? modpacks[0].name ?? "");
+    if (lastVersion === undefined) {
+      await config.set("lastUsedVersion", modpacks[0].version ?? "");
+    }
+    if (lastLoader === undefined) {
+      await config.set("lastUsedAPI", modpacks[0].modLoader ?? "");
+      setLoader(modpacks[0].modLoader ?? "");
+    }
+    if (lastModpack === undefined) {
+      await config.set("lastUsedModpack", modpacks[0].name ?? "");
+      setModpack(modpacks[0].name ?? "");
+    }
+    await config.save();
 
     await search(true);
   };
