@@ -320,18 +320,21 @@ function App() {
                 notification.read ||
                 shownNotifications.includes(notification.notification_id)
               ) {
+                console.log("Notification already displayed");
                 return;
               }
               console.log("Sending notification");
+              await config.set("shownNotifications", [
+                ...shownNotifications,
+                notification.notification_id,
+              ]);
+
+              await config.save();
+
               await sendNotification({
                 title: "Quadrant ID",
                 body: JSON.parse(notification.message)["simple_message"],
               });
-
-              config.set("shownNotifications", [
-                shownNotifications,
-                notification.notification_id,
-              ]);
             }
           }
         }
