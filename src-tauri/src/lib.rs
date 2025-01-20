@@ -35,7 +35,8 @@ pub async fn run() {
         tauri::Builder::default().plugin(tauri_plugin_updater::Builder::new().build());
     #[cfg(desktop)]
     {
-        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _| {
+            log::info!("a new app instance was opened with {argv:?} and the deep link event was already triggered");
             let w = app.get_webview_window("main").expect("no main window");
             match w.show() {
                 Ok(_) => {}
