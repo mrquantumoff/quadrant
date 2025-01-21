@@ -159,3 +159,12 @@ export interface AccountNotification {
   created_at: number;
   read: boolean;
 }
+
+export interface Article {
+  title: string;
+  link: string;
+  summary: string;
+  date: Date;
+  guid: string;
+  new: boolean;
+}

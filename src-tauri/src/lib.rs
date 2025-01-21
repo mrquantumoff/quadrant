@@ -278,6 +278,7 @@ pub async fn run() {
             modpacks::general::set_modpack_sync_date,
             request_check_for_updates,
             is_autoupdate_enabled,
+            other::rss::get_news,
             #[cfg(feature = "curseforge")]
             mc_mod::curseforge::get_mod_curseforge,
             #[cfg(feature = "curseforge")]

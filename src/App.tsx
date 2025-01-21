@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AccountNotification,
+  Article,
   ContentContext,
   IContentContext,
   ModLoader,
@@ -24,6 +25,7 @@ import {
   MdMarkEmailRead,
   MdMinimize,
   MdNotifications,
+  MdOpenInBrowser,
   MdSearch,
   MdSettings,
   MdSync,
@@ -37,6 +39,8 @@ import {
   answerInvite,
   getAccountInfo,
   getMod,
+  getNews,
+  openIn,
   readNotification,
 } from "./tools";
 import ModInstallPage from "./components/Pages/ModInstallPage/ModInstallPage";
@@ -119,6 +123,7 @@ function App() {
   const [snackBarHistory, setSnackbarHistory] = useState<SnackbarState[]>([]);
   const [areNotificationsHighlighted, setAreNotificationsHighlighted] =
     useState("bg-slate-700 hover:bg-slate-600");
+  const [news, setNews] = useState<Article[]>([]);
 
   useEffect(() => {
     const effect = async () => {
@@ -351,17 +356,23 @@ function App() {
       } catch (e) {
         console.log(e);
       }
+      try {
+        const news = await getNews();
+        setNews(news);
+      } catch (e) {
+        console.error("Failed to get news: " + e);
+      }
     };
     effect();
   }, []);
 
   useEffect(() => {
-    if (notifications.length === 0) {
-      setAreNotificationsHighlighted("bg-slate-900 hover:bg-slate-800");
-    } else if (notifications.filter((n) => !n.read).length > 0) {
-      setAreNotificationsHighlighted("bg-red-600 hover:bg-red-500");
+    if (notifications.filter((n) => !n.read).length > 0) {
+      setAreNotificationsHighlighted("bg-red-600 hover:bg-red-500 ");
+    } else if (news.filter((n) => n.new).length > 0) {
+      setAreNotificationsHighlighted("bg-indigo-700 hover:bg-indigo-600 ");
     } else {
-      setAreNotificationsHighlighted("bg-slate-700 hover:bg-slate-600");
+      setAreNotificationsHighlighted("bg-slate-700 hover:bg-slate-800 ");
     }
   }, [notifications]);
 
@@ -408,6 +419,7 @@ function App() {
   });
 
   const [snackbarEnabled, setSnackbarEnabled] = useState<boolean>(false);
+  const newsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (snackbarEnabled) {
@@ -484,169 +496,205 @@ function App() {
                   >
                     <div className="bg-slate-800 p-2 flex rounded-full items-center justify-center">
                       <Popover className="relative">
-                        {({ open }) => (
-                          <>
-                            <div
-                              className={
-                                "flex justify-center items-center mr-2"
-                              }
-                            >
-                              <PopoverButton
+                        {({ open }) => {
+                          return (
+                            <>
+                              <div
                                 className={
-                                  "focus:outline-none rounded-full " +
-                                  areNotificationsHighlighted
+                                  "flex justify-center items-center mr-2"
                                 }
                               >
-                                <div className="p-2 rounded-full">
-                                  <MdNotifications />
-                                </div>
-                              </PopoverButton>
-                            </div>
-                            <PopoverBackdrop
-                              className={"fixed inset-0 bg-slate-900/15"}
-                            />
-                            <AnimatePresence>
-                              {open && (
-                                <PopoverPanel
-                                  static
-                                  as={motion.div}
-                                  anchor="top start"
-                                  initial={{
-                                    opacity: 0,
-                                    y: -100,
-                                    scaleY: 0,
-                                    scaleX: 0,
-                                    x: 50,
-                                  }}
-                                  animate={{
-                                    opacity: 1,
-                                    y: 0,
-                                    scaleY: 1,
-                                    scaleX: 1,
-                                    x: -150,
-                                  }}
-                                  exit={{
-                                    opacity: 0,
-                                    y: -200,
-                                    scaleY: 0,
-                                    scaleX: 0,
-                                    x: 50,
-                                  }}
-                                  className="flex flex-col p-4 mt-4 font-bold bg-slate-800 rounded-2xl w-[35vw] my-8 h-[75vh] "
+                                <PopoverButton
+                                  className={
+                                    "focus:outline-none rounded-full transition-all duration-150 ease-linear " +
+                                    areNotificationsHighlighted
+                                  }
                                 >
-                                  <div className="border-b-2 border-slate-700">
-                                    {snackBarHistory.map((item) => {
-                                      const randomString = Math.random()
-                                        .toString(36)
-                                        .substring(2, 10);
-
-                                      return (
-                                        <div
-                                          className="my-2"
-                                          key={item.message + randomString}
-                                        >
-                                          <div
-                                            className={
-                                              item.className +
-                                              " rounded-2xl p-4"
-                                            }
-                                          >
-                                            {item.message}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
+                                  <div className="p-2 rounded-full">
+                                    <MdNotifications />
                                   </div>
-                                  {notifications.map((notification) => {
-                                    const detailedMessage = JSON.parse(
-                                      notification.message
-                                    );
-                                    const messageType =
-                                      detailedMessage.notification_type;
-                                    let message: string;
+                                </PopoverButton>
+                              </div>
+                              <PopoverBackdrop
+                                className={"fixed inset-0 bg-slate-900/15"}
+                              />
+                              <AnimatePresence>
+                                {open && (
+                                  <PopoverPanel
+                                    static
+                                    as={motion.div}
+                                    anchor="top start"
+                                    initial={{
+                                      opacity: 0,
+                                      y: -100,
+                                      scaleY: 0,
+                                      scaleX: 0,
+                                      x: 50,
+                                    }}
+                                    animate={{
+                                      opacity: 1,
+                                      y: 0,
+                                      scaleY: 1,
+                                      scaleX: 1,
+                                      x: -150,
+                                    }}
+                                    exit={{
+                                      opacity: 0,
+                                      y: -200,
+                                      scaleY: 0,
+                                      scaleX: 0,
+                                      x: 50,
+                                    }}
+                                    className="flex flex-col p-4 mt-4 font-bold bg-slate-800 rounded-2xl w-[35vw] my-8 h-[75vh] "
+                                  >
+                                    <div className="border-b-2 border-slate-700">
+                                      {snackBarHistory.map((item) => {
+                                        const randomString = Math.random()
+                                          .toString(36)
+                                          .substring(2, 10);
 
-                                    let action: React.ReactElement | null = (
-                                      <>
-                                        <Button
-                                          className="w-full bg-emerald-600 hover:bg-emerald-800 transition-all ease-linear flex items-center justify-center"
-                                          onClick={async () => {
-                                            await readNotification(
-                                              notification.notification_id
-                                            );
-                                          }}
-                                        >
-                                          {t("read")}
-                                          <MdMarkEmailRead className="w-4 h-4 mx-2" />
-                                        </Button>
-                                      </>
-                                    );
-
-                                    if (messageType == "invite_to_sync") {
-                                      const inviter = (
-                                        detailedMessage.message as string
-                                      ).split(
-                                        "You have been invited to collaborate on a modpack by "
-                                      )[1];
-                                      message = t("invited", { name: inviter });
-                                      action = (
-                                        <>
-                                          <div className="w-full flex">
-                                            <Button
-                                              className="bg-emerald-600 hover:bg-emerald-800 w-full flex items-center justify-center mr-2"
-                                              onClick={async () => {
-                                                await answerInvite(
-                                                  detailedMessage.invite_id,
-                                                  notification.notification_id,
-                                                  true
-                                                );
-                                              }}
+                                        return (
+                                          <div
+                                            className="my-2"
+                                            key={item.message + randomString}
+                                          >
+                                            <div
+                                              className={
+                                                item.className +
+                                                " rounded-2xl p-4"
+                                              }
                                             >
-                                              {t("accept")}
-                                              <MdCheck className="w-4 h-4 mx-2" />
-                                            </Button>
-                                            <Button
-                                              className="bg-red-700 hover:bg-red-800 w-full flex items-center justify-center"
-                                              onClick={async () => {
-                                                await answerInvite(
-                                                  detailedMessage.invite_id,
-                                                  notification.notification_id,
-                                                  false
-                                                );
-                                              }}
-                                            >
-                                              {t("decline")}
-                                              <MdClear className="w-4 h-4 mx-2" />
-                                            </Button>
+                                              {item.message}
+                                            </div>
                                           </div>
-                                        </>
-                                      );
-                                    } else {
-                                      message = detailedMessage.simple_message;
-                                    }
+                                        );
+                                      })}
+                                    </div>
+                                    <div className="border-b-2 border-slate-700">
+                                      {notifications.map((notification) => {
+                                        const detailedMessage = JSON.parse(
+                                          notification.message
+                                        );
+                                        const messageType =
+                                          detailedMessage.notification_type;
+                                        let message: string;
 
-                                    if (notification.read) {
-                                      action = null;
-                                    }
+                                        let action: React.ReactElement | null =
+                                          (
+                                            <>
+                                              <Button
+                                                className="w-full bg-emerald-600 hover:bg-emerald-800 transition-all ease-linear flex items-center justify-center"
+                                                onClick={async () => {
+                                                  await readNotification(
+                                                    notification.notification_id
+                                                  );
+                                                }}
+                                              >
+                                                {t("read")}
+                                                <MdMarkEmailRead className="w-4 h-4 mx-2" />
+                                              </Button>
+                                            </>
+                                          );
 
-                                    return (
-                                      <div
-                                        key={notification.notification_id}
-                                        className="bg-slate-700 rounded-2xl my-2 p-2 text-center flex flex-col items-center justify-center"
-                                      >
-                                        <h3>{message}</h3>
-                                        {action != null && (
-                                          <div className="w-full my-2 flex items-center justify-center ">
-                                            {action}
+                                        if (messageType == "invite_to_sync") {
+                                          const inviter = (
+                                            detailedMessage.message as string
+                                          ).split(
+                                            "You have been invited to collaborate on a modpack by "
+                                          )[1];
+                                          message = t("invited", {
+                                            name: inviter,
+                                          });
+                                          action = (
+                                            <>
+                                              <div className="w-full flex">
+                                                <Button
+                                                  className="bg-emerald-600 hover:bg-emerald-800 w-full flex items-center justify-center mr-2"
+                                                  onClick={async () => {
+                                                    await answerInvite(
+                                                      detailedMessage.invite_id,
+                                                      notification.notification_id,
+                                                      true
+                                                    );
+                                                  }}
+                                                >
+                                                  {t("accept")}
+                                                  <MdCheck className="w-4 h-4 mx-2" />
+                                                </Button>
+                                                <Button
+                                                  className="bg-red-700 hover:bg-red-800 w-full flex items-center justify-center"
+                                                  onClick={async () => {
+                                                    await answerInvite(
+                                                      detailedMessage.invite_id,
+                                                      notification.notification_id,
+                                                      false
+                                                    );
+                                                  }}
+                                                >
+                                                  {t("decline")}
+                                                  <MdClear className="w-4 h-4 mx-2" />
+                                                </Button>
+                                              </div>
+                                            </>
+                                          );
+                                        } else {
+                                          message =
+                                            detailedMessage.simple_message;
+                                        }
+
+                                        if (notification.read) {
+                                          action = null;
+                                        }
+
+                                        return (
+                                          <div
+                                            key={notification.notification_id}
+                                            className="bg-slate-700 rounded-2xl my-2 p-2 text-center flex flex-col items-center justify-center"
+                                          >
+                                            <h3>{message}</h3>
+                                            {action != null && (
+                                              <div className="w-full my-2 flex items-center justify-center ">
+                                                {action}
+                                              </div>
+                                            )}
                                           </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </PopoverPanel>
-                              )}
-                            </AnimatePresence>
-                          </>
-                        )}
+                                        );
+                                      })}
+                                    </div>
+                                    <div ref={newsRef}>
+                                      {news.map((article) => {
+                                        return (
+                                          <div
+                                            key={article.guid}
+                                            className="bg-slate-900 rounded-2xl my-2 p-2 text-center flex flex-col items-center justify-center"
+                                          >
+                                            <h3 className="font-black">
+                                              {article.title}
+                                            </h3>
+                                            <p className="font-normal">
+                                              {article.summary}
+                                            </p>
+                                            <div className="bg-slate-800 w-full flex p-2 rounded-2xl">
+                                              <Button
+                                                onClick={async () => {
+                                                  await openIn(article.link);
+                                                }}
+                                                className="bg-blue-700 hover:bg-blue-800 transition-all w-full flex items-center justify-center"
+                                              >
+                                                {t("read")}
+                                                <MdOpenInBrowser className="w-4 h-4 mx-2" />
+                                              </Button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </PopoverPanel>
+                                )}
+                              </AnimatePresence>
+                            </>
+                          );
+                        }}
                       </Popover>
 
                       <Button

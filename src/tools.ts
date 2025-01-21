@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
   AccountInfo,
+  Article,
   GetModArgs,
   GlobalSearchModsArgs,
   IMod,
@@ -335,4 +336,9 @@ export async function answerInvite(
 
 export const requestCheckForUpdates = async () => {
   await invoke("request_check_for_updates");
+};
+
+export const getNews = async () => {
+  const res = await invoke<Article[]>("get_news");
+  return res;
 };
