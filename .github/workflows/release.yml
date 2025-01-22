@@ -43,7 +43,6 @@ jobs:
         if: matrix.platform == 'ubuntu-24.04' # This must match the platform value defined above.
         run: |
           sudo apt update
-          sudo apt upgrade -y
           sudo apt install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
 
       - name: install frontend dependencies
@@ -52,6 +51,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
+
+      - name: Install the Azure Code Signing requirements (Windows only)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          cargo install trusted-signing-cli
 
       - uses: tauri-apps/tauri-action@v0
         id: tauri

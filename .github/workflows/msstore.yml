@@ -3,7 +3,7 @@ name: "publish"
 on:
   push:
     tags:
-      - "msstore-v*"
+      - "v*-stable*"
 
 # This workflow will trigger on each push to the `release` branch to create or update a GitHub release, build your app, and upload the artifacts to the release.
 
@@ -43,6 +43,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
+
+      - name: Install the Azure Code Signing requirements (Windows only)
+        if: matrix.platform == 'windows-latest'
+        run: |
+          cargo install trusted-signing-cli
 
       - uses: tauri-apps/tauri-action@v0
         id: tauri

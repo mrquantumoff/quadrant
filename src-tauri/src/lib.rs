@@ -343,6 +343,13 @@ async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
 
     let update_config = app.store("updateConfig.json")?;
 
+    let force_update = app
+        .config()
+        .version
+        .clone()
+        .unwrap_or_default()
+        .contains("msstore");
+
     if update_config.get("channel").is_some() {
         let channel = update_config.get("channel").unwrap();
         let channel = channel.as_str().unwrap_or_else(|| "stable");
@@ -355,12 +362,17 @@ async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
 
     log::info!("Update URLs: {:?}", update_urls);
 
-    let updater = app
+    let mut updater = app
         .updater_builder()
         .endpoints(update_urls)?
         // .version_comparator(|current, update| current != update.version)
-        .header("User-Agent", get_user_agent())?
-        .build()?;
+        .header("User-Agent", get_user_agent())?;
+
+    if force_update {
+        updater = updater.version_comparator(|current, update| current != update.version);
+    }
+
+    let updater = updater.build()?;
 
     if let Some(update) = updater.check().await? {
         let mut downloaded = 0;
