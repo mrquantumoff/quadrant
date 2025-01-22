@@ -1,7 +1,7 @@
 {
     "identifier": "dev.mrquantumoff.mcmodpackmanager",
     "productName": "Quadrant (for Microsoft Store)",
-    "version": "25.2.0",
+    "version": "25.2.0-msstore",
     "bundle":  {
         "targets": "nsis",
         "createUpdaterArtifacts": false,
