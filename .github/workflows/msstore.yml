@@ -68,5 +68,6 @@ jobs:
           releaseBody: "See the assets to download this version and install. Check out the [changelog on my blog](https://blog.mrquantumoff.dev)"
           releaseDraft: false
           prerelease: ${{ !endsWith(github.ref_name, 'stable') }}
+          includeUpdaterJson: false
           args: --config ./src-tauri/tauri.conf.msstore.json
           tagName: ${{github.ref_name}}
