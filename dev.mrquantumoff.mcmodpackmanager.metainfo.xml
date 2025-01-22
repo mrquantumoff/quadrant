@@ -51,7 +51,7 @@
       </description>
     </release>
 
-    <release date="2025-01-22" version="25.2.0-preview.14">
+    <release date="2025-01-22" version="25.1.0-preview.14">
       <url type="details">https://blog.mrquantumoff.dev</url>
       <description>
         <p>App rewrite, new UI, improved performance, bug fixes</p>
