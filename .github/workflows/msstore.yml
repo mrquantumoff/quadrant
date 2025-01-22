@@ -69,5 +69,5 @@ jobs:
           releaseDraft: false
           prerelease: ${{ !endsWith(github.ref_name, 'stable') }}
           includeUpdaterJson: false
-          args: --config ./src-tauri/tauri.conf.msstore.json
+          args: --config src-tauri/tauri.msstore.conf.json
           tagName: ${{github.ref_name}}
