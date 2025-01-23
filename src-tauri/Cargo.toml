@@ -1,6 +1,6 @@
 [package]
 name = "quadrant_next"
-version = "0.1.0"
+version = "25.2.1"
 description = "An easy way to manage your Minecraft mods and modpacks"
 authors = ["Demir Yerli <me@mrquantumoff.dev>"]
 edition = "2021"
