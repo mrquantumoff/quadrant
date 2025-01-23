@@ -98,11 +98,11 @@ export default function ShareSyncPage() {
                     setModpackSync(null);
                     setPreselectedModpack(undefined);
                   }}
-                  className="flex flex-col w-max hover:bg-cyan-300 bg-slate-800 p-4 rounded-2xl mx-4 text-center data-[selected]:bg-cyan-300 data-[selected]:text-slate-900 hover:text-slate-900 data-[selected]:shadow-cyan-300 ease-linear duration-300"
+                  className="flex flex-col w-max hover:bg-cyan-300 bg-slate-800 p-4 rounded-2xl mx-4 text-center data-selected:bg-cyan-300 data-selected:text-slate-900 hover:text-slate-900 data-selected:shadow-cyan-300 ease-linear duration-300"
                 >
                   {t("importMods")}
                 </Tab>
-                <Tab className="flex flex-col w-max hover:bg-sky-300 bg-slate-800 p-4 rounded-2xl mx-4 text-center data-[selected]:bg-sky-300 data-[selected]:text-slate-900 hover:text-slate-900 ease-linear duration-300">
+                <Tab className="flex flex-col w-max hover:bg-sky-300 bg-slate-800 p-4 rounded-2xl mx-4 text-center data-selected:bg-sky-300 data-selected:text-slate-900 hover:text-slate-900 ease-linear duration-300">
                   {t("Quadrant Sync")}
                 </Tab>
               </TabList>

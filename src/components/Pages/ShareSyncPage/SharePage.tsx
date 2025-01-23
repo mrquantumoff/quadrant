@@ -132,7 +132,7 @@ export default function SharePage({
               <>
                 <p>{t("manualInput")}</p>
                 <Input
-                  className="bg-slate-700 rounded-2xl p-2 outline-none mt-8"
+                  className="bg-slate-700 rounded-2xl p-2 outline-hidden mt-8"
                   placeholder={t("manualInput")}
                   value={code}
                   onChange={(e) => {

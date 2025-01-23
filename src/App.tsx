@@ -506,7 +506,7 @@ function App() {
                               >
                                 <PopoverButton
                                   className={
-                                    "focus:outline-none rounded-full transition-all duration-150 ease-linear " +
+                                    "focus:outline-hidden rounded-full transition-all duration-150 ease-linear " +
                                     areNotificationsHighlighted
                                   }
                                 >

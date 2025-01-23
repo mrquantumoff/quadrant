@@ -176,7 +176,7 @@ export default function SettingsPage() {
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600"
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600"
           }
           checked={collectData}
           onChange={async () => {
@@ -193,7 +193,7 @@ export default function SettingsPage() {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
           />
         </Switch>
         <Label className="ml-4">{t("collectData")}</Label>
@@ -236,7 +236,7 @@ export default function SettingsPage() {
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
           }
           checked={clipButtons}
           onChange={async (newValue) => {
@@ -247,7 +247,7 @@ export default function SettingsPage() {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
           />
         </Switch>
         <Label className="ml-4">{t("clipIcons")}</Label>
@@ -255,7 +255,7 @@ export default function SettingsPage() {
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
           }
           checked={curseForge}
           onChange={async (newValue) => {
@@ -266,7 +266,7 @@ export default function SettingsPage() {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
           />
         </Switch>
         <Label className="ml-4">{"CurseForge"}</Label>
@@ -274,7 +274,7 @@ export default function SettingsPage() {
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
           }
           checked={modrinth}
           onChange={async (newValue) => {
@@ -285,7 +285,7 @@ export default function SettingsPage() {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
           />
         </Switch>
         <Label className="ml-4">{"Modrinth"}</Label>
@@ -293,7 +293,7 @@ export default function SettingsPage() {
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
           }
           checked={extendedNavigation}
           onChange={async (newValue) => {
@@ -304,7 +304,7 @@ export default function SettingsPage() {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
           />
         </Switch>
         <Label className="ml-4">{t("extendedNavigation")}</Label>
@@ -312,7 +312,7 @@ export default function SettingsPage() {
       {/* <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
           }
           checked={rssFeeds}
           onChange={async (newValue) => {
@@ -323,7 +323,7 @@ export default function SettingsPage() {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
           />
         </Switch>
         <Label className="ml-4">{t("rssFeeds")}</Label>
@@ -331,7 +331,7 @@ export default function SettingsPage() {
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
           }
           checked={silentNews}
           onChange={async (newValue) => {
@@ -342,7 +342,7 @@ export default function SettingsPage() {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
           />
         </Switch>
         <Label className="ml-4">{t("silentNews")}</Label>
@@ -350,7 +350,7 @@ export default function SettingsPage() {
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
           }
           checked={autoQuadrantSync}
           onChange={async (newValue) => {
@@ -361,7 +361,7 @@ export default function SettingsPage() {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
           />
         </Switch>
         <Label className="ml-4">{t("autoQuadrantSync")}</Label>
@@ -369,7 +369,7 @@ export default function SettingsPage() {
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
           }
           checked={syncSettings}
           onChange={async (newValue) => {
@@ -380,7 +380,7 @@ export default function SettingsPage() {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
           />
         </Switch>
         <Label className="ml-4">{t("quadrantSettingsSync")}</Label>
@@ -388,7 +388,7 @@ export default function SettingsPage() {
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
           }
           checked={showUnupgradeableMods}
           onChange={async (newValue) => {
@@ -399,7 +399,7 @@ export default function SettingsPage() {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
           />
         </Switch>
         <Label className="ml-4">{t("showUnupgradeableMods")}</Label>
@@ -407,7 +407,7 @@ export default function SettingsPage() {
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
           }
           checked={experimentalFeatures}
           onChange={async (newValue) => {
@@ -418,7 +418,7 @@ export default function SettingsPage() {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
           />
         </Switch>
         <Label className="ml-4">{t("experimentalFeatures")}</Label>
@@ -426,7 +426,7 @@ export default function SettingsPage() {
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
           }
           checked={devMode}
           onChange={async (newValue) => {
@@ -437,7 +437,7 @@ export default function SettingsPage() {
         >
           <span
             aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
           />
         </Switch>
         <Label className="ml-4">{t("devMode")}</Label>

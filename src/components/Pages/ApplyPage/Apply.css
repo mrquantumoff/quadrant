@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 .searchBar {
   width: 95.5%;
   @apply focus:outline-none outline-none focus:border-4 focus:border-slate-600;

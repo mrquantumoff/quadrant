@@ -75,7 +75,7 @@ export default function SecondRegisterStep({ email }: SecondRegisterStepProps) {
         <Fieldset disabled={disableButtons} onSubmit={register}>
           <Field>
             <Input
-              className={"bg-slate-600 focus:outline-none rounded-2xl p-4 my-2"}
+              className={"bg-slate-600 focus:outline-hidden rounded-2xl p-4 my-2"}
               placeholder={t("email")}
               disabled
               value={email}
@@ -85,7 +85,7 @@ export default function SecondRegisterStep({ email }: SecondRegisterStepProps) {
           <Field>
             <Input
               className={
-                "bg-slate-700 hover:bg-slate-600 focus:outline-none rounded-2xl p-4 my-2"
+                "bg-slate-700 hover:bg-slate-600 focus:outline-hidden rounded-2xl p-4 my-2"
               }
               placeholder={t("password")}
               type="password"
@@ -98,7 +98,7 @@ export default function SecondRegisterStep({ email }: SecondRegisterStepProps) {
           <Field>
             <Input
               className={
-                "bg-slate-700 hover:bg-slate-600 focus:outline-none rounded-2xl p-4 my-2"
+                "bg-slate-700 hover:bg-slate-600 focus:outline-hidden rounded-2xl p-4 my-2"
               }
               type="password"
               placeholder={t("password")}
@@ -111,7 +111,7 @@ export default function SecondRegisterStep({ email }: SecondRegisterStepProps) {
           <Field>
             <Input
               className={
-                "bg-slate-700 hover:bg-slate-600 focus:outline-none rounded-2xl p-4 my-2"
+                "bg-slate-700 hover:bg-slate-600 focus:outline-hidden rounded-2xl p-4 my-2"
               }
               placeholder={t("verificationCode")}
               value={code}
@@ -129,7 +129,7 @@ export default function SecondRegisterStep({ email }: SecondRegisterStepProps) {
           <Field>
             <Input
               className={
-                "bg-slate-700 hover:bg-slate-600 focus:outline-none rounded-2xl p-4 my-2"
+                "bg-slate-700 hover:bg-slate-600 focus:outline-hidden rounded-2xl p-4 my-2"
               }
               placeholder={t("username")}
               value={username}
@@ -141,7 +141,7 @@ export default function SecondRegisterStep({ email }: SecondRegisterStepProps) {
           <Field>
             <Input
               className={
-                "bg-slate-700 hover:bg-slate-600 focus:outline-none rounded-2xl p-4 my-2"
+                "bg-slate-700 hover:bg-slate-600 focus:outline-hidden rounded-2xl p-4 my-2"
               }
               placeholder={t("name")}
               value={name}
@@ -152,7 +152,7 @@ export default function SecondRegisterStep({ email }: SecondRegisterStepProps) {
           </Field>
           <Button
             onClick={register}
-            className="bg-emerald-600 hover:bg-emerald-800 my-4 w-full data-[disabled]:bg-slate-700 data-[disabled]:hover:bg-slate-600 data-[disabled]:cursor-not-allowed"
+            className="bg-emerald-600 hover:bg-emerald-800 my-4 w-full data-disabled:bg-slate-700 data-disabled:hover:bg-slate-600 data-disabled:cursor-not-allowed"
           >
             {t("register")}
           </Button>

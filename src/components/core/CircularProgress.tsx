@@ -23,7 +23,7 @@ export default function CircularProgress() {
             animate={{ rotate: 3840 }}
             transition={spinAnimation}
             className={
-              "  hover:drop-shadow-sm border-8 border-t-slate-700 border-slate-900 p-16 rounded-full font-extrabold "
+              "  hover:drop-shadow-xs border-8 border-t-slate-700 border-slate-900 p-16 rounded-full font-extrabold "
             }
           />
         </div>

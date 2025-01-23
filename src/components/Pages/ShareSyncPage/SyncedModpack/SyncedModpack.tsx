@@ -159,14 +159,14 @@ export default function SyncedModpackComponent({
               <div className="bg-slate-700 rounded-2xl">
                 <DisclosureButton
                   className={
-                    "w-full text-start  data-[open]:rounded-b-none p-2 flex flex-1 group h-16 items-center "
+                    "w-full text-start  data-open:rounded-b-none p-2 flex flex-1 group h-16 items-center "
                   }
                 >
                   <span className="text-start ml-2 flex w-full font-bold items-start">
                     {t("details")}
                   </span>
                   <div className="w-full items-end justify-end flex  ">
-                    <MdExpandMore className="h-8 flex w-8 ml-0 group-data-[open]:rotate-180" />
+                    <MdExpandMore className="h-8 flex w-8 ml-0 group-data-open:rotate-180" />
                   </div>
                 </DisclosureButton>
                 <DisclosurePanel static as={Fragment}>
@@ -288,7 +288,7 @@ export default function SyncedModpackComponent({
                             type="text"
                             value={userToInvite}
                             autoComplete="off"
-                            className="bg-slate-700 focus:bg-slate-600 focus: focus:border-2 focus:border-slate-500 w-full p-2 rounded-2xl font-semibold hover:bg-slate-600  focus:outline-none"
+                            className="bg-slate-700 focus:bg-slate-600 focus: focus:border-2 focus:border-slate-500 w-full p-2 rounded-2xl font-semibold hover:bg-slate-600  focus:outline-hidden"
                             placeholder={t("username")}
                             onChange={async (e) =>
                               setUserToInvite(e.target.value)
@@ -297,7 +297,7 @@ export default function SyncedModpackComponent({
                           <Field className={"flex items-center "}>
                             <Switch
                               className={
-                                "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-[checked]:bg-emerald-800 hover:bg-slate-600 hover:data-[checked]:bg-emerald-700 "
+                                "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
                               }
                               checked={userToInviteAdmin}
                               onChange={async (newValue) => {
@@ -306,7 +306,7 @@ export default function SyncedModpackComponent({
                             >
                               <span
                                 aria-hidden="true"
-                                className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-[checked]:translate-x-8"
+                                className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
                               />
                             </Switch>
                             <Label className={"mx-2 font-black text-xl"}>
