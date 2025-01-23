@@ -4,19 +4,19 @@
 
 ### Installation guide:
 
-<!-- ##### The app is available on these stores: -->
+##### The app is available on these stores:
 
 ##### Read the warnings before installation!
 
-<!-- <a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
+<a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
     <img width="200" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
 </a> -->
 
-<!-- <a href="https://www.microsoft.com/store/apps/9NLT70M0TVD0">
+<a href="https://apps.microsoft.com/detail/XP98VJLVH3L4L1">
         <img width="200" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
-</a> -->
+</a>
 
-<!-- #### OR -->
+<!-- #### OR
 
 [Grab the latest build manually (Linux/Windows)](https://github.com/mrquantumoff/quadrant/releases/latest)
 
