@@ -125,6 +125,8 @@ pub async fn sync_modpack(
     overwrite: bool,
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
+    let config = app.store("config.json").map_err(|e| anyhow::anyhow!(e))?;
+
     let url = format!("{}/quadrant/sync/submit", QNT_BASE_URL);
     let timestamp = Utc::now().timestamp();
     let body = serde_json::json!({
@@ -148,7 +150,7 @@ pub async fn sync_modpack(
         log::error!("Failed to sync modpack: {}", reason);
         return Err(tauri::Error::from(anyhow::anyhow!(reason)));
     }
-    let config = app.store("config.json").map_err(|e| anyhow::anyhow!(e))?;
+
     let binding = config.get("mcFolder").unwrap();
     let mc_folder = binding.as_str().unwrap();
     let mc_folder = Path::new(&mc_folder);

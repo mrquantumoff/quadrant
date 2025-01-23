@@ -44,6 +44,13 @@
 
   <releases>
 
+    <release date="2025-01-23" version="25.2.1">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>Bug fixes</p>
+      </description>
+    </release>
+
     <release date="2025-01-22" version="25.2.0">
       <url type="details">https://blog.mrquantumoff.dev</url>
       <description>

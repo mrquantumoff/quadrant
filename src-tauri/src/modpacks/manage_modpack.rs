@@ -56,8 +56,22 @@ pub async fn delete_mod(
     for file in to_delete_paths {
         std::fs::remove_file(file)?
     }
-    std::fs::write(mod_config, serde_json::to_string_pretty(&modpack)?)?;
+    std::fs::write(
+        mod_config,
+        serde_json::to_string_pretty(&InstalledModpack::from(modpack.clone()))?,
+    )?;
 
+    #[cfg(feature = "quadrant_id")]
+    {
+        let auto_sync = config.get("autoQuadrantSync").unwrap();
+
+        let auto_sync: bool = auto_sync.as_bool().unwrap_or_default();
+
+        if modpack.last_synced != 0 && auto_sync {
+            use crate::account::quadrant_sync::sync_modpack;
+            sync_modpack(modpack, true, app.clone()).await?;
+        }
+    }
     Ok(())
 }
 
@@ -70,14 +84,13 @@ pub async fn update_modpack(
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
     let modpacks = get_modpacks(false, app.clone()).await;
-    let mut modpack: InstalledModpack = match modpacks.iter().find(|m| m.name == modpack_source) {
+    let mut modpack = match modpacks.iter().find(|m| m.name == modpack_source) {
         Some(modpack) => modpack,
         None => {
             return Err(anyhow!("No modpack found").into());
         }
     }
-    .to_owned()
-    .into();
+    .to_owned();
     let config = app.store("config.json").unwrap();
     let binding = config.get("mcFolder").unwrap();
     let mc_folder = binding.as_str().unwrap();
@@ -97,7 +110,22 @@ pub async fn update_modpack(
 
     let mod_config = modpack_folder.join("modConfig.json");
 
-    std::fs::write(mod_config, serde_json::to_string_pretty(&modpack)?)?;
+    std::fs::write(
+        mod_config,
+        serde_json::to_string_pretty(&InstalledModpack::from(modpack.clone()))?,
+    )?;
+
+    #[cfg(feature = "quadrant_id")]
+    {
+        let auto_sync = config.get("autoQuadrantSync").unwrap();
+
+        let auto_sync: bool = auto_sync.as_bool().unwrap_or_default();
+
+        if modpack.last_synced != 0 && auto_sync {
+            use crate::account::quadrant_sync::sync_modpack;
+            sync_modpack(modpack, true, app.clone()).await?;
+        }
+    }
 
     if name.is_some() {
         let new_modpack_folder = modpacks_folder.join(name.unwrap());

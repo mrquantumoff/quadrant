@@ -17,6 +17,7 @@ use tauri_plugin_http::reqwest;
 use tauri_plugin_store::JsonValue;
 use tauri_plugin_store::StoreExt;
 
+use crate::modpacks::general::InstalledModpack;
 use crate::{
     config::get_mc_folder,
     modpacks::general::{get_modpacks, ModLoader},
@@ -588,8 +589,21 @@ pub async fn install_local_file(
 
             std::fs::write(
                 modpack_path.join("modConfig.json"),
-                serde_json::to_string_pretty(&modpack)?,
+                serde_json::to_string_pretty(&InstalledModpack::from(modpack.clone()))?,
             )?;
+
+            #[cfg(feature = "quadrant_id")]
+            {
+                let config = app.store("config.json").map_err(|e| anyhow::anyhow!(e))?;
+                let auto_sync = config.get("autoQuadrantSync").unwrap();
+
+                let auto_sync: bool = auto_sync.as_bool().unwrap_or_default();
+
+                if modpack.last_synced != 0 && auto_sync {
+                    use crate::account::quadrant_sync::sync_modpack;
+                    sync_modpack(modpack, true, app.clone()).await?;
+                }
+            }
 
             target_path = modpack_path.join(file.file_name().unwrap());
         }
