@@ -54,8 +54,4 @@
 >
 > #### Before requesting to the delete the data collected by the app, please be sure that you are using the latest version.
 
-[!WARNING]
->
-> #### macOS support is build-only. I can't fix any macOS related issues without a macOS device to test them on. -->
 
-###### [Logo's source (Figma)](https://www.figma.com/community/file/1462090043700125406)
