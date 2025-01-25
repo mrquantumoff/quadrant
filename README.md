@@ -10,7 +10,7 @@
 
 <a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
     <img width="200" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
-</a> -->
+</a>
 
 <a href="https://apps.microsoft.com/detail/XP98VJLVH3L4L1">
         <img width="200" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
