@@ -16,7 +16,7 @@
         <img width="200" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
 </a>
 
-<!-- #### OR
+#### OR
 
 [Grab the latest build manually (Linux/Windows)](https://github.com/mrquantumoff/quadrant/releases/latest)
 
@@ -54,7 +54,7 @@
 >
 > #### Before requesting to the delete the data collected by the app, please be sure that you are using the latest version.
 
-<!-- > [!WARNING]
+[!WARNING]
 >
 > #### macOS support is build-only. I can't fix any macOS related issues without a macOS device to test them on. -->
 
