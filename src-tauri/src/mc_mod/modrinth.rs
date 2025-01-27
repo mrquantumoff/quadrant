@@ -10,6 +10,9 @@ use tauri::AppHandle;
 use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
 
+use http_cache_reqwest::{Cache, CacheMode, HttpCache, HttpCacheOptions, MokaManager};
+use reqwest_middleware::ClientBuilder;
+
 use super::get_file;
 use super::get_mod_url;
 use super::GetModArgs;
@@ -57,7 +60,13 @@ pub async fn search_mods_modrinth(
 
     // log::info!("Raw URI: {}", raw_uri);
 
-    let client = reqwest::Client::new();
+    let client = ClientBuilder::new(reqwest::Client::new())
+        .with(Cache(HttpCache {
+            mode: CacheMode::Default,
+            options: HttpCacheOptions::default(),
+            manager: MokaManager::default(),
+        }))
+        .build();
     let request = client
         .get(&raw_uri)
         .header("User-Agent", get_user_agent())

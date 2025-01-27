@@ -53,5 +53,3 @@
 > [!WARNING]
 >
 > #### Before requesting to the delete the data collected by the app, please be sure that you are using the latest version.
-
-

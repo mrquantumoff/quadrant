@@ -13,6 +13,9 @@ use super::{get_file, get_mod_url, GetModArgs, Mod, ModSource, ModType, SearchMo
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 
+use http_cache_reqwest::{Cache, CacheMode, HttpCache, HttpCacheOptions, MokaManager};
+use reqwest_middleware::ClientBuilder;
+
 #[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct ModFilesResponse {
     data: Vec<ModFile>,
@@ -72,7 +75,13 @@ pub async fn get_mod_curseforge(args: GetModArgs) -> Result<Mod, tauri::Error> {
 
     let url = format!("{}v1/mods/{}", BASE_URL, args.id);
 
-    let client = reqwest::Client::new();
+    let client = ClientBuilder::new(reqwest::Client::new())
+        .with(Cache(HttpCache {
+            mode: CacheMode::Default,
+            options: HttpCacheOptions::default(),
+            manager: MokaManager::default(),
+        }))
+        .build();
     let request = client
         .get(&url)
         .header("X-API-Key", curseforge_token)
