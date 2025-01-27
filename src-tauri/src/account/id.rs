@@ -127,11 +127,12 @@ pub struct LoginRequest {
 pub async fn sign_in(
     email: String,
     password: String,
-    otp: Option<String>,
+    otp: Option<i32>,
+    app: AppHandle,
 ) -> Result<(), tauri::Error> {
     let client = reqwest::Client::new();
     let user_agent = get_user_agent();
-    let url = format!("{}/account/login", QNT_BASE_URL);
+    let mut url = format!("{}/account/login?secure=false", QNT_BASE_URL);
 
     let body = LoginRequest {
         email: Some(email),
@@ -142,16 +143,13 @@ pub async fn sign_in(
         device: Some("Quadrant Next (no OAuth)".to_string()),
     };
 
-    let mut params = match otp {
-        Some(otp) => vec![("code", otp)],
-        None => vec![],
+    if let Some(otp) = otp {
+        url = format!("{}&totp_code={}", url, otp);
     };
-    params.push(("secure", "false".to_string()));
 
     let request = client
         .post(url)
         .body(serde_json::to_string(&body)?)
-        .query(params.as_slice())
         .header("User-Agent", user_agent)
         .header("Authorization", env!("QUADRANT_API_KEY"))
         .send();
@@ -163,7 +161,9 @@ pub async fn sign_in(
         return Err(anyhow::Error::msg(body.unwrap_or_default()).into());
     }
     let res = response.text().await.unwrap_or_default();
-    set_secret("accountToken".to_string(), res)
+    set_secret("accountToken".to_string(), res)?;
+    app.emit("recheckAccountToken", "")?;
+    Ok(())
 }
 
 #[tauri::command]

@@ -156,5 +156,6 @@
   "appUpdate": "Uygulama güncelleniyor...",
   "updateChannel": "Güncelleme kanalı",
   "stable": "Stabil",
-  "preview": "Önizleme"
+  "preview": "Önizleme",
+  "otp": "Tek kullanımlık kod"
 }

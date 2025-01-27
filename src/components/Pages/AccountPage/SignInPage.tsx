@@ -14,18 +14,23 @@ export default function SignInPage() {
   const context = useContext(ContentContext);
 
   const attemptSignIn = async () => {
+    const requestBody = {
+      email: email,
+      password: password,
+      otp: Number.parseInt(code),
+    };
+    console.log(
+      "Attempting sign in...\nRequest body: " + JSON.stringify(requestBody)
+    );
     try {
-      await invoke("sign_in", {
-        email: email,
-        password: password,
-        otp: code,
-      });
+      await invoke("sign_in", requestBody);
     } catch (e: any) {
+      console.error(e);
+
       if (e.toString().includes("OTP")) {
         setIsOTPRequired(true);
         return;
       }
-      console.error(e);
       context.setSnackbar({
         className: "bg-red-700 text-white",
         message: t(e.toString()),
@@ -34,6 +39,7 @@ export default function SignInPage() {
       setIsOTPRequired(false);
       return;
     }
+    context.back();
   };
 
   return (
@@ -48,6 +54,9 @@ export default function SignInPage() {
                 placeholder={t("otp")}
                 value={code}
                 onChange={(e) => {
+                  if (isNaN(Number.parseInt(e.target.value))) {
+                    return;
+                  }
                   setCode(e.target.value);
                 }}
               />
@@ -71,6 +80,7 @@ export default function SignInPage() {
               onChange={(e) => {
                 setEmail(e.target.value);
               }}
+              autoComplete="off"
             />
           </Field>
           <Field className={"my-2"}>
@@ -82,6 +92,7 @@ export default function SignInPage() {
               onChange={(e) => {
                 setPassword(e.target.value);
               }}
+              autoComplete="off"
             />
           </Field>
           <Button

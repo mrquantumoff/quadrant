@@ -156,5 +156,6 @@
   "appUpdate": "Updating the app...",
   "updateChannel": "Update channel",
   "stable": "Stable",
-  "preview": "Preview"
+  "preview": "Preview",
+  "otp": "One-time password"
 }
