@@ -8,6 +8,7 @@ import { LazyStore } from "@tauri-apps/plugin-store";
 import { MdOpenInBrowser, MdOutlineAccountCircle } from "react-icons/md";
 import { ContentContext } from "../../../intefaces";
 import FirstRegisterStep from "./RegisterPages/Step1";
+import SignInPage from "./SignInPage";
 
 export default function AccountPage() {
   const { t } = useTranslation();
@@ -90,7 +91,7 @@ export default function AccountPage() {
     </>
   ) : (
     <div className="items-center justify-center align-middle flex flex-1 h-full flex-col w-full ">
-      <div className="place-content-center ">
+      <div className="place-content-center w-[75%] ">
         <div className="bg-slate-800 rounded-2xl p-2 my-4">
           <h1 className="font-extrabold text-4xl my-2">{t("signIn")}</h1>
           <h2 className="font-bold text-2xl my-2">{t("emailAndPassword")}</h2>
@@ -107,9 +108,24 @@ export default function AccountPage() {
                   randomString
               );
             }}
-            className="bg-sky-500 hover:bg-sky-800 w-full mr-2"
+            className="bg-sky-500 hover:bg-sky-800 w-full mx-2"
           >
-            {t("signIn")}
+            {t("signInWithOAuth")}
+          </Button>
+          <Button
+            onClick={async () => {
+              context.changeContent({
+                content: <SignInPage />,
+                icon: <></>,
+                title: t("signInNoOAuth"),
+                main: false,
+                name: t("signInNoOAuth"),
+                style: "",
+              });
+            }}
+            className="bg-slate-500 hover:bg-slate-800 w-full mx-2"
+          >
+            {t("signInNoOAuth")}
           </Button>
           <Button
             onClick={async () => {
@@ -122,7 +138,7 @@ export default function AccountPage() {
                 style: "",
               });
             }}
-            className="bg-blue-500 hover:bg-blue-800 w-full ml-2"
+            className="bg-blue-500 hover:bg-blue-800 w-full mx-2"
           >
             {t("dontHaveAccount")}
           </Button>

@@ -55,9 +55,7 @@ export default function FirstRegisterStep() {
       >
         <Label className="font-extrabold text-4xl my-2">{t("register")}</Label>
         <Input
-          className={
-            "bg-slate-700 hover:bg-slate-600 focus:outline-hidden rounded-2xl p-4"
-          }
+          className={"input"}
           placeholder={t("email")}
           value={email}
           onChange={(e) => {

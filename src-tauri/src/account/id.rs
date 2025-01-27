@@ -114,6 +114,58 @@ pub async fn oauth2_login(code: String, app: AppHandle) -> Result<(), tauri::Err
     Ok(())
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct LoginRequest {
+    pub email: Option<String>,
+    pub password: Option<String>,
+    pub scope: String,
+    pub token_duration: i64,
+    pub device: Option<String>,
+}
+
+#[tauri::command]
+pub async fn sign_in(
+    email: String,
+    password: String,
+    otp: Option<String>,
+) -> Result<(), tauri::Error> {
+    let client = reqwest::Client::new();
+    let user_agent = get_user_agent();
+    let url = format!("{}/account/login", QNT_BASE_URL);
+
+    let body = LoginRequest {
+        email: Some(email),
+        password: Some(password),
+        scope: "user_data,quadrant_sync,notifications".to_string(),
+        // 3 Days
+        token_duration: 259200,
+        device: Some("Quadrant Next (no OAuth)".to_string()),
+    };
+
+    let mut params = match otp {
+        Some(otp) => vec![("code", otp)],
+        None => vec![],
+    };
+    params.push(("secure", "false".to_string()));
+
+    let request = client
+        .post(url)
+        .body(serde_json::to_string(&body)?)
+        .query(params.as_slice())
+        .header("User-Agent", user_agent)
+        .header("Authorization", env!("QUADRANT_API_KEY"))
+        .send();
+    let response = request
+        .await
+        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
+    if response.status() != 202 {
+        let body = response.text().await;
+        return Err(anyhow::Error::msg(body.unwrap_or_default()).into());
+    }
+    let res = response.text().await.unwrap_or_default();
+    set_secret("accountToken".to_string(), res)
+}
+
 #[tauri::command]
 pub async fn read_notification(
     notification_id: String,

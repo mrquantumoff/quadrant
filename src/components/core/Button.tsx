@@ -14,7 +14,12 @@ export default function Button({
   return (
     <button
       onClick={onClick}
-      className={fullRoundClass + " p-2 font-extrabold  " + className + " "}
+      className={
+        fullRoundClass +
+        " p-2 font-extrabold hover:cursor-pointer  " +
+        className +
+        " "
+      }
     >
       {children}
     </button>

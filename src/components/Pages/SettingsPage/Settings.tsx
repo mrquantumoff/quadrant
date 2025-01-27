@@ -97,7 +97,7 @@ export default function SettingsPage() {
         <Field className={"flex flex-col font-bold my-4"}>
           <Label>{t("updateChannel")}</Label>
           <Select
-            className="my-4 bg-slate-800 p-4 rounded-2xl hover:bg-slate-700 w-1/4"
+            className="my-4 input w-1/4"
             aria-label={t("locale")}
             value={updateChannel}
             onChange={async (e) => {
@@ -120,7 +120,7 @@ export default function SettingsPage() {
       <Field className={"flex flex-col font-bold my-4"}>
         <Label>{t("language")}</Label>
         <Select
-          className="my-4 bg-slate-800 p-4 rounded-2xl hover:bg-slate-700 w-1/4"
+          className="input my-4 w-1/4"
           aria-label={t("language")}
           value={currentLocale}
           onChange={async (e) => {

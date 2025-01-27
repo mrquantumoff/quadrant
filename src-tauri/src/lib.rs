@@ -318,6 +318,8 @@ pub async fn run() {
             account::quadrant_sync::answer_invite,
             #[cfg(feature = "quadrant_id")]
             account::quadrant_share::get_quadrant_share_modpack,
+            #[cfg(feature = "quadrant_id")]
+            account::id::sign_in,
         ]);
 
     builder

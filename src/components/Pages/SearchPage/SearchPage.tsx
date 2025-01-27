@@ -26,6 +26,7 @@ import {
   CloseButton,
   Field,
   Fieldset,
+  Input,
   Label,
   Popover,
   PopoverButton,
@@ -192,7 +193,7 @@ export default function SearchPage() {
         initial={{ y: 500, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 5000 }}
-        className="flex flex-1 flex-col justify-start items-center"
+        className="flex flex-1 flex-col w-full h-full justify-start items-center content-main "
       >
         <AnimatePresence>
           {filter && (
@@ -211,11 +212,11 @@ export default function SearchPage() {
             e.preventDefault();
             search();
           }}
-          className="flex flex-1 items-center justify-center mb-8"
+          className="flex flex-1 items-center justify-center mb-8 w-[95%] mx-8 my-2 "
         >
-          <input
+          <Input
             placeholder={t("searchForMods")}
-            className="searchBar bg-slate-700 h-16 rounded-2xl self-center mr-4 text-center"
+            className="w-full input h-16 self-center mr-4 text-center"
             onChange={(event) => {
               const query = event.target.value;
               setSearchQuery(query);
@@ -225,7 +226,7 @@ export default function SearchPage() {
             onSubmit={async () => {
               search();
             }}
-          ></input>
+          ></Input>
           <div className="flex flex-col">
             <Button
               onClick={search}
@@ -235,133 +236,171 @@ export default function SearchPage() {
               {t("search")}
             </Button>
             <Popover className="relative">
-              <PopoverButton
-                className={
-                  "flex w-full items-center bg-slate-600 my-2 rounded-2xl font-bold p-2 self-start"
-                }
-              >
-                <MdFilterAlt />
-                {t("filter")}
-              </PopoverButton>
-              <PopoverPanel
-                anchor="bottom"
-                className="bg-slate-900 border-2 mt-8 border-slate-700 p-8 rounded-2xl flex flex-col"
-              >
-                <Fieldset>
-                  <Field>
-                    <Label className="block my-2 font-bold">
-                      {t("chooseVersion")}
-                    </Label>
-                    <Select
-                      className="bg-slate-700 w-full p-2 rounded-2xl font-semibold hover:bg-slate-600"
-                      name="version"
-                      autoComplete="off"
-                      value={version}
-                      onChange={async (e) => {
-                        e.preventDefault();
-                        setVersion(e.target.value);
-
-                        const config = await load("config.json");
-
-                        await config.set("lastUsedVersion", e.target.value);
-                        setVersion(e.target.value);
-                      }}
-                    >
-                      {versions.map((versionOption) => {
-                        return (
-                          <option
-                            value={versionOption.version}
-                            className="rounded-2xl font-semibold"
-                            key={versionOption.version}
-                          >
-                            {versionOption.version}
-                          </option>
-                        );
-                      })}
-                    </Select>
-                  </Field>
-                  <Field>
-                    <Label className="block my-2 font-bold">
-                      {t("choosePreferredAPI")}
-                    </Label>
-                    <Select
-                      className="bg-slate-700 w-full p-2 rounded-2xl font-semibold hover:bg-slate-600"
-                      name="modLoader"
-                      onChange={async (e) => {
-                        e.preventDefault();
-                        setLoader(e.target.value);
-
-                        const config = await load("config.json");
-
-                        await config.set("lastUsedAPI", e.target.value);
-                        await config.save();
-                      }}
-                      value={loader}
-                      autoComplete="off"
-                    >
-                      <LoaderOptions loader={loader} />
-                    </Select>
-                  </Field>
-                  <Field>
-                    <Label className="block my-2 font-bold">
-                      {t("chooseModpack")}
-                    </Label>
-                    <Select
-                      className="bg-slate-700 focus:bg-slate-600 focus: focus:border-2 focus:border-slate-500 w-full p-2 rounded-2xl font-semibold hover:bg-slate-600"
-                      name="modpack"
-                      autoComplete="off"
-                      value={modpack}
-                      onChange={async (e) => {
-                        e.preventDefault();
-                        const modpack = modpacks.filter(
-                          (i) => i.name === e.target.value
-                        )[0];
-                        const config = await load("config.json");
-
-                        await config.set("lastUsedModpack", modpack.name);
-                        await config.set("lastUsedVersion", modpack.version);
-                        await config.set("lastUsedAPI", modpack.modLoader);
-                        await config.save();
-                        setModpack(modpack.name);
-                        setLoader(modpack.modLoader);
-                        setVersion(modpack.version);
-                        setFilter(true);
-                      }}
-                    >
-                      {modpacks.map((modpack) => (
-                        <option value={modpack.name} key={modpack.name}>
-                          {modpack.name} | {modpack.modLoader} |{" "}
-                          {modpack.version}
-                        </option>
-                      ))}
-                    </Select>
-                  </Field>
-                  <div className="flex flex-1 items-center justify-center">
-                    <CloseButton
+              {({ open }) => {
+                return (
+                  <>
+                    <PopoverButton
                       className={
-                        "p-2 font-extrabold rounded-2xl mx-2 flex flex-1 h-full items-center bg-emerald-600 hover:bg-emerald-800 mt-8"
-                      }
-                      onClick={() => {
-                        setFilter(true);
-                      }}
-                    >
-                      <MdCheck className="w-6 h-6 mr-2 self-center" />
-                      {t("apply")}
-                    </CloseButton>
-                    <CloseButton
-                      onClick={() => {
-                        setFilter(false);
-                      }}
-                      className={
-                        "p-2 font-extrabold rounded-2xl mx-2 flex flex-1 h-full items-center bg-slate-600 hover:bg-slate-800 mt-8"
+                        "flex w-full items-center bg-slate-600 my-2 rounded-2xl focus:outline-none hover:bg-slate-700 font-bold p-2 self-start"
                       }
                     >
-                      <MdCancel className="w-6 h-6 mr-2 self-center" />
-                      {t("cancel")}
-                    </CloseButton>
-                  </div>
-                </Fieldset>
-              </PopoverPanel>
+                      <MdFilterAlt />
+                      {t("filter")}
+                    </PopoverButton>
+                    <AnimatePresence>
+                      {open && (
+                        <PopoverPanel
+                          anchor="bottom"
+                          className="bg-slate-900 border-2 mt-8 border-slate-700 p-8 rounded-2xl flex flex-col w-max"
+                          static
+                          as={motion.div}
+                          initial={{
+                            opacity: 0,
+                            scale: 0.125,
+                            x: 200,
+                            y: -50,
+                          }}
+                          animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.125, x: 200, y: -50 }}
+                        >
+                          <Fieldset>
+                            <Field>
+                              <Label className="block my-2 font-bold">
+                                {t("chooseVersion")}
+                              </Label>
+                              <Select
+                                className="w-full input"
+                                name="version"
+                                autoComplete="off"
+                                value={version}
+                                onChange={async (e) => {
+                                  e.preventDefault();
+                                  setVersion(e.target.value);
+
+                                  const config = await load("config.json");
+
+                                  await config.set(
+                                    "lastUsedVersion",
+                                    e.target.value
+                                  );
+                                  setVersion(e.target.value);
+                                }}
+                              >
+                                {versions.map((versionOption) => {
+                                  return (
+                                    <option
+                                      value={versionOption.version}
+                                      className="rounded-2xl font-semibold"
+                                      key={versionOption.version}
+                                    >
+                                      {versionOption.version}
+                                    </option>
+                                  );
+                                })}
+                              </Select>
+                            </Field>
+                            <Field>
+                              <Label className="block my-2 font-bold">
+                                {t("choosePreferredAPI")}
+                              </Label>
+                              <Select
+                                className="w-full input"
+                                name="modLoader"
+                                onChange={async (e) => {
+                                  e.preventDefault();
+                                  setLoader(e.target.value);
+
+                                  const config = await load("config.json");
+
+                                  await config.set(
+                                    "lastUsedAPI",
+                                    e.target.value
+                                  );
+                                  await config.save();
+                                }}
+                                value={loader}
+                                autoComplete="off"
+                              >
+                                <LoaderOptions loader={loader} />
+                              </Select>
+                            </Field>
+                            <Field>
+                              <Label className="block my-2 font-bold">
+                                {t("chooseModpack")}
+                              </Label>
+                              <Select
+                                className="w-full input"
+                                name="modpack"
+                                autoComplete="off"
+                                value={modpack}
+                                onChange={async (e) => {
+                                  e.preventDefault();
+                                  const modpack = modpacks.filter(
+                                    (i) => i.name === e.target.value
+                                  )[0];
+                                  const config = await load("config.json");
+
+                                  await config.set(
+                                    "lastUsedModpack",
+                                    modpack.name
+                                  );
+                                  await config.set(
+                                    "lastUsedVersion",
+                                    modpack.version
+                                  );
+                                  await config.set(
+                                    "lastUsedAPI",
+                                    modpack.modLoader
+                                  );
+                                  await config.save();
+                                  setModpack(modpack.name);
+                                  setLoader(modpack.modLoader);
+                                  setVersion(modpack.version);
+                                  setFilter(true);
+                                }}
+                              >
+                                {modpacks.map((modpack) => (
+                                  <option
+                                    value={modpack.name}
+                                    key={modpack.name}
+                                  >
+                                    {modpack.name} | {modpack.modLoader} |{" "}
+                                    {modpack.version}
+                                  </option>
+                                ))}
+                              </Select>
+                            </Field>
+                            <div className="flex flex-1 items-center justify-center">
+                              <CloseButton
+                                className={
+                                  "p-2 font-extrabold rounded-2xl mx-2 flex flex-1 h-full items-center bg-emerald-600 hover:bg-emerald-800 mt-8"
+                                }
+                                onClick={() => {
+                                  setFilter(true);
+                                }}
+                              >
+                                <MdCheck className="w-6 h-6 mr-2 self-center" />
+                                {t("apply")}
+                              </CloseButton>
+                              <CloseButton
+                                onClick={() => {
+                                  setFilter(false);
+                                }}
+                                className={
+                                  "p-2 font-extrabold rounded-2xl mx-2 flex flex-1 h-full items-center bg-slate-600 hover:bg-slate-800 mt-8"
+                                }
+                              >
+                                <MdCancel className="w-6 h-6 mr-2 self-center" />
+                                {t("cancel")}
+                              </CloseButton>
+                            </div>
+                          </Fieldset>
+                        </PopoverPanel>
+                      )}
+                    </AnimatePresence>
+                  </>
+                );
+              }}
             </Popover>
           </div>
         </form>

@@ -15,12 +15,12 @@ name = "quadrant_next_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
-default = ["propietary"]
+default = ["proprietary"]
 telemetry = []
 curseforge = []
 # Quadrant ID/Sync/Share
 quadrant_id = []
-propietary = ["telemetry", "curseforge", "quadrant_id"]
+proprietary = ["telemetry", "curseforge", "quadrant_id"]
 
 [build-dependencies]
 tauri-build = { version = "2.0.5", features = [] }

@@ -91,6 +91,8 @@
   "experimentalFeatures": "Deneysel özellikler",
   "account": "Hesap",
   "signIn": "Giriş yap",
+  "signInWithOAuth": "OAuth ile giriş yap (önerilir)",
+  "signInNoOAuth": "OAuth kullanmadan giriş yap (güvenli değil)",
   "emailAndPassword": "E-postanızı ve şifrenizi girin",
   "email": "E-posta",
   "password": "Şifre",

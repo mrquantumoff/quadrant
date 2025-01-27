@@ -17,6 +17,10 @@ option {
   appearance: unset;
 }
 
+.input {
+  @apply bg-slate-700 px-4 py-2 rounded-2xl focus:bg-slate-800 hover:bg-slate-800 hover:outline-2 focus:outline-2 outline-slate-700 transition-all ease-linear;
+}
+
 .content-main * {
   @apply transition-all duration-75 ease-linear;
 }

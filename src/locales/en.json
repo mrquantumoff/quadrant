@@ -91,6 +91,8 @@
   "experimentalFeatures": "Experimental features",
   "account": "Account",
   "signIn": "Sign in",
+  "signInWithOAuth": "Sign in via OAuth (recommended)",
+  "signInNoOAuth": "Sign in without OAuth (less secure)",
   "emailAndPassword": "Enter your email and password",
   "email": "Email",
   "password": "Password",

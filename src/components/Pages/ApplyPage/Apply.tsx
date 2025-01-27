@@ -122,11 +122,11 @@ export default function ApplyPage() {
         initial={{ y: 500, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 5000 }}
-        className="flex flex-1 flex-col  "
+        className="flex flex-1 flex-col w-full "
       >
         <input
           placeholder={t("search")}
-          className="searchBar bg-slate-700 h-16 rounded-2xl self-center mx-16 my-8 text-center"
+          className="p-4 input w-[95.5%] bg-slate-700 h-16 rounded-2xl self-center mx-16 my-8 text-center"
           onChange={(event) => {
             const query = event.target.value.toLowerCase().trim();
             setSearchQuery(query);
