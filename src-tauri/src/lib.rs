@@ -35,10 +35,14 @@ pub struct AppState {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[allow(deprecated)]
 pub async fn run() {
-    colog::init();
+    #[cfg(not(dev))]
+    {
+        colog::init();
+    }
     log::info!("Initializing Tauri...");
     let mut builder =
         tauri::Builder::default().plugin(tauri_plugin_updater::Builder::new().build());
+
     #[cfg(desktop)]
     {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _| {
@@ -70,6 +74,11 @@ pub async fn run() {
             }
         }));
     }
+    #[cfg(dev)]
+    {
+        builder = builder.plugin(tauri_plugin_devtools::init());
+    }
+
     builder = builder
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_persisted_scope::init())
