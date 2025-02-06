@@ -89,71 +89,72 @@ class _WebSourcesPageState extends State<WebSourcesPage> {
     List<Mod> widgets = [];
 
     if (modSource == ModSource.curseForge) {
-      String rawUri =
-          'https://api.curseforge.com/v1/mods/search?gameId=432&searchFilter=$query&sortOrder=desc&classId=${modsClass.value}';
+      return [];
+      // String rawUri =
+      //     'https://api.curseforge.com/v1/mods/search?gameId=432&searchFilter=$query&sortOrder=desc&classId=${modsClass.value}';
 
-      if (modsClass == ModClass.shaderPack) {
-        rawUri = '$rawUri&categoryId=4547';
-      }
+      // if (modsClass == ModClass.shaderPack) {
+      //   rawUri = '$rawUri&categoryId=4547';
+      // }
 
-      if (widget.filterOn) {
-        rawUri = '$rawUri&gameVersion=${GetStorage().read("lastUsedVersion")}';
-      }
-      if (widget.filterOn && modsClass == ModClass.mod) {
-        rawUri = '$rawUri&modLoaderType=${GetStorage().read("lastUsedAPI")}';
-      }
+      // if (widget.filterOn) {
+      //   rawUri = '$rawUri&gameVersion=${GetStorage().read("lastUsedVersion")}';
+      // }
+      // if (widget.filterOn && modsClass == ModClass.mod) {
+      //   rawUri = '$rawUri&modLoaderType=${GetStorage().read("lastUsedAPI")}';
+      // }
 
-      Uri uri = Uri.parse(rawUri);
-      debugPrint(uri.toString());
-      http.Response response = await http.get(uri, headers: {
-        "User-Agent": await generateUserAgent(),
-        "X-API-Key": apiKey,
-      });
-      Map responseJson = json.decode(utf8.decode(response.bodyBytes));
-      for (Map mod in responseJson["data"]) {
-        try {
-          String name = mod["name"];
-          String summary = mod["summary"];
-          int modId = mod["id"];
+      // Uri uri = Uri.parse(rawUri);
+      // debugPrint(uri.toString());
+      // http.Response response = await http.get(uri, headers: {
+      //   "User-Agent": await generateUserAgent(),
+      //   "X-API-Key": apiKey,
+      // });
+      // Map responseJson = json.decode(utf8.decode(response.bodyBytes));
+      // for (Map mod in responseJson["data"]) {
+      //   try {
+      //     String name = mod["name"];
+      //     String summary = mod["summary"];
+      //     int modId = mod["id"];
 
-          String modIconUrl =
-              "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo.png";
-          int downloadCount = mod["downloadCount"];
-          try {
-            String mModIconUrl = mod["logo"]["thumbnailUrl"].toString().trim();
-            if (mModIconUrl == "") {
-              throw Exception("No proper icon");
-            }
-            Uri.parse(mModIconUrl);
-            modIconUrl = mModIconUrl;
-            // ignore: empty_catches
-          } catch (e) {}
-          List<String> screenshots = [];
-          for (dynamic screenshot in mod["screenshots"]) {
-            screenshots.add(screenshot["thumbnailUrl"]);
-          }
-          String slug = mod["slug"];
-          widgets.add(
-            Mod(
-              description: summary,
-              name: name,
-              id: modId.toString(),
-              modIconUrl: modIconUrl,
-              slug: slug,
-              rawMod: mod,
-              setAreParentButtonsActive: setAreButtonsEnabled,
-              downloadCount: downloadCount,
-              source: ModSource.curseForge,
-              modClass: modsClass,
-              autoInstall: GetStorage().read("experimentalFeatures") == true &&
-                  widget.filterOn,
-              thumbnailUrl: screenshots,
-            ),
-          );
-        } catch (e) {
-          debugPrint("$e");
-        }
-      }
+      //     String modIconUrl =
+      //         "https://github.com/mrquantumoff/quadrant/raw/master/assets/icons/logo.png";
+      //     int downloadCount = mod["downloadCount"];
+      //     try {
+      //       String mModIconUrl = mod["logo"]["thumbnailUrl"].toString().trim();
+      //       if (mModIconUrl == "") {
+      //         throw Exception("No proper icon");
+      //       }
+      //       Uri.parse(mModIconUrl);
+      //       modIconUrl = mModIconUrl;
+      //       // ignore: empty_catches
+      //     } catch (e) {}
+      //     List<String> screenshots = [];
+      //     for (dynamic screenshot in mod["screenshots"]) {
+      //       screenshots.add(screenshot["thumbnailUrl"]);
+      //     }
+      //     String slug = mod["slug"];
+      //     widgets.add(
+      //       Mod(
+      //         description: summary,
+      //         name: name,
+      //         id: modId.toString(),
+      //         modIconUrl: modIconUrl,
+      //         slug: slug,
+      //         rawMod: mod,
+      //         setAreParentButtonsActive: setAreButtonsEnabled,
+      //         downloadCount: downloadCount,
+      //         source: ModSource.curseForge,
+      //         modClass: modsClass,
+      //         autoInstall: GetStorage().read("experimentalFeatures") == true &&
+      //             widget.filterOn,
+      //         thumbnailUrl: screenshots,
+      //       ),
+      //     );
+      //   } catch (e) {
+      //     debugPrint("$e");
+      //   }
+      // }
     } else {
       String modType = modsClass.name.toLowerCase();
       modType = modType.replaceAll("shaderpack", "shader");

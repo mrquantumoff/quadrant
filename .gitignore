@@ -59,3 +59,7 @@ windows-build*
 
 # NSIS related
 QuadrantSetup.exe
+
+.tauri/
+node_modules/
+dist/
