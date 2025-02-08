@@ -862,6 +862,7 @@ class _QuadrantState extends State<Quadrant>
               NavigationRailDestination(
                 icon: const Icon(Icons.sync_rounded),
                 label: Text(AppLocalizations.of(context)!.importMods),
+                disabled: true,
               ),
               NavigationRailDestination(
                 icon: Badge(
@@ -869,6 +870,7 @@ class _QuadrantState extends State<Quadrant>
                   isLabelVisible: accountNotifications > 0,
                   child: const Icon(Icons.account_circle_outlined),
                 ),
+                disabled: true,
                 label: Text(AppLocalizations.of(context)!.account),
               ),
               NavigationRailDestination(
@@ -877,6 +879,7 @@ class _QuadrantState extends State<Quadrant>
               ),
             ],
             onDestinationSelected: (int value) {
+              showLegacyWarning(context);
               setState(() {
                 currentPage = value;
               });

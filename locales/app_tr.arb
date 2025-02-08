@@ -399,5 +399,6 @@
     }
   },
   "@clearCache": {},
-  "@cacheStorageLimit": {}
+  "@cacheStorageLimit": {},
+  "legacyWarning": "Bu uygulama eski sürümüdür. En son özellikleri kullanmak için Quadrant Next'e geçiş yapmanız gerekir."
 }

@@ -21,6 +21,7 @@ import 'package:quadrant/pages/web/mod/install_mod_page.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:quadrant/pages/web/mod/mod.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:window_manager/window_manager.dart';
 
 Directory getMinecraftFolder({bool onInit = false}) {
@@ -1409,5 +1410,27 @@ class QuadrantImageCacheManager {
       fileSystem: IOFileSystem(key),
       fileService: HttpFileService(),
     ),
+  );
+}
+
+Future<void> showLegacyWarning(BuildContext context) async {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text("Quadrant Classic -> Quadrant Next"),
+        content: Text(AppLocalizations.of(context)!.legacyWarning),
+        actions: [
+          TextButton(
+            onPressed: () {
+              launchUrl(Uri.parse(
+                  "https://github.com/mrquantumoff/quadrant/?tab=readme-ov-file#installation-guide"));
+              Navigator.of(context).pop();
+            },
+            child: Text(AppLocalizations.of(context)!.openLatestRelease),
+          )
+        ],
+      );
+    },
   );
 }

@@ -398,5 +398,7 @@
   "cacheStorageLimit": "Maximum cache age",
   "@cacheStorageLimit": {},
   "quadrantSettingsSync": "Sync Quadrant settings with Quadrant ID",
-  "@quadrantSettingsSync": {}
+  "@quadrantSettingsSync": {},
+  "legacyWarning": "This the legacy version of the app, it is not maintained anymore. Please migrate to Quadrant Next in order to use the latest features.",
+  "@legacyWarning": {}
 }

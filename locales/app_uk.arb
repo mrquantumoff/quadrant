@@ -396,5 +396,6 @@
     }
   },
   "@clearCache": {},
-  "@cacheStorageLimit": {}
+  "@cacheStorageLimit": {},
+  "legacyWarning": "Це застаріла версія програми, вона більше не підтримується. Будь ласка, перейдіть до Quadrant Next, щоб отримати усі можливості."
 }
