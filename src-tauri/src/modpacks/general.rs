@@ -10,9 +10,10 @@ use std::{
     path::{Path, PathBuf},
 };
 use tauri::{AppHandle, Emitter};
+use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
-
+use zip::write::{ExtendedFileOptions, FileOptions};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ModLoader {
     #[serde(rename = "Forge")]
@@ -359,5 +360,81 @@ pub async fn set_modpack_sync_date(
         serde_json::to_string_pretty(&json!({"last_synced": time}))?,
     )?;
 
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn export_modpack(modpack: String, app: AppHandle) -> Result<(), tauri::Error> {
+    let config = app.store("config.json").unwrap();
+    let binding = config.get("mcFolder").unwrap();
+    let mc_folder = binding.as_str().unwrap();
+    let modpack_folder = PathBuf::from(&mc_folder).join("modpacks").join(&modpack);
+
+    let file_to_export = app
+        .dialog()
+        .file()
+        .add_filter("Quadrant Export", &["quadrantExport.zip"])
+        .blocking_save_file();
+
+    if file_to_export.is_none() {
+        return Ok(());
+    }
+    let file_to_export = file_to_export
+        .unwrap()
+        .into_path()
+        .map_err(|e| anyhow!(e))?;
+
+    let file_to_export = std::fs::File::create(file_to_export)?;
+
+    let mut zip = zip::ZipWriter::new(file_to_export);
+    let options: FileOptions<ExtendedFileOptions> = FileOptions::default()
+        .compression_method(zip::CompressionMethod::Bzip2)
+        .unix_permissions(0o755)
+        .compression_level(Some(9))
+        .large_file(true);
+
+    let files = std::fs::read_dir(&modpack_folder)?;
+    let modpacks = get_modpacks(false, app.clone()).await;
+    let total_files = modpacks
+        .iter()
+        .find(|m| m.name == modpack)
+        .unwrap()
+        .mods
+        .len();
+    let mut zip_issues = false;
+    let mut done_files = 0;
+    for file in files {
+        let file = file?;
+        let file_name = file.file_name();
+
+        let contents = std::fs::read(file.path())?;
+
+        let res = zip.start_file(file_name.to_string_lossy(), options.clone());
+        if res.is_err() {
+            log::error!("Failed to add file to zip: {}", file_name.to_string_lossy());
+            zip_issues = true;
+            continue;
+        }
+        let res = zip.write_all(&contents);
+        if res.is_err() {
+            log::error!(
+                "Failed to write contents of file to zip: {}",
+                file_name.to_string_lossy()
+            );
+            zip_issues = true;
+            continue;
+        }
+        done_files += 1;
+        app.emit(
+            "quadrantExportProgress",
+            ((done_files as f64 / total_files as f64) * 100.0).round(),
+        )?;
+    }
+    let res = zip.finish();
+    if res.is_err() || zip_issues {
+        log::error!("Failed to finish zip");
+        return Err(anyhow!("Failed to finish zip").into());
+    }
+    app.emit("quadrantExportProgress", 100)?;
     Ok(())
 }

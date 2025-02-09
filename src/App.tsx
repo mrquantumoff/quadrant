@@ -411,6 +411,10 @@ function App() {
       setSnackbarHistory([...snackBarHistory, newSnackBarState]);
       setSnackbarEnabled(true);
     },
+    setSnackbarNoState(newSnackBarState) {
+      setSnackbarState(newSnackBarState);
+      setSnackbarEnabled(true);
+    },
   };
 
   const [snackbarState, setSnackbarState] = useState<SnackbarState>({

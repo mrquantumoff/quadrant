@@ -5,6 +5,7 @@ export interface IContentContext {
   changeContent: (component: Page) => void;
   back: () => void;
   setSnackbar: (newSnackBarState: SnackbarState) => void;
+  setSnackbarNoState(newSnackBarState: SnackbarState): void;
 }
 
 export const ContentContext = createContext<IContentContext>({
@@ -12,6 +13,7 @@ export const ContentContext = createContext<IContentContext>({
   changeContent: () => {},
   changePage: () => {},
   setSnackbar: (_: SnackbarState) => {},
+  setSnackbarNoState: (_: SnackbarState) => {},
 });
 
 export interface LocalModpack {

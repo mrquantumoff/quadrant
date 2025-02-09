@@ -4,6 +4,7 @@ import {
   applyModpack,
   createModpack,
   deleteModpack,
+  exportModpack,
   getMinecraftFolder,
   getModpacks,
   getVersions,
@@ -32,6 +33,7 @@ import "./Apply.css";
 import { watch } from "@tauri-apps/plugin-fs";
 import * as path from "@tauri-apps/api/path";
 import {
+  MdArchive,
   MdCheck,
   MdClear,
   MdCreate,
@@ -104,6 +106,33 @@ export default function ApplyPage() {
     };
     effect();
   }, [searchQuery]);
+
+  listen("quadrantExportProgress", async (event: any) => {
+    const progress = event.payload;
+    if (progress === 100) {
+      context.setSnackbar({
+        className: "bg-emerald-700 rounded-2xl",
+        message: (
+          <span className="flex">
+            <span>{t("export")}</span>
+            <MdArchive className="w-6 h-6 mx-2" /> {progress}%
+          </span>
+        ),
+        timeout: 15000,
+      });
+    } else {
+      context.setSnackbarNoState({
+        message: (
+          <span className="flex">
+            <span>{t("export")}</span>
+            <MdArchive className="w-6 h-6 mx-2" /> {progress}%
+          </span>
+        ),
+        className: "bg-gray-700 rounded-2xl",
+        timeout: 500000,
+      });
+    }
+  });
 
   const updateModpacks = async () => {
     // console.log(searchQuery);
@@ -325,6 +354,26 @@ export default function ApplyPage() {
                     >
                       {t("update")}
                       <MdEdit className="w-6 h-6 mx-2" />
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        try {
+                          exportModpack(modpack.name);
+                        } catch (e: any) {
+                          console.error(e);
+                          context.setSnackbar({
+                            message: t(e),
+                            className: "bg-red-700 rounded-2xl",
+                            timeout: 5000,
+                          });
+                        }
+                      }}
+                      className={
+                        "flex items-center self-center bg-amber-500 hover:bg-amber-700 m-2 w-max h-16 justify-center"
+                      }
+                    >
+                      {t("export")}
+                      <MdArchive className="w-6 h-6 mx-2" />
                     </Button>
                     <Button
                       onClick={async () => {

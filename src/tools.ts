@@ -342,3 +342,7 @@ export const getNews = async () => {
   const res = await invoke<Article[]>("get_news");
   return res;
 };
+
+export const exportModpack = async (name: string) => {
+  await invoke("export_modpack", { modpack: name });
+};

@@ -273,6 +273,7 @@ pub async fn run() {
             modpacks::manage_modpack::delete_modpack,
             modpacks::manage_modpack::open_modpacks_folder,
             modpacks::general::install_modpack,
+            modpacks::general::export_modpack,
             mc_mod::modrinth::get_mod_modrinth,
             mc_mod::search_mods,
             mc_mod::get_versions,
