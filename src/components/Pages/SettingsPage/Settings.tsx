@@ -430,7 +430,7 @@ export default function SettingsPage() {
           }
           checked={devMode}
           onChange={async (newValue) => {
-            setExperimentalFeatures(newValue);
+            setDevMode(newValue);
             await box.set("devMode", newValue);
             await box.save();
           }}
