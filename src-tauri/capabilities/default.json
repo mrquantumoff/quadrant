@@ -39,6 +39,8 @@
     "core:window:allow-hide",
     "core:window:allow-set-enabled",
     "core:window:allow-minimize",
+    "oauth:allow-start",
+    "oauth:allow-cancel",
     {
       "identifier": "http:default",
       "allow": ["https://api.mrquantumoff.dev/api/v3/**"]

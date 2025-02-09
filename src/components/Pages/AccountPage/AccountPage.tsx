@@ -9,6 +9,9 @@ import { MdOpenInBrowser, MdOutlineAccountCircle } from "react-icons/md";
 import { ContentContext } from "../../../intefaces";
 import FirstRegisterStep from "./RegisterPages/Step1";
 import SignInPage from "./SignInPage";
+import { start } from "@fabianlars/tauri-plugin-oauth";
+import { cancel, onUrl as onOAuth } from "@fabianlars/tauri-plugin-oauth";
+import { invoke } from "@tauri-apps/api/core";
 
 export default function AccountPage() {
   const { t } = useTranslation();
@@ -103,10 +106,53 @@ export default function AccountPage() {
 
               await config.set("oauthState", randomString);
 
-              openIn(
-                "https://mrquantumoff.dev/account/oauth2/authorize?client_id=2e1830be-1134-4fec-bfcb-c403dd2b9c94&redirect_uri=quadrantnext://login&scope=user_data,quadrant_sync,notifications&duration=7776000&response_type=code&state=" +
-                  randomString
-              );
+              try {
+                const port = await start({
+                  response:
+                    "<html><body><h1>" +
+                    t("returnToTheApp") +
+                    "</h1></body></html>",
+                });
+
+                console.log(`OAuth server started on port ${port}`);
+
+                openIn(
+                  "https://mrquantumoff.dev/account/oauth2/authorize?client_id=2e1830be-1134-4fec-bfcb-c403dd2b9c94&redirect_uri=http://127.0.0.1:" +
+                    port +
+                    "&scope=user_data,quadrant_sync,notifications&duration=7776000&response_type=code&state=" +
+                    randomString
+                );
+                onOAuth(async (rawUrl) => {
+                  try {
+                    const url = URL.parse(rawUrl);
+                    const actions = url!.pathname.split("/");
+                    console.log(actions);
+                    console.log(rawUrl);
+
+                    const oAuthState = await config.get<string>("oauthState");
+
+                    const providedState = url!.searchParams.get("state");
+                    console.log("State: " + oAuthState);
+                    console.log("Provided state: " + providedState);
+                    if (providedState !== oAuthState) {
+                      return;
+                    }
+                    const code = url!.searchParams.get("code");
+                    console.log("Code: " + code);
+                    if (code === null) {
+                      return;
+                    }
+                    await invoke("oauth2_login", {
+                      code: code,
+                    });
+                  } catch (e) {
+                    console.error(e);
+                  }
+                  await cancel(port);
+                });
+              } catch (error) {
+                console.error("Error starting OAuth server:", error);
+              }
             }}
             className="bg-sky-500 hover:bg-sky-800 w-full mx-2"
           >

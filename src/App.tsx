@@ -300,6 +300,7 @@ function App() {
           }
         }
       });
+
       await listen("refreshNotifications", async (event) => {
         const newNotifications = event.payload as AccountNotification[];
         newNotifications.sort((a, b) => {
@@ -327,7 +328,7 @@ function App() {
                 notification.read ||
                 shownNotifications.includes(notification.notification_id)
               ) {
-                console.log("Notification already displayed");
+                // console.log("Notification already displayed");
                 return;
               }
               console.log("Sending notification");

@@ -157,5 +157,6 @@
   "updateChannel": "Güncelleme kanalı",
   "stable": "Stabil",
   "preview": "Önizleme",
-  "otp": "Tek kullanımlık kod"
+  "otp": "Tek kullanımlık kod",
+  "returnToTheApp": "Giriş başarılı. Uygulamaya geri dönün."
 }

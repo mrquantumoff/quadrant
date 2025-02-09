@@ -157,5 +157,6 @@
   "updateChannel": "Update channel",
   "stable": "Stable",
   "preview": "Preview",
-  "otp": "One-time password"
+  "otp": "One-time password",
+  "returnToTheApp": "Login successful. Return to the app."
 }
