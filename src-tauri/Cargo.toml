@@ -1,6 +1,6 @@
 [package]
 name = "quadrant_next"
-version = "25.2.2"
+version = "25.3.0"
 description = "An easy way to manage your Minecraft mods and modpacks"
 authors = ["Demir Yerli <me@mrquantumoff.dev>"]
 edition = "2021"
@@ -73,6 +73,7 @@ tauri-plugin-single-instance = { version = "2.2.1", features = ["deep-link"] }
 
 [profile.dev]
 opt-level = 0
+codegen-units = 1024
 overflow-checks = false
 
 [profile.release]

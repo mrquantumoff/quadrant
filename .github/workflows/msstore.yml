@@ -44,30 +44,19 @@ jobs:
         with:
           workspaces: "./src-tauri -> target"
 
-      - name: Install the Azure Code Signing requirements (Windows only)
-        if: matrix.platform == 'windows-latest'
-        run: |
-          cargo install trusted-signing-cli
-
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build the app
         id: tauri
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           ETERNAL_API_TOKEN: ${{ secrets.ETERNAL_API_TOKEN }}
           QUADRANT_API_KEY: ${{ secrets.QUADRANT_API_KEY }}
           QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
           QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
+        run: |
+          pnpm tauri build --config src-tauri/tauri.msstore.conf.json
+          makeappx pack /m .\AppxManifest.xml /f .\AppxMappings.txt /p quadrant.msix /o
+      - uses: actions/upload-artifact@v4
         with:
-          releaseName: "Quadrant v__VERSION__"
-          releaseBody: "See the assets to download this version and install. Check out the [changelog on my blog](https://blog.mrquantumoff.dev)"
-          releaseDraft: false
-          prerelease: ${{ !endsWith(github.ref_name, 'stable') }}
-          includeUpdaterJson: false
-          args: --config src-tauri/tauri.msstore.conf.json
-          tagName: ${{github.ref_name}}
+          name: quadrant_msstore.msix
+          path: "*.msix"

@@ -1,14 +1,8 @@
 {
     "identifier": "dev.mrquantumoff.mcmodpackmanager",
-    "version": "25.2.2-msstore",
+    "version": "25.3.0-msstore",
     "bundle":  {
-        "targets": "nsis",
-        "createUpdaterArtifacts": false,
-        "windows": {
-            "webviewInstallMode": {
-                "silent": true,
-                "type": "offlineInstaller"
-            }
-        }
+        "active": false,
+        "createUpdaterArtifacts": false
     }
 }

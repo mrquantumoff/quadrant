@@ -160,6 +160,15 @@ pub async fn run() {
                 }
             }
             let handle = app.handle().clone();
+            let ms_store_build = app
+                .config()
+                .version
+                .clone()
+                .unwrap_or_default()
+                .contains("msstore");
+            if ms_store_build {
+                autoupdate = false;
+            }
             log::info!("Autoupdate enabled: {}\nInitializing state...", autoupdate);
             app.manage(Mutex::new(AppState {
                 is_update_enabled: autoupdate,
@@ -350,7 +359,7 @@ async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
 
     let update_config = app.store("updateConfig.json")?;
 
-    let force_update = app
+    let ms_store_build = app
         .config()
         .version
         .clone()
@@ -369,14 +378,14 @@ async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
 
     log::info!("Update URLs: {:?}", update_urls);
 
-    let mut updater = app
+    let updater = app
         .updater_builder()
         .endpoints(update_urls)?
         // .version_comparator(|current, update| current != update.version)
         .header("User-Agent", get_user_agent())?;
 
-    if force_update {
-        updater = updater.version_comparator(|current, update| current != update.version);
+    if ms_store_build {
+        return Ok(());
     }
 
     let updater = updater.build()?;
