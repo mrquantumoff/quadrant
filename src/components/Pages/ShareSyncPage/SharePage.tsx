@@ -119,7 +119,7 @@ export default function SharePage({
   }, [modpack]);
 
   return (
-    <div className="flex flex-1 flex-col justify-center items-center w-full ">
+    <div className="flex flex-1 flex-col justify-center items-center w-full my-8 h-[80vh] ">
       {isLoading && (
         <div className="bg-slate-800 rounded-2xl p-4">
           <CircularProgress />
@@ -159,7 +159,7 @@ export default function SharePage({
                   {t("modCount", { amount: mods.length })}
                 </p>
                 <div className=" items-center justify-center my-4 rounded-2xl p-2 h-min  border-slate-900 border-8 ">
-                  <div className="grid grid-cols-3 mb-0 2xl:grid-cols-4 gap-6 p-4 max-h-[45vh] max-w-[80vw] overflow-auto  ">
+                  <div className="grid grid-cols-3 mb-0 2xl:grid-cols-4 gap-6 p-4 max-h-[35vh] max-w-[80vw] overflow-auto  ">
                     {mods.map((mod) => {
                       return (
                         <Mod
