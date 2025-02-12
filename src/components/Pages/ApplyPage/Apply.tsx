@@ -107,33 +107,6 @@ export default function ApplyPage() {
     effect();
   }, [searchQuery]);
 
-  listen("quadrantExportProgress", async (event: any) => {
-    const progress = event.payload;
-    if (progress === 100) {
-      context.setSnackbar({
-        className: "bg-emerald-700 rounded-2xl",
-        message: (
-          <span className="flex">
-            <span>{t("export")}</span>
-            <MdArchive className="w-6 h-6 mx-2" /> {progress}%
-          </span>
-        ),
-        timeout: 15000,
-      });
-    } else {
-      context.setSnackbarNoState({
-        message: (
-          <span className="flex">
-            <span>{t("export")}</span>
-            <MdArchive className="w-6 h-6 mx-2" /> {progress}%
-          </span>
-        ),
-        className: "bg-gray-700 rounded-2xl",
-        timeout: 500000,
-      });
-    }
-  });
-
   const updateModpacks = async () => {
     // console.log(searchQuery);
     const newModpacks = await getModpacks(true, searchQuery);

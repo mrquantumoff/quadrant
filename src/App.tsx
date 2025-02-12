@@ -18,6 +18,7 @@ import quadrantLocale from "./i18n";
 import { LazyStore } from "@tauri-apps/plugin-store";
 import {
   MdAccountCircle,
+  MdArchive,
   MdCheck,
   MdClear,
   MdClose,
@@ -147,11 +148,37 @@ function App() {
       );
 
       await listen("quadrantExportProgress", async (e: any) => {
-        currentWindow.setProgressBar({ progress: e.payload });
-        if (e.payload === 100) {
+        console.log("Raw progress: " + e.payload);
+        const progress = Math.round(e.payload * 100);
+
+        console.log(progress);
+
+        currentWindow.setProgressBar({ progress: progress });
+        if (e.payload === 1) {
           currentWindow.setProgressBar({
             progress: 0,
             status: ProgressBarStatus.None,
+          });
+          contextFunctions.setSnackbar({
+            className: "bg-emerald-700 rounded-2xl",
+            message: (
+              <span className="flex">
+                <span>{t("export")}</span>
+                <MdArchive className="w-6 h-6 mx-2" /> {progress}%
+              </span>
+            ),
+            timeout: 15000,
+          });
+        } else {
+          contextFunctions.setSnackbarNoState({
+            message: (
+              <span className="flex">
+                <span>{t("export")}</span>
+                <MdArchive className="w-6 h-6 mx-2" /> {progress}%
+              </span>
+            ),
+            className: "bg-gray-700 rounded-2xl",
+            timeout: 500000,
           });
         }
       });
@@ -161,7 +188,7 @@ function App() {
         currentWindow.setProgressBar({
           progress: progress,
         });
-        if (progress === 100) {
+        if (progress === 1) {
           currentWindow.setProgressBar({
             progress: 0,
             status: ProgressBarStatus.None,

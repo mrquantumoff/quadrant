@@ -394,15 +394,11 @@ pub async fn export_modpack(modpack: String, app: AppHandle) -> Result<(), tauri
         .large_file(true);
 
     let files = std::fs::read_dir(&modpack_folder)?;
-    let modpacks = get_modpacks(false, app.clone()).await;
-    let total_files = modpacks
-        .iter()
-        .find(|m| m.name == modpack)
-        .unwrap()
-        .mods
-        .len();
+    let total_files = files.filter_map(|entry| entry.ok()).count();
     let mut zip_issues = false;
     let mut done_files = 0;
+    let files = std::fs::read_dir(&modpack_folder)?;
+
     for file in files {
         let file = file?;
         let file_name = file.file_name();
@@ -427,7 +423,7 @@ pub async fn export_modpack(modpack: String, app: AppHandle) -> Result<(), tauri
         done_files += 1;
         app.emit(
             "quadrantExportProgress",
-            ((done_files as f64 / total_files as f64) * 100.0).round(),
+            done_files as f64 / total_files as f64,
         )?;
     }
     let res = zip.finish();
@@ -435,6 +431,6 @@ pub async fn export_modpack(modpack: String, app: AppHandle) -> Result<(), tauri
         log::error!("Failed to finish zip");
         return Err(anyhow!("Failed to finish zip").into());
     }
-    app.emit("quadrantExportProgress", 100)?;
+    app.emit("quadrantExportProgress", 1)?;
     Ok(())
 }
