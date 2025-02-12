@@ -455,7 +455,7 @@ export default function SearchPage() {
                 </AnimatePresence>
               </div>
             ) : (
-              <div className="bg-slate-800 rounded-2xl w-96 h-96 self-center p-8 items-center justify-center">
+              <div className="bg-slate-800 rounded-2xl self-center p-8 items-center justify-center">
                 <CircularProgress></CircularProgress>
               </div>
             )}
