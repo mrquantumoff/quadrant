@@ -193,271 +193,274 @@ export default function SearchPage() {
         initial={{ y: 500, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 5000 }}
-        className="flex flex-1 flex-col w-full h-full justify-start items-center content-main "
+        className="flex flex-col w-full h-full justify-start items-center content-main "
       >
-        <AnimatePresence>
-          {filter && (
-            <motion.div
-              initial={{ y: -500 }}
-              animate={{ y: 0 }}
-              exit={{ y: 50, opacity: 0 }}
-              className="items-center font-bold text-center mt-8"
-            >
-              {modpack} | {version} | {loader}
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            search();
-          }}
-          className="flex flex-1 items-center justify-center mb-8 w-[95%] mx-8 my-2 "
-        >
-          <Input
-            placeholder={t("searchForMods")}
-            className="w-full input h-16 self-center mr-4 text-center"
-            onChange={(event) => {
-              const query = event.target.value;
-              setSearchQuery(query);
-            }}
-            autoComplete="off"
-            value={searchQuery}
-            onSubmit={async () => {
+        <div className="h-min w-full">
+          <AnimatePresence>
+            {filter && (
+              <motion.div
+                initial={{ y: -500 }}
+                animate={{ y: 0 }}
+                exit={{ y: 50, opacity: 0 }}
+                className="items-center font-bold text-center mt-8"
+              >
+                {modpack} | {version} | {loader}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
               search();
             }}
-          ></Input>
-          <div className="flex flex-col">
-            <Button
-              onClick={search}
-              className="flex items-center my-2 justify-center hover:text-sky-950 self-center bg-sky-800 hover:bg-sky-400 h-fit"
-            >
-              <MdSearch className=""></MdSearch>
-              {t("search")}
-            </Button>
-            <Popover className="relative">
-              {({ open }) => {
-                return (
-                  <>
-                    <PopoverButton
-                      className={
-                        "flex w-full items-center bg-slate-600 my-2 rounded-2xl focus:outline-none hover:bg-slate-700 font-bold p-2 self-start"
-                      }
-                    >
-                      <MdFilterAlt />
-                      {t("filter")}
-                    </PopoverButton>
-                    <AnimatePresence>
-                      {open && (
-                        <PopoverPanel
-                          anchor="bottom"
-                          className="bg-slate-900 border-2 mt-8 border-slate-700 p-8 rounded-2xl flex flex-col w-max"
-                          static
-                          as={motion.div}
-                          initial={{
-                            opacity: 0,
-                            scale: 0.125,
-                            x: 200,
-                            y: -50,
-                          }}
-                          animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.125, x: 200, y: -50 }}
-                        >
-                          <Fieldset>
-                            <Field>
-                              <Label className="block my-2 font-bold">
-                                {t("chooseVersion")}
-                              </Label>
-                              <Select
-                                className="w-full input"
-                                name="version"
-                                autoComplete="off"
-                                value={version}
-                                onChange={async (e) => {
-                                  e.preventDefault();
-                                  setVersion(e.target.value);
-
-                                  const config = await load("config.json");
-
-                                  await config.set(
-                                    "lastUsedVersion",
-                                    e.target.value
-                                  );
-                                  setVersion(e.target.value);
-                                }}
-                              >
-                                {versions.map((versionOption) => {
-                                  return (
-                                    <option
-                                      value={versionOption.version}
-                                      className="rounded-2xl font-semibold"
-                                      key={versionOption.version}
-                                    >
-                                      {versionOption.version}
-                                    </option>
-                                  );
-                                })}
-                              </Select>
-                            </Field>
-                            <Field>
-                              <Label className="block my-2 font-bold">
-                                {t("choosePreferredAPI")}
-                              </Label>
-                              <Select
-                                className="w-full input"
-                                name="modLoader"
-                                onChange={async (e) => {
-                                  e.preventDefault();
-                                  setLoader(e.target.value);
-
-                                  const config = await load("config.json");
-
-                                  await config.set(
-                                    "lastUsedAPI",
-                                    e.target.value
-                                  );
-                                  await config.save();
-                                }}
-                                value={loader}
-                                autoComplete="off"
-                              >
-                                <LoaderOptions loader={loader} />
-                              </Select>
-                            </Field>
-                            <Field>
-                              <Label className="block my-2 font-bold">
-                                {t("chooseModpack")}
-                              </Label>
-                              <Select
-                                className="w-full input"
-                                name="modpack"
-                                autoComplete="off"
-                                value={modpack}
-                                onChange={async (e) => {
-                                  e.preventDefault();
-                                  const modpack = modpacks.filter(
-                                    (i) => i.name === e.target.value
-                                  )[0];
-                                  const config = await load("config.json");
-
-                                  await config.set(
-                                    "lastUsedModpack",
-                                    modpack.name
-                                  );
-                                  await config.set(
-                                    "lastUsedVersion",
-                                    modpack.version
-                                  );
-                                  await config.set(
-                                    "lastUsedAPI",
-                                    modpack.modLoader
-                                  );
-                                  await config.save();
-                                  setModpack(modpack.name);
-                                  setLoader(modpack.modLoader);
-                                  setVersion(modpack.version);
-                                  setFilter(true);
-                                }}
-                              >
-                                {modpacks.map((modpack) => (
-                                  <option
-                                    value={modpack.name}
-                                    key={modpack.name}
-                                  >
-                                    {modpack.name} | {modpack.modLoader} |{" "}
-                                    {modpack.version}
-                                  </option>
-                                ))}
-                              </Select>
-                            </Field>
-                            <div className="flex flex-1 items-center justify-center">
-                              <CloseButton
-                                className={
-                                  "p-2 font-extrabold rounded-2xl mx-2 flex flex-1 h-full items-center bg-emerald-600 hover:bg-emerald-800 mt-8"
-                                }
-                                onClick={() => {
-                                  setFilter(true);
-                                }}
-                              >
-                                <MdCheck className="w-6 h-6 mr-2 self-center" />
-                                {t("apply")}
-                              </CloseButton>
-                              <CloseButton
-                                onClick={() => {
-                                  setFilter(false);
-                                }}
-                                className={
-                                  "p-2 font-extrabold rounded-2xl mx-2 flex flex-1 h-full items-center bg-slate-600 hover:bg-slate-800 mt-8"
-                                }
-                              >
-                                <MdCancel className="w-6 h-6 mr-2 self-center" />
-                                {t("cancel")}
-                              </CloseButton>
-                            </div>
-                          </Fieldset>
-                        </PopoverPanel>
-                      )}
-                    </AnimatePresence>
-                  </>
-                );
+            className="flex flex-1 items-center justify-center mb-8 h-fit w-[95%] mx-8 my-2 "
+          >
+            <Input
+              placeholder={t("searchForMods")}
+              className="w-full input h-16 self-center mr-4 text-center"
+              onChange={(event) => {
+                const query = event.target.value;
+                setSearchQuery(query);
               }}
-            </Popover>
-          </div>
-        </form>
-
-        <AnimatePresence>
-          {mods.length !== 0 ? (
-            <div className="bg-slate-800 items-center align-middle justify-center rounded-2xl mr-4 ml-2 mb-12 ">
-              <div className="grid grid-cols-3 mb-0 2xl:grid-cols-4 gap-6 p-4">
-                {mods.map((mod, index) => {
+              autoComplete="off"
+              value={searchQuery}
+              onSubmit={async () => {
+                search();
+              }}
+            ></Input>
+            <div className="flex flex-col h-fit">
+              <Button
+                onClick={search}
+                className="flex items-center my-2 justify-center hover:text-sky-950 self-center bg-sky-800 hover:bg-sky-400 h-min"
+              >
+                <MdSearch className=""></MdSearch>
+                {t("search")}
+              </Button>
+              <Popover className="relative">
+                {({ open }) => {
                   return (
-                    <Mod
-                      key={index}
-                      className=" "
-                      mod={mod}
-                      modpack={undefined}
-                    ></Mod>
+                    <>
+                      <PopoverButton
+                        className={
+                          "flex w-full items-center bg-slate-600 my-2 rounded-2xl focus:outline-none hover:bg-slate-700 font-bold p-2 self-start"
+                        }
+                      >
+                        <MdFilterAlt />
+                        {t("filter")}
+                      </PopoverButton>
+                      <AnimatePresence>
+                        {open && (
+                          <PopoverPanel
+                            anchor="bottom"
+                            className="bg-slate-900 border-2 mt-8 border-slate-700 p-8 rounded-2xl flex flex-col w-max"
+                            static
+                            as={motion.div}
+                            initial={{
+                              opacity: 0,
+                              scale: 0.125,
+                              x: 200,
+                              y: -50,
+                            }}
+                            animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.125, x: 200, y: -50 }}
+                          >
+                            <Fieldset>
+                              <Field>
+                                <Label className="block my-2 font-bold">
+                                  {t("chooseVersion")}
+                                </Label>
+                                <Select
+                                  className="w-full input"
+                                  name="version"
+                                  autoComplete="off"
+                                  value={version}
+                                  onChange={async (e) => {
+                                    e.preventDefault();
+                                    setVersion(e.target.value);
+
+                                    const config = await load("config.json");
+
+                                    await config.set(
+                                      "lastUsedVersion",
+                                      e.target.value
+                                    );
+                                    setVersion(e.target.value);
+                                  }}
+                                >
+                                  {versions.map((versionOption) => {
+                                    return (
+                                      <option
+                                        value={versionOption.version}
+                                        className="rounded-2xl font-semibold"
+                                        key={versionOption.version}
+                                      >
+                                        {versionOption.version}
+                                      </option>
+                                    );
+                                  })}
+                                </Select>
+                              </Field>
+                              <Field>
+                                <Label className="block my-2 font-bold">
+                                  {t("choosePreferredAPI")}
+                                </Label>
+                                <Select
+                                  className="w-full input"
+                                  name="modLoader"
+                                  onChange={async (e) => {
+                                    e.preventDefault();
+                                    setLoader(e.target.value);
+
+                                    const config = await load("config.json");
+
+                                    await config.set(
+                                      "lastUsedAPI",
+                                      e.target.value
+                                    );
+                                    await config.save();
+                                  }}
+                                  value={loader}
+                                  autoComplete="off"
+                                >
+                                  <LoaderOptions loader={loader} />
+                                </Select>
+                              </Field>
+                              <Field>
+                                <Label className="block my-2 font-bold">
+                                  {t("chooseModpack")}
+                                </Label>
+                                <Select
+                                  className="w-full input"
+                                  name="modpack"
+                                  autoComplete="off"
+                                  value={modpack}
+                                  onChange={async (e) => {
+                                    e.preventDefault();
+                                    const modpack = modpacks.filter(
+                                      (i) => i.name === e.target.value
+                                    )[0];
+                                    const config = await load("config.json");
+
+                                    await config.set(
+                                      "lastUsedModpack",
+                                      modpack.name
+                                    );
+                                    await config.set(
+                                      "lastUsedVersion",
+                                      modpack.version
+                                    );
+                                    await config.set(
+                                      "lastUsedAPI",
+                                      modpack.modLoader
+                                    );
+                                    await config.save();
+                                    setModpack(modpack.name);
+                                    setLoader(modpack.modLoader);
+                                    setVersion(modpack.version);
+                                    setFilter(true);
+                                  }}
+                                >
+                                  {modpacks.map((modpack) => (
+                                    <option
+                                      value={modpack.name}
+                                      key={modpack.name}
+                                    >
+                                      {modpack.name} | {modpack.modLoader} |{" "}
+                                      {modpack.version}
+                                    </option>
+                                  ))}
+                                </Select>
+                              </Field>
+                              <div className="flex flex-1 items-center justify-center">
+                                <CloseButton
+                                  className={
+                                    "p-2 font-extrabold rounded-2xl mx-2 flex flex-1 h-full items-center bg-emerald-600 hover:bg-emerald-800 mt-8"
+                                  }
+                                  onClick={() => {
+                                    setFilter(true);
+                                  }}
+                                >
+                                  <MdCheck className="w-6 h-6 mr-2 self-center" />
+                                  {t("apply")}
+                                </CloseButton>
+                                <CloseButton
+                                  onClick={() => {
+                                    setFilter(false);
+                                  }}
+                                  className={
+                                    "p-2 font-extrabold rounded-2xl mx-2 flex flex-1 h-full items-center bg-slate-600 hover:bg-slate-800 mt-8"
+                                  }
+                                >
+                                  <MdCancel className="w-6 h-6 mr-2 self-center" />
+                                  {t("cancel")}
+                                </CloseButton>
+                              </div>
+                            </Fieldset>
+                          </PopoverPanel>
+                        )}
+                      </AnimatePresence>
+                    </>
                   );
-                })}
-              </div>
-              <AnimatePresence>
-                {allResults.length > 50 * page && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.125 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    whileHover={{ opacity: 1 }}
-                    exit={{ y: 500 }}
-                    className="flex flex-col mb-8 items-center justify-center"
-                  >
-                    <Button
-                      onClick={() => {
-                        const isThereNextPage =
-                          allResults.length > 50 * (page + 1);
-                        setMods([
-                          ...mods,
-                          ...allResults.slice(
-                            50 * page,
-                            isThereNextPage
-                              ? 50 * (page + 1)
-                              : allResults.length
-                          ),
-                        ]);
-                        setPage(page + 1);
-                      }}
-                      className=" bg-emerald-600  p-4  hover:bg-emerald-700 mt-8"
+                }}
+              </Popover>
+            </div>
+          </form>
+        </div>
+        <div className="h-max flex items-center place-content-center">
+          <AnimatePresence>
+            {mods.length !== 0 ? (
+              <div className="bg-slate-800 items-center align-middle justify-center rounded-2xl mr-4 ml-2 mb-12 ">
+                <div className="grid grid-cols-3 mb-0 2xl:grid-cols-4 gap-6 p-4">
+                  {mods.map((mod, index) => {
+                    return (
+                      <Mod
+                        key={index}
+                        className=" "
+                        mod={mod}
+                        modpack={undefined}
+                      ></Mod>
+                    );
+                  })}
+                </div>
+                <AnimatePresence>
+                  {allResults.length > 50 * page && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.125 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      whileHover={{ opacity: 1 }}
+                      exit={{ y: 500 }}
+                      className="flex flex-col mb-8 items-center justify-center"
                     >
-                      <MdArrowDownward className="w-6 h-6 self-center" />
-                    </Button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          ) : (
-            <div className="bg-slate-800 rounded-2xl w-min p-8 mr-4 ml-2 mb-12 flex flex-1 items-center justify-center">
-              <CircularProgress></CircularProgress>
-            </div>
-          )}
-        </AnimatePresence>
+                      <Button
+                        onClick={() => {
+                          const isThereNextPage =
+                            allResults.length > 50 * (page + 1);
+                          setMods([
+                            ...mods,
+                            ...allResults.slice(
+                              50 * page,
+                              isThereNextPage
+                                ? 50 * (page + 1)
+                                : allResults.length
+                            ),
+                          ]);
+                          setPage(page + 1);
+                        }}
+                        className=" bg-emerald-600  p-4  hover:bg-emerald-700 mt-8"
+                      >
+                        <MdArrowDownward className="w-6 h-6 self-center" />
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="bg-slate-800 rounded-2xl w-96 h-96 self-center p-8 items-center justify-center">
+                <CircularProgress></CircularProgress>
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
       </motion.div>
     </>
   );
