@@ -35,10 +35,8 @@ pub struct AppState {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[allow(deprecated)]
 pub async fn run() {
-    #[cfg(not(dev))]
-    {
-        colog::init();
-    }
+    colog::init();
+
     log::info!("Initializing Tauri...");
     let mut builder =
         tauri::Builder::default().plugin(tauri_plugin_updater::Builder::new().build());
@@ -73,10 +71,6 @@ pub async fn run() {
                 }
             }
         }));
-    }
-    #[cfg(dev)]
-    {
-        builder = builder.plugin(tauri_plugin_devtools::init());
     }
 
     builder = builder
@@ -397,7 +391,6 @@ async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
                     downloaded += chunk_length;
                     let progress = downloaded as f64 / content_length.unwrap() as f64;
                     log::info!("downloaded {}", progress);
-                    app.emit("updateDownloadProgress", progress).unwrap();
                 },
                 || {
                     log::info!("download finished");

@@ -34,7 +34,7 @@ import CurrentModpackPage from "./components/Pages/CurrentModpackPage/CurrentMod
 import { AnimatePresence, motion } from "motion/react";
 import SearchPage from "./components/Pages/SearchPage/SearchPage";
 import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, ProgressBarStatus } from "@tauri-apps/api/window";
 import {
   answerInvite,
   getAccountInfo,
@@ -130,6 +130,13 @@ function App() {
       await listen("updateDownloadProgress", async (e: any) => {
         if (updateDownloadProgress !== e.payload) {
           setUpdateDownloadProgress(e.payload);
+          currentWindow.setProgressBar({ progress: e.payload * 100 });
+          if (e.payload === 1) {
+            currentWindow.setProgressBar({
+              progress: 0,
+              status: ProgressBarStatus.None,
+            });
+          }
         }
       });
 
@@ -138,6 +145,29 @@ function App() {
           event.preventDefault()
         )
       );
+
+      await listen("quadrantExportProgress", async (e: any) => {
+        currentWindow.setProgressBar({ progress: e.payload });
+        if (e.payload === 100) {
+          currentWindow.setProgressBar({
+            progress: 0,
+            status: ProgressBarStatus.None,
+          });
+        }
+      });
+
+      await listen("modpackDownloadProgress", async (e: any) => {
+        const progress = Math.round(e.payload);
+        currentWindow.setProgressBar({
+          progress: progress,
+        });
+        if (progress === 100) {
+          currentWindow.setProgressBar({
+            progress: 0,
+            status: ProgressBarStatus.None,
+          });
+        }
+      });
 
       setExtendedNavigation(
         (await config.get<boolean>("extendedNavigation")) ?? false

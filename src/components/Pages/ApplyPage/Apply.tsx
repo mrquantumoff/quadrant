@@ -246,8 +246,8 @@ export default function ApplyPage() {
                   <h1 className="text-4xl font-extrabold max-w-56 w-56">
                     {modpack.name}
                   </h1>
-                  <p className="text-md text-slate-400 hover:text-slate-50">
-                    {modpack.version} | {modpack.modLoader} | {}
+                  <p className="text-md text-slate-400 ">
+                    {modpack.version} | {modpack.modLoader} |{" "}
                     {t("modCount", { amount: modpack.mods.length })}{" "}
                     {modpack.lastSynced !== 0 && <span>| {dateString}</span>}
                   </p>
