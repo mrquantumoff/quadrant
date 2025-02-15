@@ -213,12 +213,12 @@ pub async fn get_modpacks(hide_free: bool, app: AppHandle) -> Vec<LocalModpack> 
             let expected_files = modpack.mods.iter().count() + extra_files;
 
             if expected_files < file_amount {
-                log::info!(
-                    "Modpack name: {}\nExpected files: {}\nTotal files: {}",
-                    modpack.name,
-                    expected_files,
-                    file_amount
-                );
+                // log::info!(
+                //     "Modpack name: {}\nExpected files: {}\nTotal files: {}",
+                //     modpack.name,
+                //     expected_files,
+                //     file_amount
+                // );
                 modpack.unknown_mods = true;
             }
             modpacks.push(modpack);

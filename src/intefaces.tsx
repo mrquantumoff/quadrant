@@ -8,6 +8,14 @@ export interface IContentContext {
   setSnackbarNoState(newSnackBarState: SnackbarState): void;
 }
 
+export interface IModpackViewContext {
+  removeMod: (id: string) => void;
+}
+
+export const ModpackViewContext = createContext<IModpackViewContext>({
+  removeMod: (_: string) => {},
+});
+
 export const ContentContext = createContext<IContentContext>({
   back: async () => {},
   changeContent: () => {},
@@ -120,7 +128,12 @@ export interface GlobalSearchModsArgs {
 }
 
 export interface IdentifiedMod {
-  installedMod: LocalMod;
+  installed_mod: LocalMod;
+  file_name: string;
+}
+
+export interface FetchedIdentifiedMod {
+  proposedMods: IMod[];
   fileName: string;
 }
 

@@ -21,7 +21,7 @@ export default function CurrentModpackPage() {
       const newModpack = (await getModpacks(false)).filter(
         (modpack) => modpack.isApplied
       )[0];
-      console.log(newModpack);
+
       setCurrentModpack(newModpack);
 
       const mcFolder = await path.join(await getMinecraftFolder(false), "mods");

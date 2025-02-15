@@ -244,7 +244,7 @@ pub async fn register_mod(
     mod_config.mods.push(mod_);
     std::fs::write(
         modpack_folder.join("modConfig.json"),
-        serde_json::to_string_pretty(&mod_config)?,
+        serde_json::to_string_pretty(&InstalledModpack::from(mod_config))?,
     )?;
     Ok(())
 }

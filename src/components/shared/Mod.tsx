@@ -1,13 +1,26 @@
 import { useTranslation } from "react-i18next";
-import { ContentContext, IMod, ModLoader, ModSource } from "../../intefaces";
 import {
+  ContentContext,
+  IMod,
+  ModLoader,
+  ModpackViewContext,
+  ModSource,
+} from "../../intefaces";
+import {
+  MdCheck,
   MdDelete,
   MdDownload,
   MdFileDownload,
   MdOpenInBrowser,
 } from "react-icons/md";
 import { motion } from "motion/react";
-import { deleteMod, installMod, installRemoteFile, openIn } from "../../tools";
+import {
+  deleteMod,
+  installMod,
+  installRemoteFile,
+  openIn,
+  registerMod,
+} from "../../tools";
 import { useContext, useEffect, useState } from "react";
 import ModInstallPage from "../Pages/ModInstallPage/ModInstallPage";
 import { listen } from "@tauri-apps/api/event";
@@ -43,6 +56,7 @@ export default function Mod(props: IModProps) {
   const context = useContext(ContentContext);
 
   const config = new LazyStore("config.json");
+  const modpackViewContext = useContext(ModpackViewContext);
 
   const openModDownload = async () => {
     if (!mod.downloadable) {
@@ -255,6 +269,25 @@ export default function Mod(props: IModProps) {
               )
             ) : (
               <></>
+            )}
+            {mod.selectable && (
+              <button
+                className="flex items-center w-full text-lg/none self-center h-full break-words text-center justify-center bg-blue-700 hover:bg-blue-800 font-extrabold px-2 py-1 rounded-2xl mx-2"
+                onClick={async () => {
+                  await registerMod(
+                    {
+                      downloadUrl: mod.selectUrl ?? "",
+                      id: mod.id,
+                      source: mod.source,
+                    },
+                    mod.modpack ?? ""
+                  );
+                  modpackViewContext.removeMod(mod.id);
+                }}
+              >
+                {t("select")}
+                <MdCheck className="ml-2 w-6 h-6"></MdCheck>
+              </button>
             )}
             {mod.url.trim().length !== 0 && (
               <button

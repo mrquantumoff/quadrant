@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use cache::{add_cache_index, file_hash, get_cache_index};
 
+use anyhow::anyhow;
 #[cfg(feature = "curseforge")]
 use curseforge::{
     download_mod_curseforge, get_latest_mod_version_curseforge, search_mods_curseforge, ModFile,
@@ -133,7 +134,7 @@ pub struct InstalledMod {
 pub fn get_user_agent() -> String {
     format!(
         "mrquantumoff/quadrant/v{} (mrquantumoff.dev) (QUADRANT NEXT)",
-        tauri_plugin_os::version()
+        env!("CARGO_PKG_VERSION")
     )
     .to_string()
 }
@@ -657,14 +658,26 @@ pub async fn identify_modpack(
     if curseforge_enabled == true {
         #[cfg(feature = "curseforge")]
         {
-            // let mut curse_mods = ;
-            mods.append(
-                &mut curseforge::identify_modpack_curseforge(modpack.clone(), app.clone()).await?,
-            );
+            let curse_mods =
+                curseforge::identify_modpack_curseforge(modpack.clone(), app.clone()).await;
+            if curse_mods.is_err() {
+                log::error!(
+                    "Failed to identify CurseForge mods: {}",
+                    curse_mods.err().unwrap()
+                );
+            } else {
+                mods.append(&mut curse_mods.unwrap());
+            }
         }
     }
     if modrinth_enabled == true {
-        mods.append(&mut modrinth::identify_modpack_modrinth(modpack, app).await?);
+        let modrinth_mods = modrinth::identify_modpack_modrinth(modpack, app).await;
+        if modrinth_mods.is_err() {
+            log::error!("Failed to identify mods: {}", modrinth_mods.err().unwrap());
+            return Err(anyhow!("Failed to identify Modrinth mods").into());
+        } else {
+            mods.append(&mut modrinth_mods.unwrap());
+        }
     }
     Ok(mods)
 }

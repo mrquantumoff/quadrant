@@ -11,7 +11,7 @@ pub fn get_jar_contents(path: &str) -> Buffer {
     })
 }
 
-/// Computes a hash from the non-whitespace bytes in the buffer.
+/// Computes a hash for the given buffer.
 pub fn compute_hash(buffer: &Buffer) -> u32 {
     const MULTIPLEX: u32 = 1540483477;
     let normalized_length = compute_normalized_length(buffer);
@@ -20,7 +20,7 @@ pub fn compute_hash(buffer: &Buffer) -> u32 {
     let mut num4 = 0;
 
     for &b in buffer {
-        if !b.is_ascii_whitespace() {
+        if !is_whitespace_character(b) {
             num3 |= (b as u32) << num4;
             num4 += 8;
             if num4 == 32 {
@@ -41,7 +41,15 @@ pub fn compute_hash(buffer: &Buffer) -> u32 {
     num6 ^ (num6 >> 15)
 }
 
-/// Returns the count of non-whitespace bytes in the buffer.
+/// Returns the count of non-whitespace characters in the buffer.
 pub fn compute_normalized_length(buffer: &Buffer) -> u32 {
-    buffer.iter().filter(|&&b| !b.is_ascii_whitespace()).count() as u32
+    buffer
+        .iter()
+        .filter(|&&b| !is_whitespace_character(b))
+        .count() as u32
+}
+
+/// Checks if a byte is a whitespace character (tab, newline, carriage return, or space).
+pub fn is_whitespace_character(b: u8) -> bool {
+    matches!(b, 9 | 10 | 13 | 32)
 }

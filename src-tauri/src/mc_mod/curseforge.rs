@@ -517,10 +517,10 @@ pub async fn identify_modpack_curseforge(
             file.file_name().unwrap().to_string_lossy().to_string(),
         ));
     }
-    let file_url = format!("{}api/v1/fingerprints/{}", BASE_URL, MINECRAFT_ID);
+    let file_url = format!("{}v1/fingerprints/{}", BASE_URL, MINECRAFT_ID);
 
     let body = serde_json::json!({
-        "fingerprints": hashes,
+        "fingerprints": hashes.iter().map(|hash| hash.0).collect::<Vec<u32>>(),
     });
 
     let client = reqwest::Client::new();

@@ -7,6 +7,7 @@ import {
   IdentifiedMod,
   IMod,
   InstalledModpack,
+  LocalMod,
   LocalModpack,
   MinecraftVersion,
   ModLoader,
@@ -360,4 +361,8 @@ export const exportModpack = async (name: string) => {
 
 export const identifyUnknownMods = async (modpack: string): Promise<IdentifiedMod[]> => {
   return await invoke("identify_modpack", { modpack: modpack });
+};
+
+export const registerMod = async (mod: LocalMod, modpack: string) => {
+  await invoke("register_mod", { mod: mod, modpack: modpack });
 };
