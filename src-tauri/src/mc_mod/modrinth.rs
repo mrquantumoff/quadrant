@@ -20,6 +20,7 @@ use reqwest_middleware::ClientBuilder;
 use super::get_file;
 use super::get_mod_url;
 use super::GetModArgs;
+use super::IdentifiedMod;
 use super::InstalledMod;
 use super::ModSource;
 use super::SearchModsArgs;
@@ -132,6 +133,9 @@ pub async fn search_mods_modrinth(
                 new_version: None,
                 deleteable: false,
                 autoinstallable: args.filter_on,
+                selectable: false,
+                select_url: None,
+                modpack: None,
             });
         }
     }
@@ -199,6 +203,9 @@ pub async fn get_mod_modrinth(args: GetModArgs) -> Result<Mod, tauri::Error> {
         new_version: None,
         deleteable: args.deletable,
         autoinstallable: false,
+        selectable: args.selectable,
+        select_url: args.select_url,
+        modpack: Some(args.modpack),
     };
 
     Ok(final_mod)
@@ -263,6 +270,8 @@ pub async fn get_mod_deps_modrinth(id: String) -> Result<Vec<Mod>, tauri::Error>
                 version_target: "".to_string(),
                 modpack: "".to_string(),
                 mod_loader: ModLoader::Unknown,
+                selectable: false,
+                select_url: None,
             })
             .await?,
         );
@@ -367,7 +376,7 @@ pub async fn download_mod_modrinth(
 pub async fn identify_modpack_modrinth(
     modpack: String,
     app: AppHandle,
-) -> Result<Vec<InstalledMod>, anyhow::Error> {
+) -> Result<Vec<IdentifiedMod>, anyhow::Error> {
     let mc_folder = app.store("config.json").unwrap().get("mcFolder");
     let mc_folder = PathBuf::from(mc_folder.unwrap().as_str().unwrap());
     let modpacks_folder = mc_folder.join("modpacks");
@@ -402,11 +411,12 @@ pub async fn identify_modpack_modrinth(
         .map(|f| f.unwrap().file_name().to_string_lossy().to_string())
         .collect();
 
-    let mut mods: Vec<InstalledMod> = Vec::new();
+    let mut mods: Vec<IdentifiedMod> = Vec::new();
 
     let client = reqwest::Client::new();
 
     for file in unknown_files {
+        let original_file_name = file.clone();
         let file = modpack_folder.join(file);
         let mut hasher = Sha1::new();
         hasher.update(std::fs::read(file)?);
@@ -436,10 +446,13 @@ pub async fn identify_modpack_modrinth(
             continue;
         }
         let file = file.unwrap();
-        mods.push(InstalledMod {
-            download_url: file.url.clone(),
-            id: identifier.project_id,
-            source: ModSource::Modrinth,
+        mods.push(IdentifiedMod {
+            installed_mod: InstalledMod {
+                download_url: file.url.clone(),
+                id: identifier.project_id,
+                source: ModSource::Modrinth,
+            },
+            file_name: original_file_name,
         });
     }
 

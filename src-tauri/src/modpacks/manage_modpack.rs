@@ -211,3 +211,40 @@ pub async fn open_modpacks_folder(app: AppHandle) -> Result<(), tauri::Error> {
     open::that_detached(modpacks_folder)?;
     Ok(())
 }
+
+#[tauri::command]
+pub async fn register_mod(
+    mod_: crate::mc_mod::InstalledMod,
+    modpack: String,
+    app: AppHandle,
+) -> Result<(), tauri::Error> {
+    let config = app.store("config.json").unwrap();
+    let binding = config.get("mcFolder").unwrap();
+    let mc_folder = binding.as_str().unwrap();
+    let mc_folder = Path::new(&mc_folder);
+    let modpacks_folder = mc_folder.join("modpacks");
+    let modpack_folder = modpacks_folder.join(&modpack);
+
+    let mod_config = get_modpacks(false, app)
+        .await
+        .into_iter()
+        .find(|m| m.name == modpack);
+    if mod_config.is_none() {
+        return Err(anyhow!("Modpack doesn't exist").into());
+    }
+    let mut mod_config = mod_config.unwrap();
+    let mod_exists = mod_config
+        .mods
+        .clone()
+        .into_iter()
+        .find(|m| m.id == mod_.id);
+    if mod_exists.is_some() {
+        return Err(anyhow!("Mod already registered").into());
+    }
+    mod_config.mods.push(mod_);
+    std::fs::write(
+        modpack_folder.join("modConfig.json"),
+        serde_json::to_string_pretty(&mod_config)?,
+    )?;
+    Ok(())
+}

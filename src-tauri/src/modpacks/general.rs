@@ -84,6 +84,7 @@ pub struct LocalModpack {
     pub version: String,
     pub mod_loader: ModLoader,
     pub mods: Vec<InstalledMod>,
+    pub unknown_mods: bool,
     pub is_applied: bool,
     pub last_synced: i64,
 }
@@ -124,6 +125,7 @@ impl From<(InstalledModpack, bool, i64)> for LocalModpack {
             mods: modpack.0.mods,
             is_applied: modpack.1,
             last_synced: modpack.2,
+            unknown_mods: false,
         }
     }
 }
@@ -141,10 +143,15 @@ pub async fn get_modpacks(hide_free: bool, app: AppHandle) -> Vec<LocalModpack> 
         return modpacks;
     }
     let mods_folder = mc_folder.join("mods");
+
     for entry in std::fs::read_dir(modpacks_folder).unwrap() {
         let entry = entry.unwrap();
         let path = entry.path();
+        let file_amount = std::fs::read_dir(&path).unwrap().count();
+
         if path.is_dir() {
+            let mut extra_files = 0;
+
             let modpack_config = path.join("modConfig.json");
             let mut last_synced: i64 = 0;
             let modpack_sync = path.join("quadrantSync.json");
@@ -168,12 +175,17 @@ pub async fn get_modpacks(hide_free: bool, app: AppHandle) -> Vec<LocalModpack> 
                     mod_loader: ModLoader::Unknown,
                     is_applied,
                     last_synced,
+                    unknown_mods: true,
                 });
                 continue;
+            } else {
+                extra_files += 1;
             }
             let modpack_config = std::fs::File::open(modpack_config).unwrap();
             let reader = std::io::BufReader::new(modpack_config);
             if modpack_sync.exists() {
+                extra_files += 1;
+
                 let sync_info = std::fs::File::open(modpack_sync).unwrap();
                 let reader = std::io::BufReader::new(sync_info);
                 let sync_info: SyncInfo = serde_json::from_reader(reader).unwrap();
@@ -197,7 +209,19 @@ pub async fn get_modpacks(hide_free: bool, app: AppHandle) -> Vec<LocalModpack> 
 
             let mut modpack: InstalledModpack = modpack.unwrap();
             modpack.name = name;
-            modpacks.push(LocalModpack::from((modpack, is_applied, last_synced)));
+            let mut modpack = LocalModpack::from((modpack, is_applied, last_synced));
+            let expected_files = modpack.mods.iter().count() + extra_files;
+
+            if expected_files < file_amount {
+                log::info!(
+                    "Modpack name: {}\nExpected files: {}\nTotal files: {}",
+                    modpack.name,
+                    expected_files,
+                    file_amount
+                );
+                modpack.unknown_mods = true;
+            }
+            modpacks.push(modpack);
         }
     }
     modpacks

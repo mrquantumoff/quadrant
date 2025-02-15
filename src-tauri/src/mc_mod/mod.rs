@@ -117,6 +117,9 @@ pub struct Mod {
     pub new_version: Option<UniversalModFile>,
     pub deleteable: bool,
     pub autoinstallable: bool,
+    pub selectable: bool,
+    pub modpack: Option<String>,
+    pub select_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -263,6 +266,14 @@ pub struct GetModArgs {
     version_target: String,
     mod_loader: ModLoader,
     modpack: String,
+    selectable: bool,
+    select_url: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct IdentifiedMod {
+    pub installed_mod: InstalledMod,
+    pub file_name: String,
 }
 
 #[tauri::command]
@@ -638,11 +649,11 @@ pub async fn install_remote_file(
 pub async fn identify_modpack(
     modpack: String,
     app: AppHandle,
-) -> Result<Vec<InstalledMod>, tauri::Error> {
+) -> Result<Vec<IdentifiedMod>, tauri::Error> {
     let config = app.store("config.json").unwrap();
     let curseforge_enabled = config.get("curseforge").unwrap();
     let modrinth_enabled = config.get("modrinth").unwrap();
-    let mut mods: Vec<InstalledMod> = Vec::new();
+    let mut mods: Vec<IdentifiedMod> = Vec::new();
     if curseforge_enabled == true {
         #[cfg(feature = "curseforge")]
         {

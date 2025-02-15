@@ -2,12 +2,13 @@ pub const BASE_URL: &str = "https://api.curseforge.com/";
 pub const MINECRAFT_ID: i32 = 432;
 use std::path::PathBuf;
 
+use sha1::Digest;
 use tauri::AppHandle;
 use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
 
 use crate::{
-    mc_mod::{curseforge_fingerprint::*, get_user_agent, InstalledMod},
+    mc_mod::{curseforge_fingerprint::*, get_user_agent, IdentifiedMod, InstalledMod},
     modpacks::general::{get_modpacks, LocalModpack, ModLoader},
 };
 
@@ -30,8 +31,8 @@ pub struct ModFileResponse {
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
-pub struct FuzzyMatchesResponse {
-    data: FuzzyMatches,
+pub struct ExactMatchesResponse {
+    data: ExactMatches,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
@@ -79,13 +80,13 @@ pub struct Module {
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct FuzzyMatches {
-    pub matches: Vec<FuzzyMatch>,
+pub struct ExactMatches {
+    pub exact_matches: Vec<ExactMatch>,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct FuzzyMatch {
+pub struct ExactMatch {
     pub file: ModFile,
 }
 
@@ -160,6 +161,9 @@ pub async fn get_mod_curseforge(args: GetModArgs) -> Result<Mod, tauri::Error> {
         new_version: None,
         deleteable: args.deletable,
         autoinstallable: false,
+        selectable: args.selectable,
+        select_url: args.select_url,
+        modpack: Some(args.modpack),
     };
     Ok(final_mod)
 }
@@ -240,6 +244,8 @@ pub async fn get_mod_deps_curseforge(id: String) -> Result<Vec<Mod>, tauri::Erro
                 mod_loader: ModLoader::Unknown,
                 version_target: String::new(),
                 modpack: String::new(),
+                selectable: false,
+                select_url: None,
             })
             .await?,
         );
@@ -352,6 +358,9 @@ pub async fn search_mods_curseforge(
                 new_version: None,
                 deleteable: false,
                 autoinstallable: args.filter_on,
+                selectable: false,
+                select_url: None,
+                modpack: None,
             };
             mods.push(mod_item);
         }
@@ -454,7 +463,7 @@ pub async fn download_mod_curseforge(
 pub async fn identify_modpack_curseforge(
     modpack: String,
     app: AppHandle,
-) -> Result<Vec<InstalledMod>, anyhow::Error> {
+) -> Result<Vec<IdentifiedMod>, anyhow::Error> {
     let mc_folder = app.store("config.json").unwrap().get("mcFolder");
     let mc_folder = PathBuf::from(mc_folder.unwrap().as_str().unwrap());
     let modpacks_folder = mc_folder.join("modpacks");
@@ -489,17 +498,26 @@ pub async fn identify_modpack_curseforge(
         .map(|f| f.unwrap().file_name().to_string_lossy().to_string())
         .collect();
 
-    let mut mods: Vec<InstalledMod> = Vec::new();
+    let mut mods: Vec<IdentifiedMod> = Vec::new();
 
-    let mut hashes: Vec<u32> = Vec::new();
+    let mut hashes: Vec<(u32, String, String)> = Vec::new();
 
     for file in unknown_files {
         let file = modpack_folder.join(file);
         let contents = get_jar_contents(&file.to_string_lossy().to_string());
         let hash = compute_hash(&contents);
-        hashes.push(hash);
+        // Calculate SHA1 hash
+        let mut hasher = sha1::Sha1::new();
+        hasher.update(contents);
+        let hex_hash = hasher.finalize();
+        let sha1 = hex::encode(hex_hash);
+        hashes.push((
+            hash,
+            sha1,
+            file.file_name().unwrap().to_string_lossy().to_string(),
+        ));
     }
-    let file_url = format!("{}api/v1/fingerprints/fuzzy/{}", BASE_URL, MINECRAFT_ID);
+    let file_url = format!("{}api/v1/fingerprints/{}", BASE_URL, MINECRAFT_ID);
 
     let body = serde_json::json!({
         "fingerprints": hashes,
@@ -515,16 +533,26 @@ pub async fn identify_modpack_curseforge(
         .unwrap();
     let res = client.execute(request).await?;
 
-    let res_json: FuzzyMatchesResponse = res.json().await?;
-    let matches = res_json.data.matches;
+    let res_json: ExactMatchesResponse = res.json().await?;
+    let matches = res_json.data.exact_matches;
     for match_ in matches {
         let file = match_.file;
-        mods.push(InstalledMod {
-            download_url: file.download_url,
-            id: file.mod_id.to_string(),
-            source: ModSource::CurseForge,
+        let hash = file.hashes.iter().find(|hash| hash.algo == 1);
+
+        let original_file = hashes
+            .iter()
+            .find(|(_, sha1, _)| sha1 == &hash.unwrap().value)
+            .map(|hash_info| hash_info.2.clone())
+            .unwrap();
+
+        mods.push(IdentifiedMod {
+            installed_mod: InstalledMod {
+                download_url: file.download_url,
+                id: file.mod_id.to_string(),
+                source: ModSource::CurseForge,
+            },
+            file_name: original_file,
         });
     }
-
-    todo!()
+    Ok(mods)
 }

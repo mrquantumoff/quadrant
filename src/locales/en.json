@@ -159,5 +159,7 @@
   "preview": "Preview",
   "otp": "One-time password",
   "returnToTheApp": "Login successful. Return to the app.",
-  "export": "Export"
+  "export": "Export",
+  "identifyUnknownMods": "Identify unknown mods",
+  "select": "Select"
 }

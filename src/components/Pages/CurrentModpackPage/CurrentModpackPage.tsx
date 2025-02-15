@@ -55,6 +55,7 @@ export default function CurrentModpackPage() {
             mods={currentModpack.mods}
             name={currentModpack.name}
             version={currentModpack.version}
+            unknownMods={currentModpack.unknownMods}
           ></ModpackView>
         ) : (
           <div>-</div>

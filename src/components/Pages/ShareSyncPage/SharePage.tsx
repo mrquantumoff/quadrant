@@ -102,6 +102,8 @@ export default function SharePage({
                 versionTarget: "",
                 modLoader: modpack.modLoader,
                 modpack: modpack.name,
+                selectable: false,
+                selectUrl: null,
               },
               mod.source
             );

@@ -23,6 +23,7 @@ export interface LocalModpack {
   isApplied: boolean;
   lastSynced: number;
   mods: LocalMod[];
+  unknownMods: boolean;
 }
 
 export interface ModpackOwner {
@@ -93,6 +94,9 @@ export interface IMod {
   newVersion: UniversalModFile | null;
   deleteable: boolean;
   autoinstallable: boolean;
+  selectable: boolean;
+  modpack: string | null;
+  selectUrl: string | null;
 }
 
 export interface UniversalModFile {
@@ -115,6 +119,11 @@ export interface GlobalSearchModsArgs {
   filterOn: boolean;
 }
 
+export interface IdentifiedMod {
+  installedMod: LocalMod;
+  fileName: string;
+}
+
 export interface GetModArgs {
   id: string;
   downloadable: boolean;
@@ -123,6 +132,8 @@ export interface GetModArgs {
   versionTarget: string;
   modLoader: ModLoader;
   modpack: string;
+  selectable: boolean;
+  selectUrl: string | null;
 }
 
 export enum ModLoader {

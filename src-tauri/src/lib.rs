@@ -275,6 +275,7 @@ pub async fn run() {
             modpacks::manage_modpack::create_modpack,
             modpacks::manage_modpack::delete_modpack,
             modpacks::manage_modpack::open_modpacks_folder,
+            modpacks::manage_modpack::register_mod,
             modpacks::general::install_modpack,
             modpacks::general::export_modpack,
             mc_mod::modrinth::get_mod_modrinth,

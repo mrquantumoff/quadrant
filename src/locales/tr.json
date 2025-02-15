@@ -159,5 +159,7 @@
   "preview": "Önizleme",
   "otp": "Tek kullanımlık kod",
   "returnToTheApp": "Giriş başarılı. Uygulamaya geri dönün.",
-  "export": "Dışa aktar"
+  "export": "Dışa aktar",
+  "identifyUnknownMods": "Bilinmeyen modları tanımla",
+  "select": "Seç"
 }

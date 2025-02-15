@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import CircularProgress from "../../core/CircularProgress";
 
 import Button from "../../core/Button";
-import { MdUpdate } from "react-icons/md";
+import { MdPermIdentity, MdUpdate } from "react-icons/md";
 
 export default function ModpackView(modpack: LocalModpack) {
   const localMods = modpack.mods;
@@ -32,6 +32,8 @@ export default function ModpackView(modpack: LocalModpack) {
           modLoader: modpack.modLoader,
           versionTarget: "",
           showPreviousVersion: false,
+          selectable: false,
+          selectUrl: null,
         },
         mod.source
       );
@@ -69,6 +71,9 @@ export default function ModpackView(modpack: LocalModpack) {
           slug: "-",
           version: "",
           newVersion: null,
+          modpack: "",
+          selectable: false,
+          selectUrl: null,
         },
       ]);
     }
@@ -149,11 +154,20 @@ export default function ModpackView(modpack: LocalModpack) {
             setShowUpdates(true);
             await checkForUpdates();
           }}
-          className="bg-indigo-600 hover:bg-indigo-800 text-white mx-4 w-fit flex items-center "
+          className="bg-indigo-600 hover:bg-indigo-800 text-white ml-4 w-fit flex items-center "
         >
           {t("update")}
           <MdUpdate className="w-6 ml-2 h-6"></MdUpdate>
         </Button>
+        {modpack.unknownMods && (
+          <Button
+            onClick={async () => {}}
+            className="bg-slate-600 hover:bg-slate-800 text-white mx-2 w-fit flex items-center "
+          >
+            {t("identifyUnknownMods")}
+            <MdPermIdentity className="w-6 ml-2 h-6"></MdPermIdentity>
+          </Button>
+        )}
       </div>
 
       {!showUpdates ? (

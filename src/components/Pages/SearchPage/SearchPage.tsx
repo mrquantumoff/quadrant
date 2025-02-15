@@ -145,6 +145,9 @@ export default function SearchPage() {
         url: "https://mrquantumoff.dev",
         version: "",
         newVersion: null,
+        selectable: false,
+        selectUrl: null,
+        modpack: null,
       });
     }
     newMods.sort((a, b) => b.downloadCount - a.downloadCount);

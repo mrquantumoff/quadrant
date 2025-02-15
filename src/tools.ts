@@ -4,6 +4,7 @@ import {
   Article,
   GetModArgs,
   GlobalSearchModsArgs,
+  IdentifiedMod,
   IMod,
   InstalledModpack,
   LocalModpack,
@@ -355,4 +356,8 @@ export const getNews = async () => {
 
 export const exportModpack = async (name: string) => {
   await invoke("export_modpack", { modpack: name });
+};
+
+export const identifyUnknownMods = async (modpack: string): Promise<IdentifiedMod[]> => {
+  return await invoke("identify_modpack", { modpack: modpack });
 };

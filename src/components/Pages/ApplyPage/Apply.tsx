@@ -62,6 +62,7 @@ export default function ApplyPage() {
     isApplied: false,
     lastSynced: 0,
     modLoader: ModLoader.Unknown,
+    unknownMods: false,
   });
   const [originalModpackName, setOriginalModpackName] = useState("free");
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
@@ -146,6 +147,7 @@ export default function ApplyPage() {
                 isApplied: false,
                 lastSynced: 0,
                 mods: [],
+                unknownMods: false,
               };
               setIsDialogToCreate(true);
               setIsUpdateDialogOpen(true);
@@ -393,6 +395,7 @@ export default function ApplyPage() {
                               modLoader={modpack.modLoader}
                               mods={modpack.mods}
                               version={modpack.version}
+                              unknownMods={modpack.unknownMods}
                             ></ModpackView>
                           ),
                         });
