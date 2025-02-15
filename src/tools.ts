@@ -14,11 +14,21 @@ import {
   SyncedModpack,
   UniversalModFile,
 } from "./intefaces";
+import { platform } from '@tauri-apps/plugin-os';
 
 import { LazyStore } from "@tauri-apps/plugin-store";
 
 export async function applyModpack(name: string): Promise<void> {
-  return await invoke("frontend_apply_modpack", { name });
+  try {
+  await invoke("frontend_apply_modpack", { name })
+  } catch (e) {
+    console.error(e);
+    const os = await platform();
+    if (os === "windows") {
+      await openIn("https://github.com/mrquantumoff/quadrant/wiki/Fixing-Windows-issues");
+    }
+  }
+  return ;
 }
 
 export async function getModpacks(
