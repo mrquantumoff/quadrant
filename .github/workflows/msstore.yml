@@ -55,7 +55,7 @@ jobs:
 
         run: |
           pnpm tauri build --config src-tauri/tauri.msstore.conf.json
-          makeappx pack /m .\AppxManifest.xml /f .\AppxMappings.txt /p quadrant.msix /o
+           "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19045.0\x64\makeappx.exe" pack /m .\AppxManifest.xml /f .\AppxMappings.txt /p quadrant.msix /o
       - uses: actions/upload-artifact@v4
         with:
           name: quadrant_msstore.msix
