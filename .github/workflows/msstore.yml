@@ -5,8 +5,6 @@ on:
     tags:
       - "v*"
 
-# This workflow will trigger on each push to the `release` branch to create or update a GitHub release, build your app, and upload the artifacts to the release.
-
 jobs:
   publish-tauri:
     permissions:
@@ -17,28 +15,27 @@ jobs:
         include:
           - platform: "windows-latest"
             args: ""
-
     runs-on: ${{ matrix.platform }}
     outputs:
-      assets: ${{steps.tauri.outputs.releaseUploadUrl}}
-      version: ${{steps.tauri.outputs.appVersion}}
+      assets: ${{ steps.tauri.outputs.releaseUploadUrl }}
+      version: ${{ steps.tauri.outputs.appVersion }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
 
-      - name: setup node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: "pnpm"
 
-      - name: install Rust stable
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
-      - name: install frontend dependencies
-        run: pnpm install # change this to npm, pnpm or bun depending on which one you use.
+      - name: Install frontend dependencies
+        run: pnpm install
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -52,10 +49,10 @@ jobs:
           QUADRANT_API_KEY: ${{ secrets.QUADRANT_API_KEY }}
           QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
           QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
-
         run: |
           pnpm tauri build --config src-tauri/tauri.msstore.conf.json
-          "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19045.0\x64\makeappx.exe" pack /m .\AppxManifest.xml /f .\AppxMappings.txt /p quadrant.msix /o
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19045.0\x64\makeappx.exe" pack /m .\AppxManifest.xml /f .\AppxMappings.txt /p quadrant.msix /o
+
       - uses: actions/upload-artifact@v4
         with:
           name: quadrant_msstore.msix
