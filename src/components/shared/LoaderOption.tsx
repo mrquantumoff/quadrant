@@ -8,6 +8,14 @@ export default function LoaderOptions({ loader }: ILoaderOptionsProps) {
   return (
     <>
       <option
+        value={ModLoader.Unknown}
+        // defaultChecked={ModLoader.Forge == loader}
+        className="rounded-2xl font-semibold"
+        key={ModLoader.Unknown}
+      >
+        -
+      </option>
+      <option
         value={ModLoader.Forge}
         // defaultChecked={ModLoader.Forge == loader}
         className="rounded-2xl font-semibold"

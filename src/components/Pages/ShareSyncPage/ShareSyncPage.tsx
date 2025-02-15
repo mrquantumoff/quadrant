@@ -92,7 +92,7 @@ export default function ShareSyncPage() {
                 type: "tween",
               }}
             >
-              <TabList className="flex flex-row w-[75%] h-full rounded-2xl font-extrabold text-center items-center justify-center">
+              <TabList className="flex flex-row w-[75%] h-full rounded-2xl font-extrabold text-center items-start justify-center">
                 <Tab
                   onClick={() => {
                     setModpackSync(null);
