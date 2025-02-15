@@ -249,6 +249,8 @@ function App() {
                 versionTarget: "",
                 modpack: "",
                 modLoader: ModLoader.Unknown,
+                selectable: false,
+                selectUrl: null,
               },
               ModSource.CurseForge
             );
@@ -299,6 +301,8 @@ function App() {
                   versionTarget: "",
                   modpack: "",
                   modLoader: ModLoader.Unknown,
+                  selectable: false,
+                  selectUrl: null,
                 },
                 ModSource.Modrinth
               );

@@ -485,6 +485,10 @@ pub async fn identify_modpack_curseforge(
             urlencoding::decode(&m.download_url)
                 .unwrap_or_default()
                 .to_string()
+                .split("/")
+                .last()
+                .unwrap_or_default()
+                .to_string()
         })
         .collect();
     let unknown_files: Vec<String> = std::fs::read_dir(&modpack_folder)?

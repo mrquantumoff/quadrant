@@ -107,7 +107,6 @@ export default function SyncedModpackComponent({
 
   return (
     <motion.div
-      key={modpack.modpack_id}
       className="p-4 bg-slate-900 m-4 rounded-2xl"
       initial={{ y: 500, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
