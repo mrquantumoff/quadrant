@@ -83,7 +83,7 @@ export default function ShareSyncPage() {
         >
           {syncActive && (
             <motion.div
-              className="w-[75%] justify-center items-center text-center rounded-2xl flex h-full"
+              className="w-[75%] justify-center items-start align-top text-center rounded-2xl flex h-min"
               initial={{ y: -500, opacity: 0.1 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{
@@ -92,7 +92,7 @@ export default function ShareSyncPage() {
                 type: "tween",
               }}
             >
-              <TabList className="flex flex-row w-[75%] h-full rounded-2xl font-extrabold text-center items-start justify-center">
+              <TabList className="flex flex-row w-[75%] h-min align-top rounded-2xl font-extrabold text-center items-start justify-center my-2">
                 <Tab
                   onClick={() => {
                     setModpackSync(null);
