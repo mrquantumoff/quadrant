@@ -33,6 +33,8 @@ pub mod cache;
 
 #[cfg(feature = "curseforge")]
 pub mod curseforge;
+#[cfg(feature = "curseforge")]
+pub mod curseforge_fingerprint;
 
 pub mod modrinth;
 
@@ -630,4 +632,28 @@ pub async fn install_remote_file(
         app,
     )
     .await
+}
+
+#[tauri::command]
+pub async fn identify_modpack(
+    modpack: String,
+    app: AppHandle,
+) -> Result<Vec<InstalledMod>, tauri::Error> {
+    let config = app.store("config.json").unwrap();
+    let curseforge_enabled = config.get("curseforge").unwrap();
+    let modrinth_enabled = config.get("modrinth").unwrap();
+    let mut mods: Vec<InstalledMod> = Vec::new();
+    if curseforge_enabled == true {
+        #[cfg(feature = "curseforge")]
+        {
+            // let mut curse_mods = ;
+            mods.append(
+                &mut curseforge::identify_modpack_curseforge(modpack.clone(), app.clone()).await?,
+            );
+        }
+    }
+    if modrinth_enabled == true {
+        mods.append(&mut modrinth::identify_modpack_modrinth(modpack, app).await?);
+    }
+    Ok(mods)
 }

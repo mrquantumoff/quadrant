@@ -6,7 +6,10 @@ use tauri::AppHandle;
 use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
 
-use crate::{mc_mod::get_user_agent, modpacks::general::ModLoader};
+use crate::{
+    mc_mod::{curseforge_fingerprint::*, get_user_agent, InstalledMod},
+    modpacks::general::{get_modpacks, LocalModpack, ModLoader},
+};
 
 use super::{get_file, get_mod_url, GetModArgs, Mod, ModSource, ModType, SearchModsArgs};
 
@@ -24,6 +27,11 @@ pub struct ModFilesResponse {
 #[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct ModFileResponse {
     data: ModFile,
+}
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+pub struct FuzzyMatchesResponse {
+    data: FuzzyMatches,
 }
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
@@ -67,6 +75,18 @@ pub struct Dependency {
 pub struct Module {
     pub name: String,
     pub fingerprint: u64,
+}
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct FuzzyMatches {
+    pub matches: Vec<FuzzyMatch>,
+}
+
+#[derive(Serialize, Clone, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct FuzzyMatch {
+    pub file: ModFile,
 }
 
 #[tauri::command]
@@ -429,4 +449,82 @@ pub async fn download_mod_curseforge(
     );
 
     get_file(file.into(), id, app).await
+}
+
+pub async fn identify_modpack_curseforge(
+    modpack: String,
+    app: AppHandle,
+) -> Result<Vec<InstalledMod>, anyhow::Error> {
+    let mc_folder = app.store("config.json").unwrap().get("mcFolder");
+    let mc_folder = PathBuf::from(mc_folder.unwrap().as_str().unwrap());
+    let modpacks_folder = mc_folder.join("modpacks");
+    let modpack_folder = modpacks_folder.join(&modpack);
+
+    let existing_modpack: Vec<LocalModpack> = get_modpacks(false, app.clone())
+        .await
+        .into_iter()
+        .filter(|m| &m.name == &modpack)
+        .collect();
+    if existing_modpack.is_empty() {
+        return Err(anyhow::anyhow!("Modpack doesn't exist"));
+    }
+    let existing_modpack = existing_modpack.first().unwrap();
+    let existing_files: Vec<String> = existing_modpack
+        .mods
+        .iter()
+        .map(|m| {
+            urlencoding::decode(&m.download_url)
+                .unwrap_or_default()
+                .to_string()
+        })
+        .collect();
+    let unknown_files: Vec<String> = std::fs::read_dir(&modpack_folder)?
+        .filter(|file| match file {
+            Ok(file) => {
+                let file_name = file.file_name().to_string_lossy().to_string();
+                !existing_files.contains(&file_name) && file_name.ends_with(".jar")
+            }
+            Err(_) => false,
+        })
+        .map(|f| f.unwrap().file_name().to_string_lossy().to_string())
+        .collect();
+
+    let mut mods: Vec<InstalledMod> = Vec::new();
+
+    let mut hashes: Vec<u32> = Vec::new();
+
+    for file in unknown_files {
+        let file = modpack_folder.join(file);
+        let contents = get_jar_contents(&file.to_string_lossy().to_string());
+        let hash = compute_hash(&contents);
+        hashes.push(hash);
+    }
+    let file_url = format!("{}api/v1/fingerprints/fuzzy/{}", BASE_URL, MINECRAFT_ID);
+
+    let body = serde_json::json!({
+        "fingerprints": hashes,
+    });
+
+    let client = reqwest::Client::new();
+    let request = client
+        .post(file_url)
+        .header("User-Agent", get_user_agent())
+        .header("X-API-Key", env!("ETERNAL_API_TOKEN"))
+        .json(&body)
+        .build()
+        .unwrap();
+    let res = client.execute(request).await?;
+
+    let res_json: FuzzyMatchesResponse = res.json().await?;
+    let matches = res_json.data.matches;
+    for match_ in matches {
+        let file = match_.file;
+        mods.push(InstalledMod {
+            download_url: file.download_url,
+            id: file.mod_id.to_string(),
+            source: ModSource::CurseForge,
+        });
+    }
+
+    todo!()
 }

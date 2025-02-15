@@ -1,10 +1,14 @@
 use crate::mc_mod::get_user_agent;
 use crate::mc_mod::Mod;
 use crate::mc_mod::ModType;
+use crate::modpacks::general::get_modpacks;
+use crate::modpacks::general::LocalModpack;
 use crate::modpacks::general::ModLoader;
 use chrono::prelude::*;
 use serde::Deserialize;
 use serde::Serialize;
+use sha1::Digest;
+use sha1::Sha1;
 use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri_plugin_http::reqwest;
@@ -16,6 +20,7 @@ use reqwest_middleware::ClientBuilder;
 use super::get_file;
 use super::get_mod_url;
 use super::GetModArgs;
+use super::InstalledMod;
 use super::ModSource;
 use super::SearchModsArgs;
 
@@ -287,6 +292,12 @@ pub struct ModrinthFile {
     pub size: u64,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ModrinthVersionIdentifier {
+    pub files: Vec<ModrinthFile>,
+    pub project_id: String,
+}
+
 pub async fn get_latest_mod_version_modrinth(
     id: String,
     minecraft_version: String,
@@ -351,4 +362,86 @@ pub async fn download_mod_modrinth(
             + 1,
     );
     get_file(file.into(), id, app).await
+}
+
+pub async fn identify_modpack_modrinth(
+    modpack: String,
+    app: AppHandle,
+) -> Result<Vec<InstalledMod>, anyhow::Error> {
+    let mc_folder = app.store("config.json").unwrap().get("mcFolder");
+    let mc_folder = PathBuf::from(mc_folder.unwrap().as_str().unwrap());
+    let modpacks_folder = mc_folder.join("modpacks");
+    let modpack_folder = modpacks_folder.join(&modpack);
+
+    let existing_modpack: Vec<LocalModpack> = get_modpacks(false, app.clone())
+        .await
+        .into_iter()
+        .filter(|m| &m.name == &modpack)
+        .collect();
+    if existing_modpack.is_empty() {
+        return Err(anyhow::anyhow!("Modpack doesn't exist"));
+    }
+    let existing_modpack = existing_modpack.first().unwrap();
+    let existing_files: Vec<String> = existing_modpack
+        .mods
+        .iter()
+        .map(|m| {
+            urlencoding::decode(&m.download_url)
+                .unwrap_or_default()
+                .to_string()
+        })
+        .collect();
+    let unknown_files: Vec<String> = std::fs::read_dir(&modpack_folder)?
+        .filter(|file| match file {
+            Ok(file) => {
+                let file_name = file.file_name().to_string_lossy().to_string();
+                !existing_files.contains(&file_name) && file_name.ends_with(".jar")
+            }
+            Err(_) => false,
+        })
+        .map(|f| f.unwrap().file_name().to_string_lossy().to_string())
+        .collect();
+
+    let mut mods: Vec<InstalledMod> = Vec::new();
+
+    let client = reqwest::Client::new();
+
+    for file in unknown_files {
+        let file = modpack_folder.join(file);
+        let mut hasher = Sha1::new();
+        hasher.update(std::fs::read(file)?);
+        let hash = hasher.finalize();
+        let hash = hex::encode(hash);
+        let file_url = format!("https://api.modrinth.com/v2/version_file/{}", hash);
+        let request = client
+            .get(file_url)
+            .header("User-Agent", get_user_agent())
+            .build()?;
+        let res = client.execute(request).await?;
+        let res_json = res.json::<ModrinthVersionIdentifier>().await;
+        if res_json.is_err() {
+            log::error!(
+                "Failed to get modrinth version identifier: {}",
+                res_json.err().unwrap()
+            );
+            continue;
+        }
+        let identifier = res_json.unwrap();
+        let file = identifier
+            .files
+            .iter()
+            .find(|file| file.hashes.sha1 == hash);
+        if file.is_none() {
+            log::error!("Failed to find the file in modrinth version identifier");
+            continue;
+        }
+        let file = file.unwrap();
+        mods.push(InstalledMod {
+            download_url: file.url.clone(),
+            id: identifier.project_id,
+            source: ModSource::Modrinth,
+        });
+    }
+
+    Ok(mods)
 }

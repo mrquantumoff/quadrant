@@ -286,6 +286,7 @@ pub async fn run() {
             mc_mod::modrinth::get_mod_deps_modrinth,
             mc_mod::check_mod_updates,
             mc_mod::install_remote_file,
+            mc_mod::identify_modpack,
             config::init_config,
             config::get_minecraft_folder,
             other::open_link,
