@@ -256,7 +256,7 @@ pub async fn run() {
             log::info!("Updating Minecraft versions...");
             let app_handle = app.handle().clone();
             let _task = tokio::task::spawn(async move {
-                let _res = mc_mod::fetch_versions(app_handle).await;
+                let _res = mc_mod::get_versions(app_handle).await;
                 match _res {
                     Ok(_) => {}
                     Err(e) => {

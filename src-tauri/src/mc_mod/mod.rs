@@ -7,9 +7,15 @@ use curseforge::{
     download_mod_curseforge, get_latest_mod_version_curseforge, search_mods_curseforge, ModFile,
 };
 use futures::StreamExt;
+use http_cache_reqwest::Cache;
+use http_cache_reqwest::CacheMode;
+use http_cache_reqwest::HttpCache;
+use http_cache_reqwest::HttpCacheOptions;
+use http_cache_reqwest::MokaManager;
 use modrinth::{
     download_mod_modrinth, get_latest_mod_version_modrinth, search_mods_modrinth, ModrinthFile,
 };
+use reqwest_middleware::ClientBuilder;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter};
@@ -205,10 +211,17 @@ impl From<ModrinthFile> for UniversalModFile {
     }
 }
 
-pub async fn fetch_versions(app: AppHandle) -> Result<Vec<MinecraftVersion>, anyhow::Error> {
+#[tauri::command]
+pub async fn get_versions(_app: AppHandle) -> Result<Vec<MinecraftVersion>, tauri::Error> {
     let uri = "https://api.modrinth.com/v2/tag/game_version";
 
-    let client = reqwest::Client::new();
+    let client = ClientBuilder::new(reqwest::Client::new())
+        .with(Cache(HttpCache {
+            mode: CacheMode::Default,
+            options: HttpCacheOptions::default(),
+            manager: MokaManager::default(),
+        }))
+        .build();
     let res = client
         .get(uri)
         .header("User-Agent", get_user_agent())
@@ -216,34 +229,6 @@ pub async fn fetch_versions(app: AppHandle) -> Result<Vec<MinecraftVersion>, any
         .await
         .map_err(anyhow::Error::from)?;
     let body: Vec<MinecraftVersion> = res.json().await.map_err(anyhow::Error::from)?;
-    let store = app.store("config.json")?;
-    store.set("mcVersions", body.clone());
-    Ok(body)
-}
-#[tauri::command]
-pub async fn get_versions(app: AppHandle) -> Result<Vec<MinecraftVersion>, tauri::Error> {
-    let store = app
-        .store("config.json")
-        .map_err(|e| anyhow::Error::from(e))?;
-    let body = store.get("mcVersions");
-    if body.is_none() {
-        let body = fetch_versions(app).await?;
-        store.set("mcVersions", body.clone());
-        return Ok(body);
-    }
-    let body = body.unwrap();
-    let body: Vec<MinecraftVersion> = body
-        .as_array()
-        .unwrap()
-        .iter()
-        .cloned()
-        .map(|v| v.into())
-        .collect();
-    if body.is_empty() {
-        let body = fetch_versions(app).await?;
-        store.set("mcVersions", body.clone());
-        return Ok(body);
-    }
     let body: Vec<MinecraftVersion> = body
         .into_iter()
         .filter(|version| version.version_type == "release" && !version.version.is_empty())
