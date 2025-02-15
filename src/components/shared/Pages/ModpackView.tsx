@@ -30,6 +30,9 @@ export default function ModpackView(modpack: LocalModpack) {
     if (!showUpdates) {
       setModCount(0);
     }
+    if (showIdentify) {
+      await getIdentifiedMods();
+    }
     let newMods: IMod[] = [];
     await localMods.forEach(async (mod) => {
       const fullMod = await getMod(
@@ -192,16 +195,30 @@ export default function ModpackView(modpack: LocalModpack) {
     effect().catch((e) => console.error(e));
   }, []);
 
+  useEffect(() => {
+    if (showIdentify === false) {
+      setToIdentify([]);
+    }
+    if (showUpdates === false) {
+      setUpdates([]);
+    }
+    updateModpackDetails();
+  }, [showIdentify, showUpdates]);
+
   return (
     <div className="w-auto p-4 rounded-2xl flex flex-1 flex-col">
       <ModpackViewContext.Provider
         value={{
           removeMod: async (id: string) => {
             let newToIdentify = [...toIdentify];
-            newToIdentify.filter(
+            newToIdentify = newToIdentify.filter(
               (mod) =>
                 mod.proposedMods.filter((mod) => mod.id === id).length === 0
             );
+            setToIdentify(newToIdentify);
+            if (newToIdentify.length === 0) {
+              setShowIdentify(false);
+            }
           },
         }}
       >
@@ -230,7 +247,6 @@ export default function ModpackView(modpack: LocalModpack) {
             onClick={async () => {
               if (showUpdates) {
                 setShowUpdates(false);
-                updateModpackDetails();
                 return;
               }
               setShowUpdates(true);
