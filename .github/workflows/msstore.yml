@@ -40,6 +40,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
+      - name: Setup MSbuild
+        uses: microsoft/setup-msbuild
 
       - name: Build the app
         id: tauri
