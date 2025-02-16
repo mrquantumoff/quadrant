@@ -4,6 +4,7 @@ import {
   AccountInfo,
   InstalledModpack,
   LocalModpack,
+  SyncContext,
   SyncedModpack,
 } from "../../../../intefaces";
 import {
@@ -28,7 +29,6 @@ import {
   MdShare,
 } from "react-icons/md";
 import { AnimatePresence, motion } from "motion/react";
-import { SyncContext } from "../SyncPage";
 
 export interface SyncedModpackProps {
   modpack: SyncedModpack;

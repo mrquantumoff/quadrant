@@ -7,7 +7,12 @@ export interface IContentContext {
   setSnackbar: (newSnackBarState: SnackbarState) => void;
   setSnackbarNoState(newSnackBarState: SnackbarState): void;
 }
-
+export interface ISyncContext {
+  refreshSyncedModpacks: () => void;
+}
+export const SyncContext = createContext<ISyncContext>({
+  refreshSyncedModpacks: () => {},
+});
 export interface IModpackViewContext {
   removeMod: (id: string) => void;
 }
