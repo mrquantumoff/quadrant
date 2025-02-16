@@ -120,10 +120,14 @@ pub async fn get_quadrant_share_modpack(code: String) -> Result<InstalledModpack
         .send()
         .await
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-    let response: QuadrantShareResponse = request
-        .json()
+    let response = request
+        .text()
         .await
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
+    log::info!("Response: {:?}", response);
+
+    let response: QuadrantShareResponse = serde_json::from_str(&response)?;
+
     let modpack: InstalledModpack = serde_json::from_str(&response.mod_config)?;
     Ok(modpack)
 }

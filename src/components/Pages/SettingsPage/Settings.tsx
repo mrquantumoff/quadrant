@@ -180,15 +180,17 @@ export default function SettingsPage() {
           }
           checked={collectData}
           onChange={async () => {
-            if (!collectData) {
-              await invoke("send_telemetry");
-            } else {
+            if (collectData) {
               await invoke("remove_telemetry");
+              setCollectData(false);
+              await box.set("collectUserData", false);
+              await box.save();
+            } else {
+              await invoke("send_telemetry");
+              setCollectData(true);
+              await box.set("collectUserData", true);
+              await box.save();
             }
-            setCollectData(!collectData);
-
-            await box.set("collectUserData", collectData);
-            await box.save();
           }}
         >
           <span
@@ -202,6 +204,8 @@ export default function SettingsPage() {
         className="bg-slate-800 hover:bg-slate-700 w-fit my-4"
         onClick={async () => {
           await invoke("send_telemetry");
+          setCollectData(true);
+          await box.set("collectUserData", true);
         }}
       >
         {t("collectData")}

@@ -38,8 +38,7 @@ pub async fn run() {
     colog::init();
 
     log::info!("Initializing Tauri...");
-    let mut builder =
-        tauri::Builder::default().plugin(tauri_plugin_updater::Builder::new().build());
+    let mut builder = tauri::Builder::default();
 
     #[cfg(desktop)]
     {
@@ -74,6 +73,7 @@ pub async fn run() {
     }
 
     builder = builder
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_persisted_scope::init())
         .plugin(tauri_plugin_cli::init())
