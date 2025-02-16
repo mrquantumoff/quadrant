@@ -62,6 +62,12 @@ import {
   sendNotification,
 } from "@tauri-apps/plugin-notification";
 
+interface PageWithScroll {
+  scrollPositionX: number;
+  scrollPositionY: number;
+  page: Page;
+}
+
 function App() {
   const { t } = useTranslation();
   const pages: Page[] = [
@@ -118,13 +124,15 @@ function App() {
   const [content, setContent] = useState<Page>(pages[0]);
   const [updateDownloadProgress, setUpdateDownloadProgress] = useState(0);
   const config = new LazyStore("config.json");
-  const [contentHistory, setContentHistory] = useState<Page[]>([]);
+  const [contentHistory, setContentHistory] = useState<PageWithScroll[]>([]);
   const [extendedNavigation, setExtendedNavigation] = useState(false);
   const [notifications, setNotifications] = useState<AccountNotification[]>([]);
   const [snackBarHistory, setSnackbarHistory] = useState<SnackbarState[]>([]);
   const [areNotificationsHighlighted, setAreNotificationsHighlighted] =
     useState("bg-slate-700 hover:bg-slate-600");
   const [news, setNews] = useState<Article[]>([]);
+
+  const contentRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const effect = async () => {
@@ -214,7 +222,13 @@ function App() {
         }
         config.set("lastSettingsUpdated", new Date().toISOString());
       });
-      setContentHistory([pages[(await config.get<number>("lastPage")) ?? 0]]);
+      setContentHistory([
+        {
+          page: pages[(await config.get<number>("lastPage")) ?? 0],
+          scrollPositionX: 0,
+          scrollPositionY: 0,
+        },
+      ]);
       const locale = await config.get<string>("locale");
       await quadrantLocale.changeLanguage(locale);
       onOpenUrl(async (urls) => {
@@ -440,32 +454,66 @@ function App() {
 
   const contextFunctions: IContentContext = {
     back: async () => {
-      const index =
-        contentHistory.lastIndexOf(content) - 1 <= 0
-          ? 0
-          : contentHistory.lastIndexOf(content) - 1;
-      let newHistory = [...contentHistory];
+      // If there's no previous history, do nothing.
+      if (contentHistory.length < 2) return;
 
-      const newContent = index === 0 ? page : contentHistory[index];
-      setContent(newContent);
-      console.log(newContent);
+      // Create a copy of the history and remove the current entry.
+      const newHistory = [...contentHistory];
       newHistory.pop();
+
+      // The new last item is the previous page.
+      const previousEntry = newHistory[newHistory.length - 1];
+
+      // Update state with the previous page.
+      setContent(previousEntry.page);
       setContentHistory(newHistory);
+
+      // Wait a short time to ensure the new content is rendered before scrolling.
+      setTimeout(() => {
+        contentRef.current?.scrollTo({
+          top: Math.round(previousEntry.scrollPositionY),
+          left: Math.round(previousEntry.scrollPositionX),
+          behavior: "smooth",
+        });
+      }, 50);
     },
     changeContent: (component) => {
-      setContent(component);
       let newHistory = [...contentHistory];
       console.log(component);
-      newHistory.push(component);
+      newHistory.push({
+        page: component,
+        scrollPositionX: 0,
+        scrollPositionY: 0,
+      });
+      newHistory[newHistory.length - 2].scrollPositionX =
+        contentRef.current?.scrollLeft ?? 0;
+      newHistory[newHistory.length - 2].scrollPositionY =
+        contentRef.current?.scrollTop ?? 0;
+
       setContentHistory(newHistory);
+      contentRef.current?.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: "instant",
+      });
       console.log(newHistory);
+      setContent(component);
     },
     changePage: (name) => {
       const newPage = pages.filter((pg) => pg.name === name);
       setContent(newPage[0]);
       let newHistory = [...contentHistory];
-      newHistory.push(newPage[0]);
+      newHistory.push({
+        page: newPage[0],
+        scrollPositionX: 0,
+        scrollPositionY: 0,
+      });
       setContentHistory(newHistory);
+      contentRef.current?.scrollTo({
+        top: 0,
+        left: 0,
+        behavior: "instant",
+      });
     },
     setSnackbar(newSnackBarState) {
       setSnackbarState(newSnackBarState);
@@ -519,7 +567,20 @@ function App() {
                           await config.save();
                           setPage(p);
                           setContent(p);
-                          setContentHistory([p]);
+                          setContentHistory([
+                            {
+                              page: p,
+                              scrollPositionX:
+                                contentRef.current?.scrollLeft ?? 0,
+                              scrollPositionY:
+                                contentRef.current?.scrollTop ?? 0,
+                            },
+                          ]);
+                          contentRef.current?.scrollTo({
+                            top: 0,
+                            left: 0,
+                            behavior: "instant",
+                          });
                         }}
                       >
                         <div className="grid place-content-center ">
@@ -793,6 +854,7 @@ function App() {
                   className="h-full overflow-y-auto "
                   transition={{ type: "keyframes", duration: 0.1 }}
                   // key={content.name}
+                  ref={contentRef}
                 >
                   {content.main !== true && content.content}
                   <div
