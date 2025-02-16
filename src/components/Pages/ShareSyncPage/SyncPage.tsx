@@ -18,6 +18,7 @@ export default function SyncPage() {
   const fetchSyncedModpacks = async () => {
     const syncedModpacks = await getSyncedModpacks(true);
     const localModpacks = await getModpacks(true);
+    syncedModpacks.sort((a, b) => b.last_synced - a.last_synced);
     setModpacks(syncedModpacks);
     setLocalModpacks(localModpacks);
   };
