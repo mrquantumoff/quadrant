@@ -35,7 +35,11 @@ import CurrentModpackPage from "./components/Pages/CurrentModpackPage/CurrentMod
 import { AnimatePresence, motion } from "motion/react";
 import SearchPage from "./components/Pages/SearchPage/SearchPage";
 import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
-import { getCurrentWindow, ProgressBarStatus } from "@tauri-apps/api/window";
+import {
+  getCurrentWindow,
+  LogicalSize,
+  ProgressBarStatus,
+} from "@tauri-apps/api/window";
 import {
   answerInvite,
   getAccountInfo,
@@ -61,6 +65,7 @@ import {
   requestPermission,
   sendNotification,
 } from "@tauri-apps/plugin-notification";
+import LinearProgress from "./components/core/LinearProgress";
 
 interface PageWithScroll {
   scrollPositionX: number;
@@ -133,6 +138,8 @@ function App() {
   const [news, setNews] = useState<Article[]>([]);
 
   const contentRef = useRef<HTMLDivElement | null>(null);
+
+  const [showApp, setShowApp] = useState(false);
 
   useEffect(() => {
     const effect = async () => {
@@ -438,6 +445,7 @@ function App() {
       } catch (e) {
         console.error("Failed to get news: " + e);
       }
+      setShowApp(true);
     };
     effect();
   }, []);
@@ -451,6 +459,14 @@ function App() {
       setAreNotificationsHighlighted("bg-slate-700 hover:bg-slate-800 ");
     }
   }, [notifications]);
+
+  useEffect(() => {
+    if (updateDownloadProgress !== 0) {
+      currentWindow.setSize(new LogicalSize(240, 640));
+      currentWindow.setResizable(false);
+      currentWindow.show();
+    }
+  }, [updateDownloadProgress]);
 
   const contextFunctions: IContentContext = {
     back: async () => {
@@ -887,19 +903,31 @@ function App() {
               </AnimatePresence>
             </main>
           </ContentContext.Provider>
+        ) : showApp ? (
+          <motion.div
+            initial={{ opacity: 0, filter: "blur(8px)" }}
+            animate={{ opacity: 1, filter: "" }}
+            className="flex flex-col flex-1 items-center font-extrabold text-4xl justify-center align-middle w-screen h-screen "
+            data-tauri-drag-region
+          >
+            <img src="/logoNoBg.svg" height={"192px"} width={"192px"}></img>
+            <h1 className="flex flex-col my-2 h-min items-center font-extrabold text-4xl justify-center align-middle w-full ">
+              {t("appUpdate")}
+            </h1>
+            <div className=" flex flex-col my-2  h-min items-center font-extrabold text-7xl justify-center align-middle w-[60vw]  ">
+              <LinearProgress
+                progress={updateDownloadProgress * 100}
+              ></LinearProgress>
+            </div>
+          </motion.div>
         ) : (
           <motion.div
             initial={{ opacity: 0, filter: "blur(8px)" }}
             animate={{ opacity: 1, filter: "" }}
-            className="flex flex-col flex-1 items-center font-extrabold text-4xl justify-center w-screen h-screen "
+            className="flex flex-col flex-1 items-center font-extrabold text-4xl justify-center align-middle w-screen h-screen "
             data-tauri-drag-region
           >
-            <h1 className="flex flex-col flex-1 m-0 h-min items-center font-extrabold text-7xl justify-center align-middle">
-              {t("appUpdate")}
-            </h1>
-            <h1 className=" flex flex-col flex-1 m-0 h-min items-center font-extrabold text-7xl justify-center align-middle  ">
-              {(updateDownloadProgress * 100).toFixed(2)}%
-            </h1>
+            <img src="/logoNoBg.svg" height={"192px"} width={"192px"}></img>
           </motion.div>
         )}
       </AnimatePresence>
