@@ -336,7 +336,7 @@ pub async fn get_latest_mod_version_modrinth(
     let body = res.text().await?;
 
     let mut res_json: Vec<ModrinthVersion> = serde_json::from_str(&body)?;
-    res_json.sort_by(|a, b| b.date_published.cmp(&a.date_published).reverse());
+    res_json.sort_by(|a, b| b.date_published.cmp(&a.date_published));
     if res_json.is_empty() {
         return Err(anyhow::Error::msg("noVersion"));
     }

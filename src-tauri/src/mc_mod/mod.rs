@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use cache::init_cache;
 use cache::{add_cache_index, file_hash, get_cache_index};
 
 use anyhow::anyhow;
@@ -467,7 +468,7 @@ pub async fn install_mod(
         "modInstallProgress",
         json!({
             "modId": id,
-            "progress": 0.5
+            "progress": 50
         }),
     )?;
 
@@ -486,7 +487,7 @@ pub async fn install_mod(
         "modInstallProgress",
         json!({
             "modId": id,
-            "progress": 1
+            "progress": 100
         }),
     )?;
     Ok(())
@@ -501,7 +502,13 @@ pub async fn get_file(
     let cached_file = get_cache_index(file.sha1.clone()).await?;
     if cached_file.is_some() {
         let cached_file = cached_file.unwrap();
-        let cached_file = std::fs::read(cached_file.file_name)?;
+        let cached_file = std::fs::read(cached_file.file_name);
+        if cached_file.is_err() {
+            log::error!("Failed to read cached file: {}", cached_file.err().unwrap());
+            init_cache().await?;
+            return Err(anyhow::Error::msg("Failed to read cached file"));
+        }
+        let cached_file = cached_file.unwrap();
         let file_path = add_cache_index(
             file.clone().file_name,
             cached_file.as_slice(),
@@ -512,7 +519,7 @@ pub async fn get_file(
             "modDownloadProgress",
             json!({
                 "modId": id,
-                "progress": 1
+                "progress": 100
             }),
         )?;
         log::info!("File is cached");
@@ -525,10 +532,10 @@ pub async fn get_file(
         .build()?;
     let mut body = client.execute(request).await?.bytes_stream();
     let mut file_bytes: Vec<u8> = Vec::new();
-    let file_length = &file.size;
+    let file_length = file.size.clone();
     while let Some(Ok(new_bytes)) = body.next().await {
         file_bytes.append(&mut new_bytes.to_vec());
-        let progress = file_bytes.len() as u64 / file_length;
+        let progress = (file_bytes.len() as f64 / file_length as f64 * 100.0).round();
         app.emit(
             "modDownloadProgress",
             json!({
@@ -541,7 +548,7 @@ pub async fn get_file(
         "modDownloadProgress",
         json!({
             "modId": id,
-            "progress": 1
+            "progress": 100
         }),
     )?;
     let hash = file_hash(file_bytes.as_slice());

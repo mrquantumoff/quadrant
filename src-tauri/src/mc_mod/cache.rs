@@ -51,10 +51,20 @@ pub async fn init_cache() -> Result<(), anyhow::Error> {
         log::info!("Checking if file hash is old: {}", &index.file_hash);
         let is_old = Utc::now() - index.last_used_date;
 
+        let file = PathBuf::from(&index.file_name);
+
         if is_old.num_days() >= 90 {
             let file_path = PathBuf::from(&index.file_name);
             std::fs::remove_file(file_path)?;
             log::info!("Removing file from cache: {}", index.file_name);
+            file_conts.retain(|cont| cont.file_hash != index.file_hash);
+        }
+
+        if !file.exists() {
+            log::info!(
+                "Removing file index, it doesn't exist from cache: {}",
+                index.file_name
+            );
             file_conts.retain(|cont| cont.file_hash != index.file_hash);
         }
     }
