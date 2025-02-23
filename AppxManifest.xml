@@ -76,7 +76,7 @@
                     </uap:Protocol>
                 </uap:Extension>
                 <desktop:Extension Category="windows.startupTask" Executable="quadrant_next.exe"
-                    EntryPoint="Windows.FullTrustApplication" uap10:Parameters="autostart">
+                    EntryPoint="Windows.FullTrustApplication" uap10:Parameters="--autostart">
                     <desktop:StartupTask TaskId="quadrant" Enabled="true"
                         DisplayName="QuadrantMC" />
                 </desktop:Extension>
