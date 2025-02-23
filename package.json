@@ -33,7 +33,7 @@
     "react-icons": "^5.5.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "4.0.7",
+    "@tailwindcss/postcss": "4.0.8",
     "@tauri-apps/cli": "^2.2.7",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
@@ -42,7 +42,7 @@
     "babel-plugin-react-compiler": "19.0.0-beta-21e868a-20250216",
     "eslint-plugin-react-compiler": "19.0.0-beta-21e868a-20250216",
     "postcss": "^8.5.3",
-    "tailwindcss": "4.0.7",
+    "tailwindcss": "4.0.8",
     "typescript": "~5.7.3",
     "vite": "^6.1.1"
   },
