@@ -7,9 +7,9 @@ use tokio::sync::Mutex;
 use config::init_config;
 use serde::{Deserialize, Serialize};
 use tauri::{
+    Emitter, Manager, Url,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconEvent},
-    Emitter, Manager, Url,
 };
 use tauri_plugin_updater::UpdaterExt;
 
@@ -355,7 +355,9 @@ async fn is_autoupdate_enabled(app: tauri::AppHandle) -> Result<bool, tauri::Err
     Ok(state.is_update_enabled)
 }
 async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
-    let update_url = Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{{{target}}}}//{{{{arch}}}}//{{{{current_version}}}}"))?;
+    let update_url = Url::parse(&format!(
+        "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{{{target}}}}//{{{{arch}}}}//{{{{current_version}}}}"
+    ))?;
 
     let mut update_urls = vec![update_url];
 
@@ -368,9 +370,18 @@ async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
         .unwrap_or_default()
         .contains("msstore");
 
+    let foss_build = app
+        .config()
+        .version
+        .clone()
+        .unwrap_or_default()
+        .contains("foss");
+
+    let defualt_channel = if foss_build { "foss" } else { "stable" };
+
     if update_config.get("channel").is_some() {
         let channel = update_config.get("channel").unwrap();
-        let channel = channel.as_str().unwrap_or_else(|| "stable");
+        let channel = channel.as_str().unwrap_or_else(|| defualt_channel);
         if channel != "stable" {
             update_urls.push(Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/{}/{{{{target}}}}//{{{{arch}}}}//{{{{current_version}}}}",channel))?);
         }
