@@ -1,7 +1,7 @@
 {
   "name": "quadrant-next",
   "private": true,
-  "version": "25.3.0",
+  "version": "25.3.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,7 @@
   "dependencies": {
     "@fabianlars/tauri-plugin-oauth": "2",
     "@headlessui/react": "^2.2.0",
-    "@tauri-apps/api": "^2.2.0",
+    "@tauri-apps/api": "^2.3.0",
     "@tauri-apps/plugin-autostart": "~2.2.0",
     "@tauri-apps/plugin-cli": "~2.2.0",
     "@tauri-apps/plugin-clipboard-manager": "2.2.1",
@@ -24,7 +24,7 @@
     "@tauri-apps/plugin-opener": "2.2.5",
     "@tauri-apps/plugin-os": "~2.2.0",
     "@tauri-apps/plugin-store": "2.2.0",
-    "@tauri-apps/plugin-updater": "2.5.0",
+    "@tauri-apps/plugin-updater": "2.5.1",
     "i18next": "24.2.2",
     "motion": "12.4.7",
     "react": "19.0.0",
@@ -33,20 +33,20 @@
     "react-icons": "^5.5.0"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "4.0.8",
-    "@tauri-apps/cli": "^2.2.7",
+    "@tailwindcss/postcss": "4.0.9",
+    "@tauri-apps/cli": "^2.3.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
-    "babel-plugin-react-compiler": "19.0.0-beta-21e868a-20250216",
-    "eslint-plugin-react-compiler": "19.0.0-beta-21e868a-20250216",
+    "babel-plugin-react-compiler": "19.0.0-beta-e1e972c-20250221",
+    "eslint-plugin-react-compiler": "19.0.0-beta-e1e972c-20250221",
     "postcss": "^8.5.3",
-    "tailwindcss": "4.0.8",
+    "tailwindcss": "4.0.9",
     "typescript": "~5.7.3",
-    "vite": "^6.1.1"
+    "vite": "^6.2.0"
   },
-  "packageManager": "pnpm@10.4.1",
+  "packageManager": "pnpm@10.5.1",
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild"
