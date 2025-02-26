@@ -18,6 +18,8 @@
     </Properties>
     <Resources>
         <Resource Language="en-US" />
+        <Resource Language="uk-UA" />
+        <Resource Language="tr-TR" />
     </Resources>
     <Dependencies>
         <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19045.0"
