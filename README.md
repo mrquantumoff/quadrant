@@ -12,7 +12,7 @@
     <img width="200" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
 </a>
 
-<a href="https://apps.microsoft.com/detail/XP98VJLVH3L4L1">
+<a href="https://apps.microsoft.com/detail/9nlt70m0tvd0">
         <img width="200" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
 </a>
 
