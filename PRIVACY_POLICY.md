@@ -53,7 +53,7 @@ The Quadrant Share feature in Quadrant v12+ requires optional data collection en
 
 #### Quadrant ID requires the user's name to greet them when they opens their account details.
 
-#### Quadrants ID requissres the user to specify a password for authentication, it is securely hashed using argon2id and is used to delete the account, sign in to the account or to change the account data.
+#### Quadrant ID requires the user to specify a password for authentication, it is securely hashed using argon2id and is used to delete the account, sign in to the account or to change the account data.
 
 #### Quadrant ID requires the user to specify their username, it is used by other people, if they want to interact with the user (e.g Inviting the user to collaborate on Quadrant Sync).
 
