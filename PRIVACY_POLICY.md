@@ -1,6 +1,6 @@
 # Privacy Policy
 
-## This privacy policy is effective for Quadrant v24.7.0/05.07.2024 (5th of July 2024)+
+## This privacy policy is effective for Quadrant v25.3.2/26.02.2025 (26th of February 2025)+
 
 ## For previous versions of Quadrant's privacy policy look at the previous commits.
 
@@ -25,9 +25,9 @@ pub struct AppInfo {
 }
 ```
 
-This an example of which data is being collected by the app and can be accessed with https://api.mrquantumoff.dev/api/v2/get/quadrantusageinfo?hardware_id=YOURHARDWAREID.
+This an example of which data is being collected by the app and can be accessed with https://api.mrquantumoff.dev/api/v3/quadrant/usage/get?hardware_id=YOURHARDWAREID.
 
-However, when someone is asking for general usage info (https://api.mrquantumoff.dev/api/v2/get/quadrantusageinfo) without any query params, they can only get this struct
+However, when someone is asking for general usage info (https://api.mrquantumoff.dev/api/v3/quadrant/usage/get) without any query params, they can only get this struct
 
 ```rust
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
