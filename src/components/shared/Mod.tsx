@@ -216,7 +216,7 @@ export default function Mod(props: IModProps) {
                 >
                   {progress === -1
                     ? t("update")
-                    : +(progress * 100).toFixed(2) + "%"}
+                    : +(progress).toFixed(2) + "%"}
                   <MdFileDownload className="ml-2 w-6 h-6"></MdFileDownload>
                 </button>
               ) : (
