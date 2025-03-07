@@ -1,11 +1,9 @@
 use mc_mod::get_user_agent;
-use other::open_link;
 use tauri_plugin_cli::CliExt;
 use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 
 use config::init_config;
-use serde::{Deserialize, Serialize};
 use tauri::{
     Emitter, Manager, Url,
     menu::{Menu, MenuItem},
@@ -26,10 +24,12 @@ pub mod mc_mod;
 pub mod modpacks;
 pub mod other;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Clone)]
 pub struct AppState {
     pub updated_modpacks: Vec<String>,
     pub is_update_enabled: bool,
+    pub update: Option<tauri_plugin_updater::Update>,
+    pub update_bytes: Vec<u8>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -172,12 +172,14 @@ pub async fn run() {
             log::info!("Autoupdate enabled: {}\nInitializing state...", autoupdate);
             app.manage(Mutex::new(AppState {
                 is_update_enabled: autoupdate,
-                ..Default::default()
+                updated_modpacks: vec![],
+                update: None,
+                update_bytes: vec![],
             }));
             if autoupdate {
                 log::info!("Checking for updates...");
                 tauri::async_runtime::spawn(async move {
-                    let res = update(handle).await;
+                    let res = check_update(handle).await;
                     if res.is_err() {
                         log::error!("Failed to update, {}", res.err().unwrap());
                         return;
@@ -294,6 +296,7 @@ pub async fn run() {
             modpacks::general::set_modpack_sync_date,
             request_check_for_updates,
             is_autoupdate_enabled,
+            install_update,
             other::rss::get_news,
             #[cfg(feature = "curseforge")]
             mc_mod::curseforge::get_mod_curseforge,
@@ -317,7 +320,6 @@ pub async fn run() {
             account::id::read_notification,
             #[cfg(feature = "quadrant_id")]
             account::quadrant_share::share_modpack,
-            #[cfg(feature = "quadrant_id")]
             #[cfg(feature = "quadrant_id")]
             account::quadrant_share::share_modpack_raw,
             #[cfg(feature = "quadrant_id")]
@@ -345,7 +347,7 @@ pub async fn run() {
 
 #[tauri::command]
 async fn request_check_for_updates(app: tauri::AppHandle) -> Result<(), tauri::Error> {
-    update(app).await.map_err(|e| tauri::Error::from(e))
+    check_update(app).await.map_err(|e| tauri::Error::from(e))
 }
 
 #[tauri::command]
@@ -354,7 +356,7 @@ async fn is_autoupdate_enabled(app: tauri::AppHandle) -> Result<bool, tauri::Err
     let state = state.lock().await;
     Ok(state.is_update_enabled)
 }
-async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
+async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
     let update_url = Url::parse(&format!(
         "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{{{target}}}}//{{{{arch}}}}//{{{{current_version}}}}"
     ))?;
@@ -394,7 +396,7 @@ async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
     let updater = app
         .updater_builder()
         .endpoints(update_urls)?
-        // .version_comparator(|current, update| current != update.version)
+        .version_comparator(|current, update| update.version != current)
         .header("User-Agent", get_user_agent())?;
 
     if ms_store_build {
@@ -407,11 +409,12 @@ async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
         let mut downloaded = 0;
 
         // alternatively we could also call update.download() and update.install() separately
-        update
-            .download_and_install(
+        let downloaded_update = update
+            .download(
                 |chunk_length, content_length| {
                     downloaded += chunk_length;
                     let progress = downloaded as f64 / content_length.unwrap() as f64;
+                    app.emit("updateDownloadProgress", progress).unwrap();
                     log::info!("downloaded {}", progress);
                 },
                 || {
@@ -420,18 +423,29 @@ async fn update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
             )
             .await?;
 
-        println!("update installed");
-        let config = app.store("config.json")?;
-        if config.get("rssFeeds").is_some() {
-            let rss_feeds = config.get("rssFeeds").unwrap();
-            let rss_feeds = rss_feeds.as_bool().unwrap_or(true);
-            if rss_feeds {
-                open_link("https://blog.mrquantumoff.dev".to_string())?;
-            }
-        }
+        println!("update downloaded");
         app.emit("updateDownloadProgress", 1).unwrap();
-        app.restart();
+        let state = app.state::<Mutex<AppState>>();
+        let mut state = state.lock().await;
+        state.update = Some(update);
+        state.update_bytes = downloaded_update;
     }
 
+    Ok(())
+}
+
+#[tauri::command]
+async fn install_update(app: tauri::AppHandle) -> Result<(), tauri::Error> {
+    let state = app.state::<Mutex<AppState>>();
+    let mut state = state.lock().await;
+    let update = state.update.take();
+    if update.is_none() {
+        return Err(anyhow::anyhow!("No update available").into());
+    }
+    let update = update.unwrap();
+    let update_bytes = state.update_bytes.clone();
+    update
+        .install(update_bytes)
+        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
     Ok(())
 }
