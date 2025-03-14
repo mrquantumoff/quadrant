@@ -4,9 +4,9 @@
   "version": "25.3.3-stable",
   "identifier": "dev.mrquantumoff.mcmodpackmanager",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "bun dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "bun build",
     "frontendDist": "../dist",
     "features": ["proprietary"]
   },
