@@ -1,6 +1,6 @@
 {
     "identifier": "dev.mrquantumoff.mcmodpackmanager",
-    "version": "25.3.3-foss",
+    "version": "25.4.0-foss",
     "build" : {
         "features": []
     }

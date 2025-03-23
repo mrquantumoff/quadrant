@@ -143,7 +143,7 @@ function App() {
       await listen("updateDownloadProgress", async (e: any) => {
         if (updateDownloadProgress !== e.payload) {
           setUpdateDownloadProgress(e.payload);
-          currentWindow.setProgressBar({ progress: e.payload * 100 });
+          currentWindow.setProgressBar({ progress: Math.round(e.payload * 100) });
           if (e.payload === 1) {
             currentWindow.setProgressBar({
               progress: 0,

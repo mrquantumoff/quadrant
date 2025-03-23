@@ -1,14 +1,16 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Quadrant",
-  "version": "25.3.3-stable",
+  "version": "25.4.0-stable",
   "identifier": "dev.mrquantumoff.mcmodpackmanager",
   "build": {
     "beforeDevCommand": "bun dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "bun build",
     "frontendDist": "../dist",
-    "features": ["proprietary"]
+    "features": [
+      "proprietary"
+    ]
   },
   "app": {
     "windows": [
@@ -39,7 +41,11 @@
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["quadrantnext", "curseforge", "modrinth"]
+        "schemes": [
+          "quadrantnext",
+          "curseforge",
+          "modrinth"
+        ]
       }
     },
     "cli": {
@@ -48,7 +54,8 @@
         {
           "name": "autostart",
           "description": "Whether the app should start hidden"
-        }, {
+        },
+        {
           "name": "noupdater",
           "description": "Prevent the app from automatically updating (aimed at flatpak builds)"
         }
@@ -66,17 +73,38 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "appimage", "deb", "rpm"],
+    "targets": [
+      "nsis",
+      "appimage",
+      "deb",
+      "rpm"
+    ],
     "linux": {
       "appimage": {
         "bundleMediaFramework": false
       },
       "deb": {
-        "depends": ["libwebkit2gtk-4.1", "openssl", "curl", "wget", "libappindicator3-1", "librsvg2-2", "libsecret-1-0"],
+        "depends": [
+          "libwebkit2gtk-4.1",
+          "openssl",
+          "curl",
+          "wget",
+          "libappindicator3-1",
+          "librsvg2-2",
+          "libsecret-1-0"
+        ],
         "desktopTemplate": "../Quadrant.desktop"
       },
       "rpm": {
-        "depends": ["webkit2gtk4.1", "openssl", "curl", "wget", "libappindicator", "librsvg2", "libsecret"],
+        "depends": [
+          "webkit2gtk4.1",
+          "openssl",
+          "curl",
+          "wget",
+          "libappindicator",
+          "librsvg2",
+          "libsecret"
+        ],
         "desktopTemplate": "../Quadrant.desktop"
       }
     },
@@ -92,11 +120,19 @@
     "licenseFile": "../LICENSE.rtf",
     "shortDescription": "Manage your mods and modpacks with ease.",
     "longDescription": "This is a powerful tool to manage your Minecraft: Java Edition mods. With this app you can easily install mods, resourcepacks, shaders. You can also share you modpacks with your friends, and you can back up your modpacks to the cloud!",
-    "fileAssociations": [{
-      "ext": ["modpackconfig.json", "modpackConfig", "quadrantModpack.json"],
-      "description": "Quadrant Modpack Config File"
-    }],
-    "resources": ["../public"],
+    "fileAssociations": [
+      {
+        "ext": [
+          "modpackconfig.json",
+          "modpackConfig",
+          "quadrantModpack.json"
+        ],
+        "description": "Quadrant Modpack Config File"
+      }
+    ],
+    "resources": [
+      "../public"
+    ],
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper",
@@ -104,7 +140,11 @@
       },
       "allowDowngrades": true,
       "nsis": {
-        "languages": ["Ukrainian", "English", "Turkish"]
+        "languages": [
+          "Ukrainian",
+          "English",
+          "Turkish"
+        ]
       }
     },
     "publisher": "MrQuantumOFF (Demir Yerli)",
