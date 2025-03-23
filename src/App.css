@@ -1,9 +1,11 @@
+/** @format */
+
 @import "tailwindcss";
 
 html {
   font-family: "Inter";
   @apply bg-slate-900 text-slate-50
-    overflow-x-hidden font-normal rounded-2xl transition-all;
+    overflow-x-hidden font-normal rounded-4xl transition-all;
   font-synthesis: none !important;
 }
 
@@ -18,11 +20,19 @@ option {
 }
 
 .input {
-  @apply bg-slate-700 px-4 py-2 rounded-2xl focus:bg-slate-800 hover:bg-slate-800 hover:outline-2 focus:outline-2 outline-slate-700 transition-all ease-linear;
+  @apply bg-slate-700 px-4 py-2 rounded-full focus:bg-slate-800 hover:bg-slate-800 hover:outline-2 focus:outline-2 outline-slate-700 transition-all ease-linear;
 }
 
 * {
   @apply transition-all duration-75 ease-linear;
+}
+
+div {
+  @apply focus:outline-0;
+}
+
+button {
+  @apply focus:outline-4 focus:outline-slate-700;
 }
 
 @font-face {
@@ -41,7 +51,7 @@ option {
 
 ::-webkit-scrollbar-thumb {
   max-height: 12px;
-  @apply bg-slate-500 hover:bg-slate-600 rounded-2xl mx-2 h-5;
+  @apply bg-slate-500 hover:bg-slate-600 rounded-4xl mx-2 h-5;
 }
 
 .page {

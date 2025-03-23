@@ -93,7 +93,7 @@ export default function ApplyPage() {
               {t("copiedToClipboard", { amount: usesLeft })}
             </span>
           ),
-          className: "bg-emerald-700 rounded-2xl",
+          className: "bg-emerald-700 rounded-4xl",
           timeout: 5000,
         });
       });
@@ -129,7 +129,7 @@ export default function ApplyPage() {
       >
         <input
           placeholder={t("search")}
-          className="p-4 input w-[95.5%] bg-slate-700 h-16 rounded-2xl self-center mx-16 my-8 text-center"
+          className="p-4 input w-[95.5%] bg-slate-700 h-16 rounded-full self-center mx-16 my-8 text-center"
           onChange={(event) => {
             const query = event.target.value.toLowerCase().trim();
             setSearchQuery(query);
@@ -137,7 +137,7 @@ export default function ApplyPage() {
           autoComplete="off"
           value={searchQuery}
         ></input>
-        <div className="flex flex-row justify-center w-fit self-center bg-slate-700 rounded-2xl my-4 p-2">
+        <div className="flex flex-row justify-center w-fit self-center bg-slate-700 rounded-4xl my-4 p-2">
           <Button
             onClick={() => {
               const defaultModpack: LocalModpack = {
@@ -153,7 +153,7 @@ export default function ApplyPage() {
               setIsUpdateDialogOpen(true);
               setModpackToUpdate(defaultModpack);
             }}
-            className="bg-emerald-600 mx-2 flex items-center align-middle w-fit hover:bg-emerald-700 rounded-2xl "
+            className="bg-emerald-600 mx-2 flex items-center align-middle w-fit hover:bg-emerald-700 px-4 rounded-4xl "
           >
             {t("createModpack")}
             <MdCreate className="w-6 h-6 mx-2" />
@@ -171,7 +171,7 @@ export default function ApplyPage() {
               await applyModpack("free");
               await updateModpacks();
             }}
-            className="bg-yellow-600 flex items-center align-middle mx-2 w-fit hover:bg-yellow-700 rounded-2xl "
+            className="bg-yellow-600 flex items-center align-middle mx-2 w-fit hover:bg-yellow-700 px-4 rounded-4xl "
           >
             {t("clear")}
             <MdClear className="w-6 h-6 mx-2" />
@@ -180,13 +180,13 @@ export default function ApplyPage() {
             onClick={async () => {
               await openModpacksFolder();
             }}
-            className="bg-slate-800 flex items-center align-middle mx-2 w-fit hover:bg-slate-900 rounded-2xl "
+            className="bg-slate-800 flex items-center align-middle mx-2 w-fit hover:bg-slate-900 px-4 rounded-4xl "
           >
             {t("openModpacksFolder")}
             <MdFolder className="w-6 h-6 mx-2" />
           </Button>
         </div>
-        <div className="bg-slate-800 rounded-2xl mx-6 mb-8">
+        <div className="bg-slate-800 rounded-4xl mx-6 mb-8">
           <AnimatePresence>
             {modpacks?.map((modpack, index) => {
               const date = new Date(modpack.lastSynced);
@@ -216,7 +216,7 @@ export default function ApplyPage() {
                     y: -500,
                   }}
                   key={index}
-                  className="flex flex-col bg-slate-900 hover:bg-slate-950 p-4 rounded-2xl mx-5 my-5 h-max hover:shadow-lg hover:shadow-slate-950 "
+                  className="flex flex-col bg-slate-900 hover:bg-slate-950 p-4 rounded-4xl mx-5 my-5 h-max hover:shadow-lg hover:shadow-slate-950 "
                 >
                   <h1 className="text-4xl font-extrabold max-w-56 w-56">
                     {modpack.name}
@@ -226,7 +226,7 @@ export default function ApplyPage() {
                     {t("modCount", { amount: modpack.mods.length })}{" "}
                     {modpack.lastSynced !== 0 && <span>| {dateString}</span>}
                   </p>
-                  <div className="my-2.5 flex overflow-x-auto flex-wrap h-max flex-row items-center justify-start text-center w-full">
+                  <div className="my-2.5 flex overflow-x-auto flex-wrap h-max flex-row items-center text-lg justify-start text-center w-full">
                     <Button
                       onClick={async () => {
                         if (modpack.isApplied) {
@@ -242,22 +242,22 @@ export default function ApplyPage() {
                                 {t("setModpackSuccess")}
                               </span>
                             ),
-                            className: "bg-emerald-700 rounded-2xl",
+                            className: "bg-emerald-700 rounded-4xl",
                             timeout: 5000,
                           });
                         } catch (e: any) {
                           console.error(e);
                           context.setSnackbar({
                             message: t("setModpackFailed"),
-                            className: "bg-red-700 rounded-2xl",
+                            className: "bg-red-700 rounded-4xl",
                             timeout: 5000,
                           });
                         }
                       }}
                       className={
                         modpack.isApplied
-                          ? "flex items-center self-center bg-emerald-900 cursor-default w-max h-16 justify-center m-2"
-                          : "flex items-center self-center bg-emerald-600 hover:bg-emerald-800 w-max h-16 justify-center m-2"
+                          ? "flex items-center self-center bg-emerald-900 cursor-default w-max px-4 h-16 justify-center m-2"
+                          : "flex items-center self-center bg-emerald-600 hover:bg-emerald-800 px-4 w-max h-16 justify-center m-2"
                       }
                     >
                       {modpack.isApplied ? t("applied") : t("apply")}
@@ -271,13 +271,13 @@ export default function ApplyPage() {
                           console.error(e);
                           context.setSnackbar({
                             message: t(e),
-                            className: "bg-red-700 rounded-2xl",
+                            className: "bg-red-700 rounded-4xl",
                             timeout: 5000,
                           });
                         }
                       }}
                       className={
-                        "flex items-center self-center bg-blue-600 hover:bg-blue-800 m-2 w-max h-16 justify-center"
+                        "flex items-center self-center bg-blue-600 hover:bg-blue-800 px-4 m-2 w-max h-16 justify-center"
                       }
                     >
                       {t("share")}
@@ -294,7 +294,7 @@ export default function ApplyPage() {
                                 {t("modpackUpdated")}
                               </span>
                             ),
-                            className: "bg-emerald-700 rounded-2xl",
+                            className: "bg-emerald-700 rounded-4xl",
                             timeout: 5000,
                           });
                           await updateModpacks();
@@ -302,13 +302,13 @@ export default function ApplyPage() {
                           console.error(e);
                           context.setSnackbar({
                             message: t(e),
-                            className: "bg-red-700 rounded-2xl",
+                            className: "bg-red-700 rounded-4xl",
                             timeout: 5000,
                           });
                         }
                       }}
                       className={
-                        "flex items-center self-center bg-lime-600 hover:bg-lime-800 m-2 w-max h-16 justify-center"
+                        "flex items-center px-4 self-center bg-lime-600 hover:bg-lime-800 m-2 w-max h-16 justify-center"
                       }
                     >
                       {t("sync")}
@@ -324,7 +324,7 @@ export default function ApplyPage() {
                         setModpackToUpdate(modpack);
                       }}
                       className={
-                        "flex items-center self-center bg-indigo-500 hover:bg-indigo-700 m-2 w-max h-16 justify-center"
+                        "flex items-center self-center bg-indigo-500 hover:bg-indigo-700 px-4 m-2 w-max h-16 justify-center"
                       }
                     >
                       {t("update")}
@@ -338,13 +338,13 @@ export default function ApplyPage() {
                           console.error(e);
                           context.setSnackbar({
                             message: t(e),
-                            className: "bg-red-700 rounded-2xl",
+                            className: "bg-red-700 rounded-4xl",
                             timeout: 5000,
                           });
                         }
                       }}
                       className={
-                        "flex items-center self-center bg-amber-500 hover:bg-amber-700 m-2 w-max h-16 justify-center"
+                        "flex items-center self-center px-4 bg-amber-500 hover:bg-amber-700 m-2 w-max h-16 justify-center"
                       }
                     >
                       {t("export")}
@@ -357,20 +357,20 @@ export default function ApplyPage() {
                           await updateModpacks();
                           context.setSnackbar({
                             message: <MdDelete className="w-6 h-6 mx-2" />,
-                            className: "bg-emerald-700 rounded-2xl",
+                            className: "bg-emerald-700 rounded-4xl",
                             timeout: 5000,
                           });
                         } catch (e: any) {
                           console.error(e);
                           context.setSnackbar({
                             message: t("unknown"),
-                            className: "bg-red-700 text-slate-950 rounded-2xl",
+                            className: "bg-red-700 text-slate-950 rounded-4xl",
                             timeout: 5000,
                           });
                         }
                       }}
                       className={
-                        "flex items-center self-center bg-red-500 hover:bg-red-700  w-max h-16 m-2 justify-center"
+                        "flex items-center self-center bg-red-500 hover:bg-red-700 px-4  w-max h-16 m-2 justify-center"
                       }
                     >
                       {t("delete")}
@@ -401,7 +401,7 @@ export default function ApplyPage() {
                         });
                       }}
                       className={
-                        "flex items-center self-center bg-slate-500 hover:bg-slate-700 w-max m-2 h-16 justify-center"
+                        "flex items-center self-center bg-slate-500 hover:bg-slate-700 px-4 w-max m-2 h-16 justify-center"
                       }
                     >
                       {t("details")}
@@ -426,7 +426,7 @@ export default function ApplyPage() {
               exit={{ opacity: 0, y: 500 }}
               className="fixed inset-0 flex w-screen items-center justify-center p-4"
             >
-              <DialogPanel className="max-w-xl space-y-4 rounded-2xl bg-slate-800 p-8">
+              <DialogPanel className="max-w-xl space-y-4 rounded-4xl bg-slate-800 p-8">
                 <DialogTitle className="font-black text-2xl">
                   {isDialogToCreate ? t("createModpack") : t("update")}
                 </DialogTitle>
@@ -441,7 +441,7 @@ export default function ApplyPage() {
                       {t("chooseVersion")}
                     </Label>
                     <Select
-                      className="bg-slate-700 w-full p-2 rounded-2xl font-semibold hover:bg-slate-600"
+                      className="bg-slate-700 w-full p-2 rounded-4xl font-semibold hover:bg-slate-600"
                       name="version"
                       value={modpackToUpdate.version}
                       onChange={(newValue) => {
@@ -459,7 +459,7 @@ export default function ApplyPage() {
                             defaultChecked={
                               version.version == modpackToUpdate.version
                             }
-                            className="rounded-2xl font-semibold"
+                            className="rounded-4xl font-semibold"
                             key={version.version}
                           >
                             {version.version}
@@ -473,7 +473,7 @@ export default function ApplyPage() {
                       {t("choosePreferredAPI")}
                     </Label>
                     <Select
-                      className="bg-slate-700 w-full p-2 rounded-2xl font-semibold hover:bg-slate-600"
+                      className="bg-slate-700 w-full p-2 rounded-4xl font-semibold hover:bg-slate-600"
                       name="modLoader"
                       value={modpackToUpdate.modLoader}
                       onChange={(newValue) => {
@@ -513,7 +513,7 @@ export default function ApplyPage() {
                       {isDialogToCreate ? t("name") : t("chooseModpack")}
                     </Label>
                     <Input
-                      className="bg-slate-700 focus:bg-slate-600 focus: focus:border-2 focus:border-slate-500 w-full p-2 rounded-2xl font-semibold hover:bg-slate-600"
+                      className="bg-slate-700 focus:bg-slate-600 focus: focus:border-2 focus:border-slate-500 w-full p-2 rounded-4xl font-semibold hover:bg-slate-600"
                       name="modLoader"
                       type="text"
                       value={modpackToUpdate.name}
@@ -560,7 +560,7 @@ export default function ApplyPage() {
                               modpackToUpdate.version +
                               " | " +
                               modpackToUpdate.modLoader,
-                            className: "bg-emerald-700 rounded-2xl",
+                            className: "bg-emerald-700 rounded-4xl",
                             timeout: 5000,
                           });
                           await updateModpacks();
@@ -568,7 +568,7 @@ export default function ApplyPage() {
                           console.error(e);
                           context.setSnackbar({
                             message: t("invalidData"),
-                            className: "bg-red-700 text-slate-950 rounded-2xl",
+                            className: "bg-red-700 text-slate-950 rounded-4xl",
                             timeout: 5000,
                           });
                         }
@@ -586,14 +586,14 @@ export default function ApplyPage() {
                               modpackToUpdate.version +
                               " | " +
                               modpackToUpdate.modLoader,
-                            className: "bg-emerald-700 rounded-2xl",
+                            className: "bg-emerald-700 rounded-4xl",
                             timeout: 5000,
                           });
                         } catch (e: any) {
                           console.error(e);
                           context.setSnackbar({
                             message: t("invalidData"),
-                            className: "bg-red-700 text-slate-950 rounded-2xl",
+                            className: "bg-red-700 text-slate-950 rounded-4xl",
                             timeout: 5000,
                           });
                         }

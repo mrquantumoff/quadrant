@@ -1,3 +1,5 @@
+/** @format */
+
 import { useContext, useEffect, useState } from "react";
 import {
   IMod,
@@ -116,7 +118,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         onClick={() => {
           context.back();
         }}
-        className="bg-slate-800 mt-2 ml-4 rounded-2xl hover:bg-slate-700 flex text-center items-center "
+        className="bg-slate-800 mt-2 ml-4 rounded-4xl hover:bg-slate-700 flex text-center items-center "
       >
         <MdArrowBack className="w-10 h-10  " />
         {t("cancel")}
@@ -124,11 +126,11 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       <motion.div
         initial={{ x: 50, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className="bg-slate-800 mb-5 overflow-y-auto rounded-2xl h-fit pb-8 mx-4 mt-2 flex flex-col items-start"
+        className="bg-slate-800 mb-5 overflow-y-auto rounded-4xl h-fit pb-8 mx-4 mt-2 flex flex-col items-start"
       >
         <div className="flex h-full w-full mt-8 ">
           <div className="flex flex-col items-start ml-12 h-min w-full mr-24">
-            <div className="bg-slate-900 mt-6 rounded-2xl p-2 mb-4">
+            <div className="bg-slate-900 mt-6 rounded-4xl p-2 mb-4">
               <img
                 src={mod.modIconUrl}
                 className={"w-24 h-24 " + (clipIcons ? "rounded-full" : "")}
@@ -140,7 +142,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
             <h3 className="font-bold">
               {t(mod.modType.toLowerCase(), { source: modSource })}
             </h3>
-            <div className="text-slate-400 rounded-2xl bg-slate-900 p-4 my-2 w-full">
+            <div className="text-slate-400 rounded-4xl bg-slate-900 p-4 my-2 w-full">
               <div className="flex flex-col">
                 <p className="text-start text-lg text-pretty w-full font-semibold my-2">
                   {mod.description}
@@ -168,13 +170,13 @@ export default function ModInstallPage(props: IModInstallPageProps) {
               </div>
             </div>
           </div>
-          <div className="flex w-full self-end flex-col h-fit max-h-[60vh] items-center justify-center align-middle bg-slate-700 rounded-2xl overflow-x-hidden overflow-y-auto mr-8 mb-4">
+          <div className="flex w-full self-end flex-col h-fit max-h-[60vh] items-center justify-center align-middle bg-slate-700 rounded-4xl overflow-x-hidden overflow-y-auto mr-8 mb-4">
             {mod.thumbnailUrls.map((thumbnail) => {
               return (
-                <div key={thumbnail} className="h-full m-2 rounded-2xl">
+                <div key={thumbnail} className="h-full m-2 rounded-4xl">
                   <motion.img
                     src={thumbnail}
-                    className="w-full h-full rounded-2xl"
+                    className="w-full h-full rounded-4xl"
                     whileHover={{ scale: 1.25 }}
                   ></motion.img>
                 </div>
@@ -186,7 +188,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       <motion.div
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="bg-slate-800 overflow-x-auto rounded-2xl m-4 p-4 flex flex-col flex-1 items-center"
+        className="bg-slate-800 overflow-x-auto rounded-4xl m-4 p-4 flex flex-col flex-1 items-center"
       >
         <h1 className="text-center text-4xl mb-2 font-extrabold">
           {t("owners", { amount: owners.length })}:
@@ -196,7 +198,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
             return (
               <div
                 key={owner.name}
-                className="p-2 mx-2 items-center text-center h-5/6 w-fit bg-slate-700 rounded-2xl"
+                className="p-2 mx-2 items-center text-center h-5/6 w-fit bg-slate-700 rounded-4xl"
               >
                 <p className="font-extrabold text-3xl">{owner.name}</p>
                 <Button
@@ -219,7 +221,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         initial={{ y: 50, opacity: 0 }}
         animate={{ opacity: 0.25 }}
         whileInView={{ y: 0, opacity: 1 }}
-        className="bg-slate-800 overflow-y-auto rounded-2xl m-4 p-4 flex flex-row flex-1"
+        className="bg-slate-800 overflow-y-auto rounded-4xl m-4 p-4 flex flex-row flex-1"
       >
         <Fieldset className="w-full">
           {props.fileId === undefined ? (
@@ -228,7 +230,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 {t("chooseVersion")}
               </Label>
               <Select
-                className="bg-slate-700 w-full p-2 rounded-2xl font-semibold hover:bg-slate-600"
+                className="bg-slate-700 w-full p-2 rounded-4xl font-semibold hover:bg-slate-600"
                 name="version"
                 autoComplete="off"
                 onChange={async (e) => {
@@ -244,7 +246,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                     <option
                       value={versionOption.version}
                       defaultChecked={versionOption.version === version}
-                      className="rounded-2xl font-semibold"
+                      className="rounded-4xl font-semibold"
                       key={versionOption.version}
                     >
                       {versionOption.version}
@@ -263,7 +265,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 {t("choosePreferredAPI")}
               </Label>
               <Select
-                className="bg-slate-700 w-full p-2 rounded-2xl font-semibold hover:bg-slate-600"
+                className="bg-slate-700 w-full p-2 rounded-4xl font-semibold hover:bg-slate-600"
                 name="modLoader"
                 onChange={async (e) => {
                   e.preventDefault();
@@ -286,7 +288,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 {t("chooseModpack")}
               </Label>
               <Select
-                className="bg-slate-700 focus:bg-slate-600 focus: focus:border-2 focus:border-slate-500 w-full p-2 rounded-2xl font-semibold hover:bg-slate-600"
+                className="bg-slate-700 focus:bg-slate-600 focus: focus:border-2 focus:border-slate-500 w-full p-2 rounded-4xl font-semibold hover:bg-slate-600"
                 name="modpack"
                 autoComplete="off"
                 value={modpack}
@@ -338,7 +340,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                   console.error(t(e));
                   context.setSnackbar({
                     message: t(e),
-                    className: "bg-red-500 rounded-2xl",
+                    className: "bg-red-500 rounded-4xl",
                     timeout: 5000,
                   });
                 }

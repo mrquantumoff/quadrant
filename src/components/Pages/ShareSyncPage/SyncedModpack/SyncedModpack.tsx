@@ -1,3 +1,5 @@
+/** @format */
+
 import { useTranslation } from "react-i18next";
 import quadrantLocale from "../../../../i18n";
 import {
@@ -107,7 +109,7 @@ export default function SyncedModpackComponent({
 
   return (
     <motion.div
-      className="p-4 bg-slate-900 m-4 rounded-2xl"
+      className="p-4 bg-slate-900 m-4 rounded-4xl"
       initial={{ y: 500, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
     >
@@ -121,7 +123,7 @@ export default function SyncedModpackComponent({
           <h3>{t("cloudSyncDate", { date: formattedDate })}</h3>
           <h3>{t("localSyncDate", { date: localFormattedDate })}</h3>
         </div>
-        <div className="flex items-center py-4 px-2 bg-slate-700 rounded-2xl my-4 h-16">
+        <div className="flex items-center py-4 px-2 bg-slate-700 rounded-4xl my-4 h-16">
           <Button
             className="flex items-center self-center bg-emerald-700 hover:bg-emerald-800"
             onClick={async () => {
@@ -142,7 +144,7 @@ export default function SyncedModpackComponent({
                 console.error(e);
                 contentContext.setSnackbar({
                   message: t(e),
-                  className: "bg-red-700 rounded-2xl",
+                  className: "bg-red-700 rounded-4xl",
                   timeout: 5000,
                 });
               }
@@ -155,7 +157,7 @@ export default function SyncedModpackComponent({
         <Disclosure as="div" className={"w-full"}>
           {({ open }) => (
             <>
-              <div className="bg-slate-700 rounded-2xl">
+              <div className="bg-slate-700 rounded-4xl">
                 <DisclosureButton
                   className={
                     "w-full text-start  data-open:rounded-b-none p-2 flex flex-1 group h-16 items-center "
@@ -188,7 +190,7 @@ export default function SyncedModpackComponent({
                             owner.username !== accountInfo?.login;
                           const kickButton = isOwner ? (
                             <Button
-                              className="bg-red-700 hover:bg-red-800 text-white"
+                              className="bg-red-700 hover:bg-red-800 text-white px-4 mr-4"
                               onClick={async () => {
                                 await kickMember(
                                   modpack.modpack_id,
@@ -206,9 +208,9 @@ export default function SyncedModpackComponent({
                           return (
                             <div
                               key={owner.username}
-                              className="my-4 bg-slate-800 rounded-2xl p-2 flex items-center font-bold h-20 "
+                              className="my-4 bg-slate-800 rounded-full p-2 flex items-center justify-center font-bold h-20 "
                             >
-                              <p className="flex items-start w-full">
+                              <p className="flex items-center px-4 justify-start w-full">
                                 {owner.admin
                                   ? t("owner", { username: owner.username })
                                   : owner.username}
@@ -243,7 +245,7 @@ export default function SyncedModpackComponent({
                                 console.error(e);
                                 contentContext.setSnackbar({
                                   message: t(e),
-                                  className: "bg-red-700 rounded-2xl",
+                                  className: "bg-red-700 rounded-4xl",
                                   timeout: 5000,
                                 });
                               }
@@ -277,7 +279,7 @@ export default function SyncedModpackComponent({
                       <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
                         <DialogPanel
                           className={
-                            "max-w-xl space-y-4 rounded-2xl bg-slate-800 p-8"
+                            "max-w-xl space-y-4 rounded-4xl bg-slate-800 p-8"
                           }
                         >
                           <DialogTitle className={"font-black text-2xl"}>
@@ -287,7 +289,7 @@ export default function SyncedModpackComponent({
                             type="text"
                             value={userToInvite}
                             autoComplete="off"
-                            className="bg-slate-700 focus:bg-slate-600 focus: focus:border-2 focus:border-slate-500 w-full p-2 rounded-2xl font-semibold hover:bg-slate-600  focus:outline-hidden"
+                            className="bg-slate-700 focus:bg-slate-600 focus: focus:border-2 focus:border-slate-500 w-full p-2 rounded-4xl font-semibold hover:bg-slate-600  focus:outline-hidden"
                             placeholder={t("username")}
                             onChange={async (e) =>
                               setUserToInvite(e.target.value)

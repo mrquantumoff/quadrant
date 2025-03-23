@@ -1,3 +1,5 @@
+/** @format */
+
 import { useTranslation } from "react-i18next";
 import {
   ContentContext,
@@ -25,6 +27,7 @@ import { useContext, useEffect, useState } from "react";
 import ModInstallPage from "../Pages/ModInstallPage/ModInstallPage";
 import { listen } from "@tauri-apps/api/event";
 import { LazyStore } from "@tauri-apps/plugin-store";
+import Button from "../core/Button";
 
 export interface IModProps {
   mod: IMod;
@@ -135,7 +138,7 @@ export default function Mod(props: IModProps) {
           transition={{ type: "spring", stiffness: 100, duration: "300" }}
           className={
             props.className +
-            " p-4 h-full bg-slate-900 w-full flex-1 items-center justify-center align-middle rounded-2xl flex flex-col hover:shadow-2xl hover:bg-slate-950 hover:shadow-slate-950"
+            " p-4 h-full bg-slate-900 w-full flex-1 items-center justify-center align-middle rounded-4xl flex flex-col hover:shadow-2xl hover:bg-slate-950 hover:shadow-slate-950"
           }
           onDoubleClick={openModDownload}
         >
@@ -157,7 +160,7 @@ export default function Mod(props: IModProps) {
               {mod.name}
             </h1>
 
-            <span className="flex text-slate-400 rounded-2xl">
+            <span className="flex text-slate-400 rounded-4xl">
               <span className="border-2 mx-2 border-slate-400"></span>
               <span className="w-fit h-full place-content-center text-2xl align-center justify-center text-center font-bold ">
                 {Intl.NumberFormat(i18n.language, {
@@ -179,25 +182,25 @@ export default function Mod(props: IModProps) {
           </h2>
           <div className="flex h-min align-center w-full items-center justify-center text-center mt-4 transition-all duration-300 ease-linear">
             {mod.deleteable ? (
-              <button
-                onClick={async (e) => {
-                  e.preventDefault();
+              <Button
+                animate
+                onClick={async () => {
                   await deleteMod(props.modpack ?? "free", mod.id);
                   setVisible(false);
                 }}
-                className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-red-700 hover:bg-red-800 font-extrabold px-2 py-1 rounded-2xl mx-2"
+                className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-red-700 hover:bg-red-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
               >
                 {t("delete")}
                 <MdDelete className="ml-2 w-6 h-6" />
-              </button>
+              </Button>
             ) : (
               <></>
             )}
             {mod.downloadable && progress !== 1 ? (
               mod.newVersion !== undefined && mod.showPreviousVersion ? (
-                <button
-                  onClick={async (e) => {
-                    e.preventDefault();
+                <Button
+                  animate
+                  onClick={async () => {
                     if (!clickableDownload) {
                       return;
                     }
@@ -212,17 +215,15 @@ export default function Mod(props: IModProps) {
                       mod.id
                     );
                   }}
-                  className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-700 hover:bg-emerald-800 font-extrabold px-2 py-1 rounded-2xl mx-2"
+                  className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-700 hover:bg-emerald-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 >
-                  {progress === -1
-                    ? t("update")
-                    : +(progress).toFixed(2) + "%"}
+                  {progress === -1 ? t("update") : +progress.toFixed(2) + "%"}
                   <MdFileDownload className="ml-2 w-6 h-6"></MdFileDownload>
-                </button>
+                </Button>
               ) : (
-                <button
-                  onClick={async (e) => {
-                    e.preventDefault();
+                <Button
+                  animate
+                  onClick={async () => {
                     if (progress !== -1) {
                       return;
                     }
@@ -259,20 +260,21 @@ export default function Mod(props: IModProps) {
                     }
                     openModDownload();
                   }}
-                  className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-700 hover:bg-emerald-800 font-extrabold px-2 py-1 rounded-2xl mx-2"
+                  className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-700 hover:bg-emerald-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 >
                   {progress === -1
                     ? t("download")
                     : +(progress * 100).toFixed(2) + "%"}
                   <MdFileDownload className="ml-2 w-6 h-6"></MdFileDownload>
-                </button>
+                </Button>
               )
             ) : (
               <></>
             )}
             {mod.selectable && (
-              <button
-                className="flex items-center w-full text-lg/none self-center h-full break-words text-center justify-center bg-blue-700 hover:bg-blue-800 font-extrabold px-2 py-1 rounded-2xl mx-2"
+              <Button
+                animate
+                className="flex items-center w-full text-lg/none self-center h-full break-words text-center justify-center bg-blue-700 hover:bg-blue-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 onClick={async () => {
                   await registerMod(
                     {
@@ -287,19 +289,19 @@ export default function Mod(props: IModProps) {
               >
                 {t("select")}
                 <MdCheck className="ml-2 w-6 h-6"></MdCheck>
-              </button>
+              </Button>
             )}
             {mod.url.trim().length !== 0 && (
-              <button
-                onClick={async (e) => {
-                  e.preventDefault();
+              <Button
+                onClick={async () => {
                   await openIn(mod.url);
                 }}
-                className="flex items-center w-full text-lg/none self-center h-full break-words text-center justify-center bg-blue-700 hover:bg-blue-800 font-extrabold px-2 py-1 rounded-2xl mx-2"
+                animate
+                className="flex items-center w-full text-lg/none self-center h-full break-words text-center justify-center bg-blue-700 hover:bg-blue-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
               >
                 {t("openInTheWeb")}
                 <MdOpenInBrowser className="ml-2 w-6 h-6"></MdOpenInBrowser>
-              </button>
+              </Button>
             )}
           </div>
         </motion.div>

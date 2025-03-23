@@ -1,3 +1,5 @@
+/** @format */
+
 import { useTranslation } from "react-i18next";
 import Button from "../../core/Button";
 import { LazyStore } from "@tauri-apps/plugin-store";
@@ -82,11 +84,11 @@ export default function SettingsPage() {
       exit={{ y: 5000 }}
       className="mt-2 mx-8 flex flex-1 flex-col "
     >
-      <h1 className="font-extrabold text-4xl my-4 bg-yellow-400 text-slate-950 rounded-2xl w-fit p-4">
+      <h1 className="font-extrabold text-4xl my-4 bg-yellow-400 text-slate-950 rounded-4xl w-fit p-4">
         {t("someSettingsRequireReload")}
       </h1>
-      <div className="flex flex-col items-center align-middle w-full p-4 bg-slate-700 rounded-2xl">
-        <p className="font-extrabold my-2 bg-slate-900 rounded-2xl p-4">
+      <div className="flex flex-col items-center align-middle w-full p-4 bg-slate-700 rounded-4xl">
+        <p className="font-extrabold my-2 bg-slate-900 rounded-4xl p-4">
           {t("currentVersion", {
             version: currentVersion,
             tauriVersion: currentTauriVersion,
@@ -136,8 +138,8 @@ export default function SettingsPage() {
           <option value="tr">Türkçe</option>
         </Select>
       </Field>
-      <div className="flex flex-col items-center align-middle w-full p-4 bg-slate-700 rounded-2xl">
-        <p className="font-extrabold my-2 bg-slate-900 rounded-2xl p-4">
+      <div className="flex flex-col items-center align-middle w-full p-4 bg-slate-700 rounded-4xl">
+        <p className="font-extrabold my-2 bg-slate-900 rounded-4xl p-4">
           {mcFolder}
         </p>
         <div className="flex flex-row w-full">

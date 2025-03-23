@@ -1,3 +1,5 @@
+/** @format */
+
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import { useTranslation } from "react-i18next";
 import SharePage from "./SharePage";
@@ -51,7 +53,7 @@ export default function ShareSyncPage() {
                 {t("copiedToClipboard", { amount: usesLeft })}
               </span>
             ),
-            className: "bg-emerald-700 rounded-2xl",
+            className: "bg-emerald-700 rounded-4xl",
             timeout: 5000,
           });
         });
@@ -61,6 +63,8 @@ export default function ShareSyncPage() {
     };
     effect().catch(console.error);
   }, []);
+
+  const MotionTab = motion(Tab);
 
   return (
     <motion.div
@@ -83,7 +87,7 @@ export default function ShareSyncPage() {
         >
           {syncActive && (
             <motion.div
-              className="w-[75%] justify-center items-start align-top text-center rounded-2xl flex h-min"
+              className="w-[75%] justify-center items-start align-top text-center rounded-4xl flex h-min"
               initial={{ y: -500, opacity: 0.1 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{
@@ -92,19 +96,25 @@ export default function ShareSyncPage() {
                 type: "tween",
               }}
             >
-              <TabList className="flex flex-row w-[75%] h-min align-top rounded-2xl font-extrabold text-center items-start justify-center my-2">
-                <Tab
+              <TabList className="flex flex-row w-[75%] h-min align-top rounded-4xl font-extrabold text-center items-start justify-center my-2">
+                <MotionTab
                   onClick={() => {
                     setModpackSync(null);
                     setPreselectedModpack(undefined);
                   }}
-                  className="flex flex-col w-max hover:bg-cyan-300 bg-slate-800 p-4 rounded-2xl mx-4 text-center data-selected:bg-cyan-300 data-selected:text-slate-900 hover:text-slate-900 data-selected:shadow-cyan-300 ease-linear duration-300"
+                  whileHover={{ scale: 1.1, y: -5 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="flex flex-col w-max hover:bg-cyan-300 bg-slate-800 p-4 rounded-4xl mx-4 text-center data-selected:bg-cyan-300 data-selected:text-slate-900 hover:text-slate-900 data-selected:shadow-cyan-300 ease-linear duration-300"
                 >
                   {t("importMods")}
-                </Tab>
-                <Tab className="flex flex-col w-max hover:bg-sky-300 bg-slate-800 p-4 rounded-2xl mx-4 text-center data-selected:bg-sky-300 data-selected:text-slate-900 hover:text-slate-900 ease-linear duration-300">
+                </MotionTab>
+                <MotionTab
+                  whileHover={{ scale: 1.1, y: -5 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="flex flex-col w-max hover:bg-sky-300 bg-slate-800 p-4 rounded-4xl mx-4 text-center data-selected:bg-sky-300 data-selected:text-slate-900 hover:text-slate-900 ease-linear duration-300"
+                >
                   {t("Quadrant Sync")}
-                </Tab>
+                </MotionTab>
               </TabList>
             </motion.div>
           )}

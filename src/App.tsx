@@ -143,7 +143,9 @@ function App() {
       await listen("updateDownloadProgress", async (e: any) => {
         if (updateDownloadProgress !== e.payload) {
           setUpdateDownloadProgress(e.payload);
-          currentWindow.setProgressBar({ progress: Math.round(e.payload * 100) });
+          currentWindow.setProgressBar({
+            progress: Math.round(e.payload * 100),
+          });
           if (e.payload === 1) {
             currentWindow.setProgressBar({
               progress: 0,
@@ -172,7 +174,7 @@ function App() {
             status: ProgressBarStatus.None,
           });
           contextFunctions.setSnackbar({
-            className: "bg-emerald-700 rounded-2xl",
+            className: "bg-emerald-700 rounded-4xl",
             message: (
               <span className="flex">
                 <span>{t("export")}</span>
@@ -189,7 +191,7 @@ function App() {
                 <MdArchive className="w-6 h-6 mx-2" /> {progress}%
               </span>
             ),
-            className: "bg-gray-700 rounded-2xl",
+            className: "bg-gray-700 rounded-4xl",
             timeout: 500000,
           });
         }
@@ -444,8 +446,7 @@ function App() {
       }
       setTimeout(async () => {
         requestCheckForUpdates();
-
-      }, 10000)
+      }, 10000);
     };
     effect();
   }, []);
@@ -561,10 +562,11 @@ function App() {
                 {pages.map((p, i) => {
                   const isSelected = p.name == page.name;
                   return (
-                    <button
+                    <Button
+                      animate
                       data-selected={isSelected}
                       className={
-                        "text-center place-content-center grid justify-center align-center w-16 break-words relative min-h-fit  transition-all duration-200 ease-linear font-extrabold py-4 p-1 my-1 rounded-2xl " +
+                        "text-center place-content-center grid justify-center align-center w-16 break-words relative min-h-fit  transition-all duration-200 ease-linear font-extrabold py-4 p-1 my-1 rounded-4xl " +
                         p.style +
                         (page === p ? "bg-slate-600" : "bg-slate-800")
                       }
@@ -602,7 +604,7 @@ function App() {
                           </motion.p>
                         )}
                       </AnimatePresence>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -617,7 +619,7 @@ function App() {
                   data-tauri-drag-region
                   className="font-extrabold mt-4 h-full w-full"
                 >
-                  <p className=" bg-slate-700 my-4 p-2 rounded-2xl w-fit mx-4">
+                  <p className=" bg-slate-700 my-4 p-2 rounded-4xl w-fit mx-4 px-6 ">
                     {content.title}
                   </p>
                 </h1>
@@ -625,18 +627,30 @@ function App() {
                   data-tauri-drag-region
                   className="w-full items-center justify-end flex h-full mx-8"
                 >
-                  {updateDownloadProgress!== 0 && <Button
-                  className={(updateDownloadProgress!==1 ? "bg-slate-700 hover:bg-slate-600 " : "bg-emerald-700 hover:bg-emerald-800") + " mr-4 rounded-4xl p-2.5 px-6 "}
-                    onClick={async () => {
-                      if (updateDownloadProgress === 1) {
-                        await invoke("install_update");
+                  {updateDownloadProgress !== 0 && (
+                    <Button
+                      className={
+                        (updateDownloadProgress !== 1
+                          ? "bg-slate-700 hover:bg-slate-600 "
+                          : "bg-emerald-700 hover:bg-emerald-800") +
+                        " mr-4 rounded-4xl p-2.5 px-6 "
                       }
-                    }}
-                  >
-                    {updateDownloadProgress === 1
-                      ? <div className="flex align-middle justify-center items-center place-content-center"><p>{t("appUpdate")}</p> <MdInstallDesktop className="ml-2 w-6" /></div>
-                      : (updateDownloadProgress*100).toFixed(0) + "%"}
-                  </Button>}
+                      onClick={async () => {
+                        if (updateDownloadProgress === 1) {
+                          await invoke("install_update");
+                        }
+                      }}
+                    >
+                      {updateDownloadProgress === 1 ? (
+                        <div className="flex align-middle justify-center items-center place-content-center">
+                          <p>{t("appUpdate")}</p>{" "}
+                          <MdInstallDesktop className="ml-2 w-6" />
+                        </div>
+                      ) : (
+                        (updateDownloadProgress * 100).toFixed(0) + "%"
+                      )}
+                    </Button>
+                  )}
                   <div className="bg-slate-800 p-2 flex rounded-full items-center justify-center">
                     <Popover className="relative">
                       {({ open }) => {
@@ -688,7 +702,7 @@ function App() {
                                     scaleX: 0,
                                     x: 50,
                                   }}
-                                  className="flex flex-col p-4 mt-4 font-bold bg-slate-800 rounded-2xl w-[35vw] my-8 h-[75vh] "
+                                  className="flex flex-col p-4 mt-4 font-bold bg-slate-800 rounded-4xl w-[35vw] my-8 h-[75vh] "
                                 >
                                   <div className="border-b-2 border-slate-700">
                                     {snackBarHistory.map((item) => {
@@ -704,7 +718,7 @@ function App() {
                                           <div
                                             className={
                                               item.className +
-                                              " rounded-2xl p-4"
+                                              " rounded-4xl p-4"
                                             }
                                           >
                                             {item.message}
@@ -791,7 +805,7 @@ function App() {
                                       return (
                                         <div
                                           key={notification.notification_id}
-                                          className="bg-slate-700 rounded-2xl my-2 p-2 text-center flex flex-col items-center justify-center"
+                                          className="bg-slate-700 rounded-4xl my-2 p-2 text-center flex flex-col items-center justify-center"
                                         >
                                           <h3>{message}</h3>
                                           {action != null && (
@@ -808,7 +822,7 @@ function App() {
                                       return (
                                         <div
                                           key={article.guid}
-                                          className="bg-slate-900 rounded-2xl my-2 p-2 text-center flex flex-col items-center justify-center"
+                                          className="bg-slate-900 rounded-4xl my-2 p-2 text-center flex flex-col items-center justify-center"
                                         >
                                           <h3 className="font-black">
                                             {article.title}
@@ -816,7 +830,7 @@ function App() {
                                           <p className="font-normal">
                                             {article.summary}
                                           </p>
-                                          <div className="bg-slate-800 w-full flex p-2 rounded-2xl">
+                                          <div className="bg-slate-800 w-full flex p-2 rounded-4xl">
                                             <Button
                                               onClick={async () => {
                                                 await openIn(article.link);
@@ -892,7 +906,7 @@ function App() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 500, scale: 0.125 }}
                   className={
-                    "transition-transform bottom-8 font-bold text-slate-50 left-8 fixed w-max h-max p-4 rounded-2xl flex flex-col items-center justify-center " +
+                    "transition-transform bottom-8 font-bold text-slate-50 left-8 fixed w-max h-max p-4 rounded-4xl flex flex-col items-center justify-center " +
                     snackbarState.className
                   }
                 >

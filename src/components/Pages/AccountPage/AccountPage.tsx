@@ -1,3 +1,5 @@
+/** @format */
+
 import { useContext, useEffect, useState } from "react";
 import { AccountInfo } from "../../../intefaces";
 import { clearAccountToken, getAccountInfo, openIn } from "../../../tools";
@@ -58,16 +60,16 @@ export default function AccountPage() {
           {t("hello", { name: accountInfo.name })}
         </h1>
         <div className="w-[50%] items-center justify-center text-center font-bold">
-          <h2 className="bg-slate-800 p-2 rounded-2xl my-4">
+          <h2 className="bg-slate-800 p-2 rounded-4xl my-4">
             {t("email")}: {accountInfo.email}
           </h2>
-          <h2 className="bg-slate-800 p-2 rounded-2xl my-4">
+          <h2 className="bg-slate-800 p-2 rounded-4xl my-4">
             {t("username")}: {accountInfo.login}
           </h2>
-          <h2 className="bg-slate-800 p-2 rounded-2xl my-4">
+          <h2 className="bg-slate-800 p-2 rounded-4xl my-4">
             {t("syncLimit")}: {accountInfo.quadrant_sync_limit}
           </h2>
-          <h2 className="bg-slate-800 p-2 rounded-2xl my-4">
+          <h2 className="bg-slate-800 p-2 rounded-4xl my-4">
             {t("shareLimit")}: {accountInfo.quadrant_share_limit}
           </h2>
         </div>
@@ -84,7 +86,7 @@ export default function AccountPage() {
           <Button
             className="bg-blue-600 hover:bg-blue-800 h-min mx-2 w-full"
             onClick={async () => {
-              openIn("https://mrquantumoff.dev/account/manage");
+              openIn("https://mrquantumoff.dev/account");
             }}
           >
             {t("edit")}
@@ -95,7 +97,7 @@ export default function AccountPage() {
   ) : (
     <div className="items-center justify-center align-middle flex flex-1 h-full flex-col w-full ">
       <div className="place-content-center w-[75%] ">
-        <div className="bg-slate-800 rounded-2xl p-2 my-4">
+        <div className="bg-slate-800 rounded-4xl p-2 my-4">
           <h1 className="font-extrabold text-4xl my-2">{t("signIn")}</h1>
           <h2 className="font-bold text-2xl my-2">{t("emailAndPassword")}</h2>
         </div>

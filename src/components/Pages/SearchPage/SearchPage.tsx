@@ -1,3 +1,5 @@
+/** @format */
+
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -190,6 +192,9 @@ export default function SearchPage() {
   useEffect(() => {
     search(true);
   }, [filter]);
+
+  const MotionPopoverButton = motion(PopoverButton);
+
   return (
     <>
       <motion.div
@@ -234,6 +239,7 @@ export default function SearchPage() {
             <div className="flex flex-col h-fit">
               <Button
                 onClick={search}
+                animate
                 className="flex items-center my-2 justify-center hover:text-sky-950 self-center bg-sky-800 hover:bg-sky-400 h-min"
               >
                 <MdSearch className=""></MdSearch>
@@ -243,19 +249,21 @@ export default function SearchPage() {
                 {({ open }) => {
                   return (
                     <>
-                      <PopoverButton
+                      <MotionPopoverButton
+                        whileHover={{ y: -5, scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
                         className={
-                          "flex w-full items-center bg-slate-600 my-2 rounded-2xl focus:outline-none hover:bg-slate-700 font-bold p-2 self-start"
+                          "flex w-full items-center bg-slate-600 my-2 rounded-4xl focus:outline-none hover:bg-slate-700 font-bold p-2 self-start"
                         }
                       >
                         <MdFilterAlt />
                         {t("filter")}
-                      </PopoverButton>
+                      </MotionPopoverButton>
                       <AnimatePresence>
                         {open && (
                           <PopoverPanel
                             anchor="bottom"
-                            className="bg-slate-900 border-2 mt-8 border-slate-700 p-8 rounded-2xl flex flex-col w-max"
+                            className="bg-slate-900 border-2 mt-8 border-slate-700 p-8 rounded-4xl flex flex-col w-max"
                             static
                             as={motion.div}
                             initial={{
@@ -294,7 +302,7 @@ export default function SearchPage() {
                                     return (
                                       <option
                                         value={versionOption.version}
-                                        className="rounded-2xl font-semibold"
+                                        className="rounded-4xl font-semibold"
                                         key={versionOption.version}
                                       >
                                         {versionOption.version}
@@ -376,8 +384,11 @@ export default function SearchPage() {
                               </Field>
                               <div className="flex flex-1 items-center justify-center">
                                 <CloseButton
+                                  as={motion.button}
+                                  whileHover={{ y: -5, scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
                                   className={
-                                    "p-2 font-extrabold rounded-2xl mx-2 flex flex-1 h-full items-center bg-emerald-600 hover:bg-emerald-800 mt-8"
+                                    "p-2 font-extrabold rounded-4xl mx-2 flex flex-1 h-full items-center bg-emerald-600 hover:bg-emerald-800 mt-8"
                                   }
                                   onClick={() => {
                                     setFilter(true);
@@ -390,8 +401,11 @@ export default function SearchPage() {
                                   onClick={() => {
                                     setFilter(false);
                                   }}
+                                  as={motion.button}
+                                  whileHover={{ y: -5, scale: 1.1 }}
+                                  whileTap={{ scale: 0.9 }}
                                   className={
-                                    "p-2 font-extrabold rounded-2xl mx-2 flex flex-1 h-full items-center bg-slate-600 hover:bg-slate-800 mt-8"
+                                    "p-2 font-extrabold rounded-4xl mx-2 flex flex-1 h-full items-center bg-slate-600 hover:bg-slate-800 mt-8"
                                   }
                                 >
                                   <MdCancel className="w-6 h-6 mr-2 self-center" />
@@ -412,7 +426,7 @@ export default function SearchPage() {
         <div className="h-max flex items-center place-content-center">
           <AnimatePresence>
             {mods.length !== 0 ? (
-              <div className="bg-slate-800 items-center align-middle justify-center rounded-2xl mr-4 ml-2 mb-12 ">
+              <div className="bg-slate-800 items-center align-middle justify-center rounded-4xl mr-4 ml-2 mb-12 ">
                 <div className="grid grid-cols-3 mb-0 2xl:grid-cols-4 gap-6 p-4">
                   {mods.map((mod, index) => {
                     return (
@@ -458,7 +472,7 @@ export default function SearchPage() {
                 </AnimatePresence>
               </div>
             ) : (
-              <div className="bg-slate-800 rounded-2xl self-center p-8 items-center justify-center">
+              <div className="bg-slate-800 rounded-4xl self-center p-8 items-center justify-center">
                 <CircularProgress></CircularProgress>
               </div>
             )}

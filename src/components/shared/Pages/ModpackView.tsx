@@ -1,3 +1,5 @@
+/** @format */
+
 import quadrantLocale from "../../../i18n";
 import {
   FetchedIdentifiedMod,
@@ -206,7 +208,7 @@ export default function ModpackView(modpack: LocalModpack) {
   }, [showIdentify, showUpdates]);
 
   return (
-    <div className="w-auto p-4 rounded-2xl flex flex-1 flex-col">
+    <div className="w-auto p-4 rounded-4xl flex flex-1 flex-col">
       <ModpackViewContext.Provider
         value={{
           removeMod: async (id: string) => {
@@ -222,7 +224,7 @@ export default function ModpackView(modpack: LocalModpack) {
           },
         }}
       >
-        <div className="bg-slate-700 p-4 flex align-middle rounded-2xl mt-2 mb-5 w-full font-bold items-center justify-center ">
+        <div className="bg-slate-700 p-4 flex align-middle rounded-4xl mt-2 mb-5 w-full font-bold items-center justify-center ">
           <p className="text-center ">
             {modpack.name} | {modpack.modLoader} | {modpack.version} |{" "}
             {t("modCount", { amount: modCount })}{" "}
@@ -252,7 +254,7 @@ export default function ModpackView(modpack: LocalModpack) {
               setShowUpdates(true);
               await checkForUpdates();
             }}
-            className="bg-indigo-600 hover:bg-indigo-800 text-white ml-4 w-fit flex items-center "
+            className="bg-indigo-600 hover:bg-indigo-800 text-white ml-4 w-fit px-4 flex items-center "
           >
             {t("update")}
             <MdUpdate className="w-6 ml-2 h-6"></MdUpdate>
@@ -267,7 +269,7 @@ export default function ModpackView(modpack: LocalModpack) {
                 setShowIdentify(true);
                 await getIdentifiedMods();
               }}
-              className="bg-slate-600 hover:bg-slate-800 text-white mx-2 w-fit flex items-center "
+              className="bg-slate-600 px-4 hover:bg-slate-800 text-white mx-2 w-fit flex items-center "
             >
               {t("identifyUnknownMods")}
               <MdPermIdentity className="w-6 ml-2 h-6"></MdPermIdentity>
@@ -277,7 +279,7 @@ export default function ModpackView(modpack: LocalModpack) {
 
         {showIdentify ? (
           toIdentify.length == 0 ? (
-            <div className="bg-slate-800 w-full center h-min p-4 rounded-2xl">
+            <div className="bg-slate-800 w-full center h-min p-4 rounded-4xl">
               <CircularProgress></CircularProgress>
             </div>
           ) : (
@@ -287,7 +289,7 @@ export default function ModpackView(modpack: LocalModpack) {
                   <>
                     <div
                       key={mod.fileName + index}
-                      className="bg-slate-800 rounded-2xl p-4 my-2"
+                      className="bg-slate-800 rounded-4xl p-4 my-2"
                     >
                       <h1 className="font-bold">{mod.fileName} -&gt;</h1>
                       <div className="flex flex-row w-full mt-8">
@@ -310,11 +312,11 @@ export default function ModpackView(modpack: LocalModpack) {
           )
         ) : !showUpdates ? (
           mods.length == 0 ? (
-            <div className="bg-slate-800 w-full center h-min p-4 rounded-2xl">
+            <div className="bg-slate-800 w-full center h-min p-4 rounded-4xl">
               <CircularProgress></CircularProgress>
             </div>
           ) : (
-            <div className="bg-slate-800 p-4 rounded-2xl mr-4 ml-2 mb-12 grid grid-cols-3 2xl:grid-cols-4 gap-6">
+            <div className="bg-slate-800 p-4 rounded-4xl mr-4 ml-2 mb-12 grid grid-cols-3 2xl:grid-cols-4 gap-6">
               {mods.map((mod, index) => {
                 return (
                   <Mod
@@ -328,11 +330,11 @@ export default function ModpackView(modpack: LocalModpack) {
             </div>
           )
         ) : updates.length == 0 ? (
-          <div className="bg-slate-800 w-full center h-min p-4 rounded-2xl">
+          <div className="bg-slate-800 w-full center h-min p-4 rounded-4xl">
             <CircularProgress></CircularProgress>
           </div>
         ) : (
-          <div className="bg-slate-800 p-4 rounded-2xl mr-4 ml-2 mb-12 grid grid-cols-3 2xl:grid-cols-4 gap-6">
+          <div className="bg-slate-800 p-4 rounded-4xl mr-4 ml-2 mb-12 grid grid-cols-3 2xl:grid-cols-4 gap-6">
             {updates.map((mod, index) => {
               return (
                 <Mod

@@ -1,3 +1,5 @@
+/** @format */
+
 import { useEffect, useState } from "react";
 import { IMod, InstalledModpack } from "../../../intefaces";
 import CircularProgress from "../../core/CircularProgress";
@@ -123,13 +125,13 @@ export default function SharePage({
   return (
     <div className="flex flex-1 flex-col justify-center items-center w-full my-8 h-[80vh] ">
       {isLoading && (
-        <div className="bg-slate-800 rounded-2xl p-4">
+        <div className="bg-slate-800 rounded-4xl p-4">
           <CircularProgress />
         </div>
       )}
       {!isLoading && (
         <>
-          <div className="bg-slate-800 p-4 flex flex-col rounded-2xl font-bold">
+          <div className="bg-slate-800 p-4 flex flex-col rounded-4xl font-bold">
             {modpack === undefined && (
               <>
                 <p>{t("manualInput")}</p>
@@ -160,7 +162,7 @@ export default function SharePage({
                   {modpack.name} | {modpack.modLoader} | {modpack.version} |{" "}
                   {t("modCount", { amount: mods.length })}
                 </p>
-                <div className=" items-center justify-center my-4 rounded-2xl p-2 h-min  border-slate-900 border-8 ">
+                <div className=" items-center justify-center my-4 rounded-4xl p-2 h-min  border-slate-900 border-8 ">
                   <div className="grid grid-cols-3 mb-0 2xl:grid-cols-4 gap-6 p-4 max-h-[35vh] max-w-[80vw] overflow-auto  ">
                     {mods.map((mod) => {
                       return (

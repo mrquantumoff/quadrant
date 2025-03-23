@@ -1,3 +1,5 @@
+/** @format */
+
 import { useEffect, useState } from "react";
 import { LocalModpack, SyncContext, SyncedModpack } from "../../../intefaces";
 import { getModpacks, getSyncedModpacks } from "../../../tools";
@@ -30,7 +32,7 @@ export default function SyncPage() {
         animate={{ y: 0, opacity: 1 }}
         className="items-center justify-center flex flex-col flex-1 w-full"
       >
-        <div className="bg-slate-800 flex flex-1 flex-col  rounded-2xl w-[98%]  ">
+        <div className="bg-slate-800 flex flex-1 flex-col rounded-4xl w-[98%]  ">
           {modpacks.map((modpack) => {
             const localModpackResult = localModpacks.filter(
               (localModpack) => localModpack.name === modpack.name

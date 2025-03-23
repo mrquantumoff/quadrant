@@ -1,3 +1,5 @@
+/** @format */
+
 import { Field, Fieldset, Input } from "@headlessui/react";
 import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -123,7 +125,7 @@ export default function SecondRegisterStep({ email }: SecondRegisterStepProps) {
           <Field>
             <Input
               className={
-                "bg-slate-700 hover:bg-slate-600 focus:outline-none rounded-2xl p-4 my-2"
+                "bg-slate-700 hover:bg-slate-600 focus:outline-none rounded-4xl p-4 my-2"
               }
               placeholder={t("username")}
               value={username}
@@ -135,7 +137,7 @@ export default function SecondRegisterStep({ email }: SecondRegisterStepProps) {
           <Field>
             <Input
               className={
-                "bg-slate-700 hover:bg-slate-600 focus:outline-none rounded-2xl p-4 my-2"
+                "bg-slate-700 hover:bg-slate-600 focus:outline-none rounded-4xl p-4 my-2"
               }
               placeholder={t("name")}
               value={name}
