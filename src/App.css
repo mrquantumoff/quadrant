@@ -27,14 +27,6 @@ option {
   @apply transition-all duration-75 ease-linear;
 }
 
-div {
-  @apply focus:outline-0;
-}
-
-button {
-  @apply focus:outline-4 focus:outline-slate-700;
-}
-
 @font-face {
   font-family: "Inter";
   src: local("Inter"), url("$assets/Inter-Font.ttf"), url("./Inter-Font.ttf");
