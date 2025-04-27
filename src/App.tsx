@@ -558,7 +558,7 @@ function App() {
         <ContentContext.Provider value={contextFunctions}>
           <main className="flex flex-1 p-0 h-screen w-screen disableSelect ">
             <div className="flex items-center justify-center ">
-              <div className="w-16 mx-2 flex flex-col items-center justify-center border-slate-700 ">
+              <div className="w-16 min-w-min mx-2 flex flex-col items-center justify-center border-slate-700 ">
                 {pages.map((p, i) => {
                   const isSelected = p.name == page.name;
                   return (
@@ -566,7 +566,7 @@ function App() {
                       animate
                       data-selected={isSelected}
                       className={
-                        "text-center place-content-center grid justify-center align-center w-16 break-words relative min-h-fit  transition-all duration-200 ease-linear font-extrabold py-4 p-1 my-1 rounded-4xl " +
+                        "text-center items-center justify-center flex flex-col align-center w-full min-w-fit break-words relative min-h-fit  transition-all duration-200 ease-linear font-extrabold py-4 p-1 my-1 rounded-4xl " +
                         p.style +
                         (page === p ? "bg-slate-600" : "bg-slate-800")
                       }
@@ -598,7 +598,7 @@ function App() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="overflow-hidden text-xs break-words"
+                            className="overflow-hidden text-xs break-words w-fit"
                           >
                             {p.title}
                           </motion.p>
