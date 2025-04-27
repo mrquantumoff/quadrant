@@ -27,3 +27,7 @@ dist-ssr
 .env
 
 .tauri/*
+
+
+# Verso executables
+src-tauri/versoview
