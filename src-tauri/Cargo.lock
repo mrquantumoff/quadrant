@@ -4022,7 +4022,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant_next"
-version = "25.4.0-stable"
+version = "25.5.0-stable"
 dependencies = [
  "anyhow",
  "chrono",
