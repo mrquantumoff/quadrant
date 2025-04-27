@@ -8,11 +8,13 @@ use serde_json::json;
 use std::{
     io::Write,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
+use tokio::sync::Mutex;
 use zip::write::{ExtendedFileOptions, FileOptions};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ModLoader {
@@ -269,6 +271,53 @@ pub fn apply_modpack(name: String, app: AppHandle) -> Result<(), anyhow::Error> 
     Ok(())
 }
 
+pub async fn download_mod_concurrently(
+    mod_: InstalledMod,
+    file: PathBuf,
+    app: AppHandle,
+    total_mods: usize,
+    downloaded_mods: Arc<Mutex<usize>>,
+) -> Result<(), anyhow::Error> {
+    let response = reqwest::get(&mod_.download_url)
+        .await
+        .map_err(|e| anyhow::anyhow!(e))?;
+    let mut bytes = response.bytes_stream();
+    let mut file = std::fs::File::create(file)?;
+    while let Some(item) = bytes.next().await {
+        file.write_all(&item.map_err(|e| anyhow::anyhow!(e))?)?
+    }
+
+    let store = app.store("config.json").map_err(|e| anyhow::anyhow!(e))?;
+
+    let mut current_dl_mods = downloaded_mods.lock().await;
+    *current_dl_mods += 1;
+    app.emit(
+        "modpackDownloadProgress",
+        *current_dl_mods as f64 / total_mods as f64,
+    )?;
+
+    match mod_.source {
+        ModSource::CurseForge => {
+            let previous_cursefoge_count = store.get("curseforgeUsage");
+            if let Some(previous_curseforge_count) = previous_cursefoge_count {
+                let previous_curseforge_count: i64 =
+                    previous_curseforge_count.as_i64().unwrap_or_default();
+                store.set("curseforgeUsage", previous_curseforge_count + 1);
+            }
+        }
+        ModSource::Modrinth => {
+            let previous_cursefoge_count = store.get("modrinthUsage");
+            if let Some(previous_modrinth_count) = previous_cursefoge_count {
+                let previous_modrinth_count: i64 =
+                    previous_modrinth_count.as_i64().unwrap_or_default();
+                store.set("modrinthUsage", previous_modrinth_count + 1);
+            }
+        }
+        _ => {}
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn install_modpack(
     mod_config: InstalledModpack,
@@ -286,8 +335,7 @@ pub async fn install_modpack(
     let mod_config_file = modpack_folder.join("modConfig.json");
     std::fs::write(&mod_config_file, serde_json::to_string_pretty(&mod_config)?)?;
     let mods = mod_config.mods;
-    let total_mods = mods.len();
-    let mut downloaded_mods = 0;
+
     let files = std::fs::read_dir(&modpack_folder)?;
     let mut file_names = Vec::new();
 
@@ -309,6 +357,11 @@ pub async fn install_modpack(
         }
     }
 
+    let mut mod_downloads = vec![];
+
+    let total_mods = mods.len();
+    let downloaded_mods = Arc::new(Mutex::new(0 as usize));
+
     // Download the missing files
     for mod_ in mods {
         let file_name = urlencoding::decode(
@@ -320,46 +373,29 @@ pub async fn install_modpack(
         )
         .map_err(|e| anyhow::anyhow!(e))?
         .to_string();
-        let file = modpack_folder.join(file_name);
-        if file.exists() {
+        let file_path = modpack_folder.join(file_name);
+        if file_path.exists() {
             continue;
         }
-        let mut file = std::fs::File::create(file)?;
-        let response = reqwest::get(&mod_.download_url)
-            .await
-            .map_err(|e| anyhow::anyhow!(e))?;
-        let mut bytes = response.bytes_stream();
-        while let Some(item) = bytes.next().await {
-            file.write_all(&item.map_err(|e| anyhow::anyhow!(e))?)?
-        }
-        downloaded_mods += 1;
-        log::info!("Downloaded {} of {}", downloaded_mods, total_mods);
-
-        let store = app.store("config.json").map_err(|e| anyhow::anyhow!(e))?;
-
-        match mod_.source {
-            ModSource::CurseForge => {
-                let previous_cursefoge_count = store.get("curseforgeUsage");
-                if let Some(previous_curseforge_count) = previous_cursefoge_count {
-                    let previous_curseforge_count: i64 =
-                        previous_curseforge_count.as_i64().unwrap_or_default();
-                    store.set("curseforgeUsage", previous_curseforge_count + 1);
-                }
+        mod_downloads.push(download_mod_concurrently(
+            mod_,
+            file_path,
+            app.clone(),
+            total_mods,
+            downloaded_mods.clone(),
+        ));
+    }
+    let res = futures::future::join_all(mod_downloads).await;
+    let mut index = 0;
+    for res in res {
+        match res {
+            Ok(_) => log::info!("Downloaded mod {}", index),
+            Err(e) => {
+                log::error!("Failed to download mod {}: {}", index, e);
+                return Err(tauri::Error::from(e));
             }
-            ModSource::Modrinth => {
-                let previous_cursefoge_count = store.get("modrinthUsage");
-                if let Some(previous_modrinth_count) = previous_cursefoge_count {
-                    let previous_modrinth_count: i64 =
-                        previous_modrinth_count.as_i64().unwrap_or_default();
-                    store.set("modrinthUsage", previous_modrinth_count + 1);
-                }
-            }
-            _ => {}
         }
-        app.emit(
-            "modpackDownloadProgress",
-            downloaded_mods as f64 / total_mods as f64,
-        )?;
+        index += 1;
     }
     app.emit("modpackDownloadProgress", 1.0)?;
     Ok(())
