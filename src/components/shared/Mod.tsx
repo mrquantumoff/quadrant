@@ -156,7 +156,7 @@ export default function Mod(props: IModProps) {
             <span className="w-full"></span>
           </div>
           <div className="flex line-clamp-1 mt-4 w-full place-content-center align-center text-center justify-center">
-            <h1 className="max-w-[40%] line-clamp-1 h-full text-2xl align-center justify-center text-center font-bold ">
+            <h1 className="max-w-[100%] line-clamp-1 h-full text-2xl align-center justify-center text-center font-bold ">
               {mod.name}
             </h1>
 

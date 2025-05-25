@@ -193,7 +193,7 @@ export default function SearchPage() {
     search(true);
   }, [filter]);
 
-  const MotionPopoverButton = motion(PopoverButton);
+  const MotionPopoverButton = motion.create(PopoverButton);
 
   return (
     <>

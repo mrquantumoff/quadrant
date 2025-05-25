@@ -170,14 +170,20 @@ export default function ModInstallPage(props: IModInstallPageProps) {
               </div>
             </div>
           </div>
-          <div className="flex w-full self-end flex-col h-fit max-h-[60vh] items-center justify-center align-middle bg-slate-700 rounded-4xl overflow-x-hidden overflow-y-auto mr-8 mb-4">
+          <div className="flex w-full self-end flex-col h-fit max-h-[60vh] items-center  align-middle bg-slate-700 rounded-4xl overflow-x-hidden oveflow-y-auto mr-8 mb-4">
             {mod.thumbnailUrls.map((thumbnail) => {
               return (
-                <div key={thumbnail} className="h-full m-2 rounded-4xl">
+                <div
+                  key={thumbnail}
+                  className="h-full m-2 rounded-4xl overflow-y-visible"
+                >
                   <motion.img
                     src={thumbnail}
                     className="w-full h-full rounded-4xl"
-                    whileHover={{ scale: 1.25 }}
+                    whileHover={{ scale: 1.5 }}
+                    onClick={() => {
+                      openIn(thumbnail);
+                    }}
                   ></motion.img>
                 </div>
               );
