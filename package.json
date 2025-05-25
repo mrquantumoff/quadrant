@@ -1,7 +1,7 @@
 {
   "name": "quadrant-next",
   "private": true,
-  "version": "25.5.0",
+  "version": "25.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -39,6 +39,8 @@
     "@types/react-dom": "^19.1.5",
     "@vitejs/plugin-react": "^4.5.0",
     "autoprefixer": "^10.4.21",
+    "babel-plugin-react-compiler": "^19.1.0-rc.2",
+    "eslint-plugin-react-hooks": "^6.0.0-rc.1",
     "postcss": "^8.5.3",
     "tailwindcss": "4.1.7",
     "typescript": "5.8.3",
