@@ -135,7 +135,7 @@ export default function Mod(props: IModProps) {
             opacity: 0,
             y: -500,
           }}
-          transition={{ type: "spring", stiffness: 100, duration: "300" }}
+          transition={{ type: "spring", stiffness: 100, duration: 300 }}
           className={
             props.className +
             " p-4 h-full bg-slate-900 w-full flex-1 items-center justify-center align-middle rounded-4xl flex flex-col hover:shadow-2xl hover:bg-slate-950 hover:shadow-slate-950"

@@ -1,6 +1,12 @@
-import { motion } from "motion/react";
+/** @format */
 
-const spinAnimation = { repeat: Infinity, duration: 15, ease: "linear" };
+import { motion, Transition } from "motion/react";
+
+const spinAnimation: Transition = {
+  repeat: Infinity,
+  duration: 15,
+  ease: "linear",
+};
 
 export default function CircularProgress() {
   return (
