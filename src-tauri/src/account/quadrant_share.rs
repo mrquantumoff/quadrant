@@ -5,9 +5,9 @@ use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
 
 use crate::{
-    mc_mod::get_user_agent,
-    modpacks::general::{get_modpacks, InstalledModpack},
     QNT_BASE_URL,
+    mc_mod::get_user_agent,
+    modpacks::general::{InstalledModpack, get_modpacks},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -89,6 +89,9 @@ pub async fn share_modpack_raw(
     } else {
         request = request.header("Authorization", env!("QUADRANT_API_KEY"));
     }
+
+    crate::other::telemetry::send_telemetry(app.clone()).await;
+
     let response = request
         .send()
         .await
