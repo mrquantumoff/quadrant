@@ -144,7 +144,7 @@ export default function ApplyPage() {
             onClick={() => {
               const defaultModpack: LocalModpack = {
                 name: "",
-                version: "",
+                version: versions[0].version,
                 modLoader: ModLoader.Unknown,
                 isApplied: false,
                 lastSynced: 0,
