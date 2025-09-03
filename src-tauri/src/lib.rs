@@ -358,7 +358,7 @@ async fn is_autoupdate_enabled(app: tauri::AppHandle) -> Result<bool, tauri::Err
 }
 async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
     let update_url = Url::parse(&format!(
-        "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{{{target}}}}//{{{{arch}}}}//{{{{current_version}}}}"
+        "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}"
     ))?;
 
     let mut update_urls = vec![update_url];
@@ -372,26 +372,25 @@ async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
         .unwrap_or_default()
         .contains("msstore");
 
-    let foss_build = app
-        .config()
-        .version
-        .clone()
-        .unwrap_or_default()
-        .contains("foss");
-
-    let defualt_channel = if foss_build { "foss" } else { "stable" };
+    let defualt_channel = "stable";
 
     if update_config.get("channel").is_some() {
         let channel = update_config.get("channel").unwrap();
         let channel = channel.as_str().unwrap_or_else(|| defualt_channel);
         if channel != "stable" {
-            update_urls.push(Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/{}/{{{{target}}}}//{{{{arch}}}}//{{{{current_version}}}}",channel))?);
+            update_urls.push(Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/{}/{{{{target}}}}/  {{{{arch}}}}/{{{{current_version}}}}",channel))?);
         }
     }
     // Prefer the preview version if we're updating from a preview version
     update_urls.reverse();
 
-    log::info!("Update URLs: {:?}", update_urls);
+    log::info!(
+        "Update URLs: {:?}",
+        update_urls
+            .iter()
+            .map(|url| url.as_str())
+            .collect::<Vec<_>>()
+    );
 
     let updater = app
         .updater_builder()
