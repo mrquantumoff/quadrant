@@ -262,9 +262,7 @@ export default function Mod(props: IModProps) {
                   }}
                   className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-700 hover:bg-emerald-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 >
-                  {progress === -1
-                    ? t("download")
-                    : +(progress * 100).toFixed(2) + "%"}
+                  {progress === -1 ? t("download") : +progress.toFixed(2) + "%"}
                   <MdFileDownload className="ml-2 w-6 h-6"></MdFileDownload>
                 </Button>
               )

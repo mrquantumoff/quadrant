@@ -66,6 +66,15 @@ export default function ApplyPage() {
     modLoader: ModLoader.Unknown,
     unknownMods: false,
   });
+  const [defaultModpack, setDefaultModpack] = useState<LocalModpack>({
+    name: "",
+    version: "",
+    modLoader: ModLoader.Unknown,
+    isApplied: false,
+    lastSynced: 0,
+    mods: [],
+    unknownMods: false,
+  });
   const [originalModpackName, setOriginalModpackName] = useState("free");
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -76,6 +85,16 @@ export default function ApplyPage() {
     const effect = async () => {
       setModpacks(await getModpacks());
       setVersions(await getVersions());
+
+      setDefaultModpack({
+        name: "",
+        version: versions[0].version,
+        modLoader: ModLoader.Unknown,
+        isApplied: false,
+        lastSynced: 0,
+        mods: [],
+        unknownMods: false,
+      });
 
       await watch(
         await path.join(await getMinecraftFolder(false)),
@@ -142,15 +161,6 @@ export default function ApplyPage() {
         <div className="flex flex-row justify-center w-fit self-center bg-slate-700 rounded-4xl my-4 p-2">
           <Button
             onClick={() => {
-              const defaultModpack: LocalModpack = {
-                name: "",
-                version: versions[0].version,
-                modLoader: ModLoader.Unknown,
-                isApplied: false,
-                lastSynced: 0,
-                mods: [],
-                unknownMods: false,
-              };
               setIsDialogToCreate(true);
               setIsUpdateDialogOpen(true);
               setModpackToUpdate(defaultModpack);
@@ -454,6 +464,14 @@ export default function ApplyPage() {
                         setModpackToUpdate(modpack);
                       }}
                     >
+                      <option
+                        value={""}
+                        defaultChecked={"" == modpackToUpdate.version}
+                        className="rounded-4xl font-semibold"
+                        key={""}
+                      >
+                        -
+                      </option>
                       {versions.map((version) => {
                         return (
                           <option
