@@ -157,8 +157,8 @@ function App() {
 
       await listen("disableRightClick", (_: any) =>
         document.addEventListener("contextmenu", (event) =>
-          event.preventDefault()
-        )
+          event.preventDefault(),
+        ),
       );
 
       await listen("quadrantExportProgress", async (e: any) => {
@@ -211,7 +211,7 @@ function App() {
       });
 
       setExtendedNavigation(
-        (await config.get<boolean>("extendedNavigation")) ?? false
+        (await config.get<boolean>("extendedNavigation")) ?? false,
       );
       setPage(pages[(await config.get<number>("lastPage")) ?? 0]);
       setContent(pages[(await config.get<number>("lastPage")) ?? 0]);
@@ -220,7 +220,7 @@ function App() {
         "extendedNavigation",
         async (newValue: boolean | undefined) => {
           setExtendedNavigation(newValue ?? false);
-        }
+        },
       );
       config.onChange(async (key) => {
         if (key === "lastSettingsUpdated") {
@@ -272,7 +272,7 @@ function App() {
                 selectable: false,
                 selectUrl: null,
               },
-              ModSource.CurseForge
+              ModSource.CurseForge,
             );
             if (mod.modType === ModType.Unknown) {
               contextFunctions.setSnackbar({
@@ -324,7 +324,7 @@ function App() {
                   selectable: false,
                   selectUrl: null,
                 },
-                ModSource.Modrinth
+                ModSource.Modrinth,
               );
               if (mod.modType === ModType.Unknown) {
                 contextFunctions.setSnackbar({
@@ -391,7 +391,7 @@ function App() {
           let permissionGranted = await isPermissionGranted();
 
           const newlyReceivedNotifications = newNotifications.filter(
-            (n) => !notifications.includes(n)
+            (n) => !notifications.includes(n),
           );
 
           if (!permissionGranted) {
@@ -730,7 +730,7 @@ function App() {
                                   <div className="border-b-2 border-slate-700">
                                     {notifications.map((notification) => {
                                       const detailedMessage = JSON.parse(
-                                        notification.message
+                                        notification.message,
                                       );
                                       const messageType =
                                         detailedMessage.notification_type;
@@ -742,7 +742,7 @@ function App() {
                                             className="w-full bg-emerald-600 hover:bg-emerald-800 transition-all ease-linear flex items-center justify-center"
                                             onClick={async () => {
                                               await readNotification(
-                                                notification.notification_id
+                                                notification.notification_id,
                                               );
                                             }}
                                           >
@@ -756,7 +756,7 @@ function App() {
                                         const inviter = (
                                           detailedMessage.message as string
                                         ).split(
-                                          "You have been invited to collaborate on a modpack by "
+                                          "You have been invited to collaborate on a modpack by ",
                                         )[1];
                                         message = t("invited", {
                                           name: inviter,
@@ -770,7 +770,7 @@ function App() {
                                                   await answerInvite(
                                                     detailedMessage.invite_id,
                                                     notification.notification_id,
-                                                    true
+                                                    true,
                                                   );
                                                 }}
                                               >
@@ -783,7 +783,7 @@ function App() {
                                                   await answerInvite(
                                                     detailedMessage.invite_id,
                                                     notification.notification_id,
-                                                    false
+                                                    false,
                                                   );
                                                 }}
                                               >
