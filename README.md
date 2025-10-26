@@ -1,3 +1,5 @@
+<!-- @format -->
+
 # Quadrant for Minecraft
 
 > An easy way to manage your modpacks, written in React and Rust.
@@ -16,9 +18,11 @@
         <img width="200" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
 </a>
 
+##### Please note that for now, aarch64 builds are not on MS Store
+
 #### OR
 
-[Grab the latest build manually (Linux/Windows)](https://github.com/mrquantumoff/quadrant/releases/latest)
+[Grab the latest build manually (Linux/Windows on x86_64/aarch64)](https://github.com/mrquantumoff/quadrant/releases/latest)
 
 ### Working features
 
