@@ -24,12 +24,12 @@ proprietary = ["telemetry", "curseforge", "quadrant_id"]
 
 
 [build-dependencies]
-tauri-build = { version = "2.4.1", features = [] }
+tauri-build = { version = "2.5.1", features = [] }
 
 
 [dependencies]
 
-tauri = { version = "2.8.5", features = ["tray-icon", "config-json5"] }
+tauri = { version = "2.9.1", features = ["tray-icon", "config-json5"] }
 
 tauri-plugin-opener = "2.5.0"
 serde = { version = "1.0.228", features = ["derive"] }
