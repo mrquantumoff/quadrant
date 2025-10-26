@@ -50,7 +50,7 @@ jobs:
       - name: install frontend dependencies (bun)
         if: matrix.platform != 'windows-11-arm'
         run: bun install
-      - name: install frontend dependencies (pnpm)
+      - name: install frontend dependencies (npm)
         if: matrix.platform == 'windows-11-arm'
         run: npm install
 
