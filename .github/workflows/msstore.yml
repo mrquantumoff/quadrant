@@ -6,7 +6,7 @@ on:
   push:
     tags:
       - "v*-stable"
-      - "v*-msstore*"
+      - "v*-msstore"
 
 jobs:
   build-msstore:
@@ -34,9 +34,6 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
 
-      - name: Install Rust for ARM
-        run:  rustup target add aarch64-pc-windows-msvc
-
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
@@ -52,17 +49,10 @@ jobs:
           QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
           QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
         run: |
-          mkdir output
           bun tauri build --config src-tauri/tauri.msstore.conf.json
-          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\makeappx.exe" pack /m .\AppxManifest.xml /f .\AppxMappings.txt /p .\output\quadrant.msix /o
-          bun tauri build --config src-tauri/tauri.msstore.conf.json
-          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\makeappx.exe" pack /m .\AppxManifest.xml /f .\AppxMappings.txt /p .\output\quadrant_arm64.msix /o
-      - name: Create zip
-        uses: ihiroky/archive-action@v1
-        with:
-          root_dir: output
+          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\makeappx.exe" pack /m .\AppxManifest.xml /f .\AppxMappings.txt /p quadrant.msix /o
 
       - uses: actions/upload-artifact@v4
         with:
-          name: output.zip
-          path: msstore.zip
+          name: quadrant_msstore.msix
+          path: "*.msix"
