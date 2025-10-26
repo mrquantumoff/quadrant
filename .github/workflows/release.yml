@@ -24,7 +24,7 @@ jobs:
           - platform: "ubuntu-24.04-arm"
             args: ""
           - platform: "windows-11-arm"
-            args: ""
+            args: "--config ./src-tauri/tauri.winarm.conf.json"
 
     runs-on: ${{ matrix.platform }}
     outputs:
