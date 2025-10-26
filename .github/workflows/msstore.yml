@@ -6,7 +6,7 @@ on:
   push:
     tags:
       - "v*-stable"
-      - "v*-msstore"
+      - "v*-msstore*"
 
 jobs:
   build-msstore:
