@@ -1,6 +1,7 @@
 /** @format */
 
 import { useContext, useEffect, useState } from "react";
+import "./ModInstallPage.css";
 import {
   IMod,
   LocalModpack,
@@ -108,9 +109,9 @@ export default function ModInstallPage(props: IModInstallPageProps) {
 
   return (
     <motion.div
-      initial={{ y: 500, opacity: 0 }}
+      initial={{ y: 50, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 5000 }}
+      exit={{ y: -50 }}
       className="overflow-hidden"
       key={mod.name}
     >
@@ -136,7 +137,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 className={"w-24 h-24 " + (clipIcons ? "rounded-full" : "")}
               ></img>
             </div>
-            <h2 className="text-start text-4xl flex font-extrabold text-wrap">
+            <h2 className="text-start text-4xl flex font-extrabold text-wrap mod-title-transition">
               {mod.name}
             </h2>
             <h3 className="font-bold">

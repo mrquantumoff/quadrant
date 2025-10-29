@@ -604,7 +604,13 @@ function App() {
       const previousEntry = newHistory[newHistory.length - 1];
 
       // Update state with the previous page.
-      setContent(previousEntry.page);
+      if (!document.startViewTransition) {
+        setContent(previousEntry.page);
+      } else {
+        document.startViewTransition(() => {
+          setContent(previousEntry.page);
+        });
+      }
       setContentHistory(newHistory);
 
       // Wait a short time to ensure the new content is rendered before scrolling.
@@ -636,11 +642,23 @@ function App() {
         behavior: "instant",
       });
       console.log(newHistory);
-      setContent(component);
+      if (!document.startViewTransition) {
+        setContent(component);
+      } else {
+        document.startViewTransition(() => {
+          setContent(component);
+        });
+      }
     },
     changePage: (name) => {
       const newPage = pages.filter((pg) => pg.name === name);
-      setContent(newPage[0]);
+      if (!document.startViewTransition) {
+        setContent(newPage[0]);
+      } else {
+        document.startViewTransition(() => {
+          setContent(newPage[0]);
+        });
+      }
       let newHistory = [...contentHistory];
       newHistory.push({
         page: newPage[0],

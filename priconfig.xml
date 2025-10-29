@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns="http://schemas.microsoft.com/appx/2013/pri/config" targetOsVersion="10.0.0" majorVersion="1">
+  <index root="." startItemName="@QuadrantResources">
+    <default>
+      <qualifier name="Language" value="en-US" />
+      <qualifier name="Scale" value="Scale-100" />
+    </default>
+    <qualifierMappings>
+      <qualifierMapping qualifier="Language" uapDefault="en-US" />
+    </qualifierMappings>
+    <qualifiers>
+      <qualifier name="Language">
+        <value>en-US</value>
+        <value>uk-UA</value>
+        <value>tr-TR</value>
+      </qualifier>
+      <qualifier name="Scale">
+        <value>Scale-100</value>
+      </qualifier>
+    </qualifiers>
+  </index>
+</resources>

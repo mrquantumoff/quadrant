@@ -28,6 +28,8 @@ dist-ssr
 
 .tauri/*
 
+resources.pri
+
 
 # Verso executables
 src-tauri/versoview

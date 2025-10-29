@@ -1,0 +1,5 @@
+/** @format */
+
+.mod-title-transition {
+  view-transition-name: --mod-title;
+}

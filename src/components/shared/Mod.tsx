@@ -28,6 +28,7 @@ import ModInstallPage from "../Pages/ModInstallPage/ModInstallPage";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { LazyStore } from "@tauri-apps/plugin-store";
 import Button from "../core/Button";
+import "./Mod.css";
 
 export interface IModProps {
   mod: IMod;
@@ -73,6 +74,7 @@ export default function Mod(props: IModProps) {
     }
     // 8 character random string
     const randomString = Math.random().toString(36).substring(2, 10);
+
     context.changeContent({
       title: mod.name,
       icon: <img src={mod.modIconUrl ?? null}></img>,
@@ -190,7 +192,7 @@ export default function Mod(props: IModProps) {
             <span className="w-full"></span>
           </div>
           <div className="flex line-clamp-1 mt-4 w-full place-content-center align-center text-center justify-center">
-            <h1 className="max-w-full line-clamp-1 h-full text-2xl align-center justify-center text-center font-bold ">
+            <h1 className="max-w-full line-clamp-1 h-full text-2xl align-center justify-center text-center font-bold mod-title-transition ">
               {mod.name}
             </h1>
 

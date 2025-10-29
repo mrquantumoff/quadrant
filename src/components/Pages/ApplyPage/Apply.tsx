@@ -83,8 +83,9 @@ export default function ApplyPage() {
   // Get the modpacks for the first time and listen for changes to the Minecraft folder from the backend
   useEffect(() => {
     const effect = async () => {
+      const versions = await getVersions();
       setModpacks(await getModpacks());
-      setVersions(await getVersions());
+      setVersions(versions);
 
       setDefaultModpack({
         name: "",
