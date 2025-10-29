@@ -4001,7 +4001,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant_next"
-version = "25.10.0-stable"
+version = "25.10.1-preview.1"
 dependencies = [
  "anyhow",
  "chrono",
