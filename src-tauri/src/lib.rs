@@ -378,7 +378,7 @@ async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
         let channel = update_config.get("channel").unwrap();
         let channel = channel.as_str().unwrap_or_else(|| defualt_channel);
         if channel != "stable" {
-            update_urls.push(Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/{}/{{{{target}}}}/  {{{{arch}}}}/{{{{current_version}}}}",channel))?);
+            update_urls.push(Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/{}/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}",channel))?);
         }
     }
     // Prefer the preview version if we're updating from a preview version
