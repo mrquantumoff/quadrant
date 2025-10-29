@@ -1,6 +1,6 @@
 /** @format */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   IMod,
@@ -10,7 +10,7 @@ import {
   ModSource,
   ModType,
 } from "../../../intefaces";
-import { load } from "@tauri-apps/plugin-store";
+import { LazyStore } from "@tauri-apps/plugin-store";
 import { getModpacks, getVersions, searchMods } from "../../../tools";
 import Mod from "../../shared/Mod";
 import Button from "../../core/Button";
@@ -49,9 +49,12 @@ export default function SearchPage() {
   const [version, setVersion] = useState<string>("");
   const [modpack, setModpack] = useState<string>("");
   const [loader, setLoader] = useState<string>(ModLoader.Unknown);
+  const configRef = useRef<LazyStore | null>(null);
+  if (configRef.current === null) {
+    configRef.current = new LazyStore("config.json");
+  }
+  const configStore = configRef.current!;
   const search = async (forceSearch: boolean = false) => {
-    const config = await load("config.json");
-
     if (searchQuery.trim() === "" && !forceSearch) {
       return;
     }
@@ -62,126 +65,130 @@ export default function SearchPage() {
 
     const query = searchQuery.toLowerCase();
 
-    const curseforge = await config.get<boolean>("curseforge");
-    const modrinth = await config.get<boolean>("modrinth");
-
-    let newMods: IMod[] = [];
+    const [curseforge, modrinth] = await Promise.all([
+      configStore.get<boolean>("curseforge"),
+      configStore.get<boolean>("modrinth"),
+    ]);
 
     console.log("Filter: " + filter);
 
-    if (curseforge) {
-      newMods = [
-        ...newMods,
-        ...(await searchMods({
-          source: ModSource.CurseForge,
-          filterOn: filter,
-          modType: ModType.Mod.toString(),
-          query: query,
-        })),
-      ];
-      newMods = [
-        ...newMods,
-        ...(await searchMods({
-          source: ModSource.CurseForge,
+    const requests: Promise<IMod[]>[] = [];
 
-          filterOn: filter,
+    if (curseforge) {
+      const curseforgeArgs = {
+        filterOn: filter,
+        query: query,
+        source: ModSource.CurseForge,
+      };
+      requests.push(
+        searchMods({ ...curseforgeArgs, modType: ModType.Mod.toString() }),
+        searchMods({
+          ...curseforgeArgs,
           modType: ModType.ResourcePack.toString(),
-          query: query,
-        })),
-      ];
-      newMods = [
-        ...newMods,
-        ...(await searchMods({
-          source: ModSource.CurseForge,
-          filterOn: filter,
+        }),
+        searchMods({
+          ...curseforgeArgs,
           modType: ModType.ShaderPack.toString(),
-          query: query,
-        })),
-      ];
+        }),
+      );
     }
+
     if (modrinth) {
-      newMods = [
-        ...newMods,
-        ...(await searchMods({
-          source: ModSource.Modrinth,
-          filterOn: filter,
-          modType: ModType.Mod.toString(),
-          query: query,
-        })),
-      ];
-      newMods = [
-        ...newMods,
-        ...(await searchMods({
-          source: ModSource.Modrinth,
-          filterOn: filter,
+      const modrinthArgs = {
+        filterOn: filter,
+        query: query,
+        source: ModSource.Modrinth,
+      };
+      requests.push(
+        searchMods({ ...modrinthArgs, modType: ModType.Mod.toString() }),
+        searchMods({
+          ...modrinthArgs,
           modType: ModType.ResourcePack.toString(),
-          query: query,
-        })),
-      ];
-      newMods = [
-        ...newMods,
-        ...(await searchMods({
-          source: ModSource.Modrinth,
-          filterOn: filter,
+        }),
+        searchMods({
+          ...modrinthArgs,
           modType: ModType.ShaderPack.toString(),
-          query: query,
-        })),
-      ];
+        }),
+      );
     }
+
+    const results = await Promise.all(requests);
+    let newMods = results.flat();
+
     if (newMods.length === 0) {
-      newMods.push({
-        autoinstallable: false,
-        downloadCount: 0,
-        deleteable: false,
-        description: t("-"),
-        downloadable: false,
-        id: "",
-        license: "",
-        modIconUrl: "",
-        modType: ModType.Mod,
-        name: "-",
-        showPreviousVersion: false,
-        slug: "",
-        source: ModSource.Online,
-        thumbnailUrls: [],
-        url: "https://mrquantumoff.dev",
-        version: "",
-        newVersion: null,
-        selectable: false,
-        selectUrl: null,
-        modpack: null,
-      });
+      newMods = [
+        {
+          autoinstallable: false,
+          downloadCount: 0,
+          deleteable: false,
+          description: t("-"),
+          downloadable: false,
+          id: "",
+          license: "",
+          modIconUrl: "",
+          modType: ModType.Mod,
+          name: "-",
+          showPreviousVersion: false,
+          slug: "",
+          source: ModSource.Online,
+          thumbnailUrls: [],
+          url: "https://mrquantumoff.dev",
+          version: "",
+          newVersion: null,
+          selectable: false,
+          selectUrl: null,
+          modpack: null,
+        },
+      ];
+    } else {
+      newMods.sort((a, b) => b.downloadCount - a.downloadCount);
     }
-    newMods.sort((a, b) => b.downloadCount - a.downloadCount);
+
     const firstFifty = newMods.length > 50 ? newMods.slice(0, 50) : newMods;
     setMods(firstFifty);
     setAllResults(newMods);
   };
   const effect = async () => {
-    const config = await load("config.json");
+    const [availableVersions, availableModpacks] = await Promise.all([
+      getVersions(),
+      getModpacks(),
+    ]);
 
-    const lastVersion = await config.get<string>("lastUsedVersion");
-    const lastLoader = await config.get<string>("lastUsedAPI");
-    const lastModpack = await config.get<string>("lastUsedModpack");
+    setVersions(availableVersions);
+    setModpacks(availableModpacks);
 
-    setVersions(await getVersions());
-    setModpacks(await getModpacks());
-    const modpacks = await getModpacks();
-    setVersion(lastVersion ?? modpacks[0].version ?? "");
-    setLoader(lastLoader ?? modpacks[0].modLoader ?? "");
-    setModpack(lastModpack ?? modpacks[0].name ?? "");
-    if (lastVersion === undefined) {
-      await config.set("lastUsedVersion", modpacks[0].version ?? "");
+    const [lastVersion, lastLoader, lastUsedModpack] = await Promise.all([
+      configStore.get<string>("lastUsedVersion"),
+      configStore.get<string>("lastUsedAPI"),
+      configStore.get<string>("lastUsedModpack"),
+    ]);
+
+    const defaultModpack = availableModpacks[0];
+
+    const resolvedVersion = lastVersion ?? defaultModpack?.version ?? "";
+    const resolvedLoader = lastLoader ?? defaultModpack?.modLoader ?? "";
+    const resolvedModpack = lastUsedModpack ?? defaultModpack?.name ?? "";
+
+    setVersion(resolvedVersion);
+    setLoader(resolvedLoader);
+    setModpack(resolvedModpack);
+
+    if (lastVersion === undefined && defaultModpack?.version) {
+      await configStore.set("lastUsedVersion", defaultModpack.version);
     }
-    if (lastLoader === undefined) {
-      await config.set("lastUsedAPI", modpacks[0].modLoader ?? "");
-      setLoader(modpacks[0].modLoader ?? "");
+    if (lastLoader === undefined && defaultModpack?.modLoader) {
+      await configStore.set("lastUsedAPI", defaultModpack.modLoader);
     }
-    if (lastModpack === undefined) {
-      await config.set("lastUsedModpack", modpacks[0].name ?? "");
-      setModpack(modpacks[0].name ?? "");
+    if (lastUsedModpack === undefined && defaultModpack?.name) {
+      await configStore.set("lastUsedModpack", defaultModpack.name);
     }
-    await config.save();
+    if (
+      (lastVersion === undefined && defaultModpack?.version) ||
+      (lastLoader === undefined && defaultModpack?.modLoader) ||
+      (lastUsedModpack === undefined && defaultModpack?.name)
+    ) {
+      await configStore.save();
+    }
 
     await search(true);
   };
@@ -287,15 +294,13 @@ export default function SearchPage() {
                                   value={version}
                                   onChange={async (e) => {
                                     e.preventDefault();
-                                    setVersion(e.target.value);
-
-                                    const config = await load("config.json");
-
-                                    await config.set(
+                                    const newVersion = e.target.value;
+                                    setVersion(newVersion);
+                                    await configStore.set(
                                       "lastUsedVersion",
-                                      e.target.value
+                                      newVersion
                                     );
-                                    setVersion(e.target.value);
+                                    await configStore.save();
                                   }}
                                 >
                                   {versions.map((versionOption) => {
@@ -320,15 +325,14 @@ export default function SearchPage() {
                                   name="modLoader"
                                   onChange={async (e) => {
                                     e.preventDefault();
-                                    setLoader(e.target.value);
+                                    const selectedLoader = e.target.value;
+                                    setLoader(selectedLoader);
 
-                                    const config = await load("config.json");
-
-                                    await config.set(
+                                    await configStore.set(
                                       "lastUsedAPI",
-                                      e.target.value
+                                      selectedLoader
                                     );
-                                    await config.save();
+                                    await configStore.save();
                                   }}
                                   value={loader}
                                   autoComplete="off"
@@ -347,27 +351,29 @@ export default function SearchPage() {
                                   value={modpack}
                                   onChange={async (e) => {
                                     e.preventDefault();
-                                    const modpack = modpacks.filter(
+                                    const selectedModpack = modpacks.find(
                                       (i) => i.name === e.target.value
-                                    )[0];
-                                    const config = await load("config.json");
+                                    );
+                                    if (!selectedModpack) {
+                                      return;
+                                    }
 
-                                    await config.set(
+                                    await configStore.set(
                                       "lastUsedModpack",
-                                      modpack.name
+                                      selectedModpack.name
                                     );
-                                    await config.set(
+                                    await configStore.set(
                                       "lastUsedVersion",
-                                      modpack.version
+                                      selectedModpack.version
                                     );
-                                    await config.set(
+                                    await configStore.set(
                                       "lastUsedAPI",
-                                      modpack.modLoader
+                                      selectedModpack.modLoader
                                     );
-                                    await config.save();
-                                    setModpack(modpack.name);
-                                    setLoader(modpack.modLoader);
-                                    setVersion(modpack.version);
+                                    await configStore.save();
+                                    setModpack(selectedModpack.name);
+                                    setLoader(selectedModpack.modLoader);
+                                    setVersion(selectedModpack.version);
                                     setFilter(true);
                                   }}
                                 >

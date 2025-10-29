@@ -26,6 +26,29 @@ export default function ModpackView(modpack: LocalModpack) {
   const [showUpdates, setShowUpdates] = useState(false);
   const [showIdentify, setShowIdentify] = useState(false);
   const [modCount, setModCount] = useState(mods.length);
+  const placeholderMod: IMod = {
+    autoinstallable: false,
+    deleteable: false,
+    description: "-",
+    downloadCount: 0,
+    id: "-",
+    modIconUrl:
+      "https://raw.githubusercontent.com/mrquantumoff/quadrant/next/public/logo.svg",
+    downloadable: false,
+    name: "-",
+    source: ModSource.Online,
+    thumbnailUrls: [],
+    url: "",
+    modType: ModType.Mod,
+    license: "-",
+    showPreviousVersion: false,
+    slug: "-",
+    version: "",
+    newVersion: null,
+    modpack: "",
+    selectable: false,
+    selectUrl: null,
+  };
 
   const updateModpackDetails = async () => {
     setMods([]);
@@ -35,94 +58,87 @@ export default function ModpackView(modpack: LocalModpack) {
     if (showIdentify) {
       await getIdentifiedMods();
     }
-    let newMods: IMod[] = [];
-    await localMods.forEach(async (mod) => {
-      const fullMod = await getMod(
-        {
-          id: mod.id,
-          deletable: true,
-          downloadable: false,
-          modpack: modpack.name,
-          modLoader: modpack.modLoader,
-          versionTarget: "",
-          showPreviousVersion: false,
-          selectable: false,
-          selectUrl: null,
-        },
-        mod.source
-      );
-      newMods.push(fullMod);
-      newMods.sort((a, b) => b.downloadCount - a.downloadCount);
 
-      setMods(newMods);
-      if (!showUpdates) {
-        setModCount(newMods.length);
-      }
-    });
-
-    setMods(newMods);
-    if (!showUpdates) {
-      setModCount(newMods.length);
+    if (!localMods || localMods.length === 0) {
+      setMods([placeholderMod]);
+      return;
     }
-    if (newMods.length === 0) {
-      setMods([
-        {
-          autoinstallable: false,
-          deleteable: false,
-          description: "-",
-          downloadCount: 0,
-          id: "-",
-          modIconUrl:
-            "https://raw.githubusercontent.com/mrquantumoff/quadrant/master/assets/icons/logo.png",
-          downloadable: false,
-          name: "-",
-          source: ModSource.Online,
-          thumbnailUrls: [],
-          url: "",
-          modType: ModType.Mod,
-          license: "-",
-          showPreviousVersion: false,
-          slug: "-",
-          version: "",
-          newVersion: null,
-          modpack: "",
-          selectable: false,
-          selectUrl: null,
-        },
-      ]);
+
+    const fetchedMods = await Promise.all(
+      localMods.map(async (mod) => {
+        try {
+          return await getMod(
+            {
+              id: mod.id,
+              deletable: true,
+              downloadable: false,
+              modpack: modpack.name,
+              modLoader: modpack.modLoader,
+              versionTarget: "",
+              showPreviousVersion: false,
+              selectable: false,
+              selectUrl: null,
+            },
+            mod.source
+          );
+        } catch (error) {
+          console.error("Failed to retrieve mod:", error);
+          return null;
+        }
+      })
+    );
+
+    const validMods = fetchedMods.filter((mod): mod is IMod => mod !== null);
+
+    if (validMods.length === 0) {
+      setMods([placeholderMod]);
+      if (!showUpdates) {
+        setModCount(0);
+      }
+      return;
+    }
+
+    validMods.sort((a, b) => b.downloadCount - a.downloadCount);
+    setMods(validMods);
+    if (!showUpdates) {
+      setModCount(validMods.length);
     }
   };
 
   const checkForUpdates = async () => {
     setUpdates([]);
-    let newUpdates: IMod[] = [];
-    // Deep copy the mods
     const normalMods: IMod[] = JSON.parse(JSON.stringify(mods));
-    for (const mod of normalMods) {
-      try {
-        let update = await getModUpdate(
-          mod,
-          modpack.version,
-          modpack.modLoader,
-          modpack.name
-        );
-        if (update === null) {
-          console.log("No update found");
-          continue;
+    const fetchedUpdates = await Promise.all(
+      normalMods.map(async (mod) => {
+        try {
+          const update = await getModUpdate(
+            mod,
+            modpack.version,
+            modpack.modLoader,
+            modpack.name
+          );
+          return update;
+        } catch (e) {
+          console.log("Error while checking for updates: " + e);
+          return null;
         }
-        newUpdates.push(update);
-        newUpdates.sort((a, b) => b.downloadCount - a.downloadCount);
-      } catch (e) {
-        console.log("Error while checking for updates: " + e);
-      }
-    }
+      })
+    );
+
+    const newUpdates = fetchedUpdates.filter(
+      (update): update is IMod => update !== null
+    );
+    newUpdates.sort((a, b) => b.downloadCount - a.downloadCount);
 
     setUpdates(newUpdates);
     if (newUpdates.length === 0) {
       setShowUpdates(false);
       setModCount(mods.length);
     } else {
-      setModCount(updates.filter((mod) => mod.downloadable === true).length);
+      const downloadableCount = newUpdates.filter(
+        (mod) => mod.downloadable === true
+      ).length;
+      setModCount(downloadableCount);
     }
   };
 

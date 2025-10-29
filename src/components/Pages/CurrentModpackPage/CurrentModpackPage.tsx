@@ -1,43 +1,72 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getMinecraftFolder, getModpacks } from "../../../tools";
 import { LocalModpack } from "../../../intefaces";
 import ModpackView from "../../shared/Pages/ModpackView";
-import { watch } from "@tauri-apps/plugin-fs";
+import { watch, type UnwatchFn } from "@tauri-apps/plugin-fs";
 import * as path from "@tauri-apps/api/path";
 import { motion } from "motion/react";
 
 export default function CurrentModpackPage() {
   const [currentModpack, setCurrentModpack] = useState<LocalModpack>();
+  const mountedRef = useRef(true);
 
   const updateModpack = async () => {
     const newModpack = (await getModpacks(false)).filter(
       (modpack) => modpack.isApplied
     )[0];
+    if (!mountedRef.current) {
+      return;
+    }
     setCurrentModpack(newModpack);
   };
 
   useEffect(() => {
+    mountedRef.current = true;
     const effect = async () => {
       const newModpack = (await getModpacks(false)).filter(
         (modpack) => modpack.isApplied
       )[0];
 
-      setCurrentModpack(newModpack);
+      if (mountedRef.current) {
+        setCurrentModpack(newModpack);
+      }
 
       const mcFolder = await path.join(await getMinecraftFolder(false), "mods");
 
-      await watch(
+      const unwatchMods = await watch(
         mcFolder,
         () => {
-          updateModpack();
+          if (mountedRef.current) {
+            void updateModpack();
+          }
         },
         {
           delayMs: 500,
         }
       );
+
+      return unwatchMods;
     };
 
-    effect();
+    let unwatch: UnwatchFn | undefined;
+    effect()
+      .then((result) => {
+        if (result) {
+          if (mountedRef.current) {
+            unwatch = result;
+          } else {
+            result();
+          }
+        }
+      })
+      .catch((error) => console.error(error));
+
+    return () => {
+      mountedRef.current = false;
+      if (unwatch) {
+        unwatch();
+      }
+    };
   }, []);
 
   return (

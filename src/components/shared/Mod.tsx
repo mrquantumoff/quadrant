@@ -23,9 +23,9 @@ import {
   openIn,
   registerMod,
 } from "../../tools";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import ModInstallPage from "../Pages/ModInstallPage/ModInstallPage";
-import { listen } from "@tauri-apps/api/event";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { LazyStore } from "@tauri-apps/plugin-store";
 import Button from "../core/Button";
 
@@ -36,7 +36,7 @@ export interface IModProps {
 }
 
 export default function Mod(props: IModProps) {
-  let mod = props.mod;
+  const mod = props.mod;
   const { t, i18n } = useTranslation();
   const modSource =
     mod.source === ModSource.CurseForge
@@ -58,8 +58,14 @@ export default function Mod(props: IModProps) {
 
   const context = useContext(ContentContext);
 
-  const config = new LazyStore("config.json");
+  const configRef = useRef<LazyStore | null>(null);
+  if (configRef.current === null) {
+    configRef.current = new LazyStore("config.json");
+  }
+  const config = configRef.current!;
   const modpackViewContext = useContext(ModpackViewContext);
+  const modId = mod.id;
+  const isAutoinstallable = mod.autoinstallable;
 
   const openModDownload = async () => {
     if (!mod.downloadable) {
@@ -78,47 +84,75 @@ export default function Mod(props: IModProps) {
   };
 
   useEffect(() => {
+    let isUnmounted = false;
+    let unlistenProgress: UnlistenFn | null = null;
+    let unlistenInstallProgress: UnlistenFn | null = null;
+
     const effect = async () => {
-      const unlistenProgress = await listen(
-        "modDownloadProgress",
-        (event: any) => {
-          console.log("Event: " + JSON.stringify(event));
-          if (event.payload.modId === mod.id) {
-            console.log("Progress: " + event.payload.progress);
+      try {
+        unlistenProgress = await listen("modDownloadProgress", (event: any) => {
+          if (event.payload.modId === modId) {
             setProgress(event.payload.progress);
-            if (event.progress === 1) {
-              unlistenProgress();
+            if (event.payload.progress === 1) {
+              unlistenProgress?.();
+              unlistenProgress = null;
             }
           }
+        });
+        if (isUnmounted && unlistenProgress) {
+          unlistenProgress();
+          unlistenProgress = null;
         }
-      );
-      const roundIcons = await config.get<boolean>("clipIcons");
-      setClipIcons(roundIcons ?? true);
-      const unlistenInstallProgress = await listen(
-        "modInstallProgress",
-        (event: any) => {
-          if (event.payload.modId === mod.id && event.payload.progress === 1) {
-            if (!mod.autoinstallable) {
-              setVisible(false);
+
+        const roundIcons = await config.get<boolean>("clipIcons");
+        if (!isUnmounted) {
+          setClipIcons(roundIcons ?? true);
+        }
+
+        unlistenInstallProgress = await listen(
+          "modInstallProgress",
+          (event: any) => {
+            if (event.payload.modId === modId && event.payload.progress === 1) {
+              if (!isAutoinstallable) {
+                setVisible(false);
+              }
+              setProgress(event.payload.progress);
+              unlistenInstallProgress?.();
+              unlistenInstallProgress = null;
             }
-            setProgress(event.payload.progress);
-            unlistenInstallProgress();
           }
+        );
+        if (isUnmounted && unlistenInstallProgress) {
+          unlistenInstallProgress();
+          unlistenInstallProgress = null;
         }
-      );
+      } catch (error) {
+        console.error(error);
+      }
     };
+
     effect().catch(console.error);
-  }, []);
+
+    return () => {
+      isUnmounted = true;
+      if (unlistenProgress) {
+        unlistenProgress();
+      }
+      if (unlistenInstallProgress) {
+        unlistenInstallProgress();
+      }
+    };
+  }, [isAutoinstallable, modId]);
 
   useEffect(() => {
-    if (mod.autoinstallable && progress === 1) {
+    if (isAutoinstallable && progress === 1) {
       context.setSnackbar({
         message: t("downloadSuccess"),
         className: "bg-emerald-700 text-white",
         timeout: 3000,
       });
     }
-  }, [progress]);
+  }, [context, isAutoinstallable, progress, t]);
 
   return (
     <>
@@ -156,7 +190,7 @@ export default function Mod(props: IModProps) {
             <span className="w-full"></span>
           </div>
           <div className="flex line-clamp-1 mt-4 w-full place-content-center align-center text-center justify-center">
-            <h1 className="max-w-[100%] line-clamp-1 h-full text-2xl align-center justify-center text-center font-bold ">
+            <h1 className="max-w-full line-clamp-1 h-full text-2xl align-center justify-center text-center font-bold ">
               {mod.name}
             </h1>
 
@@ -272,7 +306,7 @@ export default function Mod(props: IModProps) {
             {mod.selectable && (
               <Button
                 animate
-                className="flex items-center w-full text-lg/none self-center h-full break-words text-center justify-center bg-blue-700 hover:bg-blue-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                className="flex items-center w-full text-lg/none self-center h-full wrap-break-word text-center justify-center bg-blue-700 hover:bg-blue-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 onClick={async () => {
                   await registerMod(
                     {
@@ -295,7 +329,7 @@ export default function Mod(props: IModProps) {
                   await openIn(mod.url);
                 }}
                 animate
-                className="flex items-center w-full text-lg/none self-center h-full break-words text-center justify-center bg-blue-700 hover:bg-blue-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                className="flex items-center w-full text-lg/none self-center h-full wrap-break-word text-center justify-center bg-blue-700 hover:bg-blue-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
               >
                 {t("openInTheWeb")}
                 <MdOpenInBrowser className="ml-2 w-6 h-6"></MdOpenInBrowser>

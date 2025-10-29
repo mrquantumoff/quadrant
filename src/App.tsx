@@ -127,7 +127,11 @@ function App() {
   const [page, setPage] = useState(pages[0]);
   const [content, setContent] = useState<Page>(pages[0]);
   const [updateDownloadProgress, setUpdateDownloadProgress] = useState(0);
-  const config = new LazyStore("config.json");
+  const configRef = useRef<LazyStore | null>(null);
+  if (configRef.current === null) {
+    configRef.current = new LazyStore("config.json");
+  }
+  const config = configRef.current!;
   const [contentHistory, setContentHistory] = useState<PageWithScroll[]>([]);
   const [extendedNavigation, setExtendedNavigation] = useState(false);
   const [notifications, setNotifications] = useState<AccountNotification[]>([]);
@@ -139,105 +143,178 @@ function App() {
   const contentRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    let isUnmounted = false;
+    const disableContextMenu = (event: MouseEvent) => event.preventDefault();
+    const cleanupFns: Array<() => void> = [];
+    let requestUpdatesTimeout: ReturnType<typeof setTimeout> | null = null;
+
     const effect = async () => {
-      await listen("updateDownloadProgress", async (e: any) => {
-        if (updateDownloadProgress !== e.payload) {
-          setUpdateDownloadProgress(e.payload);
+      const updateDownloadUnlisten = await listen(
+        "updateDownloadProgress",
+        (e: any) => {
+          if (isUnmounted) {
+            return;
+          }
+          const progressValue = Number(e.payload);
+          setUpdateDownloadProgress(progressValue);
           currentWindow.setProgressBar({
-            progress: Math.round(e.payload * 100),
+            progress: Math.round(progressValue * 100),
           });
-          if (e.payload === 1) {
+          if (progressValue === 1) {
             currentWindow.setProgressBar({
               progress: 0,
               status: ProgressBarStatus.None,
             });
           }
         }
-      });
-
-      await listen("disableRightClick", (_: any) =>
-        document.addEventListener("contextmenu", (event) =>
-          event.preventDefault(),
-        ),
       );
+      if (isUnmounted) {
+        updateDownloadUnlisten();
+      } else {
+        cleanupFns.push(updateDownloadUnlisten);
+      }
 
-      await listen("quadrantExportProgress", async (e: any) => {
-        console.log("Raw progress: " + e.payload);
-        const progress = Math.round(e.payload * 100);
-
-        console.log(progress);
-
-        currentWindow.setProgressBar({ progress: progress });
-        if (e.payload === 1) {
-          currentWindow.setProgressBar({
-            progress: 0,
-            status: ProgressBarStatus.None,
-          });
-          contextFunctions.setSnackbar({
-            className: "bg-emerald-700 rounded-4xl",
-            message: (
-              <span className="flex">
-                <span>{t("export")}</span>
-                <MdArchive className="w-6 h-6 mx-2" /> {progress}%
-              </span>
-            ),
-            timeout: 15000,
-          });
-        } else {
-          contextFunctions.setSnackbarNoState({
-            message: (
-              <span className="flex">
-                <span>{t("export")}</span>
-                <MdArchive className="w-6 h-6 mx-2" /> {progress}%
-              </span>
-            ),
-            className: "bg-gray-700 rounded-4xl",
-            timeout: 500000,
-          });
+      const disableRightClickUnlisten = await listen(
+        "disableRightClick",
+        () => {
+          document.addEventListener("contextmenu", disableContextMenu);
         }
-      });
-
-      await listen("modpackDownloadProgress", async (e: any) => {
-        const progress = Math.round(e.payload);
-        currentWindow.setProgressBar({
-          progress: progress,
+      );
+      if (isUnmounted) {
+        disableRightClickUnlisten();
+      } else {
+        cleanupFns.push(() => {
+          disableRightClickUnlisten();
+          document.removeEventListener("contextmenu", disableContextMenu);
         });
-        if (progress === 1) {
-          currentWindow.setProgressBar({
-            progress: 0,
-            status: ProgressBarStatus.None,
-          });
+      }
+
+      const exportProgressUnlisten = await listen(
+        "quadrantExportProgress",
+        async (e: any) => {
+          if (isUnmounted) {
+            return;
+          }
+          console.log("Raw progress: " + e.payload);
+          const progress = Math.round(e.payload * 100);
+
+          console.log(progress);
+
+          currentWindow.setProgressBar({ progress: progress });
+          if (e.payload === 1) {
+            currentWindow.setProgressBar({
+              progress: 0,
+              status: ProgressBarStatus.None,
+            });
+            contextFunctions.setSnackbar({
+              className: "bg-emerald-700 rounded-4xl",
+              message: (
+                <span className="flex">
+                  <span>{t("export")}</span>
+                  <MdArchive className="w-6 h-6 mx-2" /> {progress}%
+                </span>
+              ),
+              timeout: 15000,
+            });
+          } else {
+            contextFunctions.setSnackbarNoState({
+              message: (
+                <span className="flex">
+                  <span>{t("export")}</span>
+                  <MdArchive className="w-6 h-6 mx-2" /> {progress}%
+                </span>
+              ),
+              className: "bg-gray-700 rounded-4xl",
+              timeout: 500000,
+            });
+          }
         }
-      });
-
-      setExtendedNavigation(
-        (await config.get<boolean>("extendedNavigation")) ?? false,
       );
-      setPage(pages[(await config.get<number>("lastPage")) ?? 0]);
-      setContent(pages[(await config.get<number>("lastPage")) ?? 0]);
+      if (isUnmounted) {
+        exportProgressUnlisten();
+      } else {
+        cleanupFns.push(exportProgressUnlisten);
+      }
 
-      config.onKeyChange(
+      const modpackDownloadUnlisten = await listen(
+        "modpackDownloadProgress",
+        (e: any) => {
+          if (isUnmounted) {
+            return;
+          }
+          const progress = Math.round(e.payload);
+          currentWindow.setProgressBar({
+            progress: progress,
+          });
+          if (progress === 1) {
+            currentWindow.setProgressBar({
+              progress: 0,
+              status: ProgressBarStatus.None,
+            });
+          }
+        }
+      );
+      if (isUnmounted) {
+        modpackDownloadUnlisten();
+      } else {
+        cleanupFns.push(modpackDownloadUnlisten);
+      }
+
+      const [extendedNavigationValue, lastPageIndex] = await Promise.all([
+        config.get<boolean>("extendedNavigation"),
+        config.get<number>("lastPage"),
+      ]);
+
+      if (!isUnmounted) {
+        const resolvedExtendedNavigation = extendedNavigationValue ?? false;
+        const initialPage = pages[lastPageIndex ?? 0] ?? pages[0];
+        setExtendedNavigation(resolvedExtendedNavigation);
+        setPage(initialPage);
+        setContent(initialPage);
+        setContentHistory([
+          {
+            page: initialPage,
+            scrollPositionX: 0,
+            scrollPositionY: 0,
+          },
+        ]);
+      }
+
+      const extendedNavigationUnlisten = await config.onKeyChange<boolean>(
         "extendedNavigation",
-        async (newValue: boolean | undefined) => {
-          setExtendedNavigation(newValue ?? false);
-        },
+        async (newValue) => {
+          if (!isUnmounted) {
+            setExtendedNavigation(newValue ?? false);
+          }
+        }
       );
-      config.onChange(async (key) => {
+      if (isUnmounted) {
+        extendedNavigationUnlisten();
+      } else {
+        cleanupFns.push(extendedNavigationUnlisten);
+      }
+
+      const configChangeUnlisten = await config.onChange(async (key) => {
         if (key === "lastSettingsUpdated") {
           return;
         }
-        config.set("lastSettingsUpdated", new Date().toISOString());
+        await config.set("lastSettingsUpdated", new Date().toISOString());
       });
-      setContentHistory([
-        {
-          page: pages[(await config.get<number>("lastPage")) ?? 0],
-          scrollPositionX: 0,
-          scrollPositionY: 0,
-        },
-      ]);
+      if (isUnmounted) {
+        configChangeUnlisten();
+      } else {
+        cleanupFns.push(configChangeUnlisten);
+      }
+
       const locale = await config.get<string>("locale");
-      await quadrantLocale.changeLanguage(locale);
-      onOpenUrl(async (urls) => {
+      if (locale) {
+        await quadrantLocale.changeLanguage(locale);
+      }
+
+      const deepLinkUnlisten = await onOpenUrl(async (urls) => {
+        if (isUnmounted) {
+          return;
+        }
         console.log("deep link:", urls);
         for (const gottenUrl of urls) {
           const url = URL.parse(gottenUrl);
@@ -272,7 +349,7 @@ function App() {
                 selectable: false,
                 selectUrl: null,
               },
-              ModSource.CurseForge,
+              ModSource.CurseForge
             );
             if (mod.modType === ModType.Unknown) {
               contextFunctions.setSnackbar({
@@ -324,7 +401,7 @@ function App() {
                   selectable: false,
                   selectUrl: null,
                 },
-                ModSource.Modrinth,
+                ModSource.Modrinth
               );
               if (mod.modType === ModType.Unknown) {
                 contextFunctions.setSnackbar({
@@ -381,74 +458,127 @@ function App() {
           }
         }
       });
+      if (isUnmounted) {
+        deepLinkUnlisten();
+      } else {
+        cleanupFns.push(deepLinkUnlisten);
+      }
 
-      await listen("refreshNotifications", async (event) => {
-        const newNotifications = event.payload as AccountNotification[];
-        newNotifications.sort((a, b) => {
-          return b.created_at - a.created_at;
-        });
-        if (newNotifications !== notifications) {
+      const refreshNotificationsUnlisten = await listen(
+        "refreshNotifications",
+        async (event) => {
+          if (isUnmounted) {
+            return;
+          }
+          const sortedNotifications = [
+            ...(event.payload as AccountNotification[]),
+          ].sort((a, b) => b.created_at - a.created_at);
+
+          let newlyReceived: AccountNotification[] = [];
+          setNotifications((prevNotifications) => {
+            const previousIds = new Set(
+              prevNotifications.map((n) => n.notification_id)
+            );
+            newlyReceived = sortedNotifications.filter(
+              (notification) => !previousIds.has(notification.notification_id)
+            );
+            return sortedNotifications;
+          });
+
+          if (newlyReceived.length === 0) {
+            return;
+          }
+
           let permissionGranted = await isPermissionGranted();
-
-          const newlyReceivedNotifications = newNotifications.filter(
-            (n) => !notifications.includes(n),
-          );
-
           if (!permissionGranted) {
             const permission = await requestPermission();
             permissionGranted = permission === "granted";
             console.log("Permission granted: " + permissionGranted);
           }
-          setNotifications(newNotifications);
 
-          if (permissionGranted) {
-            for (const notification of newlyReceivedNotifications) {
-              const shownNotifications: string[] =
-                (await config.get("shownNotifications")) ?? [];
-              if (
-                notification.read ||
-                shownNotifications.includes(notification.notification_id)
-              ) {
-                // console.log("Notification already displayed");
-                return;
-              }
-              console.log("Sending notification");
-              await config.set("shownNotifications", [
-                ...shownNotifications,
-                notification.notification_id,
-              ]);
+          if (!permissionGranted || isUnmounted) {
+            return;
+          }
 
-              await config.save();
+          const shownNotifications: string[] =
+            (await config.get("shownNotifications")) ?? [];
 
-              await sendNotification({
-                title: "Quadrant ID",
-                body: JSON.parse(notification.message)["simple_message"],
-              });
+          const unseenNotifications = newlyReceived.filter(
+            (notification) =>
+              !notification.read &&
+              !shownNotifications.includes(notification.notification_id)
+          );
+
+          if (unseenNotifications.length === 0 || isUnmounted) {
+            return;
+          }
+
+          const updatedShown = [...shownNotifications];
+          for (const notification of unseenNotifications) {
+            updatedShown.push(notification.notification_id);
+            if (isUnmounted) {
+              break;
             }
+            await sendNotification({
+              title: "Quadrant ID",
+              body: JSON.parse(notification.message)["simple_message"],
+            });
+          }
+
+          if (!isUnmounted) {
+            await config.set("shownNotifications", updatedShown);
+            await config.save();
           }
         }
-      });
+      );
+      if (isUnmounted) {
+        refreshNotificationsUnlisten();
+      } else {
+        cleanupFns.push(refreshNotificationsUnlisten);
+      }
+
       try {
         const accountInfo = await getAccountInfo();
-        const newNotifications = [...accountInfo.notifications];
-        newNotifications.sort((a, b) => {
-          return b.created_at - a.created_at;
-        });
-        setNotifications(newNotifications);
+        if (!isUnmounted) {
+          const newNotifications = [...accountInfo.notifications];
+          newNotifications.sort((a, b) => {
+            return b.created_at - a.created_at;
+          });
+          setNotifications(newNotifications);
+        }
       } catch (e) {
         console.log(e);
       }
       try {
-        const news = await getNews();
-        setNews(news);
+        const latestNews = await getNews();
+        if (!isUnmounted) {
+          setNews(latestNews);
+        }
       } catch (e) {
         console.error("Failed to get news: " + e);
       }
-      setTimeout(async () => {
-        requestCheckForUpdates();
+      requestUpdatesTimeout = setTimeout(() => {
+        void requestCheckForUpdates();
       }, 10000);
     };
-    effect();
+    effect().catch((error) => {
+      console.error(error);
+    });
+    return () => {
+      isUnmounted = true;
+      if (requestUpdatesTimeout !== null) {
+        clearTimeout(requestUpdatesTimeout);
+      }
+      while (cleanupFns.length > 0) {
+        const cleanup = cleanupFns.pop();
+        try {
+          cleanup?.();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+      document.removeEventListener("contextmenu", disableContextMenu);
+    };
   }, []);
 
   useEffect(() => {
@@ -566,7 +696,7 @@ function App() {
                       animate
                       data-selected={isSelected}
                       className={
-                        "text-center items-center justify-center flex flex-col align-center w-full min-w-fit break-words relative min-h-fit  transition-all duration-200 ease-linear font-extrabold py-4 p-1 my-1 rounded-4xl " +
+                        "text-center items-center justify-center flex flex-col align-center w-full min-w-fit wrap-break-word relative min-h-fit  transition-all duration-200 ease-linear font-extrabold py-4 p-1 my-1 rounded-4xl " +
                         p.style +
                         (page === p ? "bg-slate-600" : "bg-slate-800")
                       }
@@ -598,7 +728,7 @@ function App() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="overflow-hidden text-xs break-words w-fit"
+                            className="overflow-hidden text-xs wrap-break-word w-fit"
                           >
                             {p.title}
                           </motion.p>
@@ -730,7 +860,7 @@ function App() {
                                   <div className="border-b-2 border-slate-700">
                                     {notifications.map((notification) => {
                                       const detailedMessage = JSON.parse(
-                                        notification.message,
+                                        notification.message
                                       );
                                       const messageType =
                                         detailedMessage.notification_type;
@@ -742,7 +872,7 @@ function App() {
                                             className="w-full bg-emerald-600 hover:bg-emerald-800 transition-all ease-linear flex items-center justify-center"
                                             onClick={async () => {
                                               await readNotification(
-                                                notification.notification_id,
+                                                notification.notification_id
                                               );
                                             }}
                                           >
@@ -756,7 +886,7 @@ function App() {
                                         const inviter = (
                                           detailedMessage.message as string
                                         ).split(
-                                          "You have been invited to collaborate on a modpack by ",
+                                          "You have been invited to collaborate on a modpack by "
                                         )[1];
                                         message = t("invited", {
                                           name: inviter,
@@ -770,7 +900,7 @@ function App() {
                                                   await answerInvite(
                                                     detailedMessage.invite_id,
                                                     notification.notification_id,
-                                                    true,
+                                                    true
                                                   );
                                                 }}
                                               >
@@ -783,7 +913,7 @@ function App() {
                                                   await answerInvite(
                                                     detailedMessage.invite_id,
                                                     notification.notification_id,
-                                                    false,
+                                                    false
                                                   );
                                                 }}
                                               >
