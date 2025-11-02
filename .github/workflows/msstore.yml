@@ -49,9 +49,7 @@ jobs:
           QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
           QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
         run: |
-          bun tauri build --config src-tauri/tauri.msstore.conf.json
-
-          "C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\makeappx.exe" pack /m .\AppxManifest.xml /f .\AppxMappings.txt /p quadrant.msix /o
+          bun tauri build --config src-tauri/tauri.msstore.conf.json && & 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\makeappx.exe' pack /l /m .\AppxManifest.xml /f .\AppxMappings.txt /p quadrant.msix /o
 
       - uses: actions/upload-artifact@v4
         with:
