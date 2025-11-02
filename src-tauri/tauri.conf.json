@@ -85,7 +85,7 @@
       },
       "deb": {
         "depends": [
-          "libwebkit2gtk-4.1",
+          "libwebkit2gtk-4.1-0",
           "openssl",
           "curl",
           "wget",
