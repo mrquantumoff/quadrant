@@ -10,6 +10,7 @@ import {
   ModSource,
   ModType,
   Page,
+  SnackbarHistoryItem,
   SnackbarState,
 } from "./intefaces";
 import "./App.css";
@@ -135,7 +136,8 @@ function App() {
   const [contentHistory, setContentHistory] = useState<PageWithScroll[]>([]);
   const [extendedNavigation, setExtendedNavigation] = useState(false);
   const [notifications, setNotifications] = useState<AccountNotification[]>([]);
-  const [snackBarHistory, setSnackbarHistory] = useState<SnackbarState[]>([]);
+
+  const [snackBarHistory, setSnackbarHistory] = useState<SnackbarHistoryItem[]>([]);
   const [areNotificationsHighlighted, setAreNotificationsHighlighted] =
     useState("bg-slate-700 hover:bg-slate-600");
   const [news, setNews] = useState<Article[]>([]);
@@ -674,8 +676,47 @@ function App() {
     },
     setSnackbar(newSnackBarState) {
       setSnackbarState(newSnackBarState);
-      setSnackbarHistory([...snackBarHistory, newSnackBarState]);
       setSnackbarEnabled(true);
+      
+      // Convert message to string for comparison (handles React nodes)
+      const messageKey = typeof newSnackBarState.message === 'string' 
+        ? newSnackBarState.message 
+        : JSON.stringify(newSnackBarState.message);
+      
+      setSnackbarHistory((prevHistory) => {
+        // Check if there's an existing notification with the same message
+        const existingIndex = prevHistory.findIndex((item) => {
+          const existingKey = typeof item.message === 'string' 
+            ? item.message 
+            : JSON.stringify(item.message);
+          return existingKey === messageKey && item.className === newSnackBarState.className;
+        });
+        
+        let newHistory: SnackbarHistoryItem[];
+        
+        if (existingIndex !== -1) {
+          // Increment count of existing notification and move it to the end
+          const existingItem = prevHistory[existingIndex];
+          newHistory = [
+            ...prevHistory.slice(0, existingIndex),
+            ...prevHistory.slice(existingIndex + 1),
+            { ...existingItem, count: existingItem.count + 1 }
+          ];
+        } else {
+          // Add new notification with count of 1
+          newHistory = [
+            ...prevHistory,
+            { ...newSnackBarState, count: 1, id: Math.random().toString(36).substring(2, 10) }
+          ];
+        }
+        
+        // Limit to 5 most recent grouped notifications
+        if (newHistory.length > 5) {
+          newHistory = newHistory.slice(-5);
+        }
+        
+        return newHistory;
+      });
     },
     setSnackbarNoState(newSnackBarState) {
       setSnackbarState(newSnackBarState);
@@ -694,11 +735,14 @@ function App() {
 
   useEffect(() => {
     if (snackbarEnabled) {
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setSnackbarEnabled(false);
       }, snackbarState.timeout);
+      return () => {
+        clearTimeout(timeoutId);
+      };
     }
-  }, [snackbarEnabled]);
+  }, [snackbarEnabled, snackbarState.timeout]);
   const currentWindow = getCurrentWindow();
   return (
     <I18nextProvider i18n={quadrantLocale}>
@@ -854,22 +898,23 @@ function App() {
                                 >
                                   <div className="border-b-2 border-slate-700">
                                     {snackBarHistory.map((item) => {
-                                      const randomString = Math.random()
-                                        .toString(36)
-                                        .substring(2, 10);
-
                                       return (
                                         <div
                                           className="my-2"
-                                          key={item.message + randomString}
+                                          key={item.id}
                                         >
                                           <div
                                             className={
                                               item.className +
-                                              " rounded-4xl p-4"
+                                              " rounded-4xl p-4 flex items-center justify-between"
                                             }
                                           >
-                                            {item.message}
+                                            <span>{item.message}</span>
+                                            {item.count > 1 && (
+                                              <span className="ml-2 bg-slate-900/50 px-2 py-1 rounded-full text-sm">
+                                                {item.count}x
+                                              </span>
+                                            )}
                                           </div>
                                         </div>
                                       );

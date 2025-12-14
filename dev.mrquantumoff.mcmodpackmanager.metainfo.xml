@@ -44,7 +44,15 @@
 
   <releases>
 
-  <release date="2025-11-02" version="25.11.0">
+    <release date="2025-12-14" version="25.12.0">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>Dependency updates</p>
+        <p>Stability improvements</p>
+      </description>
+    </release>
+
+    <release date="2025-11-02" version="25.11.0">
       <url type="details">https://blog.mrquantumoff.dev</url>
       <description>
         <p>Dependency updates</p>
