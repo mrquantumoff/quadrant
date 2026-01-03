@@ -51,7 +51,7 @@ futures = { version = "0.3.31" }
 sha1 = "0.10.6"
 hex = "0.4.3"
 colog = "1.4.0"
-tauri-plugin-deep-link = "2.4.5"
+tauri-plugin-deep-link = { git = "https://github.com/mrquantumoff/plugins-workspace.git", branch = "single-instance" }
 tauri-plugin-dialog = "2.4.2"
 keyring = { version = "3.6.3", features = [
     "apple-native",
@@ -70,10 +70,13 @@ zip = "7.0.0"
 
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-single-instance = { git = "https://github.com/mrquantumoff/plugins-workspace.git", branch = "single-instance", features = [
+    "deep-link",
+    "conventional-dbus",
+] }
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-cli = "2.4.1"
 tauri-plugin-updater = "2.9.0"
-tauri-plugin-single-instance = { version = "2.3.6", features = ["deep-link"] }
 
 [profile.dev]
 opt-level = 0

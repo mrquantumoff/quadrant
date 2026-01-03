@@ -5331,8 +5331,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-deep-link"
 version = "2.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e82759f7c7d51de3cbde51c04b3f2332de52436ed84541182cd8944b04e9e73"
+source = "git+https://github.com/mrquantumoff/plugins-workspace.git?branch=single-instance#92941194f24e163c653ce56fb47efa1a5c5661fc"
 dependencies = [
  "dunce",
  "plist",
@@ -5508,8 +5507,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-single-instance"
 version = "2.3.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd707f8c86b4e3004e2c141fa24351f1909ba40ce1b8437e30d5ed5277dd3710"
+source = "git+https://github.com/mrquantumoff/plugins-workspace.git?branch=single-instance#92941194f24e163c653ce56fb47efa1a5c5661fc"
 dependencies = [
  "serde",
  "serde_json",
