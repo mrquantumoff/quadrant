@@ -5358,7 +5358,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-deep-link"
 version = "2.4.5"
-source = "git+https://github.com/mrquantumoff/plugins-workspace.git?branch=single-instance#4e2b96ec552de96e9341458053380fac34b767d6"
+source = "git+https://github.com/mrquantumoff/plugins-workspace.git?branch=single-instance#2dafe22715bea0794a5b330d024c619fe762164f"
 dependencies = [
  "dunce",
  "plist",
@@ -5534,7 +5534,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-single-instance"
 version = "2.3.6"
-source = "git+https://github.com/mrquantumoff/plugins-workspace.git?branch=single-instance#4e2b96ec552de96e9341458053380fac34b767d6"
+source = "git+https://github.com/mrquantumoff/plugins-workspace.git?branch=single-instance#2dafe22715bea0794a5b330d024c619fe762164f"
 dependencies = [
  "serde",
  "serde_json",
@@ -5892,9 +5892,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-util"
-version = "0.7.17"
+version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2efa149fe76073d6e8fd97ef4f4eca7b67f599660115591483572e406e165594"
+checksum = "9ae9cec805b01e8fc3fd2fe289f89149a9b66dd16786abd8b19cfa7b48cb0098"
 dependencies = [
  "bytes",
  "futures-core",
