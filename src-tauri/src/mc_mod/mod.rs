@@ -6,7 +6,7 @@ use cache::{add_cache_index, file_hash, get_cache_index};
 use anyhow::anyhow;
 #[cfg(feature = "curseforge")]
 use curseforge::{
-    download_mod_curseforge, get_latest_mod_version_curseforge, search_mods_curseforge, ModFile,
+    ModFile, download_mod_curseforge, get_latest_mod_version_curseforge, search_mods_curseforge,
 };
 use futures::StreamExt;
 use http_cache_reqwest::Cache;
@@ -15,20 +15,20 @@ use http_cache_reqwest::HttpCache;
 use http_cache_reqwest::HttpCacheOptions;
 use http_cache_reqwest::MokaManager;
 use modrinth::{
-    download_mod_modrinth, get_latest_mod_version_modrinth, search_mods_modrinth, ModrinthFile,
+    ModrinthFile, download_mod_modrinth, get_latest_mod_version_modrinth, search_mods_modrinth,
 };
+use reqwest;
 use reqwest_middleware::ClientBuilder;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter};
-use tauri_plugin_http::reqwest;
 use tauri_plugin_store::JsonValue;
 use tauri_plugin_store::StoreExt;
 
 use crate::modpacks::general::InstalledModpack;
 use crate::{
     config::get_mc_folder,
-    modpacks::general::{get_modpacks, ModLoader},
+    modpacks::general::{ModLoader, get_modpacks},
 };
 
 pub mod cache;

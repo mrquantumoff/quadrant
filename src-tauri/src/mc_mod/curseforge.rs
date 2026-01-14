@@ -2,17 +2,17 @@ pub const BASE_URL: &str = "https://api.curseforge.com/";
 pub const MINECRAFT_ID: i32 = 432;
 use std::path::PathBuf;
 
+use reqwest;
 use sha1::Digest;
 use tauri::AppHandle;
-use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
 
 use crate::{
-    mc_mod::{curseforge_fingerprint::*, get_user_agent, IdentifiedMod, InstalledMod},
-    modpacks::general::{get_modpacks, LocalModpack, ModLoader},
+    mc_mod::{IdentifiedMod, InstalledMod, curseforge_fingerprint::*, get_user_agent},
+    modpacks::general::{LocalModpack, ModLoader, get_modpacks},
 };
 
-use super::{get_file, get_mod_url, GetModArgs, Mod, ModSource, ModType, SearchModsArgs};
+use super::{GetModArgs, Mod, ModSource, ModType, SearchModsArgs, get_file, get_mod_url};
 
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
