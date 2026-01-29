@@ -254,14 +254,13 @@ pub async fn run() {
                         button_state: MouseButtonState::Up,
                         ..
                     } = event
+                        && let Some(window) = tray.app_handle().get_webview_window("main")
                     {
-                        if let Some(window) = tray.app_handle().get_webview_window("main") {
-                            window.set_enabled(true).unwrap();
+                        window.set_enabled(true).unwrap();
 
-                            window.show().unwrap();
-                            window.set_focus().unwrap();
-                            window.unminimize().unwrap();
-                        }
+                        window.show().unwrap();
+                        window.set_focus().unwrap();
+                        window.unminimize().unwrap();
                     }
                 });
                 tray.on_menu_event(|app, event| match event.id.as_ref() {
@@ -384,7 +383,9 @@ async fn is_autoupdate_enabled(app: tauri::AppHandle) -> Result<bool, tauri::Err
     Ok(state.is_update_enabled)
 }
 async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
-    let update_url = Url::parse(&"https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{target}}/{{arch}}/{{current_version}}".to_string())?;
+    let update_url = Url::parse(
+        "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{target}}/{{arch}}/{{current_version}}",
+    )?;
 
     let mut update_urls = vec![update_url];
 
