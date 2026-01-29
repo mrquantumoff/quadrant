@@ -898,7 +898,7 @@ function App() {
                                 >
                                   <div className="border-b-2 border-slate-700">
                                     {snackBarHistory.length > 0 && (
-                                      <div className="my-2 flex items-center justify-between gap-2">
+                                      <motion.div className="my-2 flex items-center justify-between gap-2">
                                         <div
                                           className={
                                             snackBarHistory[0].className +
@@ -921,7 +921,7 @@ function App() {
                                           {t("pureClear")}
                                           <MdClear className="w-4 h-4 ml-2" />
                                         </Button>
-                                      </div>
+                                      </motion.div>
                                     )}
                                     {snackBarHistory.slice(1).map((item) => {
                                       return (
@@ -1041,14 +1041,17 @@ function App() {
                                       return (
                                         <div
                                           key={article.guid}
-                                          className="bg-slate-900 rounded-4xl my-2 p-2 text-center flex flex-col items-center justify-center"
+                                          className="bg-slate-900 rounded-4xl my-2  p-4 text-center flex flex-col items-center justify-center"
                                         >
                                           <h3 className="font-black">
                                             {article.title}
                                           </h3>
-                                          <p className="font-normal">
-                                            {article.summary}
-                                          </p>
+                                          <div
+                                            className="font-normal"
+                                            dangerouslySetInnerHTML={{
+                                              __html: article.summary,
+                                            }}
+                                          />
                                           <div className="bg-slate-800 w-full flex p-2 rounded-4xl">
                                             <Button
                                               onClick={async () => {
