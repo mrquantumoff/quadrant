@@ -5478,7 +5478,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-deep-link"
 version = "2.4.6"
-source = "git+https://github.com/mrquantumoff/plugins-workspace.git?branch=single-instance#18a281e9e480ae902df1e88a3aba3f0565df2f5b"
+source = "git+https://github.com/mrquantumoff/plugins-workspace.git?branch=single-instance#04d199e35e1e34467771936d10604f14f151b2dc"
 dependencies = [
  "dunce",
  "plist",
@@ -5654,7 +5654,7 @@ dependencies = [
 [[package]]
 name = "tauri-plugin-single-instance"
 version = "2.3.7"
-source = "git+https://github.com/mrquantumoff/plugins-workspace.git?branch=single-instance#18a281e9e480ae902df1e88a3aba3f0565df2f5b"
+source = "git+https://github.com/mrquantumoff/plugins-workspace.git?branch=single-instance#04d199e35e1e34467771936d10604f14f151b2dc"
 dependencies = [
  "serde",
  "serde_json",
