@@ -897,7 +897,33 @@ function App() {
                                   className="flex flex-col p-4 mt-4 font-bold bg-slate-800 rounded-4xl w-[35vw] my-8 h-[75vh] "
                                 >
                                   <div className="border-b-2 border-slate-700">
-                                    {snackBarHistory.map((item) => {
+                                    {snackBarHistory.length > 0 && (
+                                      <div className="my-2 flex items-center justify-between gap-2">
+                                        <div
+                                          className={
+                                            snackBarHistory[0].className +
+                                            " rounded-4xl p-4 flex flex-1 min-w-0 items-center justify-between"
+                                          }
+                                        >
+                                          <span>{snackBarHistory[0].message}</span>
+                                          {snackBarHistory[0].count > 1 && (
+                                            <span className="ml-2 bg-slate-900/50 px-2 py-1 rounded-full text-sm">
+                                              {snackBarHistory[0].count}x
+                                            </span>
+                                          )}
+                                        </div>
+                                        <Button
+                                          className="bg-slate-700 hover:bg-slate-600 transition-all flex items-center justify-center shrink-0"
+                                          onClick={() => {
+                                            setSnackbarHistory([]);
+                                          }}
+                                        >
+                                          {t("pureClear")}
+                                          <MdClear className="w-4 h-4 ml-2" />
+                                        </Button>
+                                      </div>
+                                    )}
+                                    {snackBarHistory.slice(1).map((item) => {
                                       return (
                                         <div
                                           className="my-2"

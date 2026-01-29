@@ -161,5 +161,6 @@
   "returnToTheApp": "Giriş başarılı. Uygulamaya geri dönün.",
   "export": "Dışa aktar",
   "identifyUnknownMods": "Bilinmeyen modları tanımla",
-  "select": "Seç"
+  "select": "Seç",
+  "pureClear": "Temizle"
 }

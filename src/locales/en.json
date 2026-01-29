@@ -161,5 +161,6 @@
   "returnToTheApp": "Login successful. Return to the app.",
   "export": "Export",
   "identifyUnknownMods": "Identify unknown mods",
-  "select": "Select"
+  "select": "Select",
+  "pureClear": "Clear"
 }
