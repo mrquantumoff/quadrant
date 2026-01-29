@@ -17,9 +17,6 @@ use super::{GetModArgs, Mod, ModSource, ModType, SearchModsArgs, get_file, get_m
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use http_cache_reqwest::{Cache, CacheMode, HttpCache, HttpCacheOptions, MokaManager};
-use reqwest_middleware::ClientBuilder;
-
 #[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct ModFilesResponse {
     data: Vec<ModFile>,
@@ -96,13 +93,8 @@ pub async fn get_mod_curseforge(args: GetModArgs) -> Result<Mod, tauri::Error> {
 
     let url = format!("{}v1/mods/{}", BASE_URL, args.id);
 
-    let client = ClientBuilder::new(reqwest::Client::new())
-        .with(Cache(HttpCache {
-            mode: CacheMode::Default,
-            options: HttpCacheOptions::default(),
-            manager: MokaManager::default(),
-        }))
-        .build();
+    let client = crate::network_client().await;
+
     let request = client
         .get(&url)
         .header("X-API-Key", curseforge_token)
@@ -224,9 +216,10 @@ pub async fn get_mod_deps_curseforge(id: String) -> Result<Vec<Mod>, tauri::Erro
         .filter_map(|mod_info| {
             if let (Some(mod_info_id), Some(relation_type)) =
                 (mod_info["id"].as_str(), mod_info["relationType"].as_i64())
-                && relation_type == 3 {
-                    return Some(mod_info_id.to_string());
-                }
+                && relation_type == 3
+            {
+                return Some(mod_info_id.to_string());
+            }
             None
         })
         .collect();
@@ -447,12 +440,7 @@ pub async fn download_mod_curseforge(
     let store = app.store("config.json").unwrap();
     store.set(
         "curseforgeUsage",
-        store
-            .get("curseforgeUsage")
-            .unwrap()
-            .as_i64()
-            .unwrap_or(0)
-            + 1,
+        store.get("curseforgeUsage").unwrap().as_i64().unwrap_or(0) + 1,
     );
 
     get_file(file.into(), id, app).await

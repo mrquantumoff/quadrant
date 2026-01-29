@@ -4027,7 +4027,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant_next"
-version = "26.1.0-stable"
+version = "26.2.0-preview.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4038,6 +4038,7 @@ dependencies = [
  "http-cache-reqwest",
  "keyring",
  "log",
+ "once_cell",
  "open",
  "reqwest 0.13.1",
  "reqwest-middleware",

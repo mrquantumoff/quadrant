@@ -9,16 +9,10 @@ use curseforge::{
     ModFile, download_mod_curseforge, get_latest_mod_version_curseforge, search_mods_curseforge,
 };
 use futures::StreamExt;
-use http_cache_reqwest::Cache;
-use http_cache_reqwest::CacheMode;
-use http_cache_reqwest::HttpCache;
-use http_cache_reqwest::HttpCacheOptions;
-use http_cache_reqwest::MokaManager;
 use modrinth::{
     ModrinthFile, download_mod_modrinth, get_latest_mod_version_modrinth, search_mods_modrinth,
 };
 use reqwest;
-use reqwest_middleware::ClientBuilder;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter};
@@ -219,16 +213,10 @@ impl From<ModrinthFile> for UniversalModFile {
 }
 
 #[tauri::command]
-pub async fn get_versions(_app: AppHandle) -> Result<Vec<MinecraftVersion>, tauri::Error> {
+pub async fn get_versions() -> Result<Vec<MinecraftVersion>, tauri::Error> {
     let uri = "https://api.modrinth.com/v2/tag/game_version";
 
-    let client = ClientBuilder::new(reqwest::Client::new())
-        .with(Cache(HttpCache {
-            mode: CacheMode::Default,
-            options: HttpCacheOptions::default(),
-            manager: MokaManager::default(),
-        }))
-        .build();
+    let client = crate::network_client().await;
     let res = client
         .get(uri)
         .header("User-Agent", get_user_agent())
@@ -535,7 +523,7 @@ pub async fn get_file(
     let file_length = file.size;
     while let Some(Ok(new_bytes)) = body.next().await {
         file_bytes.append(&mut new_bytes.to_vec());
-        let progress = (file_bytes.len() as f64 / file_length as f64 * 100.0).round();
+        let progress = (file_bytes.len() as f64 / file_length as f64).round();
         app.emit(
             "modDownloadProgress",
             json!({

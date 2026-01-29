@@ -13,9 +13,6 @@ use std::path::PathBuf;
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
 
-use http_cache_reqwest::{Cache, CacheMode, HttpCache, HttpCacheOptions, MokaManager};
-use reqwest_middleware::ClientBuilder;
-
 use super::GetModArgs;
 use super::IdentifiedMod;
 use super::InstalledMod;
@@ -65,13 +62,8 @@ pub async fn search_mods_modrinth(
 
     // log::info!("Raw URI: {}", raw_uri);
 
-    let client = ClientBuilder::new(reqwest::Client::new())
-        .with(Cache(HttpCache {
-            mode: CacheMode::Default,
-            options: HttpCacheOptions::default(),
-            manager: MokaManager::default(),
-        }))
-        .build();
+    let client = crate::network_client().await;
+
     let request = client
         .get(&raw_uri)
         .header("User-Agent", get_user_agent())
@@ -108,9 +100,10 @@ pub async fn search_mods_modrinth(
             }
 
             if let Some(mod_icon_url) = mod_data["icon_url"].as_str()
-                && !mod_icon_url.trim().is_empty() {
-                    icon = mod_icon_url.to_string();
-                }
+                && !mod_icon_url.trim().is_empty()
+            {
+                icon = mod_icon_url.to_string();
+            }
             let license = mod_data["license"].as_str().unwrap_or_default().to_string();
 
             mods.push(Mod {
@@ -142,7 +135,8 @@ pub async fn search_mods_modrinth(
 }
 #[tauri::command]
 pub async fn get_mod_modrinth(args: GetModArgs) -> Result<Mod, tauri::Error> {
-    let client = reqwest::Client::new();
+    let client = crate::network_client().await;
+
     let request = client
         .get(format!("https://api.modrinth.com/v2/project/{}", args.id))
         .header("User-Agent", get_user_agent())
@@ -361,12 +355,7 @@ pub async fn download_mod_modrinth(
     let store = app.store("config.json").unwrap();
     store.set(
         "modrinthUsage",
-        store
-            .get("modrinthUsage")
-            .unwrap()
-            .as_i64()
-            .unwrap_or(0)
-            + 1,
+        store.get("modrinthUsage").unwrap().as_i64().unwrap_or(0) + 1,
     );
     get_file(file.into(), id, app).await
 }

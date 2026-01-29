@@ -64,7 +64,9 @@ pub async fn share_modpack_raw(
 
     let token: Option<String> = token_res.ok();
 
-    if let Some(_) = &token { url = format!("{}/id", url) }
+    if let Some(_) = &token {
+        url = format!("{}/id", url)
+    }
     let mut request =
         client
             .post(&url)

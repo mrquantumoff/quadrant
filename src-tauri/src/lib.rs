@@ -1,15 +1,22 @@
-use mc_mod::get_user_agent;
-use tauri_plugin_cli::CliExt;
-use tauri_plugin_store::StoreExt;
-use tokio::sync::Mutex;
-
 use config::init_config;
+use http_cache_reqwest::Cache;
+use http_cache_reqwest::CacheMode;
+use http_cache_reqwest::HttpCache;
+use http_cache_reqwest::HttpCacheOptions;
+use http_cache_reqwest::MokaManager;
+use mc_mod::get_user_agent;
+use once_cell::sync::Lazy;
+use reqwest_middleware::ClientBuilder;
+use reqwest_middleware::ClientWithMiddleware;
 use tauri::{
     Emitter, Manager, Url,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconEvent},
 };
+use tauri_plugin_cli::CliExt;
+use tauri_plugin_store::StoreExt;
 use tauri_plugin_updater::UpdaterExt;
+use tokio::sync::Mutex;
 
 use tauri_plugin_deep_link::DeepLinkExt;
 
@@ -32,13 +39,34 @@ pub struct AppState {
     pub update_bytes: Vec<u8>,
 }
 
+static NETWORK_CLIENT: Lazy<Mutex<ClientWithMiddleware>> = Lazy::new(|| {
+    let client = ClientBuilder::new(reqwest::Client::new())
+        .with(Cache(HttpCache {
+            mode: CacheMode::Default,
+            options: HttpCacheOptions::default(),
+            manager: MokaManager::default(),
+        }))
+        .build();
+    Mutex::new(client)
+});
+
+pub(crate) async fn network_client() -> ClientWithMiddleware {
+    let client = NETWORK_CLIENT.lock().await;
+    client.clone()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[allow(deprecated)]
 pub async fn run() {
     colog::init();
 
     log::info!("Initializing Tauri...");
-    let mut builder = tauri::Builder::default();
+    let mut builder = tauri::Builder::default().manage(Mutex::new(AppState {
+        is_update_enabled: false,
+        updated_modpacks: vec![],
+        update: None,
+        update_bytes: vec![],
+    }));
 
     #[cfg(desktop)]
     {
@@ -170,12 +198,12 @@ pub async fn run() {
                 autoupdate = false;
             }
             log::info!("Autoupdate enabled: {}\nInitializing state...", autoupdate);
-            app.manage(Mutex::new(AppState {
-                is_update_enabled: autoupdate,
-                updated_modpacks: vec![],
-                update: None,
-                update_bytes: vec![],
-            }));
+
+            if let Ok(mut state) = app.state::<Mutex<AppState>>().try_lock() {
+                state.is_update_enabled = autoupdate;
+            } else {
+                log::warn!("Failed to lock AppState during setup to set autoupdate.");
+            }
             if autoupdate {
                 log::info!("Checking for updates...");
                 tauri::async_runtime::spawn(async move {
@@ -220,17 +248,20 @@ pub async fn run() {
 
                 tray.set_menu(Some(menu))?;
                 tray.set_show_menu_on_left_click(false)?;
-                tray.on_tray_icon_event(|tray, event| if let TrayIconEvent::Click {
+                tray.on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
                         button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
                         ..
-                    } = event {
-                    if let Some(window) = tray.app_handle().get_webview_window("main") {
-                        window.set_enabled(true).unwrap();
+                    } = event
+                    {
+                        if let Some(window) = tray.app_handle().get_webview_window("main") {
+                            window.set_enabled(true).unwrap();
 
-                        window.show().unwrap();
-                        window.set_focus().unwrap();
-                        window.unminimize().unwrap();
+                            window.show().unwrap();
+                            window.set_focus().unwrap();
+                            window.unminimize().unwrap();
+                        }
                     }
                 });
                 tray.on_menu_event(|app, event| match event.id.as_ref() {
@@ -253,9 +284,8 @@ pub async fn run() {
             }
 
             log::info!("Updating Minecraft versions...");
-            let app_handle = app.handle().clone();
             let _task = tokio::task::spawn(async move {
-                let _res = mc_mod::get_versions(app_handle).await;
+                let _res = mc_mod::get_versions().await;
                 match _res {
                     Ok(_) => {}
                     Err(e) => {
@@ -379,13 +409,14 @@ async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
     // Prefer the preview version if we're updating from a preview version
     update_urls.reverse();
 
-    log::info!(
+    log::debug!(
         "Update URLs: {:?}",
         update_urls
             .iter()
             .map(|url| url.as_str())
             .collect::<Vec<_>>()
     );
+    log::info!("Checking for updates...");
 
     let updater = app
         .updater_builder()
@@ -409,15 +440,15 @@ async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
                     downloaded += chunk_length;
                     let progress = downloaded as f64 / content_length.unwrap() as f64;
                     app.emit("updateDownloadProgress", progress).unwrap();
-                    log::info!("downloaded {}", progress);
+                    log::info!("Downloaded {}%", (progress * 100.0).round() as i32);
                 },
                 || {
-                    log::info!("download finished");
+                    log::info!("Download finished");
                 },
             )
             .await?;
 
-        println!("update downloaded");
+        log::info!("Update downloaded");
         app.emit("updateDownloadProgress", 1).unwrap();
         let state = app.state::<Mutex<AppState>>();
         let mut state = state.lock().await;

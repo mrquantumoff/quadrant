@@ -44,16 +44,8 @@ pub async fn get_telemetry_info(app: AppHandle) -> AppInfo {
         .unwrap();
     let country = country_info.country;
 
-    let modrinth_usage = config
-        .get("modrinthUsage")
-        .unwrap()
-        .as_i64()
-        .unwrap_or(0);
-    let curseforge_usage = config
-        .get("curseforgeUsage")
-        .unwrap()
-        .as_i64()
-        .unwrap_or(0);
+    let modrinth_usage = config.get("modrinthUsage").unwrap().as_i64().unwrap_or(0);
+    let curseforge_usage = config.get("curseforgeUsage").unwrap().as_i64().unwrap_or(0);
 
     let res = AppInfo {
         version: version.to_string(),
