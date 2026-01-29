@@ -212,7 +212,7 @@ pub async fn get_modpacks(hide_free: bool, app: AppHandle) -> Vec<LocalModpack> 
             let mut modpack: InstalledModpack = modpack.unwrap();
             modpack.name = name;
             let mut modpack = LocalModpack::from((modpack, is_applied, last_synced));
-            let expected_files = modpack.mods.iter().count() + extra_files;
+            let expected_files = modpack.mods.len() + extra_files;
 
             if expected_files < file_amount {
                 // log::info!(
@@ -342,7 +342,7 @@ pub async fn install_modpack(
     // Check for existing files
     for mod_ in mods.clone() {
         let file_name =
-            urlencoding::decode(&mod_.download_url.split("/").last().unwrap_or_default());
+            urlencoding::decode(mod_.download_url.split("/").last().unwrap_or_default());
         file_names.push(file_name.map_err(|e| anyhow::anyhow!(e))?.to_string());
     }
 
@@ -360,7 +360,7 @@ pub async fn install_modpack(
     let mut mod_downloads = vec![];
 
     let total_mods = mods.len();
-    let downloaded_mods = Arc::new(Mutex::new(0 as usize));
+    let downloaded_mods = Arc::new(Mutex::new(0_usize));
 
     // Download the missing files
     for mod_ in mods {

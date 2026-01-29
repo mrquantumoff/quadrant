@@ -181,9 +181,9 @@ pub async fn create_modpack(
 #[tauri::command]
 pub async fn delete_modpack(name: String, app: AppHandle) -> Result<(), tauri::Error> {
     let modpacks = get_modpacks(false, app.clone()).await;
-    let is_applied: bool;
-    match modpacks.iter().find(|m| m.name == name) {
-        Some(modpack) => is_applied = modpack.is_applied,
+    
+    let is_applied: bool = match modpacks.iter().find(|m| m.name == name) {
+        Some(modpack) => modpack.is_applied,
         None => return Err(anyhow!("Modpack doesn't exist").into()),
     };
     let config = app.store("config.json").unwrap();

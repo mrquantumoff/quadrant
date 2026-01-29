@@ -45,19 +45,16 @@ pub async fn get_quadrant_settings(app: AppHandle) -> Result<(), tauri::Error> {
     }
 
     let new_settings = json["settings"].as_str();
-    match new_settings {
-        Some(new_settings) => {
-            let new_settings: Value = serde_json::from_str(new_settings)?;
-            for (key, value) in new_settings.as_object().unwrap() {
-                config.set(key, value.to_owned());
-            }
-            log::info!("Got newer settings");
-            return Ok(());
+    if let Some(new_settings) = new_settings {
+        let new_settings: Value = serde_json::from_str(new_settings)?;
+        for (key, value) in new_settings.as_object().unwrap() {
+            config.set(key, value.to_owned());
         }
-        None => {}
+        log::info!("Got newer settings");
+        return Ok(());
     }
 
-    return Err(anyhow!("No valid settings").into());
+    Err(anyhow!("No valid settings").into())
 }
 
 #[tauri::command]

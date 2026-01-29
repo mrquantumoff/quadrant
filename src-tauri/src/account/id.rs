@@ -50,9 +50,7 @@ pub struct OAuth2Response {
 pub async fn get_account_info() -> Result<AccountInfo, tauri::Error> {
     let token = crate::account::get_account_token();
     if token.is_err() {
-        return Err(tauri::Error::from(anyhow::Error::from(
-            token.err().unwrap(),
-        )));
+        return Err(tauri::Error::from(token.err().unwrap()));
     }
     let token = token.unwrap();
     let client = reqwest::Client::new();
@@ -225,7 +223,7 @@ pub async fn check_account_updates(app: AppHandle) -> Result<(), anyhow::Error> 
             // log::info!("Checking modpack: {}", modpack.name);
             let matching_modpacks: Vec<SyncedModpack> = synced_modpacks
                 .iter()
-                .filter(|m| &m.name == &modpack.name)
+                .filter(|m| m.name == modpack.name)
                 .cloned()
                 .collect();
 

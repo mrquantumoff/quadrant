@@ -14,7 +14,7 @@ use tauri_plugin_updater::UpdaterExt;
 use tauri_plugin_deep_link::DeepLinkExt;
 
 #[allow(dead_code)] // This is used in the  Quadrant ID feature
-pub(crate) const QNT_BASE_URL: &'static str = "https://api.mrquantumoff.dev/api/v3";
+pub(crate) const QNT_BASE_URL: &str = "https://api.mrquantumoff.dev/api/v3";
 
 #[cfg(feature = "quadrant_id")]
 pub mod account;
@@ -220,21 +220,18 @@ pub async fn run() {
 
                 tray.set_menu(Some(menu))?;
                 tray.set_show_menu_on_left_click(false)?;
-                tray.on_tray_icon_event(|tray, event| match event {
-                    TrayIconEvent::Click {
+                tray.on_tray_icon_event(|tray, event| if let TrayIconEvent::Click {
                         button: MouseButton::Left,
                         button_state: MouseButtonState::Up,
                         ..
-                    } => {
-                        if let Some(window) = tray.app_handle().get_webview_window("main") {
-                            window.set_enabled(true).unwrap();
+                    } = event {
+                    if let Some(window) = tray.app_handle().get_webview_window("main") {
+                        window.set_enabled(true).unwrap();
 
-                            window.show().unwrap();
-                            window.set_focus().unwrap();
-                            window.unminimize().unwrap();
-                        }
+                        window.show().unwrap();
+                        window.set_focus().unwrap();
+                        window.unminimize().unwrap();
                     }
-                    _ => {}
                 });
                 tray.on_menu_event(|app, event| match event.id.as_ref() {
                     "quit" => {
@@ -347,7 +344,7 @@ pub async fn run() {
 
 #[tauri::command]
 async fn request_check_for_updates(app: tauri::AppHandle) -> Result<(), tauri::Error> {
-    check_update(app).await.map_err(|e| tauri::Error::from(e))
+    check_update(app).await.map_err(tauri::Error::from)
 }
 
 #[tauri::command]
@@ -357,9 +354,7 @@ async fn is_autoupdate_enabled(app: tauri::AppHandle) -> Result<bool, tauri::Err
     Ok(state.is_update_enabled)
 }
 async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
-    let update_url = Url::parse(&format!(
-        "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}"
-    ))?;
+    let update_url = Url::parse(&"https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{target}}/{{arch}}/{{current_version}}".to_string())?;
 
     let mut update_urls = vec![update_url];
 
@@ -376,7 +371,7 @@ async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
 
     if update_config.get("channel").is_some() {
         let channel = update_config.get("channel").unwrap();
-        let channel = channel.as_str().unwrap_or_else(|| defualt_channel);
+        let channel = channel.as_str().unwrap_or(defualt_channel);
         if channel != "stable" {
             update_urls.push(Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/{}/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}",channel))?);
         }

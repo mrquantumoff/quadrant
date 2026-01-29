@@ -62,15 +62,9 @@ pub async fn share_modpack_raw(
     let client = reqwest::Client::new();
     let user_agent = get_user_agent();
 
-    let token: Option<String> = match token_res {
-        Ok(token) => Some(token),
-        _ => None,
-    };
+    let token: Option<String> = token_res.ok();
 
-    match &token {
-        Some(_) => url = format!("{}/id", url),
-        _ => {}
-    }
+    if let Some(_) = &token { url = format!("{}/id", url) }
     let mut request =
         client
             .post(&url)

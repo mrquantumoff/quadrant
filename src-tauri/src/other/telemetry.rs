@@ -28,7 +28,7 @@ struct MyIPResponse {
 pub async fn get_telemetry_info(app: AppHandle) -> AppInfo {
     let config = app.store("config.json").unwrap();
     let version = app.package_info().version.clone();
-    let os = format!("{}", tauri_plugin_os::platform()).to_uppercase();
+    let os = tauri_plugin_os::platform().to_string().to_uppercase();
     let hardware_id = config.get("hardwareId").unwrap().clone();
     let hardware_id = hardware_id.as_str().unwrap();
 
@@ -48,12 +48,12 @@ pub async fn get_telemetry_info(app: AppHandle) -> AppInfo {
         .get("modrinthUsage")
         .unwrap()
         .as_i64()
-        .unwrap_or_else(|| 0);
+        .unwrap_or(0);
     let curseforge_usage = config
         .get("curseforgeUsage")
         .unwrap()
         .as_i64()
-        .unwrap_or_else(|| 0);
+        .unwrap_or(0);
 
     let res = AppInfo {
         version: version.to_string(),

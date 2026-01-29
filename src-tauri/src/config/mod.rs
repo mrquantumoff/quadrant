@@ -34,7 +34,7 @@ pub fn get_mc_folder() -> Result<Option<PathBuf>, anyhow::Error> {
 
 #[tauri::command]
 pub fn get_minecraft_folder() -> Result<String, tauri::Error> {
-    let path = get_mc_folder().map_err(|e| tauri::Error::from(e))?.unwrap();
+    let path = get_mc_folder().map_err(tauri::Error::from)?.unwrap();
     Ok(path.to_str().unwrap().to_string())
 }
 
@@ -110,7 +110,7 @@ pub fn init_config(app: AppHandle) -> Result<(), tauri::Error> {
     }
 
     if store.get("cacheKeepAlive").is_none()
-        || !store.get("cacheKeepAlive").map_or(false, |v| v.is_number())
+        || !store.get("cacheKeepAlive").is_some_and(|v| v.is_number())
     {
         store.set("cacheKeepAlive", 30);
     }

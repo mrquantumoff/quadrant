@@ -107,11 +107,10 @@ pub async fn search_mods_modrinth(
                 }
             }
 
-            if let Some(mod_icon_url) = mod_data["icon_url"].as_str() {
-                if !mod_icon_url.trim().is_empty() {
+            if let Some(mod_icon_url) = mod_data["icon_url"].as_str()
+                && !mod_icon_url.trim().is_empty() {
                     icon = mod_icon_url.to_string();
                 }
-            }
             let license = mod_data["license"].as_str().unwrap_or_default().to_string();
 
             mods.push(Mod {
@@ -366,7 +365,7 @@ pub async fn download_mod_modrinth(
             .get("modrinthUsage")
             .unwrap()
             .as_i64()
-            .unwrap_or_else(|| 0)
+            .unwrap_or(0)
             + 1,
     );
     get_file(file.into(), id, app).await
@@ -384,7 +383,7 @@ pub async fn identify_modpack_modrinth(
     let existing_modpack: Vec<LocalModpack> = get_modpacks(false, app.clone())
         .await
         .into_iter()
-        .filter(|m| &m.name == &modpack)
+        .filter(|m| m.name == modpack)
         .collect();
     if existing_modpack.is_empty() {
         return Err(anyhow::anyhow!("Modpack doesn't exist"));

@@ -51,7 +51,7 @@ pub async fn get_synced_modpacks(
         .header("User-Agent", get_user_agent());
     let response = request.send().await.map_err(|e| anyhow::anyhow!(e))?;
     let body: Vec<SyncedModpack> = response.json().await.map_err(|e| anyhow::anyhow!(e))?;
-    return Ok(body);
+    Ok(body)
 }
 
 #[tauri::command]

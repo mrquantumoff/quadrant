@@ -532,7 +532,7 @@ pub async fn get_file(
         .build()?;
     let mut body = client.execute(request).await?.bytes_stream();
     let mut file_bytes: Vec<u8> = Vec::new();
-    let file_length = file.size.clone();
+    let file_length = file.size;
     while let Some(Ok(new_bytes)) = body.next().await {
         file_bytes.append(&mut new_bytes.to_vec());
         let progress = (file_bytes.len() as f64 / file_length as f64 * 100.0).round();
@@ -568,8 +568,8 @@ pub async fn install_local_file(
 ) -> Result<(), tauri::Error> {
     let local_mod = InstalledMod {
         id: id.clone(),
-        source: source,
-        download_url: download_url,
+        source,
+        download_url,
     };
     let target_path: PathBuf;
 

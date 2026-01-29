@@ -224,11 +224,9 @@ pub async fn get_mod_deps_curseforge(id: String) -> Result<Vec<Mod>, tauri::Erro
         .filter_map(|mod_info| {
             if let (Some(mod_info_id), Some(relation_type)) =
                 (mod_info["id"].as_str(), mod_info["relationType"].as_i64())
-            {
-                if relation_type == 3 {
+                && relation_type == 3 {
                     return Some(mod_info_id.to_string());
                 }
-            }
             None
         })
         .collect();
@@ -415,7 +413,7 @@ pub async fn get_latest_mod_version_curseforge(
                 date_b.cmp(&date_a)
             });
 
-            data.get(0).cloned()
+            data.first().cloned()
         }
         true => {
             log::info!("Getting mod files from file id {}", file_id.unwrap());
@@ -453,7 +451,7 @@ pub async fn download_mod_curseforge(
             .get("curseforgeUsage")
             .unwrap()
             .as_i64()
-            .unwrap_or_else(|| 0)
+            .unwrap_or(0)
             + 1,
     );
 
@@ -472,7 +470,7 @@ pub async fn identify_modpack_curseforge(
     let existing_modpack: Vec<LocalModpack> = get_modpacks(false, app.clone())
         .await
         .into_iter()
-        .filter(|m| &m.name == &modpack)
+        .filter(|m| m.name == modpack)
         .collect();
     if existing_modpack.is_empty() {
         return Err(anyhow::anyhow!("Modpack doesn't exist"));
@@ -508,7 +506,7 @@ pub async fn identify_modpack_curseforge(
 
     for file in unknown_files {
         let file = modpack_folder.join(file);
-        let contents = get_jar_contents(&file.to_string_lossy().to_string());
+        let contents = get_jar_contents(file.to_string_lossy().as_ref());
         let hash = compute_hash(&contents);
         // Calculate SHA1 hash
         let mut hasher = sha1::Sha1::new();
