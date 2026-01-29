@@ -470,7 +470,7 @@ pub async fn install_mod(
         app.clone(),
     )
     .await?;
-
+    log::info!("Installed mod: {}", &id);
     app.emit(
         "modInstallProgress",
         json!({
@@ -523,7 +523,7 @@ pub async fn get_file(
     let file_length = file.size;
     while let Some(Ok(new_bytes)) = body.next().await {
         file_bytes.append(&mut new_bytes.to_vec());
-        let progress = (file_bytes.len() as f64 / file_length as f64).round();
+        let progress = ((file_bytes.len() as f64 / file_length as f64) * 100 as f64).round() as i32;
         app.emit(
             "modDownloadProgress",
             json!({

@@ -58,6 +58,7 @@ export default function Mod(props: IModProps) {
   const [progress, setProgress] = useState(-1);
 
   const context = useContext(ContentContext);
+  const installRequestedRef = useRef(false);
 
   const configRef = useRef<LazyStore | null>(null);
   if (configRef.current === null) {
@@ -95,7 +96,7 @@ export default function Mod(props: IModProps) {
         unlistenProgress = await listen("modDownloadProgress", (event: any) => {
           if (event.payload.modId === modId) {
             setProgress(event.payload.progress);
-            if (event.payload.progress === 1) {
+            if (event.payload.progress === 100) {
               unlistenProgress?.();
               unlistenProgress = null;
             }
@@ -114,7 +115,9 @@ export default function Mod(props: IModProps) {
         unlistenInstallProgress = await listen(
           "modInstallProgress",
           (event: any) => {
-            if (event.payload.modId === modId && event.payload.progress === 1) {
+            if (event.payload.modId === modId && event.payload.progress === 100) {
+                          console.log(event)
+
               if (!isAutoinstallable) {
                 setVisible(false);
               }
@@ -147,7 +150,8 @@ export default function Mod(props: IModProps) {
   }, [isAutoinstallable, modId]);
 
   useEffect(() => {
-    if (isAutoinstallable && progress === 1) {
+    if (isAutoinstallable && progress === 100 && installRequestedRef.current) {
+      installRequestedRef.current = false;
       context.setSnackbar({
         message: t("downloadSuccess"),
         className: "bg-emerald-700 text-white",
@@ -232,7 +236,7 @@ export default function Mod(props: IModProps) {
             ) : (
               <></>
             )}
-            {mod.downloadable && progress !== 1 ? (
+            {mod.downloadable && progress !== 100 ? (
               mod.newVersion !== undefined && mod.showPreviousVersion ? (
                 <Button
                   animate
@@ -241,6 +245,7 @@ export default function Mod(props: IModProps) {
                       return;
                     }
                     setClickableDownload(false);
+                    installRequestedRef.current = true;
                     await deleteMod(props.modpack!, mod.id);
 
                     await installRemoteFile(
@@ -265,6 +270,7 @@ export default function Mod(props: IModProps) {
                     }
                     console.log("Autoinstallable: " + mod.autoinstallable);
                     if (mod.autoinstallable) {
+                      installRequestedRef.current = true;
                       // Get last used api, modpack, and loader
                       const config = new LazyStore("config.json");
                       const lastUsedAPI = await config.get<string>(
@@ -286,6 +292,7 @@ export default function Mod(props: IModProps) {
                           lastUsedModpack ?? "free"
                         );
                       } catch (e: any) {
+                        installRequestedRef.current = false;
                         context.setSnackbar({
                           message: t(e),
                           className: "bg-red-700 text-white",

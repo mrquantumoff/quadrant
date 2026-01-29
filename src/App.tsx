@@ -1103,7 +1103,18 @@ function App() {
                     snackbarState.className
                   }
                 >
-                  <p>{snackbarState.message}</p>
+                  <div className="flex items-center gap-3">
+                    <p>{snackbarState.message}</p>
+                    <Button
+                      fullRound
+                      className="bg-slate-900/50 hover:bg-slate-900/70"
+                      onClick={() => {
+                        setSnackbarEnabled(false);
+                      }}
+                    >
+                      <MdClear className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
