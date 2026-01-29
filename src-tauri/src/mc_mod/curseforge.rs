@@ -268,14 +268,16 @@ pub async fn search_mods_curseforge(
     let config = app.store("config.json").map_err(anyhow::Error::from)?;
 
     if args.filter_on {
-        let game_version: String = config
+        let mut game_version: String = config
             .get("lastUsedVersion")
             .unwrap_or_default()
             .to_string()
             .replace("\"", "");
-        // Remove the last part of the version
-        let game_version = game_version.split('.').collect::<Vec<&str>>();
-        let game_version = format!("{}.{}", game_version[0], game_version[1]);
+        // Remove the last part of the version if it's not a mod
+        if mod_type != ModType::Mod {
+            let trimmed_version = game_version.split('.').collect::<Vec<&str>>();
+            game_version = format!("{}.{}", trimmed_version[0], trimmed_version[1]);
+        }
         raw_uri = format!("{}&gameVersion={}", raw_uri, game_version);
     }
     if args.filter_on && mod_type == ModType::Mod {
