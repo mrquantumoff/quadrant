@@ -10,6 +10,7 @@ use tauri_plugin_store::StoreExt;
 use crate::{
     mc_mod::{IdentifiedMod, InstalledMod, curseforge_fingerprint::*, get_user_agent},
     modpacks::general::{LocalModpack, ModLoader, get_modpacks},
+    network_client,
 };
 
 use super::{GetModArgs, Mod, ModSource, ModType, SearchModsArgs, get_file, get_mod_url};
@@ -293,7 +294,7 @@ pub async fn search_mods_curseforge(
     }
     let token = env!("ETERNAL_API_TOKEN");
 
-    // log::info!("CurseForge Raw URI: {}", raw_uri);
+    log::info!("CurseForge Raw URI: {}", raw_uri);
 
     let client = reqwest::Client::new();
     let request = client
@@ -377,17 +378,21 @@ pub async fn get_latest_mod_version_curseforge(
         url = format!("{}/{}", url, file_id);
     }
     let client = reqwest::Client::new();
-    let response = client
+    let request = client
         .get(&url)
         .header("X-API-Key", curseforge_token)
         .header("User-Agent", get_user_agent());
-    let response = if file_id.is_some() {
-        response
+    let request = if file_id.is_some() {
+        request
     } else {
-        response.query(query.as_slice())
+        request.query(query.as_slice())
     };
-    log::info!("Mod URL: {}", url);
-    let response = response.send().await?;
+    let request = request.build()?;
+    log::info!("Mod URL: {}", request.url());
+
+    let client = network_client().await;
+
+    let response = client.execute(request).await?;
 
     log::info!("Decoding mod download response");
     let last_file: Option<ModFile> = match file_id.is_some() {
