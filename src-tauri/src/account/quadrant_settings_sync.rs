@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{mc_mod::get_user_agent, QNT_BASE_URL};
+use crate::{QNT_BASE_URL, mc_mod::get_user_agent};
 use anyhow::anyhow;
 use chrono::prelude::*;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use tauri::AppHandle;
 use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;

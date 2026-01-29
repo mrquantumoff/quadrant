@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use tauri::AppHandle;
 use tauri_plugin_store::StoreExt;
 
-use super::general::{get_modpacks, InstalledModpack, ModLoader};
+use super::general::{InstalledModpack, ModLoader, get_modpacks};
 
 #[tauri::command]
 pub async fn delete_mod(

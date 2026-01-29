@@ -8,10 +8,10 @@ use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
 
 use crate::{
+    QNT_BASE_URL,
     account::get_account_token,
     mc_mod::get_user_agent,
     modpacks::general::{LocalModpack, ModLoader},
-    QNT_BASE_URL,
 };
 
 use super::id::read_notification;

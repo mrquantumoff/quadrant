@@ -1,4 +1,4 @@
-use crate::{mc_mod::get_user_agent, QNT_BASE_URL};
+use crate::{QNT_BASE_URL, mc_mod::get_user_agent};
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;

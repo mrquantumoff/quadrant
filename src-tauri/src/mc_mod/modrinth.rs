@@ -1,9 +1,9 @@
-use crate::mc_mod::get_user_agent;
 use crate::mc_mod::Mod;
 use crate::mc_mod::ModType;
-use crate::modpacks::general::get_modpacks;
+use crate::mc_mod::get_user_agent;
 use crate::modpacks::general::LocalModpack;
 use crate::modpacks::general::ModLoader;
+use crate::modpacks::general::get_modpacks;
 use chrono::prelude::*;
 use serde::Deserialize;
 use serde::Serialize;
@@ -11,19 +11,18 @@ use sha1::Digest;
 use sha1::Sha1;
 use std::path::PathBuf;
 use tauri::AppHandle;
-use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
 
 use http_cache_reqwest::{Cache, CacheMode, HttpCache, HttpCacheOptions, MokaManager};
 use reqwest_middleware::ClientBuilder;
 
-use super::get_file;
-use super::get_mod_url;
 use super::GetModArgs;
 use super::IdentifiedMod;
 use super::InstalledMod;
 use super::ModSource;
 use super::SearchModsArgs;
+use super::get_file;
+use super::get_mod_url;
 
 #[tauri::command]
 pub async fn search_mods_modrinth(
