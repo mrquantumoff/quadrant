@@ -44,6 +44,15 @@
 
   <releases>
 
+    <release date="2026-01-29" version="26.2.0">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>QoL improvements</p>
+        <p>Dependency updates</p>
+        <p>Stability improvements</p>
+      </description>
+    </release>
+
     <release date="2026-01-04" version="26.1.0">
       <url type="details">https://blog.mrquantumoff.dev</url>
       <description>
