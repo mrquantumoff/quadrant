@@ -1,9 +1,7 @@
 /** @format */
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  AccountNotification,
-  Article,
   ContentContext,
   IContentContext,
   ModLoader,
@@ -27,10 +25,7 @@ import {
   MdClose,
   MdDescription,
   MdInstallDesktop,
-  MdMarkEmailRead,
   MdMinimize,
-  MdNotifications,
-  MdOpenInBrowser,
   MdSearch,
   MdSettings,
   MdSync,
@@ -40,32 +35,14 @@ import { AnimatePresence, motion } from "motion/react";
 import SearchPage from "./components/Pages/SearchPage/SearchPage";
 import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { getCurrentWindow, ProgressBarStatus } from "@tauri-apps/api/window";
-import {
-  answerInvite,
-  getAccountInfo,
-  getMod,
-  getNews,
-  openIn,
-  readNotification,
-  requestCheckForUpdates,
-} from "./tools";
+import { getMod, requestCheckForUpdates } from "./tools";
 import ModInstallPage from "./components/Pages/ModInstallPage/ModInstallPage";
 import AccountPage from "./components/Pages/AccountPage/AccountPage";
 import { invoke } from "@tauri-apps/api/core";
 import ShareSyncPage from "./components/Pages/ShareSyncPage/ShareSyncPage";
 import Button from "./components/core/Button";
 import { listen } from "@tauri-apps/api/event";
-import {
-  Popover,
-  PopoverBackdrop,
-  PopoverButton,
-  PopoverPanel,
-} from "@headlessui/react";
-import {
-  isPermissionGranted,
-  requestPermission,
-  sendNotification,
-} from "@tauri-apps/plugin-notification";
+import Notifications from "./components/shared/Notifications";
 
 interface PageWithScroll {
   scrollPositionX: number;
@@ -135,12 +112,10 @@ function App() {
   const config = configRef.current!;
   const [contentHistory, setContentHistory] = useState<PageWithScroll[]>([]);
   const [extendedNavigation, setExtendedNavigation] = useState(false);
-  const [notifications, setNotifications] = useState<AccountNotification[]>([]);
 
-  const [snackBarHistory, setSnackbarHistory] = useState<SnackbarHistoryItem[]>([]);
-  const [areNotificationsHighlighted, setAreNotificationsHighlighted] =
-    useState("bg-slate-700 hover:bg-slate-600");
-  const [news, setNews] = useState<Article[]>([]);
+  const [snackBarHistory, setSnackbarHistory] = useState<SnackbarHistoryItem[]>(
+    [],
+  );
 
   const contentRef = useRef<HTMLDivElement | null>(null);
 
@@ -168,7 +143,7 @@ function App() {
               status: ProgressBarStatus.None,
             });
           }
-        }
+        },
       );
       if (isUnmounted) {
         updateDownloadUnlisten();
@@ -180,7 +155,7 @@ function App() {
         "disableRightClick",
         () => {
           document.addEventListener("contextmenu", disableContextMenu);
-        }
+        },
       );
       if (isUnmounted) {
         disableRightClickUnlisten();
@@ -230,7 +205,7 @@ function App() {
               timeout: 500000,
             });
           }
-        }
+        },
       );
       if (isUnmounted) {
         exportProgressUnlisten();
@@ -254,7 +229,7 @@ function App() {
               status: ProgressBarStatus.None,
             });
           }
-        }
+        },
       );
       if (isUnmounted) {
         modpackDownloadUnlisten();
@@ -288,7 +263,7 @@ function App() {
           if (!isUnmounted) {
             setExtendedNavigation(newValue ?? false);
           }
-        }
+        },
       );
       if (isUnmounted) {
         extendedNavigationUnlisten();
@@ -351,7 +326,7 @@ function App() {
                 selectable: false,
                 selectUrl: null,
               },
-              ModSource.CurseForge
+              ModSource.CurseForge,
             );
             if (mod.modType === ModType.Unknown) {
               contextFunctions.setSnackbar({
@@ -403,7 +378,7 @@ function App() {
                   selectable: false,
                   selectUrl: null,
                 },
-                ModSource.Modrinth
+                ModSource.Modrinth,
               );
               if (mod.modType === ModType.Unknown) {
                 contextFunctions.setSnackbar({
@@ -465,100 +440,6 @@ function App() {
       } else {
         cleanupFns.push(deepLinkUnlisten);
       }
-
-      const refreshNotificationsUnlisten = await listen(
-        "refreshNotifications",
-        async (event) => {
-          if (isUnmounted) {
-            return;
-          }
-          const sortedNotifications = [
-            ...(event.payload as AccountNotification[]),
-          ].sort((a, b) => b.created_at - a.created_at);
-
-          let newlyReceived: AccountNotification[] = [];
-          setNotifications((prevNotifications) => {
-            const previousIds = new Set(
-              prevNotifications.map((n) => n.notification_id)
-            );
-            newlyReceived = sortedNotifications.filter(
-              (notification) => !previousIds.has(notification.notification_id)
-            );
-            return sortedNotifications;
-          });
-
-          if (newlyReceived.length === 0) {
-            return;
-          }
-
-          let permissionGranted = await isPermissionGranted();
-          if (!permissionGranted) {
-            const permission = await requestPermission();
-            permissionGranted = permission === "granted";
-            console.log("Permission granted: " + permissionGranted);
-          }
-
-          if (!permissionGranted || isUnmounted) {
-            return;
-          }
-
-          const shownNotifications: string[] =
-            (await config.get("shownNotifications")) ?? [];
-
-          const unseenNotifications = newlyReceived.filter(
-            (notification) =>
-              !notification.read &&
-              !shownNotifications.includes(notification.notification_id)
-          );
-
-          if (unseenNotifications.length === 0 || isUnmounted) {
-            return;
-          }
-
-          const updatedShown = [...shownNotifications];
-          for (const notification of unseenNotifications) {
-            updatedShown.push(notification.notification_id);
-            if (isUnmounted) {
-              break;
-            }
-            await sendNotification({
-              title: "Quadrant ID",
-              body: JSON.parse(notification.message)["simple_message"],
-            });
-          }
-
-          if (!isUnmounted) {
-            await config.set("shownNotifications", updatedShown);
-            await config.save();
-          }
-        }
-      );
-      if (isUnmounted) {
-        refreshNotificationsUnlisten();
-      } else {
-        cleanupFns.push(refreshNotificationsUnlisten);
-      }
-
-      try {
-        const accountInfo = await getAccountInfo();
-        if (!isUnmounted) {
-          const newNotifications = [...accountInfo.notifications];
-          newNotifications.sort((a, b) => {
-            return b.created_at - a.created_at;
-          });
-          setNotifications(newNotifications);
-        }
-      } catch (e) {
-        console.log(e);
-      }
-      try {
-        const latestNews = await getNews();
-        if (!isUnmounted) {
-          setNews(latestNews);
-        }
-      } catch (e) {
-        console.error("Failed to get news: " + e);
-      }
       requestUpdatesTimeout = setTimeout(() => {
         void requestCheckForUpdates();
       }, 10000);
@@ -582,16 +463,6 @@ function App() {
       document.removeEventListener("contextmenu", disableContextMenu);
     };
   }, []);
-
-  useEffect(() => {
-    if (notifications.filter((n) => !n.read).length > 0) {
-      setAreNotificationsHighlighted("bg-red-600 hover:bg-red-500 ");
-    } else if (news.filter((n) => n.new).length > 0) {
-      setAreNotificationsHighlighted("bg-indigo-700 hover:bg-indigo-600 ");
-    } else {
-      setAreNotificationsHighlighted("bg-slate-700 hover:bg-slate-800 ");
-    }
-  }, [notifications]);
 
   const contextFunctions: IContentContext = {
     back: async () => {
@@ -677,44 +548,53 @@ function App() {
     setSnackbar(newSnackBarState) {
       setSnackbarState(newSnackBarState);
       setSnackbarEnabled(true);
-      
+
       // Convert message to string for comparison (handles React nodes)
-      const messageKey = typeof newSnackBarState.message === 'string' 
-        ? newSnackBarState.message 
-        : JSON.stringify(newSnackBarState.message);
-      
+      const messageKey =
+        typeof newSnackBarState.message === "string"
+          ? newSnackBarState.message
+          : JSON.stringify(newSnackBarState.message);
+
       setSnackbarHistory((prevHistory) => {
         // Check if there's an existing notification with the same message
         const existingIndex = prevHistory.findIndex((item) => {
-          const existingKey = typeof item.message === 'string' 
-            ? item.message 
-            : JSON.stringify(item.message);
-          return existingKey === messageKey && item.className === newSnackBarState.className;
+          const existingKey =
+            typeof item.message === "string"
+              ? item.message
+              : JSON.stringify(item.message);
+          return (
+            existingKey === messageKey &&
+            item.className === newSnackBarState.className
+          );
         });
-        
+
         let newHistory: SnackbarHistoryItem[];
-        
+
         if (existingIndex !== -1) {
           // Increment count of existing notification and move it to the end
           const existingItem = prevHistory[existingIndex];
           newHistory = [
             ...prevHistory.slice(0, existingIndex),
             ...prevHistory.slice(existingIndex + 1),
-            { ...existingItem, count: existingItem.count + 1 }
+            { ...existingItem, count: existingItem.count + 1 },
           ];
         } else {
           // Add new notification with count of 1
           newHistory = [
             ...prevHistory,
-            { ...newSnackBarState, count: 1, id: Math.random().toString(36).substring(2, 10) }
+            {
+              ...newSnackBarState,
+              count: 1,
+              id: Math.random().toString(36).substring(2, 10),
+            },
           ];
         }
-        
+
         // Limit to 5 most recent grouped notifications
         if (newHistory.length > 5) {
           newHistory = newHistory.slice(-5);
         }
-        
+
         return newHistory;
       });
     },
@@ -731,7 +611,6 @@ function App() {
   });
 
   const [snackbarEnabled, setSnackbarEnabled] = useState<boolean>(false);
-  const newsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (snackbarEnabled) {
@@ -844,236 +723,11 @@ function App() {
                     </Button>
                   )}
                   <div className="bg-slate-800 p-2 flex rounded-full items-center justify-center">
-                    <Popover className="relative">
-                      {({ open }) => {
-                        return (
-                          <>
-                            <div
-                              className={
-                                "flex justify-center items-center mr-2"
-                              }
-                            >
-                              <PopoverButton
-                                className={
-                                  "focus:outline-hidden rounded-full transition-all duration-150 ease-linear " +
-                                  areNotificationsHighlighted
-                                }
-                              >
-                                <div className="p-2 rounded-full">
-                                  <MdNotifications />
-                                </div>
-                              </PopoverButton>
-                            </div>
-                            <PopoverBackdrop
-                              className={"fixed inset-0 bg-slate-900/15"}
-                            />
-                            <AnimatePresence>
-                              {open && (
-                                <PopoverPanel
-                                  static
-                                  as={motion.div}
-                                  anchor="top start"
-                                  initial={{
-                                    opacity: 0,
-                                    y: -100,
-                                    scaleY: 0,
-                                    scaleX: 0,
-                                    x: 50,
-                                  }}
-                                  animate={{
-                                    opacity: 1,
-                                    y: 0,
-                                    scaleY: 1,
-                                    scaleX: 1,
-                                    x: -150,
-                                  }}
-                                  exit={{
-                                    opacity: 0,
-                                    y: -200,
-                                    scaleY: 0,
-                                    scaleX: 0,
-                                    x: 50,
-                                  }}
-                                  className="flex flex-col p-4 mt-4 font-bold bg-slate-800 rounded-4xl w-[35vw] my-8 h-[75vh] "
-                                >
-                                  <div className="border-b-2 border-slate-700">
-                                    {snackBarHistory.length > 0 && (
-                                      <motion.div className="my-2 flex items-center justify-between gap-2">
-                                        <div
-                                          className={
-                                            snackBarHistory[0].className +
-                                            " rounded-4xl p-4 flex flex-1 min-w-0 items-center justify-between"
-                                          }
-                                        >
-                                          <span>{snackBarHistory[0].message}</span>
-                                          {snackBarHistory[0].count > 1 && (
-                                            <span className="ml-2 bg-slate-900/50 px-2 py-1 rounded-full text-sm">
-                                              {snackBarHistory[0].count}x
-                                            </span>
-                                          )}
-                                        </div>
-                                        <Button
-                                          className="bg-slate-700 hover:bg-slate-600 transition-all flex items-center justify-center shrink-0"
-                                          onClick={() => {
-                                            setSnackbarHistory([]);
-                                          }}
-                                        >
-                                          {t("pureClear")}
-                                          <MdClear className="w-4 h-4 ml-2" />
-                                        </Button>
-                                      </motion.div>
-                                    )}
-                                    {snackBarHistory.slice(1).map((item) => {
-                                      return (
-                                        <div
-                                          className="my-2"
-                                          key={item.id}
-                                        >
-                                          <div
-                                            className={
-                                              item.className +
-                                              " rounded-4xl p-4 flex items-center justify-between"
-                                            }
-                                          >
-                                            <span>{item.message}</span>
-                                            {item.count > 1 && (
-                                              <span className="ml-2 bg-slate-900/50 px-2 py-1 rounded-full text-sm">
-                                                {item.count}x
-                                              </span>
-                                            )}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                  <div className="border-b-2 border-slate-700">
-                                    {notifications.map((notification) => {
-                                      const detailedMessage = JSON.parse(
-                                        notification.message
-                                      );
-                                      const messageType =
-                                        detailedMessage.notification_type;
-                                      let message: string;
-
-                                      let action: React.ReactElement | null = (
-                                        <>
-                                          <Button
-                                            className="w-full bg-emerald-600 hover:bg-emerald-800 transition-all ease-linear flex items-center justify-center"
-                                            onClick={async () => {
-                                              await readNotification(
-                                                notification.notification_id
-                                              );
-                                            }}
-                                          >
-                                            {t("read")}
-                                            <MdMarkEmailRead className="w-4 h-4 mx-2" />
-                                          </Button>
-                                        </>
-                                      );
-
-                                      if (messageType == "invite_to_sync") {
-                                        const inviter = (
-                                          detailedMessage.message as string
-                                        ).split(
-                                          "You have been invited to collaborate on a modpack by "
-                                        )[1];
-                                        message = t("invited", {
-                                          name: inviter,
-                                        });
-                                        action = (
-                                          <>
-                                            <div className="w-full flex">
-                                              <Button
-                                                className="bg-emerald-600 hover:bg-emerald-800 w-full flex items-center justify-center mr-2"
-                                                onClick={async () => {
-                                                  await answerInvite(
-                                                    detailedMessage.invite_id,
-                                                    notification.notification_id,
-                                                    true
-                                                  );
-                                                }}
-                                              >
-                                                {t("accept")}
-                                                <MdCheck className="w-4 h-4 mx-2" />
-                                              </Button>
-                                              <Button
-                                                className="bg-red-700 hover:bg-red-800 w-full flex items-center justify-center"
-                                                onClick={async () => {
-                                                  await answerInvite(
-                                                    detailedMessage.invite_id,
-                                                    notification.notification_id,
-                                                    false
-                                                  );
-                                                }}
-                                              >
-                                                {t("decline")}
-                                                <MdClear className="w-4 h-4 mx-2" />
-                                              </Button>
-                                            </div>
-                                          </>
-                                        );
-                                      } else {
-                                        message =
-                                          detailedMessage.simple_message;
-                                      }
-
-                                      if (notification.read) {
-                                        action = null;
-                                      }
-
-                                      return (
-                                        <div
-                                          key={notification.notification_id}
-                                          className="bg-slate-700 rounded-4xl my-2 p-2 text-center flex flex-col items-center justify-center"
-                                        >
-                                          <h3>{message}</h3>
-                                          {action != null && (
-                                            <div className="w-full my-2 flex items-center justify-center ">
-                                              {action}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                  <div ref={newsRef}>
-                                    {news.map((article) => {
-                                      return (
-                                        <div
-                                          key={article.guid}
-                                          className="bg-slate-900 rounded-4xl my-2  p-4 text-center flex flex-col items-center justify-center"
-                                        >
-                                          <h3 className="font-black">
-                                            {article.title}
-                                          </h3>
-                                          <div
-                                            className="font-normal"
-                                            dangerouslySetInnerHTML={{
-                                              __html: article.summary,
-                                            }}
-                                          />
-                                          <div className="bg-slate-800 w-full flex p-2 rounded-4xl">
-                                            <Button
-                                              onClick={async () => {
-                                                await openIn(article.link);
-                                              }}
-                                              className="bg-blue-700 hover:bg-blue-800 transition-all w-full flex items-center justify-center"
-                                            >
-                                              {t("read")}
-                                              <MdOpenInBrowser className="w-4 h-4 mx-2" />
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </PopoverPanel>
-                              )}
-                            </AnimatePresence>
-                          </>
-                        );
-                      }}
-                    </Popover>
+                    <Notifications
+                      config={config}
+                      snackBarHistory={snackBarHistory}
+                      setSnackbarHistory={setSnackbarHistory}
+                    />
 
                     <Button
                       fullRound
@@ -1155,3 +809,4 @@ function App() {
 }
 
 export default App;
+
