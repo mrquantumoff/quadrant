@@ -496,7 +496,7 @@ function App() {
       }, 50);
     },
     changeContent: (component) => {
-      let newHistory = [...contentHistory];
+      const newHistory = [...contentHistory];
       console.log(component);
       newHistory.push({
         page: component,
@@ -532,7 +532,7 @@ function App() {
           setContent(newPage[0]);
         });
       }
-      let newHistory = [...contentHistory];
+      const newHistory = [...contentHistory];
       newHistory.push({
         page: newPage[0],
         scrollPositionX: 0,

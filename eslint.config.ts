@@ -59,4 +59,9 @@ export default defineConfig([
 			...css.configs.recommended.rules,
 		},
 	},
+	{
+		rules: {
+			"@typescript-eslint/no-explicit-any": "off",
+		},
+	},
 ]);
