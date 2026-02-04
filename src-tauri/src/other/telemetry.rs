@@ -1,8 +1,8 @@
 use crate::{QNT_BASE_URL, mc_mod::get_user_agent};
 use chrono::prelude::*;
+use reqwest;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
-use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

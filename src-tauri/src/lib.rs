@@ -384,7 +384,7 @@ async fn is_autoupdate_enabled(app: tauri::AppHandle) -> Result<bool, tauri::Err
 }
 async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
     let update_url = Url::parse(
-        "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{target}}/{{arch}}/{{current_version}}",
+        "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{target}}/{{arch}}/{{current_version}}?variant={{bundle_type}}",
     )?;
 
     let mut update_urls = vec![update_url];

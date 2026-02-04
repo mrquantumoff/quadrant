@@ -10,10 +10,10 @@ use crate::{
     modpacks::general::{InstalledModpack, get_modpacks, install_modpack},
 };
 use chrono::prelude::*;
+use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager};
-use tauri_plugin_http::reqwest;
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;

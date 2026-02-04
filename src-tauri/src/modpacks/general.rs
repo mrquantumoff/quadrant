@@ -3,6 +3,7 @@ use anyhow::anyhow;
 use chrono::prelude::*;
 use futures::StreamExt;
 use log::error;
+use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{
@@ -12,7 +13,6 @@ use std::{
 };
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_dialog::DialogExt;
-use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 use zip::write::{ExtendedFileOptions, FileOptions};

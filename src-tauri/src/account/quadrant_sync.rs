@@ -1,10 +1,10 @@
 use anyhow::anyhow;
 use chrono::Utc;
+use reqwest;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::path::Path;
 use tauri::AppHandle;
-use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
 
 use crate::{

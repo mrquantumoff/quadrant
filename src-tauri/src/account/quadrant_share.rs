@@ -1,7 +1,7 @@
+use reqwest;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_clipboard_manager::ClipboardExt;
-use tauri_plugin_http::reqwest;
 use tauri_plugin_store::StoreExt;
 
 use crate::{
