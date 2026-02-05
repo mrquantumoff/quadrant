@@ -51,7 +51,7 @@ futures = { version = "0.3.31" }
 sha1 = "0.10.6"
 hex = "0.4.3"
 colog = "1.4.0"
-tauri-plugin-deep-link = { git = "https://github.com/mrquantumoff/plugins-workspace.git", branch = "single-instance" }
+tauri-plugin-deep-link = { version = "2.4.7" }
 tauri-plugin-dialog = "2.6.0"
 keyring = { version = "3.6.3", features = [
     "apple-native",
@@ -65,7 +65,7 @@ http-cache-reqwest = { version = "1.0.0-alpha.4", default-features = false, feat
     "manager-moka",
     "url-standard",
 ] }
-reqwest-middleware = "0.5.0"
+reqwest-middleware = "0.5.1"
 reqwest = { version = "0.13.1", features = [
     "json",
     "rustls",
@@ -80,9 +80,7 @@ zip = "7.3.0"
 
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-tauri-plugin-single-instance = { git = "https://github.com/mrquantumoff/plugins-workspace.git", branch = "single-instance", features = [
-    "deep-link",
-] }
+tauri-plugin-single-instance = { version = "2.4.0", features = ["deep-link"] }
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-cli = "2.4.1"
 tauri-plugin-updater = "2.10.0"
