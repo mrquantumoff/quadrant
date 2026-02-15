@@ -23,10 +23,10 @@
         "resizable": true,
         "devtools": true,
         "decorations": false,
-        "transparent": false,
-        "browserExtensionsEnabled": true,
+        "browserExtensionsEnabled": false,
         "shadow": true,
-        "theme": "Dark"
+        "theme": "Dark",
+        "zoomHotkeysEnabled": true
       }
     ],
     "security": {
