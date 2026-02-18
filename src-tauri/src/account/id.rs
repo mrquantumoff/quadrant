@@ -43,7 +43,45 @@ pub struct Notification {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuth2Response {
     pub access_token: String,
+    pub token_type: String,
+    pub expires_in: i64,
+    pub refresh_token: Option<String>,
     pub scope: String,
+}
+
+async fn try_refresh_token() -> Result<(), anyhow::Error> {
+    let refresh_token = crate::account::get_refresh_token()?;
+    let client = reqwest::Client::new();
+    let user_agent = get_user_agent();
+    let url = format!("{}/oauth2/token", QNT_BASE_URL);
+
+    let mut body = HashMap::new();
+    body.insert("client_id", env!("QUADRANT_OAUTH2_CLIENT_ID"));
+    body.insert("client_secret", env!("QUADRANT_OAUTH2_CLIENT_SECRET"));
+    body.insert("grant_type", "refresh_token");
+    body.insert("refresh_token", refresh_token.as_str());
+
+    let response = client
+        .post(url)
+        .form(&body)
+        .header("User-Agent", user_agent)
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        return Err(anyhow::anyhow!(
+            "Token refresh failed: {}",
+            response.status()
+        ));
+    }
+
+    let res = response.json::<OAuth2Response>().await?;
+    set_secret("accountToken".to_string(), res.access_token)?;
+    if let Some(new_refresh_token) = res.refresh_token {
+        set_secret("refreshToken".to_string(), new_refresh_token)?;
+    }
+    log::info!("Access token refreshed successfully.");
+    Ok(())
 }
 
 #[tauri::command]
@@ -54,19 +92,38 @@ pub async fn get_account_info() -> Result<AccountInfo, tauri::Error> {
     }
     let token = token.unwrap();
     let client = reqwest::Client::new();
-    let user_agent = get_user_agent();
-
     let url = format!("{}/account/info/get", QNT_BASE_URL);
 
-    let request = client
+    let response = client
         .get(&url)
-        .header("User-Agent", user_agent)
+        .header("User-Agent", get_user_agent())
         .bearer_auth(&token)
         .send()
         .await
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
 
-    let response_raw = request
+    if response.status() == reqwest::StatusCode::UNAUTHORIZED {
+        if try_refresh_token().await.is_ok() {
+            let new_token = crate::account::get_account_token()
+                .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
+            let retry = client
+                .get(&url)
+                .header("User-Agent", get_user_agent())
+                .bearer_auth(&new_token)
+                .send()
+                .await
+                .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
+            let raw = retry
+                .text()
+                .await
+                .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
+            let info: AccountInfo = serde_json::from_str(&raw)?;
+            return Ok(info);
+        }
+        return Err(anyhow::Error::msg("Unauthorized").into());
+    }
+
+    let response_raw = response
         .text()
         .await
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
@@ -77,92 +134,47 @@ pub async fn get_account_info() -> Result<AccountInfo, tauri::Error> {
 }
 
 #[tauri::command]
-pub async fn oauth2_login(code: String, app: AppHandle) -> Result<(), tauri::Error> {
+pub async fn oauth2_login(
+    code: String,
+    redirect_uri: String,
+    app: AppHandle,
+) -> Result<(), tauri::Error> {
     let client = reqwest::Client::new();
-    let user_agent = get_user_agent();
-    let url = format!("{}/account/oauth2/token/access", QNT_BASE_URL);
+    let url = format!("{}/oauth2/token", QNT_BASE_URL);
 
     let mut body = HashMap::new();
     body.insert("client_id", env!("QUADRANT_OAUTH2_CLIENT_ID"));
     body.insert("client_secret", env!("QUADRANT_OAUTH2_CLIENT_SECRET"));
     body.insert("grant_type", "authorization_code");
-    body.insert("code", &code);
+    body.insert("code", code.as_str());
+    body.insert("redirect_uri", redirect_uri.as_str());
 
-    let request = client
+    let response = client
         .post(url)
         .form(&body)
-        .header("User-Agent", user_agent)
-        .send();
-    let response = request
+        .header("User-Agent", get_user_agent())
+        .send()
         .await
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
     let res = response
         .json::<OAuth2Response>()
         .await
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-    if !res.scope.contains("user_data")
-        || !res.scope.contains("quadrant_sync")
-        || !res.scope.contains("notifications")
+    if !res.scope.contains("profile:read")
+        || !res.scope.contains("sync:read")
+        || !res.scope.contains("notifications:read")
     {
         return Err(anyhow::Error::msg("Invalid scope").into());
     }
     set_secret("accountToken".to_string(), res.access_token)?;
+    if let Some(refresh_token) = res.refresh_token {
+        set_secret("refreshToken".to_string(), refresh_token)?;
+    }
     app.emit("recheckAccountToken", "")?;
     log::info!("OAuth2 Token saved, Quadrant ID saved.");
     Ok(())
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct LoginRequest {
-    pub email: Option<String>,
-    pub password: Option<String>,
-    pub scope: String,
-    pub token_duration: i64,
-    pub device: Option<String>,
-}
-
-#[tauri::command]
-pub async fn sign_in(
-    email: String,
-    password: String,
-    otp: Option<i32>,
-    app: AppHandle,
-) -> Result<(), tauri::Error> {
-    let client = reqwest::Client::new();
-    let user_agent = get_user_agent();
-    let mut url = format!("{}/account/login?secure=false", QNT_BASE_URL);
-
-    let body = LoginRequest {
-        email: Some(email),
-        password: Some(password),
-        scope: "user_data,quadrant_sync,notifications".to_string(),
-        // 3 Days
-        token_duration: 259200,
-        device: Some("Quadrant Next (no OAuth)".to_string()),
-    };
-
-    if let Some(otp) = otp {
-        url = format!("{}&totp_code={}", url, otp);
-    };
-
-    let request = client
-        .post(url)
-        .body(serde_json::to_string(&body)?)
-        .header("User-Agent", user_agent)
-        .header("Authorization", env!("QUADRANT_API_KEY"))
-        .send();
-    let response = request
-        .await
-        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-    if response.status() != 202 {
-        let body = response.text().await;
-        return Err(anyhow::Error::msg(body.unwrap_or_default()).into());
-    }
-    let res = response.text().await.unwrap_or_default();
-    set_secret("accountToken".to_string(), res)?;
-    app.emit("recheckAccountToken", "")?;
-    Ok(())
-}
 
 #[tauri::command]
 pub async fn read_notification(

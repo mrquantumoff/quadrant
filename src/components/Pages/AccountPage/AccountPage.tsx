@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /** @format */
 
 import { useContext, useEffect, useState } from "react";
@@ -10,7 +11,6 @@ import { LazyStore } from "@tauri-apps/plugin-store";
 import { MdOpenInBrowser, MdOutlineAccountCircle } from "react-icons/md";
 import { ContentContext } from "../../../intefaces";
 import FirstRegisterStep from "./RegisterPages/Step1";
-import SignInPage from "./SignInPage";
 import { start } from "@fabianlars/tauri-plugin-oauth";
 import { cancel, onUrl as onOAuth } from "@fabianlars/tauri-plugin-oauth";
 import { invoke } from "@tauri-apps/api/core";
@@ -99,7 +99,6 @@ export default function AccountPage() {
       <div className="place-content-center w-[75%] ">
         <div className="bg-slate-800 rounded-4xl p-2 my-4">
           <h1 className="font-extrabold text-4xl my-2">{t("signIn")}</h1>
-          <h2 className="font-bold text-2xl my-2">{t("emailAndPassword")}</h2>
         </div>
         <div className="w-full flex flex-row">
           <Button
@@ -118,19 +117,26 @@ export default function AccountPage() {
 
                 console.log(`OAuth server started on port ${port}`);
 
-                openIn(
-                  "https://mrquantumoff.dev/account/oauth2/authorize?client_id=2e1830be-1134-4fec-bfcb-c403dd2b9c94&redirect_uri=http://127.0.0.1:" +
-                    port +
-                    "&scope=user_data,quadrant_sync,notifications&duration=7776000&response_type=code&state=" +
-                    randomString
+                const redirectUri = `http://127.0.0.1:${port}`;
+                const authUrl = new URL(
+                  "https://mrquantumoff.dev/account/oauth2/authorize"
                 );
+                authUrl.searchParams.set(
+                  "client_id",
+                  "2e1830be-1134-4fec-bfcb-c403dd2b9c94"
+                );
+                authUrl.searchParams.set("redirect_uri", redirectUri);
+                authUrl.searchParams.set(
+                  "scope",
+                  "profile:read profile:write sync:read sync:write share:read share:write settings:read settings:write notifications:read"
+                );
+                authUrl.searchParams.set("response_type", "code");
+                authUrl.searchParams.set("state", randomString);
+                openIn(authUrl.toString());
+
                 onOAuth(async (rawUrl) => {
                   try {
                     const url = URL.parse(rawUrl);
-                    const actions = url!.pathname.split("/");
-                    console.log(actions);
-                    console.log(rawUrl);
-
                     const oAuthState = await config.get<string>("oauthState");
 
                     const providedState = url!.searchParams.get("state");
@@ -146,6 +152,7 @@ export default function AccountPage() {
                     }
                     await invoke("oauth2_login", {
                       code: code,
+                      redirect_uri: redirectUri,
                     });
                   } catch (e) {
                     console.error(e);
@@ -159,21 +166,6 @@ export default function AccountPage() {
             className="bg-sky-500 hover:bg-sky-800 w-full mx-2"
           >
             {t("signInWithOAuth")}
-          </Button>
-          <Button
-            onClick={async () => {
-              context.changeContent({
-                content: <SignInPage />,
-                icon: <></>,
-                title: t("signInNoOAuth"),
-                main: false,
-                name: t("signInNoOAuth"),
-                style: "",
-              });
-            }}
-            className="bg-slate-500 hover:bg-slate-800 w-full mx-2"
-          >
-            {t("signInNoOAuth")}
           </Button>
           <Button
             onClick={async () => {

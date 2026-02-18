@@ -19,6 +19,11 @@ pub fn get_account_token() -> Result<String, anyhow::Error> {
     entry.get_password().map_err(|e| e.into())
 }
 
+pub fn get_refresh_token() -> Result<String, anyhow::Error> {
+    let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", "refreshToken")?;
+    entry.get_password().map_err(|e| e.into())
+}
+
 #[tauri::command]
 pub fn clear_account_token() -> Result<(), tauri::Error> {
     let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", "accountToken")
@@ -26,5 +31,9 @@ pub fn clear_account_token() -> Result<(), tauri::Error> {
     entry
         .delete_credential()
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
+    // Also clear refresh token if it exists
+    if let Ok(entry) = Entry::new("dev.mrquantumoff.mcmodpackmanager", "refreshToken") {
+        let _ = entry.delete_credential();
+    }
     Ok(())
 }
