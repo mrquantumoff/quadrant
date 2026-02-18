@@ -112,19 +112,18 @@ export default function AccountPage() {
                   response:
                     "<html><body><h1>" +
                     t("returnToTheApp") +
-                    "</h1></body></html>",
+                    "</h1></body></html>",ports: [4000,4001,4002,4003,4004,4005]
                 });
+                let unlistenOAuth: (() => void) | null = null;
 
                 console.log(`OAuth server started on port ${port}`);
 
                 const redirectUri = `http://127.0.0.1:${port}`;
+                const clientId = await invoke<string>("oauth2_client_id");
                 const authUrl = new URL(
                   "https://mrquantumoff.dev/account/oauth2/authorize"
                 );
-                authUrl.searchParams.set(
-                  "client_id",
-                  "2e1830be-1134-4fec-bfcb-c403dd2b9c94"
-                );
+                authUrl.searchParams.set("client_id", clientId);
                 authUrl.searchParams.set("redirect_uri", redirectUri);
                 authUrl.searchParams.set(
                   "scope",
@@ -134,30 +133,31 @@ export default function AccountPage() {
                 authUrl.searchParams.set("state", randomString);
                 openIn(authUrl.toString());
 
-                onOAuth(async (rawUrl) => {
+                unlistenOAuth = await onOAuth(async (rawUrl) => {
                   try {
-                    const url = URL.parse(rawUrl);
+                    const url = new URL(rawUrl);
                     const oAuthState = await config.get<string>("oauthState");
 
-                    const providedState = url!.searchParams.get("state");
+                    const providedState = url.searchParams.get("state");
                     console.log("State: " + oAuthState);
                     console.log("Provided state: " + providedState);
                     if (providedState !== oAuthState) {
                       return;
                     }
-                    const code = url!.searchParams.get("code");
+                    const code = url.searchParams.get("code");
                     console.log("Code: " + code);
                     if (code === null) {
                       return;
                     }
                     await invoke("oauth2_login", {
                       code: code,
-                      redirect_uri: redirectUri,
+                      redirectUri: redirectUri,
                     });
                   } catch (e) {
                     console.error(e);
                   }
                   await cancel(port);
+                  unlistenOAuth?.();
                 });
               } catch (error) {
                 console.error("Error starting OAuth server:", error);

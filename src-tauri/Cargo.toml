@@ -15,11 +15,12 @@ name = "quadrant_next_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
-default = ["proprietary"]
+default = ["proprietary", "no_updater"]
 telemetry = []
 curseforge = []
 # Quadrant ID/Sync/Share
 quadrant_id = []
+no_updater = []
 proprietary = ["telemetry", "curseforge", "quadrant_id"]
 
 

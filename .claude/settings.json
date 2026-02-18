@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/dy/git/mrquantumoff_dev_api/src/quadrant_id/auth/**)",
+      "Read(//home/dy/git/mrquantumoff_dev_api/src/util/entities/**)",
+      "Read(//home/dy/git/mrquantumoff_dev_api/migration/src/**)"
+    ]
+  }
+}

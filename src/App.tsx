@@ -429,8 +429,10 @@ function App() {
             if (code === null) {
               return;
             }
+            const redirectUri = gottenUrl.split("#")[0].split("?")[0];
             await invoke("oauth2_login", {
               code: code,
+              redirectUri: redirectUri,
             });
           }
         }
@@ -809,4 +811,3 @@ function App() {
 }
 
 export default App;
-

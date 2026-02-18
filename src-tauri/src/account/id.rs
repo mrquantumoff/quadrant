@@ -156,9 +156,16 @@ pub async fn oauth2_login(
         .send()
         .await
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
+
+    log::info!("Response: {:?}", response);
+
     let res = response
-        .json::<OAuth2Response>()
+        .text()
         .await
+        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
+    log::info!("{}", &res);
+
+    let res = serde_json::from_str::<OAuth2Response>(&res)
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
     if !res.scope.contains("profile:read")
         || !res.scope.contains("sync:read")
@@ -175,6 +182,10 @@ pub async fn oauth2_login(
     Ok(())
 }
 
+#[tauri::command]
+pub fn oauth2_client_id() -> String {
+    env!("QUADRANT_OAUTH2_CLIENT_ID").to_string()
+}
 
 #[tauri::command]
 pub async fn read_notification(

@@ -145,7 +145,7 @@ pub async fn run() {
                 let _ = autostart_manager.enable();
 
                 // Check enable state
-                println!(
+                log::info!(
                     "registered for autostart? {}",
                     autostart_manager.is_enabled().unwrap()
                 );
@@ -343,6 +343,8 @@ pub async fn run() {
             #[cfg(feature = "quadrant_id")]
             account::id::oauth2_login,
             #[cfg(feature = "quadrant_id")]
+            account::id::oauth2_client_id,
+            #[cfg(feature = "quadrant_id")]
             account::id::read_notification,
             #[cfg(feature = "quadrant_id")]
             account::quadrant_share::share_modpack,
@@ -381,6 +383,11 @@ async fn is_autoupdate_enabled(app: tauri::AppHandle) -> Result<bool, tauri::Err
     Ok(state.is_update_enabled)
 }
 async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
+    #[cfg(feature = "no_updater")]
+    {
+        return Ok(());
+    }
+
     let update_url = Url::parse(
         "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{target}}/{{arch}}/{{current_version}}?variant={{bundle_type}}",
     )?;
