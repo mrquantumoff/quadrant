@@ -44,7 +44,7 @@
 
   <releases>
 
-    <release date="2026-01-29" version="26.2.1">
+    <release date="2026-02-18" version="26.2.1">
       <url type="details">https://blog.mrquantumoff.dev</url>
       <description>
         <p>Use the new OAuth2 flow</p>
