@@ -1,321 +1,28 @@
-use crate::mc_mod::{InstalledMod, ModSource};
-use anyhow::anyhow;
-use chrono::prelude::*;
-use futures::StreamExt;
-use log::error;
-use reqwest;
-use serde::{Deserialize, Serialize};
-use serde_json::json;
-use std::{
-    io::Write,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
-use tauri::{AppHandle, Emitter};
-use tauri_plugin_dialog::DialogExt;
-use tauri_plugin_store::StoreExt;
-use tokio::sync::Mutex;
-use zip::write::{ExtendedFileOptions, FileOptions};
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ModLoader {
-    #[serde(rename = "Forge")]
-    Forge,
-    #[serde(rename = "Fabric")]
-    Fabric,
-    #[serde(rename = "NeoForge")]
-    NeoForge,
-    #[serde(rename = "Quilt")]
-    Quilt,
-    #[serde(rename = "Rift")]
-    Rift,
-    #[serde(rename = "Unknown")]
-    Unknown,
-}
+use std::path::{Path, PathBuf};
 
-impl From<String> for ModLoader {
-    fn from(value: String) -> Self {
-        match value.to_lowercase().as_str() {
-            "forge" => ModLoader::Forge,
-            "fabric" => ModLoader::Fabric,
-            "neoforge" => ModLoader::NeoForge,
-            "quilt" => ModLoader::Quilt,
-            "rift" => ModLoader::Rift,
-            _ => ModLoader::Unknown,
-        }
-    }
-}
+use quadrant_core::ports::Shell;
+use tauri::AppHandle;
 
-impl ModLoader {
-    pub fn to_string(&self) -> String {
-        match self {
-            ModLoader::Forge => "Forge".to_string(),
-            ModLoader::Fabric => "Fabric".to_string(),
-            ModLoader::NeoForge => "NeoForge".to_string(),
-            ModLoader::Quilt => "Quilt".to_string(),
-            ModLoader::Rift => "Rift".to_string(),
-            ModLoader::Unknown => "Unknown".to_string(),
-        }
-    }
-    pub fn to_curseforge_id(&self) -> i64 {
-        match self {
-            ModLoader::Forge => 1,
-            ModLoader::Fabric => 4,
-            ModLoader::NeoForge => 6,
-            ModLoader::Rift => 999,
-            ModLoader::Quilt => 5,
-            ModLoader::Unknown => 0,
-        }
-    }
-}
+pub use quadrant_core::models::{InstalledModpack, LocalModpack, ModLoader, SyncInfo};
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
+use crate::tauri_adapter::{TauriEventSink, TauriSettingsStore, TauriShell, mc_folder};
 
-pub struct InstalledModpack {
-    pub name: String,
-    pub version: String,
-    pub mod_loader: ModLoader,
-    pub mods: Vec<InstalledMod>,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-
-pub struct LocalModpack {
-    pub name: String,
-    pub version: String,
-    pub mod_loader: ModLoader,
-    pub mods: Vec<InstalledMod>,
-    pub unknown_mods: bool,
-    pub is_applied: bool,
-    pub last_synced: i64,
-}
-
-impl From<LocalModpack> for InstalledModpack {
-    fn from(modpack: LocalModpack) -> Self {
-        InstalledModpack {
-            name: modpack.name,
-            version: modpack.version,
-            mod_loader: modpack.mod_loader,
-            mods: modpack.mods,
-        }
-    }
-}
-
-impl LocalModpack {
-    pub fn get_modpack_path(&self, app: AppHandle) -> PathBuf {
-        let config = app.store("config.json").unwrap();
-        let binding = config.get("mcFolder").unwrap();
-        let mc_folder = binding.as_str().unwrap();
-        let mc_folder = Path::new(&mc_folder);
-
-        mc_folder.join("modpacks").join(&self.name)
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct SyncInfo {
-    pub last_synced: i64,
-}
-
-impl From<(InstalledModpack, bool, i64)> for LocalModpack {
-    fn from(modpack: (InstalledModpack, bool, i64)) -> Self {
-        LocalModpack {
-            name: modpack.0.name,
-            version: modpack.0.version,
-            mod_loader: modpack.0.mod_loader,
-            mods: modpack.0.mods,
-            is_applied: modpack.1,
-            last_synced: modpack.2,
-            unknown_mods: false,
-        }
-    }
+pub fn get_modpack_path(mc_folder: &Path, modpack: &LocalModpack) -> PathBuf {
+    quadrant_core::models::modpack_path(mc_folder, &modpack.name)
 }
 
 #[tauri::command]
 pub async fn get_modpacks(hide_free: bool, app: AppHandle) -> Vec<LocalModpack> {
-    let mut modpacks: Vec<LocalModpack> = Vec::new();
-    let config = app.store("config.json").unwrap();
-    let binding = config.get("mcFolder").unwrap();
-    let mc_folder = binding.as_str().unwrap();
-    let mc_folder = Path::new(&mc_folder);
-    let modpacks_folder = mc_folder.join("modpacks");
-    if !modpacks_folder.exists() {
-        error!("Modpacks folder doesn't exist!");
-        return modpacks;
-    }
-    let mods_folder = mc_folder.join("mods");
-
-    for entry in std::fs::read_dir(modpacks_folder).unwrap() {
-        let entry = entry.unwrap();
-        let path = entry.path();
-        let file_amount = std::fs::read_dir(&path).unwrap().count();
-
-        if path.is_dir() {
-            let mut extra_files = 0;
-
-            let modpack_config = path.join("modConfig.json");
-            let mut last_synced: i64 = 0;
-            let modpack_sync = path.join("quadrantSync.json");
-
-            let name = path.file_name().unwrap().to_str().unwrap().to_string();
-            if hide_free && name == "free" {
-                continue;
-            }
-            let mut is_applied = false;
-            if mods_folder.is_symlink() {
-                let mods_path = mods_folder.read_link().unwrap();
-                if mods_path == path {
-                    is_applied = true;
-                }
-            }
-            if !modpack_config.exists() {
-                modpacks.push(LocalModpack {
-                    name,
-                    version: "-".to_string(),
-                    mods: Vec::new(),
-                    mod_loader: ModLoader::Unknown,
-                    is_applied,
-                    last_synced,
-                    unknown_mods: true,
-                });
-                continue;
-            } else {
-                extra_files += 1;
-            }
-            let modpack_config = std::fs::File::open(modpack_config).unwrap();
-            let reader = std::io::BufReader::new(modpack_config);
-            if modpack_sync.exists() {
-                extra_files += 1;
-
-                let sync_info = std::fs::File::open(modpack_sync).unwrap();
-                let reader = std::io::BufReader::new(sync_info);
-                let sync_info: SyncInfo = serde_json::from_reader(reader).unwrap();
-                last_synced = sync_info.last_synced * 1000;
-            }
-            let modpack: Result<InstalledModpack, serde_json::Error> =
-                serde_json::from_reader(reader);
-            if modpack.is_err() {
-                modpacks.push(LocalModpack::from((
-                    InstalledModpack {
-                        mod_loader: ModLoader::Unknown,
-                        name,
-                        version: "1.12.2".to_string(), // Default to 1.12.2 if the modpack is corrupted
-                        mods: Vec::new(),
-                    },
-                    is_applied,
-                    last_synced,
-                )));
-                continue;
-            }
-
-            let mut modpack: InstalledModpack = modpack.unwrap();
-            modpack.name = name;
-            let mut modpack = LocalModpack::from((modpack, is_applied, last_synced));
-            let expected_files = modpack.mods.len() + extra_files;
-
-            if expected_files < file_amount {
-                // log::info!(
-                //     "Modpack name: {}\nExpected files: {}\nTotal files: {}",
-                //     modpack.name,
-                //     expected_files,
-                //     file_amount
-                // );
-                modpack.unknown_mods = true;
-            }
-            modpacks.push(modpack);
-        }
-    }
-    modpacks
+    quadrant_core::modpacks::get_modpacks(&mc_folder(&app).unwrap(), hide_free).unwrap_or_default()
 }
 
 #[tauri::command]
 pub fn frontend_apply_modpack(name: String, app: AppHandle) -> Result<(), tauri::Error> {
-    apply_modpack(name, app).map_err(|e| e.into())
+    apply_modpack(name, app).map_err(tauri::Error::from)
 }
 
 pub fn apply_modpack(name: String, app: AppHandle) -> Result<(), anyhow::Error> {
-    let config = app.store("config.json")?;
-    let binding = config.get("mcFolder").unwrap();
-    let mc_folder = binding.as_str().unwrap();
-    let modpackpath = PathBuf::from(&mc_folder).join("modpacks").join(&name);
-    let mods_path = PathBuf::from(&mc_folder).join("mods");
-    if !modpackpath.exists() {
-        return Err(anyhow::anyhow!("Modpack does not exist"));
-    }
-    if !mods_path.is_symlink() && mods_path.exists() {
-        log::info!("Renaming mods folder");
-        std::fs::rename(
-            &mods_path,
-            PathBuf::from(&mc_folder)
-                .join("modpacks")
-                .join(format!("mods backup from {}", Utc::now().to_rfc2822())),
-        )?;
-    } else if mods_path.exists() {
-        log::info!("Deleting mods folder");
-        std::fs::remove_dir_all(&mods_path)?;
-    }
-    #[cfg(target_os = "windows")]
-    {
-        // std::os::windows::fs::
-        let sym_res = std::os::windows::fs::symlink_dir(modpackpath, &mods_path);
-        if sym_res.is_err() {
-            std::fs::remove_dir_all(&mods_path)?;
-            apply_modpack(name, app)?
-        }
-    }
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
-    {
-        std::os::unix::fs::symlink(modpackpath, mods_path)?;
-    }
-    Ok(())
-}
-
-pub async fn download_mod_concurrently(
-    mod_: InstalledMod,
-    file: PathBuf,
-    app: AppHandle,
-    total_mods: usize,
-    downloaded_mods: Arc<Mutex<usize>>,
-) -> Result<(), anyhow::Error> {
-    let response = reqwest::get(&mod_.download_url)
-        .await
-        .map_err(|e| anyhow::anyhow!(e))?;
-    let mut bytes = response.bytes_stream();
-    let mut file = std::fs::File::create(file)?;
-    while let Some(item) = bytes.next().await {
-        file.write_all(&item.map_err(|e| anyhow::anyhow!(e))?)?
-    }
-
-    let store = app.store("config.json").map_err(|e| anyhow::anyhow!(e))?;
-
-    let mut current_dl_mods = downloaded_mods.lock().await;
-    *current_dl_mods += 1;
-    app.emit(
-        "modpackDownloadProgress",
-        *current_dl_mods as f64 / total_mods as f64,
-    )?;
-
-    match mod_.source {
-        ModSource::CurseForge => {
-            let previous_cursefoge_count = store.get("curseforgeUsage");
-            if let Some(previous_curseforge_count) = previous_cursefoge_count {
-                let previous_curseforge_count: i64 =
-                    previous_curseforge_count.as_i64().unwrap_or_default();
-                store.set("curseforgeUsage", previous_curseforge_count + 1);
-            }
-        }
-        ModSource::Modrinth => {
-            let previous_cursefoge_count = store.get("modrinthUsage");
-            if let Some(previous_modrinth_count) = previous_cursefoge_count {
-                let previous_modrinth_count: i64 =
-                    previous_modrinth_count.as_i64().unwrap_or_default();
-                store.set("modrinthUsage", previous_modrinth_count + 1);
-            }
-        }
-        _ => {}
-    }
-    Ok(())
+    quadrant_core::modpacks::apply_modpack(&mc_folder(&app)?, &name)
 }
 
 #[tauri::command]
@@ -323,174 +30,45 @@ pub async fn install_modpack(
     mod_config: InstalledModpack,
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
-    let config = app.store("config.json").unwrap();
-    let binding = config.get("mcFolder").unwrap();
-    let mc_folder = binding.as_str().unwrap();
-    let mc_folder = Path::new(&mc_folder);
-    let modpacks_folder = mc_folder.join("modpacks");
-    let modpack_folder = modpacks_folder.join(&mod_config.name);
-    if !modpack_folder.exists() {
-        std::fs::create_dir_all(&modpack_folder)?;
-    }
-    let mod_config_file = modpack_folder.join("modConfig.json");
-    std::fs::write(&mod_config_file, serde_json::to_string_pretty(&mod_config)?)?;
-    let mods = mod_config.mods;
-
-    let files = std::fs::read_dir(&modpack_folder)?;
-    let mut file_names = Vec::new();
-
-    // Check for existing files
-    for mod_ in mods.clone() {
-        let file_name =
-            urlencoding::decode(mod_.download_url.split("/").last().unwrap_or_default());
-        file_names.push(file_name.map_err(|e| anyhow::anyhow!(e))?.to_string());
-    }
-
-    // Remove files that are not in the modpack
-    for file in files {
-        let file = file?;
-        let file_name = file.file_name();
-        if !file_names.contains(&file_name.to_string_lossy().to_string())
-            && file_name != "modConfig.json"
-        {
-            std::fs::remove_file(file.path())?;
-        }
-    }
-
-    let mut mod_downloads = vec![];
-
-    let total_mods = mods.len();
-    let downloaded_mods = Arc::new(Mutex::new(0_usize));
-
-    // Download the missing files
-    for mod_ in mods {
-        let file_name = urlencoding::decode(
-            mod_.download_url
-                .clone()
-                .split("/")
-                .last()
-                .unwrap_or_default(),
-        )
-        .map_err(|e| anyhow::anyhow!(e))?
-        .to_string();
-        let file_path = modpack_folder.join(file_name);
-        if file_path.exists() {
-            continue;
-        }
-        mod_downloads.push(download_mod_concurrently(
-            mod_,
-            file_path,
-            app.clone(),
-            total_mods,
-            downloaded_mods.clone(),
-        ));
-    }
-    let res = futures::future::join_all(mod_downloads).await;
-    let mut index = 0;
-    for res in res {
-        match res {
-            Ok(_) => log::info!("Downloaded mod {}", index),
-            Err(e) => {
-                log::error!("Failed to download mod {}: {}", index, e);
-                return Err(tauri::Error::from(e));
-            }
-        }
-        index += 1;
-    }
-    app.emit("modpackDownloadProgress", 1.0)?;
-    Ok(())
+    quadrant_core::modpacks::install_modpack(
+        &mc_folder(&app).map_err(tauri::Error::from)?,
+        mod_config,
+        &TauriSettingsStore::new(app.clone(), "config.json"),
+        &TauriEventSink::new(app),
+    )
+    .await
+    .map_err(tauri::Error::from)
 }
 
 #[tauri::command]
 pub async fn set_modpack_sync_date(
     time: u64,
     modpack: String,
-    app: tauri::AppHandle,
+    app: AppHandle,
 ) -> Result<(), tauri::Error> {
-    let mc_folder = app
-        .store("config.json")
-        .map_err(|e| anyhow!(e))?
-        .get("mcFolder");
-    let mc_folder = PathBuf::from(mc_folder.unwrap().as_str().unwrap());
-    let modpack_folder = mc_folder.join("modpacks").join(modpack);
-    let sync_file = modpack_folder.join("quadrantSync.json");
-
-    std::fs::write(
-        sync_file,
-        serde_json::to_string_pretty(&json!({"last_synced": time}))?,
-    )?;
-
-    Ok(())
+    quadrant_core::modpacks::set_modpack_sync_date(
+        &mc_folder(&app).map_err(tauri::Error::from)?,
+        time,
+        &modpack,
+    )
+    .map_err(tauri::Error::from)
 }
 
 #[tauri::command]
 pub async fn export_modpack(modpack: String, app: AppHandle) -> Result<(), tauri::Error> {
-    let config = app.store("config.json").unwrap();
-    let binding = config.get("mcFolder").unwrap();
-    let mc_folder = binding.as_str().unwrap();
-    let modpack_folder = PathBuf::from(&mc_folder).join("modpacks").join(&modpack);
-
-    let file_to_export = app
-        .dialog()
-        .file()
-        .add_filter("Quadrant Export", &["quadrantExport.zip"])
-        .blocking_save_file();
-
-    if file_to_export.is_none() {
+    let shell = TauriShell::new(app.clone());
+    let destination = shell
+        .choose_export_path(&format!("{modpack}.quadrantExport.zip"))
+        .map_err(tauri::Error::from)?;
+    let Some(destination) = destination else {
         return Ok(());
-    }
-    let file_to_export = file_to_export
-        .unwrap()
-        .into_path()
-        .map_err(|e| anyhow!(e))?;
+    };
 
-    let file_to_export = std::fs::File::create(file_to_export)?;
-
-    let mut zip = zip::ZipWriter::new(file_to_export);
-    let options: FileOptions<ExtendedFileOptions> = FileOptions::default()
-        .compression_method(zip::CompressionMethod::Bzip2)
-        .unix_permissions(0o755)
-        .compression_level(Some(9))
-        .large_file(true);
-
-    let files = std::fs::read_dir(&modpack_folder)?;
-    let total_files = files.filter_map(|entry| entry.ok()).count();
-    let mut zip_issues = false;
-    let mut done_files = 0;
-    let files = std::fs::read_dir(&modpack_folder)?;
-
-    for file in files {
-        let file = file?;
-        let file_name = file.file_name();
-
-        let contents = std::fs::read(file.path())?;
-
-        let res = zip.start_file(file_name.to_string_lossy(), options.clone());
-        if res.is_err() {
-            log::error!("Failed to add file to zip: {}", file_name.to_string_lossy());
-            zip_issues = true;
-            continue;
-        }
-        let res = zip.write_all(&contents);
-        if res.is_err() {
-            log::error!(
-                "Failed to write contents of file to zip: {}",
-                file_name.to_string_lossy()
-            );
-            zip_issues = true;
-            continue;
-        }
-        done_files += 1;
-        app.emit(
-            "quadrantExportProgress",
-            done_files as f64 / total_files as f64,
-        )?;
-    }
-    let res = zip.finish();
-    if res.is_err() || zip_issues {
-        log::error!("Failed to finish zip");
-        return Err(anyhow!("Failed to finish zip").into());
-    }
-    app.emit("quadrantExportProgress", 1)?;
-    Ok(())
+    quadrant_core::modpacks::export_modpack_to(
+        &mc_folder(&app).map_err(tauri::Error::from)?,
+        &modpack,
+        &destination,
+        &TauriEventSink::new(app),
+    )
+    .map_err(tauri::Error::from)
 }

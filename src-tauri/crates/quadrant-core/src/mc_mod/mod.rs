@@ -1,0 +1,601 @@
+//! Mod provider integration, install flows, and mod identification APIs.
+
+use std::path::{Path, PathBuf};
+
+use anyhow::anyhow;
+use futures::StreamExt;
+use serde::{Deserialize, Serialize};
+
+use crate::{
+    Result,
+    events::{BackendEvent, ModProgressPayload},
+    models::{InstalledMod, InstalledModpack, LocalModpack, ModLoader, ModSource},
+    ports::{EventSink, SettingsStore},
+};
+
+use cache::{add_cache_index, file_hash, get_cache_index, init_cache};
+#[cfg(feature = "curseforge")]
+use curseforge::{
+    download_mod_curseforge, get_latest_mod_version_curseforge, search_mods_curseforge,
+};
+use modrinth::{download_mod_modrinth, get_latest_mod_version_modrinth, search_mods_modrinth};
+
+pub mod cache;
+#[cfg(feature = "curseforge")]
+pub mod curseforge;
+#[cfg(feature = "curseforge")]
+pub mod curseforge_fingerprint;
+pub mod modrinth;
+
+/// Broad category of downloadable Minecraft content.
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Copy)]
+pub enum ModType {
+    Mod,
+    ResourcePack,
+    ShaderPack,
+    Unknown,
+}
+
+impl From<String> for ModType {
+    fn from(value: String) -> Self {
+        match value.to_lowercase().as_str() {
+            "shader" => Self::ShaderPack,
+            "mod" => Self::Mod,
+            "resourcepack" => Self::ResourcePack,
+            _ => Self::Unknown,
+        }
+    }
+}
+
+impl ModType {
+    /// Returns the CurseForge class identifier for this content type.
+    pub fn curseforge_id(&self) -> i32 {
+        match *self {
+            Self::Mod => 6,
+            Self::ResourcePack => 12,
+            Self::ShaderPack => 6552,
+            Self::Unknown => 999,
+        }
+    }
+
+    /// Maps a CurseForge class identifier into a `ModType`.
+    pub fn from_curseforge_class(class_id: i64) -> Self {
+        match class_id {
+            6 => Self::Mod,
+            12 => Self::ResourcePack,
+            6552 => Self::ShaderPack,
+            _ => Self::Unknown,
+        }
+    }
+}
+
+impl std::fmt::Display for ModType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let label = match *self {
+            Self::Mod => "mod",
+            Self::ResourcePack => "resourcepack",
+            Self::ShaderPack => "shader",
+            Self::Unknown => "unknown",
+        };
+        f.write_str(label)
+    }
+}
+
+/// Search or detail result for a mod, resource pack, or shader pack.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Mod {
+    /// Display name.
+    pub name: String,
+    /// Provider-specific identifier.
+    pub id: String,
+    /// Aggregate download count from the upstream provider.
+    pub download_count: i64,
+    /// Selected or primary version label.
+    pub version: String,
+    /// Broad content type.
+    pub mod_type: ModType,
+    /// Upstream source provider.
+    pub source: ModSource,
+    /// Provider slug used to build URLs.
+    pub slug: String,
+    /// Preview images exposed by the provider.
+    pub thumbnail_urls: Vec<String>,
+    /// Canonical provider page URL.
+    pub url: String,
+    /// Human-readable description.
+    pub description: String,
+    /// License label, if known.
+    pub license: String,
+    /// Primary icon URL.
+    pub mod_icon_url: String,
+    /// Whether the item can currently be downloaded by Quadrant.
+    pub downloadable: bool,
+    /// Whether old-version information should still be shown in the UI.
+    pub show_previous_version: bool,
+    /// Newer file candidate when checking for updates.
+    pub new_version: Option<UniversalModFile>,
+    /// Whether the item may be deleted from a local modpack.
+    pub deleteable: bool,
+    /// Whether the current host can auto-install this item.
+    pub autoinstallable: bool,
+    /// Whether the item is user-selectable in the current flow.
+    pub selectable: bool,
+    /// Optional target modpack name.
+    pub modpack: Option<String>,
+    /// Optional selection URL used by some frontend flows.
+    pub select_url: Option<String>,
+}
+
+/// Minecraft version entry returned by the provider.
+#[derive(Clone, Serialize, Deserialize)]
+pub struct MinecraftVersion {
+    /// Version label, such as `1.20.1`.
+    pub version: String,
+    /// Version type, such as `release`.
+    pub version_type: String,
+}
+
+/// Provider-agnostic downloadable file representation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UniversalModFile {
+    /// Optional provider-specific file identifier.
+    pub id: Option<String>,
+    /// File name to store locally.
+    pub file_name: String,
+    /// Direct download URL.
+    pub download_url: String,
+    /// Expected SHA-1 file hash.
+    pub sha1: String,
+    /// Expected file size in bytes.
+    pub size: u64,
+}
+
+/// Cross-provider search input used by the host API surface.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GlobalSearchModsArgs {
+    /// Source provider to query.
+    pub source: ModSource,
+    /// Free-text search query.
+    pub query: String,
+    /// Requested content type.
+    pub mod_type: String,
+    /// Whether loader/version filtering should be applied.
+    pub filter_on: bool,
+}
+
+/// Provider-local search input.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SearchModsArgs {
+    /// Free-text search query.
+    pub query: String,
+    /// Requested content type.
+    pub mod_type: String,
+    /// Whether provider-side filtering should be applied.
+    pub filter_on: bool,
+}
+
+/// Mod detail and install input exposed to hosts.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetModArgs {
+    /// Provider-specific mod identifier.
+    pub id: String,
+    /// Whether the item should be presented as downloadable.
+    pub downloadable: bool,
+    /// Whether previous-version info should be displayed.
+    pub show_previous_version: bool,
+    /// Whether the item may be deleted locally.
+    pub deletable: bool,
+    /// Target Minecraft version.
+    pub version_target: String,
+    /// Target mod loader.
+    pub mod_loader: ModLoader,
+    /// Target modpack name.
+    pub modpack: String,
+    /// Whether the item is user-selectable.
+    pub selectable: bool,
+    /// Optional selection URL used by frontend flows.
+    pub select_url: Option<String>,
+}
+
+/// Result of identifying a local file as a known upstream mod.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct IdentifiedMod {
+    /// Installed mod metadata to persist if selected.
+    pub installed_mod: InstalledMod,
+    /// File name of the local mod file.
+    pub file_name: String,
+}
+
+/// Returns the default Quadrant user agent used for upstream requests.
+pub fn get_user_agent() -> String {
+    format!(
+        "mrquantumoff/quadrant/v{} (mrquantumoff.dev) (QUADRANT NEXT)",
+        env!("CARGO_PKG_VERSION")
+    )
+}
+
+/// Fetches release Minecraft versions from Modrinth.
+pub async fn get_versions() -> Result<Vec<MinecraftVersion>> {
+    let response = reqwest::Client::new()
+        .get("https://api.modrinth.com/v2/tag/game_version")
+        .header("User-Agent", get_user_agent())
+        .send()
+        .await?;
+    let body: Vec<MinecraftVersion> = response.json().await?;
+    Ok(body
+        .into_iter()
+        .filter(|version| version.version_type == "release" && !version.version.is_empty())
+        .collect())
+}
+
+/// Checks whether a mod has an upgrade available for the given target environment.
+pub async fn check_mod_updates(
+    mod_to_update: Mod,
+    minecraft_version: String,
+    mod_loader: ModLoader,
+    modpack: LocalModpack,
+    show_unupgradeable_mods: bool,
+) -> Result<Option<Mod>> {
+    let mut new_mod = mod_to_update.clone();
+    let existing_mod = modpack.mods.iter().find(|mod_| mod_.id == mod_to_update.id);
+
+    new_mod.show_previous_version = true;
+    new_mod.deleteable = false;
+    new_mod.autoinstallable = true;
+
+    match mod_to_update.source {
+        ModSource::CurseForge => {
+            #[cfg(feature = "curseforge")]
+            {
+                if let Some(latest_file) = get_latest_mod_version_curseforge(
+                    mod_to_update.id,
+                    minecraft_version,
+                    mod_loader,
+                    mod_to_update.mod_type,
+                    None,
+                )
+                .await?
+                {
+                    new_mod.new_version = Some(latest_file.into());
+                }
+            }
+            #[cfg(not(feature = "curseforge"))]
+            {
+                return Ok(None);
+            }
+        }
+        ModSource::Modrinth => {
+            if let Some(latest_file) = get_latest_mod_version_modrinth(
+                mod_to_update.id,
+                minecraft_version,
+                mod_loader,
+                mod_to_update.mod_type,
+            )
+            .await?
+            {
+                new_mod.new_version = Some(latest_file.into());
+            }
+        }
+        ModSource::Online => {}
+    }
+
+    if let (Some(existing_mod), Some(new_file)) = (existing_mod, new_mod.new_version.clone()) {
+        if existing_mod.download_url != new_file.download_url {
+            new_mod.downloadable = true;
+        }
+        if existing_mod.download_url == new_file.download_url && !show_unupgradeable_mods {
+            return Ok(None);
+        }
+    }
+
+    Ok(Some(new_mod))
+}
+
+/// Searches mods from the requested provider and sorts them by download count.
+pub async fn search_mods(
+    args: GlobalSearchModsArgs,
+    settings: &impl SettingsStore,
+) -> Result<Vec<Mod>> {
+    let search_args = SearchModsArgs {
+        query: args.query,
+        mod_type: args.mod_type,
+        filter_on: args.filter_on,
+    };
+
+    let mut mods = match args.source {
+        ModSource::CurseForge => {
+            #[cfg(feature = "curseforge")]
+            {
+                search_mods_curseforge(settings, search_args).await?
+            }
+            #[cfg(not(feature = "curseforge"))]
+            {
+                Vec::new()
+            }
+        }
+        ModSource::Modrinth => search_mods_modrinth(settings, search_args).await?,
+        ModSource::Online => Vec::new(),
+    };
+
+    mods.sort_by(|a, b| b.download_count.cmp(&a.download_count));
+    Ok(mods)
+}
+
+/// Builds the canonical provider page URL for a mod or content item.
+pub fn get_mod_url(slug: String, mod_type: ModType, source: ModSource) -> String {
+    let base_url = match source {
+        ModSource::CurseForge => "https://curseforge.com/minecraft",
+        ModSource::Modrinth => "https://modrinth.com",
+        ModSource::Online => "",
+    };
+
+    let mod_type = match source {
+        ModSource::CurseForge => match mod_type {
+            ModType::Mod => "mc-mods",
+            ModType::ResourcePack => "texture-packs",
+            ModType::ShaderPack => "customization",
+            ModType::Unknown => "",
+        },
+        ModSource::Modrinth => match mod_type {
+            ModType::Mod => "mod",
+            ModType::ResourcePack => "resourcepack",
+            ModType::ShaderPack => "shader",
+            ModType::Unknown => "unknown",
+        },
+        ModSource::Online => "",
+    };
+
+    format!("{}/{}/{}", base_url, mod_type, slug)
+}
+
+/// Builds the canonical provider page URL for a user or author profile.
+pub fn get_user_url(username: String, source: ModSource) -> String {
+    let base_url = match source {
+        ModSource::CurseForge => "https://curseforge.com/members",
+        ModSource::Modrinth => "https://modrinth.com/user",
+        ModSource::Online => "",
+    };
+
+    format!("{}/{}", base_url, username)
+}
+
+/// Downloads and installs a provider-backed mod into the requested target.
+///
+/// Progress is emitted through [`BackendEvent::ModDownloadProgress`] and
+/// [`BackendEvent::ModInstallProgress`].
+pub async fn install_mod(
+    mc_folder: &Path,
+    existing_modpacks: &[LocalModpack],
+    settings: &impl SettingsStore,
+    event_sink: &impl EventSink,
+    id: String,
+    minecraft_version: String,
+    mod_loader: ModLoader,
+    source: ModSource,
+    modpack: Option<String>,
+    mod_type: ModType,
+    #[allow(unused_variables)] file_id: Option<String>,
+) -> Result<Option<LocalModpack>> {
+    let download_path = match source {
+        ModSource::CurseForge => {
+            #[cfg(feature = "curseforge")]
+            {
+                download_mod_curseforge(
+                    settings,
+                    event_sink,
+                    id.clone(),
+                    minecraft_version,
+                    mod_loader,
+                    mod_type,
+                    file_id,
+                )
+                .await?
+            }
+            #[cfg(not(feature = "curseforge"))]
+            {
+                return Err(anyhow!("CurseForge is not enabled"));
+            }
+        }
+        ModSource::Modrinth => {
+            download_mod_modrinth(
+                settings,
+                event_sink,
+                id.clone(),
+                minecraft_version,
+                mod_loader,
+                mod_type,
+            )
+            .await?
+        }
+        ModSource::Online => unimplemented!(),
+    };
+
+    event_sink.publish(BackendEvent::ModInstallProgress(ModProgressPayload {
+        mod_id: id.clone(),
+        progress: 50,
+    }))?;
+
+    let updated_modpack = install_local_file(
+        mc_folder,
+        existing_modpacks,
+        download_path.0,
+        download_path.1,
+        mod_type,
+        modpack,
+        id.clone(),
+        source,
+    )?;
+
+    event_sink.publish(BackendEvent::ModInstallProgress(ModProgressPayload {
+        mod_id: id,
+        progress: 100,
+    }))?;
+
+    Ok(updated_modpack)
+}
+
+/// Downloads a specific file, using the shared cache when possible.
+pub async fn get_file(
+    file: UniversalModFile,
+    id: String,
+    event_sink: &impl EventSink,
+) -> Result<(PathBuf, String)> {
+    if let Some(cached_file) = get_cache_index(file.sha1.clone()).await? {
+        let cached_file_bytes = std::fs::read(&cached_file.file_name).map_err(|error| {
+            let _ = futures::executor::block_on(init_cache());
+            anyhow!(error)
+        })?;
+        let file_path = add_cache_index(
+            file.file_name.clone(),
+            cached_file_bytes.as_slice(),
+            file.sha1.clone(),
+        )
+        .await?;
+        event_sink.publish(BackendEvent::ModDownloadProgress(ModProgressPayload {
+            mod_id: id,
+            progress: 100,
+        }))?;
+        return Ok((file_path, file.download_url));
+    }
+
+    let client = reqwest::Client::new();
+    let request = client
+        .get(&file.download_url)
+        .header("User-Agent", get_user_agent())
+        .build()?;
+    let mut body = client.execute(request).await?.bytes_stream();
+    let mut file_bytes = Vec::new();
+    while let Some(Ok(new_bytes)) = body.next().await {
+        file_bytes.append(&mut new_bytes.to_vec());
+        let progress = ((file_bytes.len() as f64 / file.size as f64) * 100_f64).round() as i32;
+        event_sink.publish(BackendEvent::ModDownloadProgress(ModProgressPayload {
+            mod_id: id.clone(),
+            progress,
+        }))?;
+    }
+    event_sink.publish(BackendEvent::ModDownloadProgress(ModProgressPayload {
+        mod_id: id,
+        progress: 100,
+    }))?;
+
+    let hash = file_hash(file_bytes.as_slice());
+    let file_path = add_cache_index(file.file_name.clone(), &file_bytes, hash).await?;
+    Ok((file_path, file.download_url))
+}
+
+/// Installs an already-downloaded file into a modpack or game content folder.
+pub fn install_local_file(
+    mc_folder: &Path,
+    existing_modpacks: &[LocalModpack],
+    file: PathBuf,
+    download_url: String,
+    mod_type: ModType,
+    modpack: Option<String>,
+    id: String,
+    source: ModSource,
+) -> Result<Option<LocalModpack>> {
+    let local_mod = InstalledMod {
+        id: id.clone(),
+        source,
+        download_url,
+    };
+
+    let (target_path, updated_modpack) = match mod_type {
+        ModType::Mod => {
+            let modpack_name = modpack.expect("modpackRequired");
+            let mut modpack = existing_modpacks
+                .iter()
+                .find(|modpack| modpack.name == modpack_name)
+                .cloned()
+                .ok_or_else(|| anyhow!("Modpack not found"))?;
+            if modpack.mods.iter().any(|mod_| mod_.id == id) {
+                modpack.mods.retain(|mod_| mod_.id != id);
+            }
+            modpack.mods.push(local_mod.clone());
+
+            std::fs::write(
+                crate::models::modpack_path(mc_folder, &modpack_name).join("modConfig.json"),
+                serde_json::to_string_pretty(&InstalledModpack::from(modpack.clone()))?,
+            )?;
+
+            (
+                crate::models::modpack_path(mc_folder, &modpack_name)
+                    .join(file.file_name().unwrap()),
+                Some(modpack),
+            )
+        }
+        ModType::ResourcePack => (
+            mc_folder
+                .join("resourcepacks")
+                .join(file.file_name().unwrap()),
+            None,
+        ),
+        ModType::ShaderPack => (
+            mc_folder
+                .join("shaderpacks")
+                .join(file.file_name().unwrap()),
+            None,
+        ),
+        ModType::Unknown => return Err(anyhow!("unsupportedDownload")),
+    };
+
+    if let Some(parent) = target_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::copy(file, target_path)?;
+    Ok(updated_modpack)
+}
+
+/// Downloads a remote file and installs it into the requested target.
+pub async fn install_remote_file(
+    mc_folder: &Path,
+    existing_modpacks: &[LocalModpack],
+    event_sink: &impl EventSink,
+    file: UniversalModFile,
+    mod_type: ModType,
+    modpack: Option<String>,
+    source: ModSource,
+    id: String,
+) -> Result<Option<LocalModpack>> {
+    let downloaded_file = get_file(file, id.clone(), event_sink).await?;
+    install_local_file(
+        mc_folder,
+        existing_modpacks,
+        downloaded_file.0,
+        downloaded_file.1,
+        mod_type,
+        modpack,
+        id,
+        source,
+    )
+}
+
+/// Attempts to identify local mod files in a modpack using enabled providers.
+pub async fn identify_modpack(
+    mc_folder: &Path,
+    modpack: String,
+    curseforge_enabled: bool,
+    modrinth_enabled: bool,
+) -> Result<Vec<IdentifiedMod>> {
+    let mut mods = Vec::new();
+    if curseforge_enabled {
+        #[cfg(feature = "curseforge")]
+        {
+            if let Ok(mut curse_mods) =
+                curseforge::identify_modpack_curseforge(&mc_folder.to_path_buf(), modpack.clone())
+                    .await
+            {
+                mods.append(&mut curse_mods);
+            }
+        }
+    }
+    if modrinth_enabled {
+        let mut modrinth_mods =
+            modrinth::identify_modpack_modrinth(&mc_folder.to_path_buf(), modpack).await?;
+        mods.append(&mut modrinth_mods);
+    }
+    Ok(mods)
+}

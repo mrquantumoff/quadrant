@@ -1,104 +1,37 @@
-use crate::{QNT_BASE_URL, mc_mod::get_user_agent};
-use chrono::prelude::*;
-use reqwest;
-use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
-use tauri_plugin_store::StoreExt;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+use crate::{mc_mod::get_user_agent, tauri_adapter::TauriSettingsStore};
 
-pub struct AppInfo {
-    pub version: String,
-    pub os: String,
-    pub modrinth_usage: i64,
-    pub curseforge_usage: i64,
-    pub reference_file_usage: i64,
-    pub manual_input_usage: i64,
-    pub hardware_id: String,
-    pub date: DateTime<Utc>,
-    pub country: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct MyIPResponse {
-    pub ip: String,
-    pub country: String,
-}
+pub use quadrant_core::telemetry::AppInfo;
 
 pub async fn get_telemetry_info(app: AppHandle) -> AppInfo {
-    let config = app.store("config.json").unwrap();
-    let version = app.package_info().version.clone();
-    let os = tauri_plugin_os::platform().to_string().to_uppercase();
-    let hardware_id = config.get("hardwareId").unwrap().clone();
-    let hardware_id = hardware_id.as_str().unwrap();
-
-    let date_time = Utc::now();
-
-    let country_info = reqwest::Client::new()
-        .get("https://ipinfo.io/json")
-        .send()
-        .await
-        .unwrap()
-        .json::<MyIPResponse>()
-        .await
-        .unwrap();
-    let country = country_info.country;
-
-    let modrinth_usage = config.get("modrinthUsage").unwrap().as_i64().unwrap_or(0);
-    let curseforge_usage = config.get("curseforgeUsage").unwrap().as_i64().unwrap_or(0);
-
-    let res = AppInfo {
-        version: version.to_string(),
-        os,
-        modrinth_usage,
-        curseforge_usage,
-        reference_file_usage: 0,
-        manual_input_usage: 0,
-        hardware_id: hardware_id.to_string(),
-        date: date_time,
-        country,
-    };
-    log::info!("Telemetry info: {:?}", res);
-    res
+    quadrant_core::telemetry::get_telemetry_info(
+        &TauriSettingsStore::new(app.clone(), "config.json"),
+        app.package_info().version.to_string(),
+        tauri_plugin_os::platform().to_string().to_uppercase(),
+    )
+    .await
+    .expect("failed to gather telemetry info")
 }
 
 #[tauri::command]
 pub async fn send_telemetry(app: AppHandle) {
-    let store = app.store("config.json").unwrap();
-    if !store
-        .get("collectUserData")
-        .unwrap()
-        .as_bool()
-        .unwrap_or(true)
-    {
-        return;
-    };
-    let info = get_telemetry_info(app).await;
-    let client = reqwest::Client::new();
-    let request = client
-        .post(format!("{}/quadrant/usage/submit", QNT_BASE_URL))
-        .json(&info)
-        .header("Authorization", env!("QUADRANT_API_KEY"))
-        .header("User-Agent", get_user_agent())
-        .send()
-        .await
-        .unwrap();
-    log::info!("Telemetry sent: {:?}", request);
+    let _ = quadrant_core::telemetry::send_telemetry(
+        &TauriSettingsStore::new(app.clone(), "config.json"),
+        &get_user_agent(),
+        app.package_info().version.to_string(),
+        tauri_plugin_os::platform().to_string().to_uppercase(),
+        env!("QUADRANT_API_KEY"),
+    )
+    .await;
 }
 
 #[tauri::command]
 pub async fn remove_telemetry(app: AppHandle) {
-    let store = app.store("config.json").unwrap();
-    let hardware_id = store.get("hardwareId").unwrap();
-    let hardware_id = hardware_id.as_str().unwrap();
-    let client = reqwest::Client::new();
-    let request = client
-        .delete(format!("{}/quadrant/usage/delete", QNT_BASE_URL))
-        .header("Authorization", env!("QUADRANT_API_KEY"))
-        .header("User-Agent", get_user_agent())
-        .query(&[("hardware_id", hardware_id)])
-        .send()
-        .await
-        .unwrap();
-    log::info!("Telemetry sent: {:?}", request);
+    let _ = quadrant_core::telemetry::remove_telemetry(
+        &TauriSettingsStore::new(app, "config.json"),
+        &get_user_agent(),
+        env!("QUADRANT_API_KEY"),
+    )
+    .await;
 }

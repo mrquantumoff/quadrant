@@ -1,136 +1,34 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::path::PathBuf;
 
-use crate::{
-    AppState, QNT_BASE_URL,
-    account::{
-        quadrant_settings_sync::{get_quadrant_settings, submit_quadrant_settings},
-        quadrant_sync::{SyncedModpack, get_synced_modpacks},
-    },
-    mc_mod::get_user_agent,
-    modpacks::general::{InstalledModpack, get_modpacks, install_modpack},
-};
-use chrono::prelude::*;
-use reqwest;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 
-use super::set_secret;
+use crate::{
+    AppState,
+    account::{
+        quadrant_settings_sync::{get_quadrant_settings, submit_quadrant_settings},
+        quadrant_sync::get_synced_modpacks,
+    },
+    mc_mod::get_user_agent,
+    modpacks::general::{InstalledModpack, get_modpacks, install_modpack},
+    tauri_adapter::TauriSecretStore,
+};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AccountInfo {
-    pub id: String,
-    pub name: String,
-    pub email: String,
-    pub quadrant_sync_limit: i32,
-    pub quadrant_share_limit: i32,
-    pub login: String,
-    pub notifications: Vec<Notification>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Notification {
-    pub notification_id: String,
-    pub user_id: String,
-    pub message: String,
-    pub created_at: i64,
-    pub read: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OAuth2Response {
-    pub access_token: String,
-    pub token_type: String,
-    pub expires_in: i64,
-    pub refresh_token: Option<String>,
-    pub scope: String,
-}
-
-async fn try_refresh_token() -> Result<(), anyhow::Error> {
-    let refresh_token = crate::account::get_refresh_token()?;
-    let client = reqwest::Client::new();
-    let user_agent = get_user_agent();
-    let url = format!("{}/oauth2/token", QNT_BASE_URL);
-
-    let mut body = HashMap::new();
-    body.insert("client_id", env!("QUADRANT_OAUTH2_CLIENT_ID"));
-    body.insert("client_secret", env!("QUADRANT_OAUTH2_CLIENT_SECRET"));
-    body.insert("grant_type", "refresh_token");
-    body.insert("refresh_token", refresh_token.as_str());
-
-    let response = client
-        .post(url)
-        .form(&body)
-        .header("User-Agent", user_agent)
-        .send()
-        .await?;
-
-    if !response.status().is_success() {
-        return Err(anyhow::anyhow!(
-            "Token refresh failed: {}",
-            response.status()
-        ));
-    }
-
-    let res = response.json::<OAuth2Response>().await?;
-    set_secret("accountToken".to_string(), res.access_token)?;
-    if let Some(new_refresh_token) = res.refresh_token {
-        set_secret("refreshToken".to_string(), new_refresh_token)?;
-    }
-    log::info!("Access token refreshed successfully.");
-    Ok(())
-}
+pub use quadrant_core::account::id::{AccountInfo, Notification, OAuth2Response};
 
 #[tauri::command]
 pub async fn get_account_info() -> Result<AccountInfo, tauri::Error> {
-    let token = crate::account::get_account_token();
-    if token.is_err() {
-        return Err(tauri::Error::from(token.err().unwrap()));
-    }
-    let token = token.unwrap();
-    let client = reqwest::Client::new();
-    let url = format!("{}/account/info/get", QNT_BASE_URL);
-
-    let response = client
-        .get(&url)
-        .header("User-Agent", get_user_agent())
-        .bearer_auth(&token)
-        .send()
-        .await
-        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-
-    if response.status() == reqwest::StatusCode::UNAUTHORIZED {
-        if try_refresh_token().await.is_ok() {
-            let new_token = crate::account::get_account_token()
-                .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-            let retry = client
-                .get(&url)
-                .header("User-Agent", get_user_agent())
-                .bearer_auth(&new_token)
-                .send()
-                .await
-                .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-            let raw = retry
-                .text()
-                .await
-                .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-            let info: AccountInfo = serde_json::from_str(&raw)?;
-            return Ok(info);
-        }
-        return Err(anyhow::Error::msg("Unauthorized").into());
-    }
-
-    let response_raw = response
-        .text()
-        .await
-        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-
-    let response: AccountInfo = serde_json::from_str(&response_raw)?;
-
-    Ok(response)
+    quadrant_core::account::id::get_account_info_with_refresh(
+        &TauriSecretStore,
+        &get_user_agent(),
+        env!("QUADRANT_OAUTH2_CLIENT_ID"),
+        env!("QUADRANT_OAUTH2_CLIENT_SECRET"),
+    )
+    .await
+    .map_err(tauri::Error::from)
 }
 
 #[tauri::command]
@@ -139,46 +37,17 @@ pub async fn oauth2_login(
     redirect_uri: String,
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
-    let client = reqwest::Client::new();
-    let url = format!("{}/oauth2/token", QNT_BASE_URL);
-
-    let mut body = HashMap::new();
-    body.insert("client_id", env!("QUADRANT_OAUTH2_CLIENT_ID"));
-    body.insert("client_secret", env!("QUADRANT_OAUTH2_CLIENT_SECRET"));
-    body.insert("grant_type", "authorization_code");
-    body.insert("code", code.as_str());
-    body.insert("redirect_uri", redirect_uri.as_str());
-
-    let response = client
-        .post(url)
-        .form(&body)
-        .header("User-Agent", get_user_agent())
-        .send()
-        .await
-        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-
-    log::info!("Response: {:?}", response);
-
-    let res = response
-        .text()
-        .await
-        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-    log::info!("{}", &res);
-
-    let res = serde_json::from_str::<OAuth2Response>(&res)
-        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-    if !res.scope.contains("profile:read")
-        || !res.scope.contains("sync:read")
-        || !res.scope.contains("notifications:read")
-    {
-        return Err(anyhow::Error::msg("Invalid scope").into());
-    }
-    set_secret("accountToken".to_string(), res.access_token)?;
-    if let Some(refresh_token) = res.refresh_token {
-        set_secret("refreshToken".to_string(), refresh_token)?;
-    }
+    quadrant_core::account::id::oauth2_login(
+        &TauriSecretStore,
+        &get_user_agent(),
+        env!("QUADRANT_OAUTH2_CLIENT_ID"),
+        env!("QUADRANT_OAUTH2_CLIENT_SECRET"),
+        code,
+        redirect_uri,
+    )
+    .await
+    .map_err(tauri::Error::from)?;
     app.emit("recheckAccountToken", "")?;
-    log::info!("OAuth2 Token saved, Quadrant ID saved.");
     Ok(())
 }
 
@@ -192,141 +61,120 @@ pub async fn read_notification(
     notification_id: String,
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
-    let token = crate::account::get_account_token()?;
-    let client = reqwest::Client::new();
-    let user_agent = get_user_agent();
-    let url = format!("{}/account/notifications/read", QNT_BASE_URL);
-    let request = client
-        .post(&url)
-        .header("User-Agent", user_agent)
-        .bearer_auth(&token)
-        .json(&serde_json::json!({
-            "notification_id": notification_id,
-        }))
-        .send()
-        .await
-        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-
-    let response_raw = request.status();
-    log::info!("Notification read: {}", &response_raw);
-    if response_raw != 200 {
-        let body = request.text().await.unwrap();
-        return Err(anyhow::Error::msg(body).into());
-    }
+    quadrant_core::account::id::read_notification(
+        &TauriSecretStore,
+        &get_user_agent(),
+        notification_id,
+    )
+    .await
+    .map_err(tauri::Error::from)?;
     app.emit(
         "refreshNotifications",
         get_account_info().await?.notifications,
     )?;
     Ok(())
 }
+
 pub async fn check_account_updates(app: AppHandle) -> Result<(), anyhow::Error> {
-    let account_info = get_account_info().await;
-    if account_info.is_err() {
-        return Ok(());
-    }
-    let account_info = account_info.unwrap();
-    app.emit("refreshNotifications", account_info.notifications)?;
+    let account_info = match quadrant_core::account::id::get_account_info_with_refresh(
+        &TauriSecretStore,
+        &get_user_agent(),
+        env!("QUADRANT_OAUTH2_CLIENT_ID"),
+        env!("QUADRANT_OAUTH2_CLIENT_SECRET"),
+    )
+    .await
+    {
+        Ok(info) => info,
+        Err(_) => return Ok(()),
+    };
+    app.emit("refreshNotifications", account_info.notifications.clone())?;
+
     let config = app.store("config.json")?;
     let auto_quadrant_sync = config.get("autoQuadrantSync").unwrap().as_bool().unwrap();
     let auto_settings_sync = config.get("syncSettings").unwrap().as_bool().unwrap();
-    let mc_folder = config.get("mcFolder").unwrap();
-    let mc_folder = PathBuf::from(mc_folder.as_str().unwrap());
+    let mc_folder = PathBuf::from(config.get("mcFolder").unwrap().as_str().unwrap());
     let modpacks_folder = mc_folder.join("modpacks");
 
     if auto_quadrant_sync {
         let modpacks = get_modpacks(true, app.clone()).await;
         let synced_modpacks = get_synced_modpacks(false, None).await?;
-
         let state = app.state::<Mutex<AppState>>();
-        for modpack in modpacks {
-            if modpack.last_synced == 0 {
-                continue;
-            }
+        let currently_updated = {
+            let state = state.lock().await;
+            state.updated_modpacks.clone()
+        };
+        let pending = quadrant_core::account::id::determine_pending_modpack_updates(
+            &modpacks,
+            &synced_modpacks,
+            &currently_updated,
+        );
 
-            // log::info!("Checking modpack: {}", modpack.name);
-            let matching_modpacks: Vec<SyncedModpack> = synced_modpacks
-                .iter()
-                .filter(|m| m.name == modpack.name)
-                .cloned()
-                .collect();
-
-            for matching_modpack in matching_modpacks {
+        for pending_update in pending {
+            {
                 let mut state_mutex = state.lock().await;
-
-                let cloud_sync_time = matching_modpack.last_synced;
-                let local_sync_time = modpack.last_synced / 1000;
-
-                let is_updated = state_mutex.updated_modpacks.contains(&modpack.name);
-                let is_older = cloud_sync_time <= local_sync_time;
-
-                // log::info!(
-                //     "Checking if {} > {} ({}), while the modpack {} is updated =  {}",
-                //     cloud_sync_time,
-                //     local_sync_time,
-                //     is_older,
-                //     modpack.name,
-                //     is_updated
-                // );
-
-                if is_older || is_updated {
-                    drop(state_mutex);
+                if state_mutex
+                    .updated_modpacks
+                    .contains(&pending_update.local_name)
+                {
                     continue;
                 }
-                state_mutex.updated_modpacks.push(modpack.name.clone());
-                drop(state_mutex);
-
-                // log::info!("Syncing modpack: {}", modpack.clone().name);
-                app.notification()
-                    .builder()
-                    .title(modpack.clone().name)
-                    .large_body(format!("{} | {}", modpack.name, modpack.version))
-                    .body("🔃 Updating...")
-                    .show()?;
-                install_modpack(
-                    InstalledModpack {
-                        mod_loader: matching_modpack.mod_loader,
-                        name: matching_modpack.name,
-                        version: matching_modpack.minecraft_version,
-                        mods: serde_json::from_str(&matching_modpack.mods)?,
-                    },
-                    app.clone(),
-                )
-                .await?;
-                let sync_file = modpacks_folder
-                    .join(&modpack.name)
-                    .join("quadrantSync.json");
-                let time = DateTime::from_timestamp(matching_modpack.last_synced, 0)
-                    .unwrap()
-                    .with_timezone(&Local);
-                std::fs::write(
-                    sync_file,
-                    serde_json::to_string_pretty(&json!({
-                        "last_synced": time.timestamp(),
-                    }))?,
-                )?;
-                app.notification()
-                    .builder()
-                    .large_body(format!("{} | {}", modpack.name, modpack.version))
-                    .title(modpack.clone().name)
-                    .body("✅ Successfully updated!")
-                    .show()?;
-                let mut state_mutex = state.lock().await;
-
-                state_mutex.updated_modpacks.retain(|m| m != &modpack.name);
-                drop(state_mutex);
+                state_mutex
+                    .updated_modpacks
+                    .push(pending_update.local_name.clone());
             }
+
+            app.notification()
+                .builder()
+                .title(pending_update.local_name.clone())
+                .large_body(format!(
+                    "{} | {}",
+                    pending_update.local_name, pending_update.local_version
+                ))
+                .body("Updating...")
+                .show()?;
+
+            install_modpack(
+                InstalledModpack {
+                    mod_loader: pending_update.synced_modpack.mod_loader,
+                    name: pending_update.synced_modpack.name.clone(),
+                    version: pending_update.synced_modpack.minecraft_version.clone(),
+                    mods: serde_json::from_str(&pending_update.synced_modpack.mods)?,
+                },
+                app.clone(),
+            )
+            .await?;
+
+            std::fs::write(
+                modpacks_folder
+                    .join(&pending_update.local_name)
+                    .join("quadrantSync.json"),
+                serde_json::to_string_pretty(&json!({
+                    "last_synced": pending_update.synced_modpack.last_synced,
+                }))?,
+            )?;
+
+            app.notification()
+                .builder()
+                .large_body(format!(
+                    "{} | {}",
+                    pending_update.local_name, pending_update.local_version
+                ))
+                .title(pending_update.local_name.clone())
+                .body("Successfully updated!")
+                .show()?;
+
+            let mut state_mutex = state.lock().await;
+            state_mutex
+                .updated_modpacks
+                .retain(|name| name != &pending_update.local_name);
         }
     }
 
     if auto_settings_sync {
         let res = get_quadrant_settings(app.clone()).await;
-        match res {
-            Ok(_) => {}
-            Err(e) => {
-                let err_msg = e.to_string();
-                if err_msg == "Current settings are newer" {
-                    submit_quadrant_settings(app.clone()).await?;
-                }
+        if let Err(error) = res {
+            if error.to_string() == "Current settings are newer" {
+                submit_quadrant_settings(app.clone()).await?;
             }
         }
     }

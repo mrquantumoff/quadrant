@@ -1,13 +1,5 @@
 use config::init_config;
-use http_cache_reqwest::Cache;
-use http_cache_reqwest::CacheMode;
-use http_cache_reqwest::HttpCache;
-use http_cache_reqwest::HttpCacheOptions;
-use http_cache_reqwest::MokaManager;
 use mc_mod::get_user_agent;
-use once_cell::sync::Lazy;
-use reqwest_middleware::ClientBuilder;
-use reqwest_middleware::ClientWithMiddleware;
 use tauri::{
     Emitter, Manager, Url,
     menu::{Menu, MenuItem},
@@ -30,6 +22,7 @@ pub mod config;
 pub mod mc_mod;
 pub mod modpacks;
 pub mod other;
+pub mod tauri_adapter;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -37,22 +30,6 @@ pub struct AppState {
     pub is_update_enabled: bool,
     pub update: Option<tauri_plugin_updater::Update>,
     pub update_bytes: Vec<u8>,
-}
-
-static NETWORK_CLIENT: Lazy<Mutex<ClientWithMiddleware>> = Lazy::new(|| {
-    let client = ClientBuilder::new(reqwest::Client::new())
-        .with(Cache(HttpCache {
-            mode: CacheMode::Default,
-            options: HttpCacheOptions::default(),
-            manager: MokaManager::default(),
-        }))
-        .build();
-    Mutex::new(client)
-});
-
-pub(crate) async fn network_client() -> ClientWithMiddleware {
-    let client = NETWORK_CLIENT.lock().await;
-    client.clone()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

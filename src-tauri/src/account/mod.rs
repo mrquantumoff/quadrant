@@ -1,39 +1,24 @@
-use keyring::Entry;
 pub mod id;
 pub mod quadrant_settings_sync;
 pub mod quadrant_share;
 pub mod quadrant_sync;
 
+use crate::tauri_adapter::TauriSecretStore;
+
 #[tauri::command]
 pub fn set_secret(key: String, value: String) -> Result<(), tauri::Error> {
-    let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", &key)
-        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-    entry
-        .set_password(&value)
-        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-    Ok(())
+    quadrant_core::account::set_secret(&TauriSecretStore, &key, &value).map_err(tauri::Error::from)
 }
 
 pub fn get_account_token() -> Result<String, anyhow::Error> {
-    let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", "accountToken")?;
-    entry.get_password().map_err(|e| e.into())
+    quadrant_core::account::get_account_token(&TauriSecretStore)
 }
 
 pub fn get_refresh_token() -> Result<String, anyhow::Error> {
-    let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", "refreshToken")?;
-    entry.get_password().map_err(|e| e.into())
+    quadrant_core::account::get_refresh_token(&TauriSecretStore)
 }
 
 #[tauri::command]
 pub fn clear_account_token() -> Result<(), tauri::Error> {
-    let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", "accountToken")
-        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-    entry
-        .delete_credential()
-        .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
-    // Also clear refresh token if it exists
-    if let Ok(entry) = Entry::new("dev.mrquantumoff.mcmodpackmanager", "refreshToken") {
-        let _ = entry.delete_credential();
-    }
-    Ok(())
+    quadrant_core::account::clear_account_token(&TauriSecretStore).map_err(tauri::Error::from)
 }
