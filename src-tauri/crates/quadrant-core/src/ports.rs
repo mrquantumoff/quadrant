@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 pub trait SettingsStore {
     fn get_value(&self, key: &str) -> Result<Option<Value>>;
     fn set_value(&self, key: &str, value: Value) -> Result<()>;
+    fn entries(&self) -> Result<Vec<(String, Value)>>;
 
     fn get_bool(&self, key: &str) -> Result<Option<bool>> {
         Ok(self.get_value(key)?.and_then(|value| value.as_bool()))

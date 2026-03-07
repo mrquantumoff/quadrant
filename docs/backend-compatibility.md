@@ -30,6 +30,23 @@ This document freezes the backend-facing surface while the Rust backend is extra
 - `get_mod_curseforge`
 - `get_mod_owners_curseforge`
 - `get_mod_deps_curseforge`
+- `set_secret`
+- `clear_account_token`
+- `get_account_info`
+- `oauth2_login`
+- `oauth2_client_id`
+- `read_notification`
+- `get_synced_modpacks`
+- `kick_member`
+- `invite_member`
+- `delete_synced_modpack`
+- `sync_modpack`
+- `answer_invite`
+- `share_modpack`
+- `share_modpack_raw`
+- `get_quadrant_share_modpack`
+- `get_quadrant_settings`
+- `submit_quadrant_settings`
 
 ## Tauri Event Names That Must Stay Stable
 - `modDownloadProgress`

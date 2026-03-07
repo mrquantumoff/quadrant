@@ -183,6 +183,15 @@ mod tests {
             self.values.borrow_mut().insert(key.to_string(), value);
             Ok(())
         }
+
+        fn entries(&self) -> Result<Vec<(String, Value)>> {
+            Ok(self
+                .values
+                .borrow()
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone()))
+                .collect())
+        }
     }
 
     #[test]

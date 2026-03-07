@@ -1,3 +1,4 @@
+pub mod account;
 pub mod config;
 pub mod events;
 pub mod mc_mod;

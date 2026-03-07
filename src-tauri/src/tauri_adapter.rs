@@ -45,6 +45,14 @@ impl SettingsStore for TauriSettingsStore {
         store.set(key, value);
         Ok(())
     }
+
+    fn entries(&self) -> Result<Vec<(String, Value)>> {
+        let store = self
+            .app
+            .store(self.store_name)
+            .map_err(anyhow::Error::from)?;
+        Ok(store.entries())
+    }
 }
 
 #[derive(Clone)]
