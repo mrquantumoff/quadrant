@@ -130,6 +130,7 @@ pub fn default_update_config() -> UpdateConfig {
 /// Existing keys are preserved. Missing keys are materialized with the current
 /// defaults used by Quadrant.
 pub fn ensure_default_app_config(store: &impl SettingsStore) -> Result<()> {
+    log::info!("Ensuring default app config is materialized");
     let defaults = default_app_config();
 
     ensure_bool(store, "clipIcons", defaults.clip_icons)?;

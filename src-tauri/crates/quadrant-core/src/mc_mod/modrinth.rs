@@ -312,6 +312,7 @@ pub async fn download_mod_modrinth(
     mod_loader: ModLoader,
     mod_type: ModType,
 ) -> Result<(PathBuf, String)> {
+    log::info!("Downloading Modrinth mod {id} for {minecraft_version} ({mod_loader:?})");
     let file = get_latest_mod_version_modrinth(id.clone(), minecraft_version, mod_loader, mod_type)
         .await?
         .ok_or_else(|| anyhow::anyhow!("noVersion"))?;
@@ -324,6 +325,7 @@ pub async fn identify_modpack_modrinth(
     mc_folder: &PathBuf,
     modpack: String,
 ) -> Result<Vec<IdentifiedMod>> {
+    log::info!("Identifying Modrinth mods in modpack \"{modpack}\"");
     let modpack_folder = mc_folder.join("modpacks").join(&modpack);
     let existing_modpack: Vec<LocalModpack> = get_modpacks(mc_folder, false)?
         .into_iter()

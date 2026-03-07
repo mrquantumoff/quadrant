@@ -46,6 +46,7 @@ pub async fn get_synced_modpacks(
     show_owners: bool,
     modpack_id: Option<String>,
 ) -> Result<Vec<SyncedModpack>> {
+    log::info!("Fetching synced modpacks (show_owners={show_owners}, modpack_id={modpack_id:?})");
     let mut query = vec![("show_owners", show_owners.to_string())];
     if let Some(modpack_id) = modpack_id {
         query.push(("modpack_id", modpack_id));
@@ -67,6 +68,7 @@ pub async fn kick_member(
     modpack_id: String,
     username: String,
 ) -> Result<()> {
+    log::info!("Kicking member {username} from modpack {modpack_id}");
     let res = reqwest::Client::new()
         .delete(format!("{}/quadrant/sync/kick", QNT_BASE_URL))
         .bearer_auth(get_account_token(secret_store)?)
@@ -88,6 +90,7 @@ pub async fn invite_member(
     username: String,
     admin: bool,
 ) -> Result<()> {
+    log::info!("Inviting member {username} to modpack {modpack_id} (admin={admin})");
     let res = reqwest::Client::new()
         .post(format!("{}/quadrant/sync/invite", QNT_BASE_URL))
         .bearer_auth(get_account_token(secret_store)?)
@@ -107,6 +110,7 @@ pub async fn delete_synced_modpack(
     user_agent: &str,
     modpack_id: String,
 ) -> Result<()> {
+    log::info!("Deleting synced modpack {modpack_id}");
     let res = reqwest::Client::new()
         .delete(format!("{}/quadrant/sync/delete", QNT_BASE_URL))
         .bearer_auth(get_account_token(secret_store)?)
@@ -127,6 +131,7 @@ pub async fn sync_modpack(
     modpack: LocalModpack,
     overwrite: bool,
 ) -> Result<i64> {
+    log::info!("Syncing modpack \"{}\" (overwrite={overwrite})", modpack.name);
     let timestamp = Utc::now().timestamp();
     let res = reqwest::Client::new()
         .post(format!("{}/quadrant/sync/submit", QNT_BASE_URL))
@@ -155,6 +160,7 @@ pub async fn answer_invite(
     modpack_id: String,
     answer: bool,
 ) -> Result<()> {
+    log::info!("Answering invite for modpack {modpack_id}: accepted={answer}");
     let response = reqwest::Client::new()
         .post(format!("{}/quadrant/sync/respond", QNT_BASE_URL))
         .bearer_auth(get_account_token(secret_store)?)

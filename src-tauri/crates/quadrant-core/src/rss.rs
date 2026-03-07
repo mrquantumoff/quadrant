@@ -6,6 +6,7 @@ use chrono::{DateTime, Days, Utc};
 
 /// Fetches the Quadrant RSS feed and converts it into typed articles.
 pub async fn get_news() -> Result<Vec<Article>> {
+    log::info!("Fetching RSS news feed");
     let new_qualifier = Utc::now().checked_sub_days(Days::new(14)).unwrap();
     let content = reqwest::get("https://blog.mrquantumoff.dev/rss/")
         .await
@@ -29,5 +30,6 @@ pub async fn get_news() -> Result<Vec<Article>> {
             guid: item.guid.unwrap_or_default().value,
         });
     }
+    log::info!("Fetched {} article(s) from RSS feed", articles.len());
     Ok(articles)
 }

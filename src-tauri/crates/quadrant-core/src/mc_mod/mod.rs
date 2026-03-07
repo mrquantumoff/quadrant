@@ -379,6 +379,7 @@ pub async fn install_mod(
     mod_type: ModType,
     #[allow(unused_variables)] file_id: Option<String>,
 ) -> Result<Option<LocalModpack>> {
+    log::info!("Installing mod {id} from {source:?} (type={mod_type:?})");
     let download_path = match source {
         ModSource::CurseForge => {
             #[cfg(feature = "curseforge")]
@@ -444,6 +445,7 @@ pub async fn get_file(
     event_sink: &impl EventSink,
 ) -> Result<(PathBuf, String)> {
     if let Some(cached_file) = get_cache_index(file.sha1.clone()).await? {
+        log::info!("Cache hit for mod {id} (sha1={})", file.sha1);
         let cached_file_bytes = std::fs::read(&cached_file.file_name).map_err(|error| {
             let _ = futures::executor::block_on(init_cache());
             anyhow!(error)
@@ -461,6 +463,10 @@ pub async fn get_file(
         return Ok((file_path, file.download_url));
     }
 
+    log::info!(
+        "Cache miss for mod {id}, downloading from {}",
+        file.download_url
+    );
     let client = reqwest::Client::new();
     let request = client
         .get(&file.download_url)
@@ -499,7 +505,7 @@ pub fn install_local_file(
 ) -> Result<Option<LocalModpack>> {
     let local_mod = InstalledMod {
         id: id.clone(),
-        source,
+        source: source.clone(),
         download_url,
     };
 
@@ -545,6 +551,7 @@ pub fn install_local_file(
     if let Some(parent) = target_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
+    log::info!("Installed mod {id} ({mod_type:?}) from {source:?}");
     std::fs::copy(file, target_path)?;
     Ok(updated_modpack)
 }
@@ -580,6 +587,9 @@ pub async fn identify_modpack(
     curseforge_enabled: bool,
     modrinth_enabled: bool,
 ) -> Result<Vec<IdentifiedMod>> {
+    log::info!(
+        "Identifying mods in modpack \"{modpack}\" (curseforge={curseforge_enabled}, modrinth={modrinth_enabled})"
+    );
     let mut mods = Vec::new();
     if curseforge_enabled {
         #[cfg(feature = "curseforge")]
@@ -597,5 +607,6 @@ pub async fn identify_modpack(
             modrinth::identify_modpack_modrinth(&mc_folder.to_path_buf(), modpack).await?;
         mods.append(&mut modrinth_mods);
     }
+    log::info!("Identified {} mod(s)", mods.len());
     Ok(mods)
 }

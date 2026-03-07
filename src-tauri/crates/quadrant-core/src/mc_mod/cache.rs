@@ -19,6 +19,7 @@ pub struct CacheIndex {
 
 /// Initializes the cache directory and removes stale cache entries.
 pub async fn init_cache() -> Result<(), anyhow::Error> {
+    log::info!("Initializing mod cache");
     let cache_dir = dirs::cache_dir()
         .unwrap_or_default()
         .join("mrquantumoff.dev")
@@ -51,6 +52,7 @@ pub async fn init_cache() -> Result<(), anyhow::Error> {
         let file = PathBuf::from(&index.file_name);
 
         if is_old.num_days() >= 90 {
+            log::info!("Removing stale cache entry: {}", index.file_name);
             std::fs::remove_file(PathBuf::from(&index.file_name))?;
             file_conts.retain(|cont| cont.file_hash != index.file_hash);
         }
@@ -115,6 +117,7 @@ pub async fn add_cache_index(
         .collect::<Vec<&CacheIndex>>();
     let file_path: PathBuf;
     if !exists.is_empty() {
+        log::info!("Cache entry for hash {file_hash} already exists, refreshing last-used date");
         file_path = PathBuf::from(exists[0].file_name.clone());
         let index = file_conts
             .iter()
@@ -122,6 +125,7 @@ pub async fn add_cache_index(
             .unwrap();
         file_conts[index].last_used_date = Utc::now();
     } else {
+        log::info!("Adding new cache entry: {file_name} (hash={file_hash})");
         let new_file = cache_dir.join(file_name);
         std::fs::write(&new_file, file_bytes)?;
         file_conts.push(CacheIndex {

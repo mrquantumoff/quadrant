@@ -109,6 +109,7 @@ pub fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<LocalModpac
 
 /// Applies the named modpack by making `<mcFolder>/mods` point at it.
 pub fn apply_modpack(mc_folder: &Path, name: &str) -> Result<()> {
+    log::info!("Applying modpack \"{name}\"");
     let modpack_dir = modpack_path(mc_folder, name);
     let mods_path = mc_folder.join("mods");
     if !modpack_dir.exists() {
@@ -149,6 +150,7 @@ pub fn create_modpack(
     version: &str,
     mod_loader: ModLoader,
 ) -> Result<()> {
+    log::info!("Creating modpack \"{name}\" (version={version}, mod_loader={mod_loader:?})");
     if existing_modpacks.iter().any(|modpack| modpack.name == name) {
         return Err(anyhow!("Modpack exists"));
     }
@@ -176,6 +178,7 @@ pub fn update_modpack(
     version: Option<String>,
     mod_loader: Option<ModLoader>,
 ) -> Result<LocalModpack> {
+    log::info!("Updating modpack \"{modpack_source}\" (name={name:?}, version={version:?}, mod_loader={mod_loader:?})");
     let mut modpack = existing_modpacks
         .iter()
         .find(|modpack| modpack.name == modpack_source)
@@ -212,6 +215,7 @@ pub fn delete_modpack(
     existing_modpacks: &[LocalModpack],
     name: &str,
 ) -> Result<()> {
+    log::info!("Deleting modpack \"{name}\"");
     let is_applied = existing_modpacks
         .iter()
         .find(|modpack| modpack.name == name)
@@ -234,6 +238,7 @@ pub fn register_mod(
     mod_: InstalledMod,
     modpack_name: &str,
 ) -> Result<()> {
+    log::info!("Registering mod {} in modpack \"{modpack_name}\"", mod_.id);
     let mut modpack = existing_modpacks
         .iter()
         .find(|modpack| modpack.name == modpack_name)
@@ -259,6 +264,7 @@ pub fn delete_mod(
     modpack_name: &str,
     mod_id: &str,
 ) -> Result<LocalModpack> {
+    log::info!("Deleting mod {mod_id} from modpack \"{modpack_name}\"");
     let mut modpack = existing_modpacks
         .iter()
         .find(|modpack| modpack.name == modpack_name)
@@ -320,6 +326,7 @@ pub async fn install_modpack(
     settings: &impl SettingsStore,
     event_sink: &impl EventSink,
 ) -> Result<()> {
+    log::info!("Installing modpack \"{}\" ({} mod(s))", mod_config.name, mod_config.mods.len());
     let modpack_folder = modpack_path(mc_folder, &mod_config.name);
     if !modpack_folder.exists() {
         std::fs::create_dir_all(&modpack_folder)?;
@@ -374,6 +381,7 @@ pub async fn install_modpack(
     }
 
     event_sink.publish(BackendEvent::ModpackDownloadProgress(1.0))?;
+    log::info!("Modpack installation complete");
     Ok(())
 }
 
@@ -386,6 +394,7 @@ pub fn export_modpack_to(
     destination: &Path,
     event_sink: &impl EventSink,
 ) -> Result<()> {
+    log::info!("Exporting modpack \"{modpack}\" to {}", destination.display());
     let modpack_folder = modpack_path(mc_folder, modpack);
     let destination = std::fs::File::create(destination)?;
     let mut zip = zip::ZipWriter::new(destination);
@@ -426,6 +435,7 @@ pub fn export_modpack_to(
     }
 
     event_sink.publish(BackendEvent::QuadrantExportProgress(1.0))?;
+    log::info!("Modpack export complete");
     Ok(())
 }
 

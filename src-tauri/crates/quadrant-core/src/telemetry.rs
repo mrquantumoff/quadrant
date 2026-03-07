@@ -74,9 +74,11 @@ pub async fn send_telemetry(
     api_key: &str,
 ) -> Result<()> {
     if !settings_store.get_bool("collectUserData")?.unwrap_or(true) {
+        log::info!("Telemetry skipped: data collection is disabled");
         return Ok(());
     }
 
+    log::info!("Sending telemetry for version {version} on {os}");
     let info = get_telemetry_info(settings_store, version, os).await?;
     reqwest::Client::new()
         .post(format!("{}/quadrant/usage/submit", QNT_BASE_URL))
@@ -95,6 +97,7 @@ pub async fn remove_telemetry(
     user_agent: &str,
     api_key: &str,
 ) -> Result<()> {
+    log::info!("Removing telemetry data");
     let hardware_id = settings_store
         .get_string("hardwareId")?
         .unwrap_or_default();

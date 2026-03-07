@@ -37,6 +37,7 @@ pub async fn get_quadrant_settings(
     secret_store: &impl SecretStore,
     user_agent: &str,
 ) -> Result<()> {
+    log::info!("Pulling settings from cloud");
     let token = get_account_token(secret_store)?;
     let json = reqwest::Client::new()
         .get(format!("{}/quadrant/settings_sync/get", QNT_BASE_URL))
@@ -59,12 +60,14 @@ pub async fn get_quadrant_settings(
     )?;
 
     if last_settings_updated == sync_time {
+        log::info!("Cloud settings are up-to-date, skipping sync");
         return Ok(());
     }
     if last_settings_updated > sync_time {
         return Err(anyhow!("Current settings are newer"));
     }
 
+    log::info!("Applying cloud settings (sync_time={sync_time})");
     if let Some(new_settings) = json["settings"].as_str() {
         let new_settings: Value = serde_json::from_str(new_settings)?;
         for (key, value) in new_settings
@@ -85,6 +88,7 @@ pub async fn submit_quadrant_settings(
     secret_store: &impl SecretStore,
     user_agent: &str,
 ) -> Result<()> {
+    log::info!("Pushing settings to cloud");
     let token = get_account_token(secret_store)?;
     let entries = settings_store.entries()?;
     let new_sync_date = settings_store

@@ -355,6 +355,7 @@ pub async fn download_mod_curseforge(
     mod_type: ModType,
     file_id: Option<String>,
 ) -> Result<(PathBuf, String)> {
+    log::info!("Downloading CurseForge mod {id} for {minecraft_version} ({mod_loader:?}, file_id={file_id:?})");
     let file = get_latest_mod_version_curseforge(
         id.clone(),
         minecraft_version,
@@ -373,6 +374,7 @@ pub async fn identify_modpack_curseforge(
     mc_folder: &PathBuf,
     modpack: String,
 ) -> Result<Vec<IdentifiedMod>> {
+    log::info!("Identifying CurseForge mods in modpack \"{modpack}\"");
     let modpack_folder = mc_folder.join("modpacks").join(&modpack);
     let existing_modpack: Vec<LocalModpack> = get_modpacks(mc_folder, false)?
         .into_iter()

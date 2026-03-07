@@ -14,6 +14,7 @@ pub const KEYRING_SERVICE: &str = "dev.mrquantumoff.mcmodpackmanager";
 
 /// Persists a named secret in the host secret store.
 pub fn set_secret(secret_store: &impl SecretStore, key: &str, value: &str) -> Result<()> {
+    log::info!("Setting secret: {key}");
     secret_store.set_secret(key, value)
 }
 
@@ -33,6 +34,7 @@ pub fn get_refresh_token(secret_store: &impl SecretStore) -> Result<String> {
 
 /// Removes any persisted account and refresh tokens.
 pub fn clear_account_token(secret_store: &impl SecretStore) -> Result<()> {
+    log::info!("Clearing account and refresh tokens");
     let _ = secret_store.delete_secret("accountToken");
     let _ = secret_store.delete_secret("refreshToken");
     Ok(())

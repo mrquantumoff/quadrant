@@ -44,8 +44,10 @@ pub async fn share_modpack_raw(
     mod_config: InstalledModpack,
     api_key: &str,
 ) -> Result<QuadrantShareSubmissionResponse> {
+    log::info!("Sharing modpack: {}", mod_config.name);
     let data_collection_enabled = settings_store.get_bool("collectUserData")?.unwrap_or(false);
     if !data_collection_enabled {
+        log::info!("Modpack share aborted: data collection is disabled");
         return Err(anyhow::anyhow!("enableDataSharing"));
     }
 
@@ -82,6 +84,7 @@ pub async fn get_quadrant_share_modpack(
     api_key: &str,
     code: String,
 ) -> Result<InstalledModpack> {
+    log::info!("Fetching shared modpack with code: {code}");
     let response = reqwest::Client::new()
         .get(format!("{}/quadrant/share/get", QNT_BASE_URL))
         .query(&[("code", code)])

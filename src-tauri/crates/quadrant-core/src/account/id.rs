@@ -82,6 +82,7 @@ pub async fn try_refresh_token(
     client_secret: &str,
     user_agent: &str,
 ) -> Result<()> {
+    log::info!("Attempting token refresh");
     let refresh_token = get_refresh_token(secret_store)?;
     let mut body = HashMap::new();
     body.insert("client_id", client_id);
@@ -108,6 +109,7 @@ pub async fn try_refresh_token(
     if let Some(new_refresh_token) = res.refresh_token {
         set_secret(secret_store, "refreshToken", &new_refresh_token)?;
     }
+    log::info!("Token refresh successful");
     Ok(())
 }
 
@@ -116,6 +118,7 @@ pub async fn get_account_info(
     secret_store: &impl SecretStore,
     user_agent: &str,
 ) -> Result<AccountInfo> {
+    log::info!("Fetching account info");
     let token = get_account_token(secret_store)?;
     let client = reqwest::Client::new();
     let url = format!("{}/account/info/get", QNT_BASE_URL);
@@ -150,6 +153,7 @@ pub async fn get_account_info_with_refresh(
         .await?;
 
     if response.status() == StatusCode::UNAUTHORIZED {
+        log::info!("Account info request unauthorized, attempting token refresh");
         try_refresh_token(secret_store, client_id, client_secret, user_agent).await?;
         let new_token = get_account_token(secret_store)?;
         let retry = client
@@ -175,6 +179,7 @@ pub async fn oauth2_login(
     code: String,
     redirect_uri: String,
 ) -> Result<()> {
+    log::info!("Starting OAuth2 login flow");
     let mut body = HashMap::new();
     body.insert("client_id", client_id);
     body.insert("client_secret", client_secret);
@@ -201,6 +206,7 @@ pub async fn oauth2_login(
     if let Some(refresh_token) = res.refresh_token {
         set_secret(secret_store, "refreshToken", &refresh_token)?;
     }
+    log::info!("OAuth2 login successful");
     Ok(())
 }
 
@@ -210,6 +216,7 @@ pub async fn read_notification(
     user_agent: &str,
     notification_id: String,
 ) -> Result<()> {
+    log::info!("Marking notification {notification_id} as read");
     let token = get_account_token(secret_store)?;
     let request = reqwest::Client::new()
         .post(format!("{}/account/notifications/read", QNT_BASE_URL))
@@ -234,6 +241,7 @@ pub fn determine_pending_modpack_updates(
     synced_modpacks: &[SyncedModpack],
     updated_modpacks: &[String],
 ) -> Vec<PendingModpackUpdate> {
+    log::info!("Determining pending modpack updates");
     let mut pending = Vec::new();
     for modpack in local_modpacks {
         if modpack.last_synced == 0 {
@@ -255,5 +263,6 @@ pub fn determine_pending_modpack_updates(
             });
         }
     }
+    log::info!("Found {} pending modpack update(s)", pending.len());
     pending
 }
