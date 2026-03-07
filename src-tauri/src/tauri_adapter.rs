@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use anyhow::anyhow;
-use keyring::Entry;
+use keyring::{Entry, Error as KeyringError};
 use quadrant_core::{
     Result,
     events::BackendEvent,
@@ -100,10 +100,7 @@ pub struct TauriSecretStore;
 impl SecretStore for TauriSecretStore {
     fn get_secret(&self, key: &str) -> Result<Option<String>> {
         let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", key)?;
-        match entry.get_password() {
-            Ok(value) => Ok(Some(value)),
-            Err(_) => Ok(None),
-        }
+        map_keyring_secret_result(entry.get_password())
     }
 
     fn set_secret(&self, key: &str, value: &str) -> Result<()> {
@@ -116,6 +113,16 @@ impl SecretStore for TauriSecretStore {
         let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", key)?;
         entry.delete_credential()?;
         Ok(())
+    }
+}
+
+fn map_keyring_secret_result(
+    result: std::result::Result<String, KeyringError>,
+) -> Result<Option<String>> {
+    match result {
+        Ok(value) => Ok(Some(value)),
+        Err(KeyringError::NoEntry) => Ok(None),
+        Err(error) => Err(error.into()),
     }
 }
 
@@ -224,4 +231,25 @@ pub fn mc_folder(app: &AppHandle) -> Result<PathBuf> {
         .and_then(|value| value.as_str().map(PathBuf::from))
         .ok_or_else(|| anyhow!("mcFolder is not configured"))?;
     Ok(mc_folder)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::map_keyring_secret_result;
+    use keyring::Error as KeyringError;
+
+    #[test]
+    fn missing_secret_maps_to_none() {
+        let result = map_keyring_secret_result(Err(KeyringError::NoEntry)).unwrap();
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn non_missing_secret_errors_are_preserved() {
+        let error = map_keyring_secret_result(Err(KeyringError::PlatformFailure(
+            std::io::Error::other("backend unavailable").into(),
+        )))
+        .unwrap_err();
+        assert!(error.to_string().contains("backend unavailable"));
+    }
 }
