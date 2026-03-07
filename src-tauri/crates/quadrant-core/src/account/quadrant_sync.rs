@@ -1,3 +1,5 @@
+//! Synced modpack and collaboration APIs.
+
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -9,23 +11,35 @@ use crate::{
     ports::SecretStore,
 };
 
+/// Owner information for a synced modpack.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ModpackOwner {
+    /// Owner username.
     pub username: String,
+    /// Whether the owner has admin rights on the synced modpack.
     pub admin: bool,
 }
 
+/// Cloud-backed modpack metadata returned by Quadrant Sync.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SyncedModpack {
+    /// Human-readable modpack name.
     pub name: String,
+    /// Target Minecraft version.
     pub minecraft_version: String,
+    /// Target mod loader.
     pub mod_loader: ModLoader,
+    /// Serialized mod list payload.
     pub mods: String,
+    /// Owners and collaborators of the modpack.
     pub owners: Vec<ModpackOwner>,
+    /// Last sync time in seconds since the Unix epoch.
     pub last_synced: i64,
+    /// Stable cloud modpack identifier.
     pub modpack_id: String,
 }
 
+/// Fetches synced modpacks visible to the current account.
 pub async fn get_synced_modpacks(
     secret_store: &impl SecretStore,
     user_agent: &str,
@@ -46,6 +60,7 @@ pub async fn get_synced_modpacks(
     Ok(response.json().await?)
 }
 
+/// Removes a collaborator from a synced modpack.
 pub async fn kick_member(
     secret_store: &impl SecretStore,
     user_agent: &str,
@@ -65,6 +80,7 @@ pub async fn kick_member(
     Ok(())
 }
 
+/// Invites a collaborator to a synced modpack.
 pub async fn invite_member(
     secret_store: &impl SecretStore,
     user_agent: &str,
@@ -85,6 +101,7 @@ pub async fn invite_member(
     Ok(())
 }
 
+/// Permanently deletes a synced modpack from the cloud.
 pub async fn delete_synced_modpack(
     secret_store: &impl SecretStore,
     user_agent: &str,
@@ -103,6 +120,7 @@ pub async fn delete_synced_modpack(
     Ok(())
 }
 
+/// Uploads local modpack state to Quadrant Sync and returns the sync timestamp used.
 pub async fn sync_modpack(
     secret_store: &impl SecretStore,
     user_agent: &str,
@@ -130,6 +148,7 @@ pub async fn sync_modpack(
     Ok(timestamp)
 }
 
+/// Accepts or declines an invitation to a synced modpack.
 pub async fn answer_invite(
     secret_store: &impl SecretStore,
     user_agent: &str,

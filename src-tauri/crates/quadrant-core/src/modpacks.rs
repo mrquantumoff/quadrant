@@ -1,3 +1,5 @@
+//! Local modpack filesystem operations and import/export flows.
+
 use crate::{
     Result,
     events::BackendEvent,
@@ -18,6 +20,7 @@ use std::{
 use tokio::sync::Mutex;
 use zip::write::{ExtendedFileOptions, FileOptions};
 
+/// Discovers local modpacks under `<mcFolder>/modpacks`.
 pub fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<LocalModpack>> {
     let mut modpacks = Vec::new();
     let modpacks_folder = mc_folder.join("modpacks");
@@ -104,6 +107,7 @@ pub fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<LocalModpac
     Ok(modpacks)
 }
 
+/// Applies the named modpack by making `<mcFolder>/mods` point at it.
 pub fn apply_modpack(mc_folder: &Path, name: &str) -> Result<()> {
     let modpack_dir = modpack_path(mc_folder, name);
     let mods_path = mc_folder.join("mods");
@@ -137,6 +141,7 @@ pub fn apply_modpack(mc_folder: &Path, name: &str) -> Result<()> {
     Ok(())
 }
 
+/// Creates a new modpack folder and manifest.
 pub fn create_modpack(
     mc_folder: &Path,
     existing_modpacks: &[LocalModpack],
@@ -162,6 +167,7 @@ pub fn create_modpack(
     Ok(())
 }
 
+/// Updates an existing modpack manifest and optionally renames the modpack.
 pub fn update_modpack(
     mc_folder: &Path,
     existing_modpacks: &[LocalModpack],
@@ -200,6 +206,7 @@ pub fn update_modpack(
     Ok(modpack)
 }
 
+/// Deletes a modpack and removes the active `mods` link if needed.
 pub fn delete_modpack(
     mc_folder: &Path,
     existing_modpacks: &[LocalModpack],
@@ -220,6 +227,7 @@ pub fn delete_modpack(
     Ok(())
 }
 
+/// Registers a mod entry inside the target modpack manifest.
 pub fn register_mod(
     mc_folder: &Path,
     existing_modpacks: &[LocalModpack],
@@ -244,6 +252,7 @@ pub fn register_mod(
     Ok(())
 }
 
+/// Removes a mod entry and its downloaded file from a modpack.
 pub fn delete_mod(
     mc_folder: &Path,
     existing_modpacks: &[LocalModpack],
@@ -293,6 +302,7 @@ pub fn delete_mod(
     Ok(modpack)
 }
 
+/// Persists the last sync time for a modpack.
 pub fn set_modpack_sync_date(mc_folder: &Path, time: u64, modpack: &str) -> Result<()> {
     std::fs::write(
         modpack_path(mc_folder, modpack).join("quadrantSync.json"),
@@ -301,6 +311,9 @@ pub fn set_modpack_sync_date(mc_folder: &Path, time: u64, modpack: &str) -> Resu
     Ok(())
 }
 
+/// Downloads the files declared by a modpack manifest into its local folder.
+///
+/// Progress is emitted through [`BackendEvent::ModpackDownloadProgress`].
 pub async fn install_modpack(
     mc_folder: &Path,
     mod_config: InstalledModpack,
@@ -364,6 +377,9 @@ pub async fn install_modpack(
     Ok(())
 }
 
+/// Exports a modpack folder as a Quadrant zip archive at the provided path.
+///
+/// Progress is emitted through [`BackendEvent::QuadrantExportProgress`].
 pub fn export_modpack_to(
     mc_folder: &Path,
     modpack: &str,

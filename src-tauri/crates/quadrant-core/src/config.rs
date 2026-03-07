@@ -1,40 +1,67 @@
+//! Config defaults and path resolution helpers for `quadrant-core`.
+
 use crate::{Result, ports::SettingsStore};
 use chrono::{Days, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use uuid::Uuid;
 
+/// Typed representation of the persisted `config.json` data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppConfig {
+    /// Whether to visually clip mod or modpack icons in the UI.
     pub clip_icons: bool,
+    /// RFC3339 timestamp of the last successful RSS fetch.
     pub last_rss_fetched: String,
+    /// Whether CurseForge integrations are enabled.
     pub curseforge: bool,
+    /// Whether Modrinth integrations are enabled.
     pub modrinth: bool,
+    /// Usage counter for CurseForge-backed downloads.
     pub curseforge_usage: i64,
+    /// Usage counter for Modrinth-backed downloads.
     pub modrinth_usage: i64,
+    /// Whether developer-oriented functionality is enabled.
     pub dev_mode: bool,
+    /// Stable installation identifier used for telemetry and sharing.
     pub hardware_id: String,
+    /// Whether news feeds should be shown.
     pub rss_feeds: bool,
+    /// Whether news should avoid interruptive presentation.
     pub silent_news: bool,
+    /// Whether automatic Quadrant sync is enabled.
     pub auto_quadrant_sync: bool,
+    /// Whether to show mods that cannot currently be upgraded.
     pub show_unupgradeable_mods: bool,
+    /// Last selected page index in the current app navigation.
     pub last_page: i64,
+    /// Whether extended navigation is enabled in the frontend.
     pub extended_navigation: bool,
+    /// Whether experimental features are enabled.
     pub experimental_features: bool,
+    /// Whether the user has dismissed the data collection recommendation.
     pub dont_show_user_data_recommendation: bool,
+    /// Cache retention window in days.
     pub cache_keep_alive: i64,
+    /// Whether settings sync is enabled.
     pub sync_settings: bool,
+    /// RFC3339 timestamp of the last local settings update.
     pub last_settings_updated: String,
+    /// Resolved Minecraft root folder path.
     pub mc_folder: String,
+    /// Whether the user opted into telemetry and related data collection.
     pub collect_user_data: bool,
 }
 
+/// Typed representation of the persisted update configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateConfig {
+    /// Selected update channel, such as `stable`.
     pub channel: String,
 }
 
+/// Resolves the base config directory used to derive the Minecraft folder.
 pub fn get_config_dir() -> Result<Option<PathBuf>> {
     #[cfg(any(target_os = "windows", target_os = "macos"))]
     {
@@ -46,6 +73,7 @@ pub fn get_config_dir() -> Result<Option<PathBuf>> {
     }
 }
 
+/// Resolves the default Minecraft folder for the current platform.
 pub fn get_mc_folder() -> Result<Option<PathBuf>> {
     let mut path = get_config_dir()?;
     if path.is_none() {
@@ -56,6 +84,7 @@ pub fn get_mc_folder() -> Result<Option<PathBuf>> {
     Ok(Some(path))
 }
 
+/// Builds the default application configuration used for first-run bootstrap.
 pub fn default_app_config() -> AppConfig {
     let fourteen_days_ago = Utc::now().checked_sub_days(Days::new(14)).unwrap();
     let now = Utc::now();
@@ -89,12 +118,17 @@ pub fn default_app_config() -> AppConfig {
     }
 }
 
+/// Builds the default updater configuration.
 pub fn default_update_config() -> UpdateConfig {
     UpdateConfig {
         channel: "stable".to_string(),
     }
 }
 
+/// Ensures all expected app config keys exist in the provided settings store.
+///
+/// Existing keys are preserved. Missing keys are materialized with the current
+/// defaults used by Quadrant.
 pub fn ensure_default_app_config(store: &impl SettingsStore) -> Result<()> {
     let defaults = default_app_config();
 

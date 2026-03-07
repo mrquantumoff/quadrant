@@ -1,16 +1,23 @@
+//! Local file cache utilities used by mod downloads.
+
 use std::path::PathBuf;
 
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 
+/// Cache index entry describing a downloaded file in the shared cache.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CacheIndex {
+    /// Last time the cached file was used.
     pub last_used_date: DateTime<Utc>,
+    /// SHA-1 hash of the cached file contents.
     pub file_hash: String,
+    /// Absolute path to the cached file on disk.
     pub file_name: String,
 }
 
+/// Initializes the cache directory and removes stale cache entries.
 pub async fn init_cache() -> Result<(), anyhow::Error> {
     let cache_dir = dirs::cache_dir()
         .unwrap_or_default()
@@ -57,6 +64,7 @@ pub async fn init_cache() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+/// Computes the SHA-1 hash of a file payload.
 pub fn file_hash(file_bytes: &[u8]) -> String {
     let mut hasher = Sha1::new();
     hasher.update(file_bytes);
@@ -64,6 +72,7 @@ pub fn file_hash(file_bytes: &[u8]) -> String {
     hex::encode(hash)
 }
 
+/// Looks up a cached file by content hash.
 pub async fn get_cache_index(file_hash: String) -> Result<Option<CacheIndex>, anyhow::Error> {
     let cache_dir = dirs::cache_dir()
         .unwrap_or_default()
@@ -83,6 +92,7 @@ pub async fn get_cache_index(file_hash: String) -> Result<Option<CacheIndex>, an
     Ok(Some(file_conts[0].clone()))
 }
 
+/// Stores a file in the shared cache or refreshes an existing cache entry.
 pub async fn add_cache_index(
     file_name: String,
     file_bytes: &[u8],

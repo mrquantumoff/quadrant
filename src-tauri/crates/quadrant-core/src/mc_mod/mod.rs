@@ -1,3 +1,5 @@
+//! Mod provider integration, install flows, and mod identification APIs.
+
 use std::path::{Path, PathBuf};
 
 use anyhow::anyhow;
@@ -25,6 +27,7 @@ pub mod curseforge;
 pub mod curseforge_fingerprint;
 pub mod modrinth;
 
+/// Broad category of downloadable Minecraft content.
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Copy)]
 pub enum ModType {
     Mod,
@@ -45,6 +48,7 @@ impl From<String> for ModType {
 }
 
 impl ModType {
+    /// Returns the CurseForge class identifier for this content type.
     pub fn curseforge_id(&self) -> i32 {
         match *self {
             Self::Mod => 6,
@@ -54,6 +58,7 @@ impl ModType {
         }
     }
 
+    /// Maps a CurseForge class identifier into a `ModType`.
     pub fn from_curseforge_class(class_id: i64) -> Self {
         match class_id {
             6 => Self::Mod,
@@ -76,82 +81,135 @@ impl std::fmt::Display for ModType {
     }
 }
 
+/// Search or detail result for a mod, resource pack, or shader pack.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Mod {
+    /// Display name.
     pub name: String,
+    /// Provider-specific identifier.
     pub id: String,
+    /// Aggregate download count from the upstream provider.
     pub download_count: i64,
+    /// Selected or primary version label.
     pub version: String,
+    /// Broad content type.
     pub mod_type: ModType,
+    /// Upstream source provider.
     pub source: ModSource,
+    /// Provider slug used to build URLs.
     pub slug: String,
+    /// Preview images exposed by the provider.
     pub thumbnail_urls: Vec<String>,
+    /// Canonical provider page URL.
     pub url: String,
+    /// Human-readable description.
     pub description: String,
+    /// License label, if known.
     pub license: String,
+    /// Primary icon URL.
     pub mod_icon_url: String,
+    /// Whether the item can currently be downloaded by Quadrant.
     pub downloadable: bool,
+    /// Whether old-version information should still be shown in the UI.
     pub show_previous_version: bool,
+    /// Newer file candidate when checking for updates.
     pub new_version: Option<UniversalModFile>,
+    /// Whether the item may be deleted from a local modpack.
     pub deleteable: bool,
+    /// Whether the current host can auto-install this item.
     pub autoinstallable: bool,
+    /// Whether the item is user-selectable in the current flow.
     pub selectable: bool,
+    /// Optional target modpack name.
     pub modpack: Option<String>,
+    /// Optional selection URL used by some frontend flows.
     pub select_url: Option<String>,
 }
 
+/// Minecraft version entry returned by the provider.
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MinecraftVersion {
+    /// Version label, such as `1.20.1`.
     pub version: String,
+    /// Version type, such as `release`.
     pub version_type: String,
 }
 
+/// Provider-agnostic downloadable file representation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UniversalModFile {
+    /// Optional provider-specific file identifier.
     pub id: Option<String>,
+    /// File name to store locally.
     pub file_name: String,
+    /// Direct download URL.
     pub download_url: String,
+    /// Expected SHA-1 file hash.
     pub sha1: String,
+    /// Expected file size in bytes.
     pub size: u64,
 }
 
+/// Cross-provider search input used by the host API surface.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GlobalSearchModsArgs {
+    /// Source provider to query.
     pub source: ModSource,
+    /// Free-text search query.
     pub query: String,
+    /// Requested content type.
     pub mod_type: String,
+    /// Whether loader/version filtering should be applied.
     pub filter_on: bool,
 }
 
+/// Provider-local search input.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SearchModsArgs {
+    /// Free-text search query.
     pub query: String,
+    /// Requested content type.
     pub mod_type: String,
+    /// Whether provider-side filtering should be applied.
     pub filter_on: bool,
 }
 
+/// Mod detail and install input exposed to hosts.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GetModArgs {
+    /// Provider-specific mod identifier.
     pub id: String,
+    /// Whether the item should be presented as downloadable.
     pub downloadable: bool,
+    /// Whether previous-version info should be displayed.
     pub show_previous_version: bool,
+    /// Whether the item may be deleted locally.
     pub deletable: bool,
+    /// Target Minecraft version.
     pub version_target: String,
+    /// Target mod loader.
     pub mod_loader: ModLoader,
+    /// Target modpack name.
     pub modpack: String,
+    /// Whether the item is user-selectable.
     pub selectable: bool,
+    /// Optional selection URL used by frontend flows.
     pub select_url: Option<String>,
 }
 
+/// Result of identifying a local file as a known upstream mod.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct IdentifiedMod {
+    /// Installed mod metadata to persist if selected.
     pub installed_mod: InstalledMod,
+    /// File name of the local mod file.
     pub file_name: String,
 }
 
+/// Returns the default Quadrant user agent used for upstream requests.
 pub fn get_user_agent() -> String {
     format!(
         "mrquantumoff/quadrant/v{} (mrquantumoff.dev) (QUADRANT NEXT)",
@@ -159,6 +217,7 @@ pub fn get_user_agent() -> String {
     )
 }
 
+/// Fetches release Minecraft versions from Modrinth.
 pub async fn get_versions() -> Result<Vec<MinecraftVersion>> {
     let response = reqwest::Client::new()
         .get("https://api.modrinth.com/v2/tag/game_version")
@@ -172,6 +231,7 @@ pub async fn get_versions() -> Result<Vec<MinecraftVersion>> {
         .collect())
 }
 
+/// Checks whether a mod has an upgrade available for the given target environment.
 pub async fn check_mod_updates(
     mod_to_update: Mod,
     minecraft_version: String,
@@ -234,6 +294,7 @@ pub async fn check_mod_updates(
     Ok(Some(new_mod))
 }
 
+/// Searches mods from the requested provider and sorts them by download count.
 pub async fn search_mods(
     args: GlobalSearchModsArgs,
     settings: &impl SettingsStore,
@@ -263,6 +324,7 @@ pub async fn search_mods(
     Ok(mods)
 }
 
+/// Builds the canonical provider page URL for a mod or content item.
 pub fn get_mod_url(slug: String, mod_type: ModType, source: ModSource) -> String {
     let base_url = match source {
         ModSource::CurseForge => "https://curseforge.com/minecraft",
@@ -289,6 +351,7 @@ pub fn get_mod_url(slug: String, mod_type: ModType, source: ModSource) -> String
     format!("{}/{}/{}", base_url, mod_type, slug)
 }
 
+/// Builds the canonical provider page URL for a user or author profile.
 pub fn get_user_url(username: String, source: ModSource) -> String {
     let base_url = match source {
         ModSource::CurseForge => "https://curseforge.com/members",
@@ -299,6 +362,10 @@ pub fn get_user_url(username: String, source: ModSource) -> String {
     format!("{}/{}", base_url, username)
 }
 
+/// Downloads and installs a provider-backed mod into the requested target.
+///
+/// Progress is emitted through [`BackendEvent::ModDownloadProgress`] and
+/// [`BackendEvent::ModInstallProgress`].
 pub async fn install_mod(
     mc_folder: &Path,
     existing_modpacks: &[LocalModpack],
@@ -370,6 +437,7 @@ pub async fn install_mod(
     Ok(updated_modpack)
 }
 
+/// Downloads a specific file, using the shared cache when possible.
 pub async fn get_file(
     file: UniversalModFile,
     id: String,
@@ -418,6 +486,7 @@ pub async fn get_file(
     Ok((file_path, file.download_url))
 }
 
+/// Installs an already-downloaded file into a modpack or game content folder.
 pub fn install_local_file(
     mc_folder: &Path,
     existing_modpacks: &[LocalModpack],
@@ -480,6 +549,7 @@ pub fn install_local_file(
     Ok(updated_modpack)
 }
 
+/// Downloads a remote file and installs it into the requested target.
 pub async fn install_remote_file(
     mc_folder: &Path,
     existing_modpacks: &[LocalModpack],
@@ -503,6 +573,7 @@ pub async fn install_remote_file(
     )
 }
 
+/// Attempts to identify local mod files in a modpack using enabled providers.
 pub async fn identify_modpack(
     mc_folder: &Path,
     modpack: String,

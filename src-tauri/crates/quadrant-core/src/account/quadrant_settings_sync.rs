@@ -1,3 +1,5 @@
+//! Settings synchronization helpers for Quadrant cloud settings.
+
 use std::collections::HashMap;
 
 use anyhow::anyhow;
@@ -10,6 +12,7 @@ use crate::{
     ports::{SecretStore, SettingsStore},
 };
 
+/// Setting keys that currently participate in cloud settings sync.
 pub const SYNCED_KEYS: &[&str] = &[
     "collectUserData",
     "modrinth",
@@ -28,6 +31,7 @@ pub const SYNCED_KEYS: &[&str] = &[
     "clipIcons",
 ];
 
+/// Pulls synced settings from the cloud into the local settings store.
 pub async fn get_quadrant_settings(
     settings_store: &impl SettingsStore,
     secret_store: &impl SecretStore,
@@ -75,6 +79,7 @@ pub async fn get_quadrant_settings(
     Err(anyhow!("No valid settings"))
 }
 
+/// Pushes the current synced settings subset to the Quadrant backend.
 pub async fn submit_quadrant_settings(
     settings_store: &impl SettingsStore,
     secret_store: &impl SecretStore,

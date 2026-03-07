@@ -1,7 +1,10 @@
+//! RSS/news fetching for the Quadrant blog.
+
 use crate::{Result, models::Article};
 use anyhow::anyhow;
 use chrono::{DateTime, Days, Utc};
 
+/// Fetches the Quadrant RSS feed and converts it into typed articles.
 pub async fn get_news() -> Result<Vec<Article>> {
     let new_qualifier = Utc::now().checked_sub_days(Days::new(14)).unwrap();
     let content = reqwest::get("https://blog.mrquantumoff.dev/rss/")

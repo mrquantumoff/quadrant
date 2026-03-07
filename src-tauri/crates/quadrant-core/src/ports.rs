@@ -2,6 +2,10 @@ use crate::{Result, events::BackendEvent};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 
+/// Persistent key/value configuration used by the core services.
+///
+/// Hosts should keep the current key names if they want compatibility with the
+/// existing Quadrant app data format.
 pub trait SettingsStore {
     fn get_value(&self, key: &str) -> Result<Option<Value>>;
     fn set_value(&self, key: &str, value: Value) -> Result<()>;
@@ -34,26 +38,31 @@ pub trait SettingsStore {
     }
 }
 
+/// Secret persistence for tokens and other sensitive values.
 pub trait SecretStore {
     fn get_secret(&self, key: &str) -> Result<Option<String>>;
     fn set_secret(&self, key: &str, value: &str) -> Result<()>;
     fn delete_secret(&self, key: &str) -> Result<()>;
 }
 
+/// Publishes typed backend events to the host event system.
 pub trait EventSink {
     fn publish(&self, event: BackendEvent) -> Result<()>;
 }
 
+/// Shell and dialog affordances that remain host-owned.
 pub trait Shell {
     fn open_url(&self, url: &str) -> Result<()>;
     fn open_path(&self, path: &Path) -> Result<()>;
     fn choose_export_path(&self, suggested_name: &str) -> Result<Option<PathBuf>>;
 }
 
+/// Host-side user notification abstraction.
 pub trait Notifier {
     fn notify(&self, title: &str, body: &str) -> Result<()>;
 }
 
+/// Mutable in-process host state that should not live in persisted settings.
 pub trait RuntimeState {
     fn get_value(&self, key: &str) -> Result<Option<Value>>;
     fn set_value(&self, key: &str, value: Value) -> Result<()>;

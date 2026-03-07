@@ -1,3 +1,5 @@
+//! Account identity, login, refresh, and notification APIs.
+
 use std::collections::HashMap;
 
 use reqwest::StatusCode;
@@ -11,43 +13,69 @@ use crate::{
 
 use super::quadrant_sync::SyncedModpack;
 
+/// Account profile returned by the Quadrant backend.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountInfo {
+    /// Stable account identifier.
     pub id: String,
+    /// Display name.
     pub name: String,
+    /// Email address associated with the account.
     pub email: String,
+    /// Maximum synced modpack quota for the account.
     pub quadrant_sync_limit: i32,
+    /// Maximum share quota for the account.
     pub quadrant_share_limit: i32,
+    /// Login or username.
     pub login: String,
+    /// Current notification list.
     pub notifications: Vec<Notification>,
 }
 
+/// Account notification returned by the Quadrant backend.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Notification {
+    /// Stable notification identifier.
     pub notification_id: String,
+    /// Owning user identifier.
     pub user_id: String,
+    /// Human-readable notification message.
     pub message: String,
+    /// Creation timestamp in seconds since the Unix epoch.
     pub created_at: i64,
+    /// Whether the notification has been marked as read.
     pub read: bool,
 }
 
+/// OAuth token response returned by the Quadrant backend.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuth2Response {
+    /// Access token used for authenticated requests.
     pub access_token: String,
+    /// Token type, typically `Bearer`.
     pub token_type: String,
+    /// Access token lifetime in seconds.
     pub expires_in: i64,
+    /// Optional refresh token.
     pub refresh_token: Option<String>,
+    /// Granted OAuth scopes.
     pub scope: String,
 }
 
+/// Description of a cloud modpack update pending local application.
 #[derive(Debug, Clone)]
 pub struct PendingModpackUpdate {
+    /// Remote synced modpack metadata.
     pub synced_modpack: SyncedModpack,
+    /// Matching local modpack name.
     pub local_name: String,
+    /// Matching local modpack version.
     pub local_version: String,
+    /// Local sync time in seconds since the Unix epoch.
     pub local_sync_time: i64,
 }
 
+/// Uses the refresh token to obtain and persist a fresh access token.
 pub async fn try_refresh_token(
     secret_store: &impl SecretStore,
     client_id: &str,
@@ -83,6 +111,7 @@ pub async fn try_refresh_token(
     Ok(())
 }
 
+/// Fetches the current account profile using the stored access token.
 pub async fn get_account_info(
     secret_store: &impl SecretStore,
     user_agent: &str,
@@ -102,6 +131,7 @@ pub async fn get_account_info(
     Ok(serde_json::from_str(&response_raw)?)
 }
 
+/// Fetches account info and attempts a token refresh if the request is unauthorized.
 pub async fn get_account_info_with_refresh(
     secret_store: &impl SecretStore,
     user_agent: &str,
@@ -136,6 +166,7 @@ pub async fn get_account_info_with_refresh(
     Ok(serde_json::from_str(&response_raw)?)
 }
 
+/// Completes the OAuth authorization code flow and persists returned tokens.
 pub async fn oauth2_login(
     secret_store: &impl SecretStore,
     user_agent: &str,
@@ -173,6 +204,7 @@ pub async fn oauth2_login(
     Ok(())
 }
 
+/// Marks a notification as read in the Quadrant backend.
 pub async fn read_notification(
     secret_store: &impl SecretStore,
     user_agent: &str,
@@ -196,6 +228,7 @@ pub async fn read_notification(
     Ok(())
 }
 
+/// Compares local and remote sync timestamps to find pending cloud updates.
 pub fn determine_pending_modpack_updates(
     local_modpacks: &[crate::models::LocalModpack],
     synced_modpacks: &[SyncedModpack],

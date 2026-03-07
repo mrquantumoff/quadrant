@@ -1,7 +1,10 @@
+//! Shared serialization-friendly data models used across core services.
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
+/// Source provider for a mod or downloadable file.
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub enum ModSource {
     #[serde(rename = "ModSource.curseForge")]
@@ -12,14 +15,19 @@ pub enum ModSource {
     Online,
 }
 
+/// Minimal persisted representation of an installed mod entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstalledMod {
+    /// Provider-specific mod identifier.
     pub id: String,
+    /// Source provider of the mod.
     pub source: ModSource,
+    /// URL of the installed file that was selected for this mod.
     pub download_url: String,
 }
 
+/// Supported mod loader families used throughout Quadrant.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ModLoader {
     #[serde(rename = "Forge")]
@@ -50,6 +58,7 @@ impl From<String> for ModLoader {
 }
 
 impl ModLoader {
+    /// Returns the CurseForge mod loader identifier used by provider queries.
     pub fn to_curseforge_id(&self) -> i64 {
         match self {
             Self::Forge => 1,
@@ -76,24 +85,37 @@ impl std::fmt::Display for ModLoader {
     }
 }
 
+/// On-disk modpack manifest representation.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InstalledModpack {
+    /// Human-readable modpack name.
     pub name: String,
+    /// Minecraft version the modpack targets.
     pub version: String,
+    /// Mod loader the modpack requires.
     pub mod_loader: ModLoader,
+    /// Mods currently registered in the modpack manifest.
     pub mods: Vec<InstalledMod>,
 }
 
+/// Local modpack model enriched with frontend-oriented state.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct LocalModpack {
+    /// Human-readable modpack name.
     pub name: String,
+    /// Minecraft version the modpack targets.
     pub version: String,
+    /// Mod loader the modpack requires.
     pub mod_loader: ModLoader,
+    /// Mods currently registered in the modpack manifest.
     pub mods: Vec<InstalledMod>,
+    /// Whether the modpack directory contains files not tracked by the manifest.
     pub unknown_mods: bool,
+    /// Whether this modpack is currently applied as the active `mods` folder.
     pub is_applied: bool,
+    /// Last successful sync time in milliseconds since the Unix epoch.
     pub last_synced: i64,
 }
 
@@ -108,8 +130,10 @@ impl From<LocalModpack> for InstalledModpack {
     }
 }
 
+/// Sync metadata stored alongside a modpack.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SyncInfo {
+    /// Last successful sync time in seconds since the Unix epoch.
     pub last_synced: i64,
 }
 
@@ -127,16 +151,24 @@ impl From<(InstalledModpack, bool, i64)> for LocalModpack {
     }
 }
 
+/// RSS article surfaced by the Quadrant news feed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Article {
+    /// Article title.
     pub title: String,
+    /// Canonical article link.
     pub link: String,
+    /// Article summary or description.
     pub summary: String,
+    /// Publication timestamp.
     pub date: DateTime<Utc>,
+    /// Stable feed item GUID.
     pub guid: String,
+    /// Whether the article should be treated as recent by the app.
     pub new: bool,
 }
 
+/// Returns the canonical filesystem path for a named modpack.
 pub fn modpack_path(mc_folder: &Path, modpack_name: &str) -> PathBuf {
     mc_folder.join("modpacks").join(modpack_name)
 }

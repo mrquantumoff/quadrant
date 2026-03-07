@@ -1,3 +1,5 @@
+//! Quadrant Share submission and retrieval APIs.
+
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -7,24 +9,34 @@ use crate::{
     ports::{SecretStore, SettingsStore},
 };
 
+/// Response returned after sharing a modpack.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QuadrantShareSubmissionResponse {
+    /// Share code returned by the backend.
     pub code: i32,
+    /// Remaining number of allowed uses for the share submission.
     pub uses_left: i64,
 }
 
+/// Payload submitted when sharing a modpack.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QuadrantShareSubmission {
+    /// Stable installation identifier of the submitting host.
     pub hardware_id: String,
+    /// Serialized modpack manifest.
     pub mod_config: String,
 }
 
+/// Response returned when resolving a share code.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QuadrantShareResponse {
+    /// Share code returned by the backend.
     pub code: i32,
+    /// Serialized modpack manifest.
     pub mod_config: String,
 }
 
+/// Submits a modpack to Quadrant Share using the current settings and account state.
 pub async fn share_modpack_raw(
     settings_store: &impl SettingsStore,
     secret_store: &impl SecretStore,
@@ -64,6 +76,7 @@ pub async fn share_modpack_raw(
         .await?)
 }
 
+/// Resolves a share code into an installed modpack manifest.
 pub async fn get_quadrant_share_modpack(
     user_agent: &str,
     api_key: &str,

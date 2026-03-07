@@ -1,18 +1,30 @@
+//! Telemetry payload construction and submission helpers.
+
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{Result, account::QNT_BASE_URL, ports::SettingsStore};
 
+/// Telemetry payload submitted to the Quadrant backend.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AppInfo {
+    /// Current host application version.
     pub version: String,
+    /// Current operating system label supplied by the host.
     pub os: String,
+    /// Number of Modrinth-backed actions performed.
     pub modrinth_usage: i64,
+    /// Number of CurseForge-backed actions performed.
     pub curseforge_usage: i64,
+    /// Reference file usage counter.
     pub reference_file_usage: i64,
+    /// Manual input usage counter.
     pub manual_input_usage: i64,
+    /// Stable installation identifier.
     pub hardware_id: String,
+    /// Submission timestamp.
     pub date: DateTime<Utc>,
+    /// ISO country code inferred from the public IP lookup.
     pub country: String,
 }
 
@@ -22,6 +34,7 @@ struct MyIPResponse {
     pub country: String,
 }
 
+/// Collects the current telemetry snapshot from settings and the host.
 pub async fn get_telemetry_info(
     settings_store: &impl SettingsStore,
     version: String,
@@ -52,6 +65,7 @@ pub async fn get_telemetry_info(
     })
 }
 
+/// Sends telemetry data when collection is enabled in settings.
 pub async fn send_telemetry(
     settings_store: &impl SettingsStore,
     user_agent: &str,
@@ -75,6 +89,7 @@ pub async fn send_telemetry(
     Ok(())
 }
 
+/// Deletes telemetry data for the current installation.
 pub async fn remove_telemetry(
     settings_store: &impl SettingsStore,
     user_agent: &str,
