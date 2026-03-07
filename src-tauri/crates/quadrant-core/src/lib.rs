@@ -6,5 +6,6 @@ pub mod models;
 pub mod modpacks;
 pub mod ports;
 pub mod rss;
+pub mod telemetry;
 
 pub use anyhow::{Error, Result};

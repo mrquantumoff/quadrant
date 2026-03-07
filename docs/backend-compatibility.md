@@ -47,6 +47,8 @@ This document freezes the backend-facing surface while the Rust backend is extra
 - `get_quadrant_share_modpack`
 - `get_quadrant_settings`
 - `submit_quadrant_settings`
+- `send_telemetry`
+- `remove_telemetry`
 
 ## Tauri Event Names That Must Stay Stable
 - `modDownloadProgress`
