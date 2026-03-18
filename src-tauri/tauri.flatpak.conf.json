@@ -1,8 +1,9 @@
 {
     "identifier": "dev.mrquantumoff.mcmodpackmanager",
-    "version": "26.3.1-msstore",
+    "version": "26.3.1-flatpak",
     "bundle": {
-        "active": false,
+        "active": true,
+        "targets": "deb",
         "createUpdaterArtifacts": false
     },
     "build": {

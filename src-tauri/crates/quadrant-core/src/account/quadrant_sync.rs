@@ -46,7 +46,7 @@ pub async fn get_synced_modpacks(
     show_owners: bool,
     modpack_id: Option<String>,
 ) -> Result<Vec<SyncedModpack>> {
-    log::info!("Fetching synced modpacks (show_owners={show_owners}, modpack_id={modpack_id:?})");
+    log::debug!("Fetching synced modpacks (show_owners={show_owners}, modpack_id={modpack_id:?})");
     let mut query = vec![("show_owners", show_owners.to_string())];
     if let Some(modpack_id) = modpack_id {
         query.push(("modpack_id", modpack_id));
@@ -131,7 +131,10 @@ pub async fn sync_modpack(
     modpack: LocalModpack,
     overwrite: bool,
 ) -> Result<i64> {
-    log::info!("Syncing modpack \"{}\" (overwrite={overwrite})", modpack.name);
+    log::info!(
+        "Syncing modpack \"{}\" (overwrite={overwrite})",
+        modpack.name
+    );
     let timestamp = Utc::now().timestamp();
     let res = reqwest::Client::new()
         .post(format!("{}/quadrant/sync/submit", QNT_BASE_URL))

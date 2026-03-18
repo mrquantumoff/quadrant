@@ -4088,7 +4088,7 @@ checksum = "b5a041e753da8b807c9255f28de81879c78c876392ff2469cde94799b2896b9d"
 
 [[package]]
 name = "quadrant-core"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4115,7 +4115,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant_next"
-version = "26.3.0-stable"
+version = "26.3.1-stable"
 dependencies = [
  "anyhow",
  "chrono",

@@ -360,7 +360,7 @@ async fn is_autoupdate_enabled(app: tauri::AppHandle) -> Result<bool, tauri::Err
     Ok(state.is_update_enabled)
 }
 async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
-    #[cfg(feature = "no_updater")]
+    #[cfg(not(feature = "updater"))]
     {
         return Ok(());
     }
