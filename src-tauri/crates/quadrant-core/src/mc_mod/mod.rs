@@ -18,6 +18,7 @@ use cache::{add_cache_index, file_hash, get_cache_index, init_cache};
 use curseforge::{
     download_mod_curseforge, get_latest_mod_version_curseforge, search_mods_curseforge,
 };
+use http::{provider_cached_client, provider_http_client};
 use modrinth::{download_mod_modrinth, get_latest_mod_version_modrinth, search_mods_modrinth};
 
 pub mod cache;
@@ -25,6 +26,7 @@ pub mod cache;
 pub mod curseforge;
 #[cfg(feature = "curseforge")]
 pub mod curseforge_fingerprint;
+pub(crate) mod http;
 pub mod modrinth;
 
 /// Broad category of downloadable Minecraft content.
@@ -219,9 +221,11 @@ pub fn get_user_agent() -> String {
 
 /// Fetches release Minecraft versions from Modrinth.
 pub async fn get_versions() -> Result<Vec<MinecraftVersion>> {
-    let response = reqwest::Client::new()
-        .get("https://api.modrinth.com/v2/tag/game_version")
-        .header("User-Agent", get_user_agent())
+    let response = provider_cached_client()
+        .get(format!(
+            "{}/v2/tag/game_version",
+            modrinth::modrinth_api_base()
+        ))
         .send()
         .await?;
     let body: Vec<MinecraftVersion> = response.json().await?;
@@ -467,12 +471,11 @@ pub async fn get_file(
         "Cache miss for mod {id}, downloading from {}",
         file.download_url
     );
-    let client = reqwest::Client::new();
-    let request = client
-        .get(&file.download_url)
-        .header("User-Agent", get_user_agent())
-        .build()?;
-    let mut body = client.execute(request).await?.bytes_stream();
+    let request = provider_http_client().get(&file.download_url).build()?;
+    let mut body = provider_http_client()
+        .execute(request)
+        .await?
+        .bytes_stream();
     let mut file_bytes = Vec::new();
     while let Some(Ok(new_bytes)) = body.next().await {
         file_bytes.append(&mut new_bytes.to_vec());

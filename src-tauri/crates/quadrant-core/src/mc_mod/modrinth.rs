@@ -11,10 +11,20 @@ use crate::{
     ports::{EventSink, SettingsStore},
 };
 
+use super::http::provider_cached_client;
 use super::{
     GetModArgs, IdentifiedMod, InstalledMod, Mod, ModType, SearchModsArgs, UniversalModFile,
-    get_file, get_mod_url, get_user_agent,
+    get_file, get_mod_url,
 };
+
+pub(crate) fn modrinth_api_base() -> String {
+    #[cfg(test)]
+    if let Ok(base_url) = std::env::var("QUADRANT_TEST_MODRINTH_API_BASE") {
+        return base_url;
+    }
+
+    "https://api.modrinth.com".to_string()
+}
 
 pub async fn search_mods_modrinth(
     settings: &impl SettingsStore,
@@ -41,13 +51,14 @@ pub async fn search_mods_modrinth(
     }
 
     let raw_uri = format!(
-        "https://api.modrinth.com/v2/search?query={}&limit=100&facets=[{}]",
-        args.query, facets
+        "{}/v2/search?query={}&limit=100&facets=[{}]",
+        modrinth_api_base(),
+        args.query,
+        facets
     );
 
-    let response_json: serde_json::Value = reqwest::Client::new()
+    let response_json: serde_json::Value = provider_cached_client()
         .get(&raw_uri)
-        .header("User-Agent", get_user_agent())
         .send()
         .await?
         .json()
@@ -107,9 +118,8 @@ pub async fn search_mods_modrinth(
 }
 
 pub async fn get_mod_modrinth(args: GetModArgs) -> Result<Mod> {
-    let res_json: serde_json::Value = reqwest::Client::new()
-        .get(format!("https://api.modrinth.com/v2/project/{}", args.id))
-        .header("User-Agent", get_user_agent())
+    let res_json: serde_json::Value = provider_cached_client()
+        .get(format!("{}/v2/project/{}", modrinth_api_base(), args.id))
         .send()
         .await?
         .json()
@@ -171,12 +181,8 @@ pub async fn get_mod_modrinth(args: GetModArgs) -> Result<Mod> {
 }
 
 pub async fn get_mod_owners_modrinth(id: String) -> Result<Vec<String>> {
-    let res_json: serde_json::Value = reqwest::Client::new()
-        .get(format!(
-            "https://api.modrinth.com/v2/project/{}/members",
-            id
-        ))
-        .header("User-Agent", get_user_agent())
+    let res_json: serde_json::Value = provider_cached_client()
+        .get(format!("{}/v2/project/{}/members", modrinth_api_base(), id))
         .send()
         .await?
         .json()
@@ -193,12 +199,12 @@ pub async fn get_mod_owners_modrinth(id: String) -> Result<Vec<String>> {
 }
 
 pub async fn get_mod_deps_modrinth(id: String) -> Result<Vec<Mod>> {
-    let res_json: serde_json::Value = reqwest::Client::new()
+    let res_json: serde_json::Value = provider_cached_client()
         .get(format!(
-            "https://api.modrinth.com/v2/project/{}/dependencies",
+            "{}/v2/project/{}/dependencies",
+            modrinth_api_base(),
             id
         ))
-        .header("User-Agent", get_user_agent())
         .send()
         .await?
         .json()
@@ -285,16 +291,12 @@ pub async fn get_latest_mod_version_modrinth(
             format!("[\"{}\"]", mod_loader.to_string().to_lowercase()),
         ));
     }
+    let url = reqwest::Url::parse_with_params(
+        format!("{}/v2/project/{}/version", modrinth_api_base(), id).as_str(),
+        query.iter().map(|(key, value)| (*key, value.as_str())),
+    )?;
 
-    let response = reqwest::Client::new()
-        .get(format!(
-            "https://api.modrinth.com/v2/project/{}/version",
-            id
-        ))
-        .query(query.as_slice())
-        .header("User-Agent", get_user_agent())
-        .send()
-        .await?;
+    let response = provider_cached_client().get(url).send().await?;
 
     let mut res_json: Vec<ModrinthVersion> = serde_json::from_str(&response.text().await?)?;
     res_json.sort_by(|a, b| b.date_published.cmp(&a.date_published));
@@ -359,7 +361,6 @@ pub async fn identify_modpack_modrinth(
         .map(|file| file.unwrap().file_name().to_string_lossy().to_string())
         .collect();
 
-    let client = reqwest::Client::new();
     let mut mods = Vec::new();
     for file in unknown_files {
         let original_file_name = file.clone();
@@ -367,9 +368,8 @@ pub async fn identify_modpack_modrinth(
         let mut hasher = Sha1::new();
         hasher.update(std::fs::read(file)?);
         let hash = hex::encode(hasher.finalize());
-        let res = client
-            .get(format!("https://api.modrinth.com/v2/version_file/{}", hash))
-            .header("User-Agent", get_user_agent())
+        let res = provider_cached_client()
+            .get(format!("{}/v2/version_file/{}", modrinth_api_base(), hash))
             .send()
             .await?;
         let identifier = match res.json::<ModrinthVersionIdentifier>().await {
@@ -395,4 +395,143 @@ pub async fn identify_modpack_modrinth(
     }
 
     Ok(mods)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        mc_mod::http::{PROVIDER_HTTP_TEST_MUTEX, clear_provider_http_cache},
+        models::{InstalledModpack, ModLoader},
+    };
+    use httpmock::prelude::*;
+    use serde_json::json;
+    use tempfile::tempdir;
+
+    fn modrinth_get_mod_args(id: &str) -> GetModArgs {
+        GetModArgs {
+            id: id.to_string(),
+            downloadable: true,
+            show_previous_version: false,
+            deletable: false,
+            version_target: String::new(),
+            mod_loader: ModLoader::Fabric,
+            modpack: String::new(),
+            selectable: false,
+            select_url: None,
+        }
+    }
+
+    fn setup_modpack(mc_folder: &std::path::Path, name: &str) {
+        let modpack_dir = mc_folder.join("modpacks").join(name);
+        std::fs::create_dir_all(&modpack_dir).unwrap();
+        std::fs::write(
+            modpack_dir.join("modConfig.json"),
+            serde_json::to_vec(&InstalledModpack {
+                name: name.to_string(),
+                version: "1.20.1".to_string(),
+                mod_loader: ModLoader::Fabric,
+                mods: Vec::new(),
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn get_mod_modrinth_uses_shared_http_cache() {
+        let _guard = PROVIDER_HTTP_TEST_MUTEX.lock().await;
+        clear_provider_http_cache().await;
+
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_TEST_MODRINTH_API_BASE", server.base_url());
+        }
+
+        let project = server.mock(|when, then| {
+            when.method(GET).path("/v2/project/demo-mod");
+            then.status(200)
+                .header("cache-control", "public, max-age=300")
+                .json_body(json!({
+                    "title": "Demo Mod",
+                    "downloads": 42,
+                    "versions": ["1.0.0"],
+                    "project_type": "mod",
+                    "slug": "demo-mod",
+                    "description": "cached",
+                    "license": "MIT",
+                    "icon_url": "https://example.invalid/icon.png",
+                    "gallery": [{ "url": "https://example.invalid/screenshot.png" }]
+                }));
+        });
+
+        let args = modrinth_get_mod_args("demo-mod");
+        get_mod_modrinth(args.clone()).await.unwrap();
+        get_mod_modrinth(args).await.unwrap();
+
+        project.assert_calls(1);
+
+        unsafe {
+            std::env::remove_var("QUADRANT_TEST_MODRINTH_API_BASE");
+        }
+        clear_provider_http_cache().await;
+    }
+
+    #[tokio::test]
+    async fn identify_modpack_modrinth_uses_shared_http_cache() {
+        let _guard = PROVIDER_HTTP_TEST_MUTEX.lock().await;
+        clear_provider_http_cache().await;
+
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_TEST_MODRINTH_API_BASE", server.base_url());
+        }
+
+        let temp_dir = tempdir().unwrap();
+        let mc_folder = temp_dir.path().join(".minecraft");
+        let modpack_dir = mc_folder.join("modpacks").join("alpha");
+        setup_modpack(&mc_folder, "alpha");
+
+        let file_bytes = b"modrinth-jar";
+        let mut hasher = Sha1::new();
+        hasher.update(file_bytes);
+        let hash = hex::encode(hasher.finalize());
+        std::fs::write(modpack_dir.join("unknown.jar"), file_bytes).unwrap();
+
+        let version_lookup = server.mock(|when, then| {
+            when.method(GET)
+                .path(format!("/v2/version_file/{hash}").as_str());
+            then.status(200)
+                .header("cache-control", "public, max-age=300")
+                .json_body(json!({
+                    "files": [{
+                        "hashes": {
+                            "sha512": "unused",
+                            "sha1": hash
+                        },
+                        "url": "https://example.invalid/mod.jar",
+                        "filename": "unknown.jar",
+                        "primary": true,
+                        "size": 12
+                    }],
+                    "project_id": "demo-project"
+                }));
+        });
+
+        let first = identify_modpack_modrinth(&mc_folder, "alpha".to_string())
+            .await
+            .unwrap();
+        let second = identify_modpack_modrinth(&mc_folder, "alpha".to_string())
+            .await
+            .unwrap();
+
+        assert_eq!(first.len(), 1);
+        assert_eq!(second.len(), 1);
+        version_lookup.assert_calls(1);
+
+        unsafe {
+            std::env::remove_var("QUADRANT_TEST_MODRINTH_API_BASE");
+        }
+        clear_provider_http_cache().await;
+    }
 }

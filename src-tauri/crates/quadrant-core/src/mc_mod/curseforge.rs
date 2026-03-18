@@ -1,9 +1,12 @@
-pub const BASE_URL: &str = "https://api.curseforge.com/";
+pub const BASE_URL: &str = "https://api.curseforge.com";
 pub const MINECRAFT_ID: i32 = 432;
 
 use std::path::PathBuf;
+use std::time::Duration;
 
 use chrono::prelude::*;
+use moka::future::Cache as MokaCache;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use sha1::Digest;
 
@@ -16,9 +19,27 @@ use crate::{
 
 use super::{
     GetModArgs, IdentifiedMod, Mod, ModType, SearchModsArgs, UniversalModFile, get_file,
-    get_mod_url, get_user_agent,
+    get_mod_url,
 };
 use crate::mc_mod::curseforge_fingerprint::*;
+use crate::mc_mod::http::{provider_cached_client, provider_http_client};
+
+pub(crate) fn curseforge_api_base() -> String {
+    #[cfg(test)]
+    if let Ok(base_url) = std::env::var("QUADRANT_TEST_CURSEFORGE_API_BASE") {
+        return base_url;
+    }
+
+    BASE_URL.to_string()
+}
+
+static CURSEFORGE_FINGERPRINT_CACHE: Lazy<MokaCache<String, ExactMatchesResponse>> =
+    Lazy::new(|| {
+        MokaCache::builder()
+            .max_capacity(128)
+            .time_to_live(Duration::from_secs(600))
+            .build()
+    });
 
 #[derive(Serialize, Clone, Deserialize, Debug)]
 pub struct ModFilesResponse {
@@ -85,11 +106,21 @@ pub struct ExactMatch {
     pub file: ModFile,
 }
 
+fn fingerprint_cache_key(fingerprints: &[u32]) -> String {
+    let mut fingerprints = fingerprints.to_vec();
+    fingerprints.sort_unstable();
+    let fingerprints = fingerprints
+        .into_iter()
+        .map(|fingerprint| fingerprint.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+    format!("{MINECRAFT_ID}:{fingerprints}")
+}
+
 pub async fn get_mod_curseforge(args: GetModArgs) -> Result<Mod> {
-    let res_json: serde_json::Value = reqwest::Client::new()
-        .get(format!("{}v1/mods/{}", BASE_URL, args.id))
+    let res_json: serde_json::Value = provider_cached_client()
+        .get(format!("{}/v1/mods/{}", curseforge_api_base(), args.id))
         .header("X-API-Key", env!("ETERNAL_API_TOKEN"))
-        .header("User-Agent", get_user_agent())
         .send()
         .await?
         .json()
@@ -145,10 +176,9 @@ pub async fn get_mod_curseforge(args: GetModArgs) -> Result<Mod> {
 }
 
 pub async fn get_mod_owners_curseforge(id: String) -> Result<Vec<String>> {
-    let res_json: serde_json::Value = reqwest::Client::new()
-        .get(format!("{}v1/mods/{}", BASE_URL, id))
+    let res_json: serde_json::Value = provider_cached_client()
+        .get(format!("{}/v1/mods/{}", curseforge_api_base(), id))
         .header("X-API-Key", env!("ETERNAL_API_TOKEN"))
-        .header("User-Agent", get_user_agent())
         .send()
         .await?
         .json()
@@ -165,10 +195,9 @@ pub async fn get_mod_owners_curseforge(id: String) -> Result<Vec<String>> {
 }
 
 pub async fn get_mod_deps_curseforge(id: String) -> Result<Vec<Mod>> {
-    let res_json: serde_json::Value = reqwest::Client::new()
-        .get(format!("{}v1/mods/{}", BASE_URL, id))
+    let res_json: serde_json::Value = provider_cached_client()
+        .get(format!("{}/v1/mods/{}", curseforge_api_base(), id))
         .header("X-API-Key", env!("ETERNAL_API_TOKEN"))
-        .header("User-Agent", get_user_agent())
         .send()
         .await?
         .json()
@@ -214,8 +243,8 @@ pub async fn search_mods_curseforge(
 ) -> Result<Vec<Mod>> {
     let mod_type = ModType::from(args.mod_type);
     let mut raw_uri = format!(
-        "{}v1/mods/search?gameId={}&searchFilter={}&sortOrder=desc&classId={}",
-        BASE_URL,
+        "{}/v1/mods/search?gameId={}&searchFilter={}&sortOrder=desc&classId={}",
+        curseforge_api_base(),
         MINECRAFT_ID,
         args.query,
         mod_type.curseforge_id()
@@ -241,9 +270,8 @@ pub async fn search_mods_curseforge(
         );
     }
 
-    let response_json: serde_json::Value = reqwest::Client::new()
+    let response_json: serde_json::Value = provider_cached_client()
         .get(&raw_uri)
-        .header("User-Agent", get_user_agent())
         .header("X-API-Key", env!("ETERNAL_API_TOKEN"))
         .send()
         .await?
@@ -311,7 +339,7 @@ pub async fn get_latest_mod_version_curseforge(
     mod_type: ModType,
     file_id: Option<String>,
 ) -> Result<Option<ModFile>> {
-    let mut url = format!("{}v1/mods/{}/files", BASE_URL, id);
+    let mut url = format!("{}/v1/mods/{}/files", curseforge_api_base(), id);
     let mut query = vec![("gameVersion", minecraft_version)];
     if mod_type == ModType::Mod {
         query.push(("modLoaderType", mod_loader.to_curseforge_id().to_string()));
@@ -320,14 +348,22 @@ pub async fn get_latest_mod_version_curseforge(
         url = format!("{}/{}", url, file_id);
     }
 
-    let request = reqwest::Client::new()
-        .get(&url)
-        .header("X-API-Key", env!("ETERNAL_API_TOKEN"))
-        .header("User-Agent", get_user_agent());
     let response = if file_id.is_some() {
-        request.send().await?
+        provider_cached_client()
+            .get(&url)
+            .header("X-API-Key", env!("ETERNAL_API_TOKEN"))
+            .send()
+            .await?
     } else {
-        request.query(query.as_slice()).send().await?
+        let url = reqwest::Url::parse_with_params(
+            url.as_str(),
+            query.iter().map(|(key, value)| (*key, value.as_str())),
+        )?;
+        provider_cached_client()
+            .get(url)
+            .header("X-API-Key", env!("ETERNAL_API_TOKEN"))
+            .send()
+            .await?
     };
 
     Ok(if file_id.is_some() {
@@ -355,7 +391,9 @@ pub async fn download_mod_curseforge(
     mod_type: ModType,
     file_id: Option<String>,
 ) -> Result<(PathBuf, String)> {
-    log::info!("Downloading CurseForge mod {id} for {minecraft_version} ({mod_loader:?}, file_id={file_id:?})");
+    log::info!(
+        "Downloading CurseForge mod {id} for {minecraft_version} ({mod_loader:?}, file_id={file_id:?})"
+    );
     let file = get_latest_mod_version_curseforge(
         id.clone(),
         minecraft_version,
@@ -423,20 +461,33 @@ pub async fn identify_modpack_curseforge(
         ));
     }
 
-    let response = reqwest::Client::new()
-        .post(format!("{}v1/fingerprints/{}", BASE_URL, MINECRAFT_ID))
-        .header("User-Agent", get_user_agent())
-        .header("X-API-Key", env!("ETERNAL_API_TOKEN"))
-        .json(&serde_json::json!({
-            "fingerprints": hashes.iter().map(|hash| hash.0).collect::<Vec<u32>>(),
-        }))
-        .send()
-        .await?;
-    let matches = response
-        .json::<ExactMatchesResponse>()
-        .await?
-        .data
-        .exact_matches;
+    let fingerprints: Vec<u32> = hashes.iter().map(|hash| hash.0).collect();
+    let cache_key = fingerprint_cache_key(&fingerprints);
+
+    let response = match CURSEFORGE_FINGERPRINT_CACHE.get(&cache_key).await {
+        Some(response) => response,
+        None => {
+            let response = provider_http_client()
+                .post(format!(
+                    "{}/v1/fingerprints/{}",
+                    curseforge_api_base(),
+                    MINECRAFT_ID
+                ))
+                .header("X-API-Key", env!("ETERNAL_API_TOKEN"))
+                .json(&serde_json::json!({
+                    "fingerprints": fingerprints,
+                }))
+                .send()
+                .await?
+                .json::<ExactMatchesResponse>()
+                .await?;
+            CURSEFORGE_FINGERPRINT_CACHE
+                .insert(cache_key, response.clone())
+                .await;
+            response
+        }
+    };
+    let matches = response.data.exact_matches;
 
     let mut mods = Vec::new();
     for match_ in matches {
@@ -457,4 +508,164 @@ pub async fn identify_modpack_curseforge(
         });
     }
     Ok(mods)
+}
+
+#[cfg(test)]
+pub(crate) async fn clear_curseforge_fingerprint_cache() {
+    CURSEFORGE_FINGERPRINT_CACHE.invalidate_all();
+    CURSEFORGE_FINGERPRINT_CACHE.run_pending_tasks().await;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::mc_mod::http::{PROVIDER_HTTP_TEST_MUTEX, clear_provider_http_cache};
+    use crate::models::{InstalledModpack, ModLoader};
+    use httpmock::prelude::*;
+    use serde_json::json;
+    use tempfile::tempdir;
+
+    fn curseforge_get_mod_args(id: &str) -> GetModArgs {
+        GetModArgs {
+            id: id.to_string(),
+            downloadable: true,
+            show_previous_version: false,
+            deletable: false,
+            version_target: String::new(),
+            mod_loader: ModLoader::Forge,
+            modpack: String::new(),
+            selectable: false,
+            select_url: None,
+        }
+    }
+
+    fn setup_modpack(mc_folder: &std::path::Path, name: &str) {
+        let modpack_dir = mc_folder.join("modpacks").join(name);
+        std::fs::create_dir_all(&modpack_dir).unwrap();
+        std::fs::write(
+            modpack_dir.join("modConfig.json"),
+            serde_json::to_vec(&InstalledModpack {
+                name: name.to_string(),
+                version: "1.20.1".to_string(),
+                mod_loader: ModLoader::Forge,
+                mods: Vec::new(),
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn get_mod_curseforge_uses_shared_http_cache() {
+        let _guard = PROVIDER_HTTP_TEST_MUTEX.lock().await;
+        clear_provider_http_cache().await;
+
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_TEST_CURSEFORGE_API_BASE", server.base_url());
+        }
+
+        let project = server.mock(|when, then| {
+            when.method(GET)
+                .path("/v1/mods/42")
+                .header("x-api-key", env!("ETERNAL_API_TOKEN"));
+            then.status(200)
+                .header("cache-control", "public, max-age=300")
+                .json_body(json!({
+                    "data": {
+                        "id": 42,
+                        "classId": 6,
+                        "name": "Demo CurseForge Mod",
+                        "summary": "cached",
+                        "downloadCount": 5,
+                        "dateModified": "2024-01-01T00:00:00Z",
+                        "slug": "demo-curseforge-mod",
+                        "screenshots": [{
+                            "thumbnailUrl": "https://example.invalid/screenshot.png"
+                        }],
+                        "links": {
+                            "websiteUrl": "https://example.invalid/mod"
+                        },
+                        "logo": {
+                            "url": "https://example.invalid/logo.png"
+                        }
+                    }
+                }));
+        });
+
+        let args = curseforge_get_mod_args("42");
+        get_mod_curseforge(args.clone()).await.unwrap();
+        get_mod_curseforge(args).await.unwrap();
+
+        project.assert_calls(1);
+
+        unsafe {
+            std::env::remove_var("QUADRANT_TEST_CURSEFORGE_API_BASE");
+        }
+        clear_provider_http_cache().await;
+    }
+
+    #[tokio::test]
+    async fn identify_modpack_curseforge_uses_manual_fingerprint_cache() {
+        let _guard = PROVIDER_HTTP_TEST_MUTEX.lock().await;
+        clear_provider_http_cache().await;
+        clear_curseforge_fingerprint_cache().await;
+
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_TEST_CURSEFORGE_API_BASE", server.base_url());
+        }
+
+        let temp_dir = tempdir().unwrap();
+        let mc_folder = temp_dir.path().join(".minecraft");
+        let modpack_dir = mc_folder.join("modpacks").join("alpha");
+        setup_modpack(&mc_folder, "alpha");
+
+        let file_bytes = b"curseforge-jar";
+        std::fs::write(modpack_dir.join("unknown.jar"), file_bytes).unwrap();
+        let sha1 = hex::encode(sha1::Sha1::digest(file_bytes));
+
+        let fingerprint = server.mock(|when, then| {
+            when.method(POST)
+                .path("/v1/fingerprints/432")
+                .header("x-api-key", env!("ETERNAL_API_TOKEN"));
+            then.status(200).json_body(json!({
+                "data": {
+                    "exactMatches": [{
+                        "file": {
+                            "id": 1,
+                            "gameId": 432,
+                            "modId": 123,
+                            "isAvailable": true,
+                            "fileName": "unknown.jar",
+                            "hashes": [{
+                                "value": sha1,
+                                "algo": 1
+                            }],
+                            "fileDate": "2024-01-01T00:00:00+00:00",
+                            "fileLength": 15,
+                            "downloadUrl": "https://example.invalid/mod.jar"
+                        }
+                    }]
+                }
+            }));
+        });
+
+        let first = identify_modpack_curseforge(&mc_folder, "alpha".to_string())
+            .await
+            .unwrap();
+        let second = identify_modpack_curseforge(&mc_folder, "alpha".to_string())
+            .await
+            .unwrap();
+
+        assert_eq!(first.len(), 1);
+        assert_eq!(second.len(), 1);
+        fingerprint.assert_calls(1);
+
+        unsafe {
+            std::env::remove_var("QUADRANT_TEST_CURSEFORGE_API_BASE");
+        }
+        clear_curseforge_fingerprint_cache().await;
+        clear_provider_http_cache().await;
+    }
 }
