@@ -145,7 +145,7 @@ export default function ModpackView(modpack: LocalModpack) {
   const getIdentifiedMods = async () => {
     console.log("Getting mods");
     const newMods = await identifyUnknownMods(modpack.name);
-    let newFetchedMods: FetchedIdentifiedMod[] = [];
+    const newFetchedMods: FetchedIdentifiedMod[] = [];
     console.log("New mods: " + newMods);
     for (const mod of newMods) {
       console.log(mod);

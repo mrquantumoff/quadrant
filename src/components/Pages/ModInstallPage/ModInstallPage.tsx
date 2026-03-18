@@ -69,7 +69,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       const newDeps = await getModDependencies(mod.source, mod.id);
       const roundIcons = await config.get<boolean>("clipIcons");
       setClipIcons(roundIcons ?? true);
-      let newOwnersList: IModOwner[] = [];
+      const newOwnersList: IModOwner[] = [];
       for (const owner of newOwners) {
         newOwnersList.push({
           name: owner,

@@ -4,11 +4,15 @@ import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 import react from "eslint-plugin-react";
-import markdown from "@eslint/markdown";
+import reactHooks from "eslint-plugin-react-hooks";
 import css from "@eslint/css";
 import { defineConfig } from "eslint/config";
 
 export default defineConfig([
+	{
+		ignores: ["src-tauri/target/**", "**/*.css"],
+	},
+
 	// Base JS
 	js.configs.recommended,
 
@@ -20,14 +24,17 @@ export default defineConfig([
 		files: ["**/*.{jsx,tsx}"],
 		plugins: {
 			react,
+			"react-hooks": reactHooks,
 		},
 		rules: {
 			...react.configs.recommended.rules,
+			"react-hooks/rules-of-hooks": "error",
+			"react-hooks/exhaustive-deps": "warn",
 			"react/react-in-jsx-scope": "off",
 		},
 		settings: {
 			react: {
-				version: "detect",
+				version: "19",
 			},
 		},
 	},
@@ -36,17 +43,25 @@ export default defineConfig([
 	{
 		files: ["**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
 		languageOptions: {
-			globals: globals.browser,
+			parserOptions: {
+				ecmaFeatures: {
+					jsx: true,
+				},
+			},
+			globals: {
+				...globals.browser,
+			},
 		},
 	},
-
-	// Markdown
 	{
-		files: ["**/*.md"],
-		plugins: {
-			markdown,
+		files: ["**/*.cjs"],
+		languageOptions: {
+			globals: {
+				...globals.node,
+				module: "writable",
+				require: "readonly",
+			},
 		},
-		processor: "markdown/markdown",
 	},
 
 	// CSS

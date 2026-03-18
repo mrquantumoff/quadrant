@@ -175,7 +175,9 @@ export default function ApplyPage() {
             onClick={async () => {
               try {
                 await deleteModpack("free");
-              } catch (e) {}
+              } catch {
+                // Ignore missing temporary modpack.
+              }
               await createModpack(
                 "free",
                 versions[0].version,
@@ -458,7 +460,7 @@ export default function ApplyPage() {
                       name="version"
                       value={modpackToUpdate.version}
                       onChange={(newValue) => {
-                        let modpack: LocalModpack = JSON.parse(
+                        const modpack: LocalModpack = JSON.parse(
                           JSON.stringify(modpackToUpdate)
                         );
                         modpack.version = newValue.target.value;
@@ -498,10 +500,10 @@ export default function ApplyPage() {
                       name="modLoader"
                       value={modpackToUpdate.modLoader}
                       onChange={(newValue) => {
-                        let modpack: LocalModpack = JSON.parse(
+                        const modpack: LocalModpack = JSON.parse(
                           JSON.stringify(modpackToUpdate)
                         );
-                        let loaderString = newValue.target.value;
+                        const loaderString = newValue.target.value;
                         let loader = ModLoader.Unknown;
                         if (loaderString.toLowerCase().includes("fabric")) {
                           loader = ModLoader.Fabric;
@@ -541,10 +543,10 @@ export default function ApplyPage() {
                       autoComplete="off"
                       onChange={(newValue) => {
                         // Deep copy modpackToUpdate
-                        let modpack: LocalModpack = JSON.parse(
+                        const modpack: LocalModpack = JSON.parse(
                           JSON.stringify(modpackToUpdate)
                         );
-                        let newName = newValue.target.value.replace(
+                        const newName = newValue.target.value.replace(
                           /[<>:"/\\|?*]/,
                           ""
                         );

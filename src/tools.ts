@@ -84,7 +84,7 @@ export async function getMod(
 }
 
 export async function getVersions(): Promise<MinecraftVersion[]> {
-  let res = await invoke<MinecraftVersion[]>("get_versions");
+  const res = await invoke<MinecraftVersion[]>("get_versions");
   return res;
 }
 
@@ -92,7 +92,7 @@ export async function getUserURL(
   username: string,
   source: ModSource
 ): Promise<string> {
-  let res = await invoke<string>("get_user_url", {
+  const res = await invoke<string>("get_user_url", {
     username: username,
     source: source,
   });
@@ -183,7 +183,7 @@ export async function createModpack(
   });
 }
 
-export async function deleteModpack(name: String) {
+export async function deleteModpack(name: string) {
   await invoke("delete_modpack", {
     name: name,
   });
@@ -195,7 +195,7 @@ export function shuffle(array: any[]) {
   // While there remain elements to shuffle...
   while (currentIndex != 0) {
     // Pick a remaining element...
-    let randomIndex = Math.floor(Math.random() * currentIndex);
+    const randomIndex = Math.floor(Math.random() * currentIndex);
     currentIndex--;
 
     // And swap it with the current element.
