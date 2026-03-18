@@ -360,85 +360,82 @@ async fn is_autoupdate_enabled(app: tauri::AppHandle) -> Result<bool, tauri::Err
     Ok(state.is_update_enabled)
 }
 async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
-    #[cfg(not(feature = "updater"))]
+    #[cfg(feature = "updater")]
     {
-        return Ok(());
-    }
+        let update_url = Url::parse(
+            "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{target}}/{{arch}}/{{current_version}}?variant={{bundle_type}}",
+        )?;
 
-    let update_url = Url::parse(
-        "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{target}}/{{arch}}/{{current_version}}?variant={{bundle_type}}",
-    )?;
+        let mut update_urls = vec![update_url];
 
-    let mut update_urls = vec![update_url];
+        let update_config = app.store("updateConfig.json")?;
 
-    let update_config = app.store("updateConfig.json")?;
+        let ms_store_build = app
+            .config()
+            .version
+            .clone()
+            .unwrap_or_default()
+            .contains("msstore");
 
-    let ms_store_build = app
-        .config()
-        .version
-        .clone()
-        .unwrap_or_default()
-        .contains("msstore");
+        let defualt_channel = "stable";
 
-    let defualt_channel = "stable";
+        if update_config.get("channel").is_some() {
+            let channel = update_config.get("channel").unwrap();
+            let channel = channel.as_str().unwrap_or(defualt_channel);
+            if channel != "stable" {
+                update_urls.push(Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/{}/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}",channel))?);
+            }
+        }
+        // Prefer the preview version if we're updating from a preview version
+        update_urls.reverse();
 
-    if update_config.get("channel").is_some() {
-        let channel = update_config.get("channel").unwrap();
-        let channel = channel.as_str().unwrap_or(defualt_channel);
-        if channel != "stable" {
-            update_urls.push(Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/{}/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}",channel))?);
+        log::debug!(
+            "Update URLs: {:?}",
+            update_urls
+                .iter()
+                .map(|url| url.as_str())
+                .collect::<Vec<_>>()
+        );
+        log::info!("Checking for updates...");
+
+        let updater = app
+            .updater_builder()
+            .endpoints(update_urls)?
+            .version_comparator(|current, update| update.version != current)
+            .header("User-Agent", get_user_agent())?;
+
+        if ms_store_build {
+            return Ok(());
+        }
+
+        let updater = updater.build()?;
+
+        if let Some(update) = updater.check().await? {
+            let mut downloaded = 0;
+
+            // alternatively we could also call update.download() and update.install() separately
+            let downloaded_update = update
+                .download(
+                    |chunk_length, content_length| {
+                        downloaded += chunk_length;
+                        let progress = downloaded as f64 / content_length.unwrap() as f64;
+                        app.emit("updateDownloadProgress", progress).unwrap();
+                        log::info!("Downloaded {}%", (progress * 100.0).round() as i32);
+                    },
+                    || {
+                        log::info!("Download finished");
+                    },
+                )
+                .await?;
+
+            log::info!("Update downloaded");
+            app.emit("updateDownloadProgress", 1).unwrap();
+            let state = app.state::<Mutex<AppState>>();
+            let mut state = state.lock().await;
+            state.update = Some(update);
+            state.update_bytes = downloaded_update;
         }
     }
-    // Prefer the preview version if we're updating from a preview version
-    update_urls.reverse();
-
-    log::debug!(
-        "Update URLs: {:?}",
-        update_urls
-            .iter()
-            .map(|url| url.as_str())
-            .collect::<Vec<_>>()
-    );
-    log::info!("Checking for updates...");
-
-    let updater = app
-        .updater_builder()
-        .endpoints(update_urls)?
-        .version_comparator(|current, update| update.version != current)
-        .header("User-Agent", get_user_agent())?;
-
-    if ms_store_build {
-        return Ok(());
-    }
-
-    let updater = updater.build()?;
-
-    if let Some(update) = updater.check().await? {
-        let mut downloaded = 0;
-
-        // alternatively we could also call update.download() and update.install() separately
-        let downloaded_update = update
-            .download(
-                |chunk_length, content_length| {
-                    downloaded += chunk_length;
-                    let progress = downloaded as f64 / content_length.unwrap() as f64;
-                    app.emit("updateDownloadProgress", progress).unwrap();
-                    log::info!("Downloaded {}%", (progress * 100.0).round() as i32);
-                },
-                || {
-                    log::info!("Download finished");
-                },
-            )
-            .await?;
-
-        log::info!("Update downloaded");
-        app.emit("updateDownloadProgress", 1).unwrap();
-        let state = app.state::<Mutex<AppState>>();
-        let mut state = state.lock().await;
-        state.update = Some(update);
-        state.update_bytes = downloaded_update;
-    }
-
     Ok(())
 }
 

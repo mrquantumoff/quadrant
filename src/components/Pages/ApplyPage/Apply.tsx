@@ -147,7 +147,7 @@ export default function ApplyPage() {
         initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 24, opacity: 0 }}
-        className="flex flex-1 flex-col w-full transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
+        className="flex flex-1 flex-col w-full transform-gpu backface-hidden will-change-[transform,opacity]"
       >
         <input
           placeholder={t("search")}
@@ -230,7 +230,7 @@ export default function ApplyPage() {
                     y: -24,
                   }}
                   key={index}
-                  className="flex flex-col bg-slate-900 hover:bg-slate-950 p-4 rounded-4xl mx-5 my-5 h-max hover:shadow-lg hover:shadow-slate-950 transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
+                  className="flex flex-col bg-slate-900 hover:bg-slate-950 p-4 rounded-4xl mx-5 my-5 h-max hover:shadow-lg hover:shadow-slate-950 transform-gpu backface-hidden will-change-[transform,opacity]"
                 >
                   <h1 className="text-4xl font-extrabold max-w-56 w-56">
                     {modpack.name}

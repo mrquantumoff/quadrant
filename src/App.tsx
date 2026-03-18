@@ -767,7 +767,7 @@ function App() {
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: 24, opacity: 0 }}
                   layoutScroll
-                  className="h-full overflow-y-auto transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
+                  className="h-full overflow-y-auto transform-gpu backface-hidden will-change-[transform,opacity]"
                   transition={{ type: "keyframes", duration: 0.1 }}
                   // key={content.name}
                   ref={contentRef}
@@ -793,7 +793,7 @@ function App() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 16 }}
                     className={
-                      "bottom-8 left-8 fixed w-max h-max p-4 rounded-4xl flex flex-col items-center justify-center font-bold text-slate-50 transform-gpu [backface-visibility:hidden] [will-change:transform,opacity] " +
+                      "bottom-8 left-8 fixed w-max h-max p-4 rounded-4xl flex flex-col items-center justify-center font-bold text-slate-50 transform-gpu backface-hidden will-change-[transform,opacity] " +
                       snackbarState.className
                     }
                   >
