@@ -68,10 +68,10 @@ export default function ShareSyncPage() {
 
   return (
     <motion.div
-      initial={{ y: 500, opacity: 0 }}
+      initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 5000 }}
-      className="flex flex-1 flex-col items-center w-full h-full"
+      exit={{ y: 24, opacity: 0 }}
+      className="flex flex-1 flex-col items-center w-full h-full transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
     >
       <ShareSyncContext.Provider
         value={{
@@ -88,7 +88,7 @@ export default function ShareSyncPage() {
           {syncActive && (
             <motion.div
               className="w-[75%] justify-center items-start align-top text-center rounded-4xl flex h-min"
-              initial={{ y: -500, opacity: 0.1 }}
+              initial={{ y: -24, opacity: 0.1 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{
                 bounce: 1,

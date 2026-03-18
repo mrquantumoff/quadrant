@@ -168,19 +168,18 @@ export default function Mod(props: IModProps) {
         <motion.div
           initial={{
             opacity: 0,
-            y: 50,
+            y: 24,
           }}
-          whileInView={{ opacity: 1, y: 0, x: 0 }}
-          animate={{ y: 0, opacity: 1 }}
+          animate={{ y: 0, opacity: 1, x: 0 }}
           whileHover={{ opacity: 1, y: -5, x: 0 }}
           exit={{
             opacity: 0,
-            y: -500,
+            y: -24,
           }}
-          transition={{ type: "spring", stiffness: 100, duration: 300 }}
+          transition={{ type: "spring", stiffness: 100, duration: 0.3 }}
           className={
             props.className +
-            " p-4 h-full bg-slate-900 w-full flex-1 items-center justify-center align-middle rounded-4xl flex flex-col hover:shadow-2xl hover:bg-slate-950 hover:shadow-slate-950"
+            " p-4 h-full bg-slate-900 w-full flex-1 items-center justify-center align-middle rounded-4xl flex flex-col hover:shadow-2xl hover:bg-slate-950 hover:shadow-slate-950 transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
           }
           onDoubleClick={openModDownload}
         >
@@ -198,7 +197,7 @@ export default function Mod(props: IModProps) {
             <span className="w-full"></span>
           </div>
           <div className="flex line-clamp-1 mt-4 w-full place-content-center align-center text-center justify-center">
-            <h1 className="max-w-full line-clamp-1 h-full text-2xl align-center justify-center text-center font-bold mod-title-transition ">
+            <h1 className="max-w-full line-clamp-1 h-full text-2xl align-center justify-center text-center font-bold">
               {mod.name}
             </h1>
 
@@ -222,7 +221,7 @@ export default function Mod(props: IModProps) {
           <h2 className="w-full line-clamp-1 text-sm align-center justify-center text-center text-slate-400">
             {t(mod.modType.toLowerCase(), { source: modSource })}
           </h2>
-          <div className="flex h-min align-center w-full items-center justify-center text-center mt-4 transition-all duration-300 ease-linear">
+          <div className="flex h-min align-center w-full items-center justify-center text-center mt-4 transition-colors duration-300 ease-linear">
             {mod.deleteable ? (
               <Button
                 animate

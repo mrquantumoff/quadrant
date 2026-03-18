@@ -109,10 +109,10 @@ export default function ModInstallPage(props: IModInstallPageProps) {
 
   return (
     <motion.div
-      initial={{ y: 50, opacity: 0 }}
+      initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      exit={{ y: -50 }}
-      className="overflow-hidden"
+      exit={{ y: -24, opacity: 0 }}
+      className="overflow-hidden transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
       key={mod.name}
     >
       <Button
@@ -137,7 +137,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 className={"w-24 h-24 " + (clipIcons ? "rounded-full" : "")}
               ></img>
             </div>
-            <h2 className="text-start text-4xl flex font-extrabold text-wrap mod-title-transition">
+            <h2 className="text-start text-4xl flex font-extrabold text-wrap">
               {mod.name}
             </h2>
             <h3 className="font-bold">
@@ -193,9 +193,9 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         </div>
       </motion.div>
       <motion.div
-        initial={{ y: 50, opacity: 0 }}
+        initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="bg-slate-800 overflow-x-auto rounded-4xl m-4 p-4 flex flex-col flex-1 items-center"
+        className="bg-slate-800 overflow-x-auto rounded-4xl m-4 p-4 flex flex-col flex-1 items-center transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
       >
         <h1 className="text-center text-4xl mb-2 font-extrabold">
           {t("owners", { amount: owners.length })}:
@@ -225,10 +225,9 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         </div>
       </motion.div>
       <motion.div
-        initial={{ y: 50, opacity: 0 }}
-        animate={{ opacity: 0.25 }}
-        whileInView={{ y: 0, opacity: 1 }}
-        className="bg-slate-800 overflow-y-auto rounded-4xl m-4 p-4 flex flex-row flex-1"
+        initial={{ y: 24, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className="bg-slate-800 overflow-y-auto rounded-4xl m-4 p-4 flex flex-row flex-1 transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
       >
         <Fieldset className="w-full">
           {props.fileId === undefined ? (

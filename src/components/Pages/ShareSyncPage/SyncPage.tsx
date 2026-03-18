@@ -28,9 +28,9 @@ export default function SyncPage() {
       value={{ refreshSyncedModpacks: fetchSyncedModpacks }}
     >
       <motion.div
-        initial={{ y: 500, opacity: 0 }}
+        initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="items-center justify-center flex flex-col flex-1 w-full"
+        className="items-center justify-center flex flex-col flex-1 w-full transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
       >
         <div className="bg-slate-800 flex flex-1 flex-col rounded-4xl w-[98%]  ">
           {modpacks.map((modpack) => {

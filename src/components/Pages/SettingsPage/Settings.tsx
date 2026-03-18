@@ -79,10 +79,10 @@ export default function SettingsPage() {
 
   return (
     <motion.div
-      initial={{ y: 500, opacity: 0 }}
+      initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 5000 }}
-      className="mt-2 mx-8 flex flex-1 flex-col "
+      exit={{ y: 24, opacity: 0 }}
+      className="mt-2 mx-8 flex flex-1 flex-col transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
     >
       <h1 className="font-extrabold text-4xl my-4 bg-yellow-400 text-slate-950 rounded-4xl w-fit p-4">
         {t("someSettingsRequireReload")}

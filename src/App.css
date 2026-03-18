@@ -4,8 +4,7 @@
 
 html {
   font-family: "Inter";
-  @apply bg-slate-900 text-slate-50
-    overflow-x-hidden font-normal rounded-4xl transition-all;
+  @apply bg-slate-900 text-slate-50 overflow-x-hidden font-normal rounded-4xl;
   font-synthesis: none !important;
 }
 
@@ -20,11 +19,7 @@ option {
 }
 
 .input {
-  @apply bg-slate-700 px-4 py-2 rounded-full focus:bg-slate-800 hover:bg-slate-800 hover:outline-2 focus:outline-2 outline-slate-700 transition-all ease-linear;
-}
-
-* {
-  @apply transition-all duration-75 ease-linear;
+  @apply bg-slate-700 px-4 py-2 rounded-full focus:bg-slate-800 hover:bg-slate-800 hover:outline-2 focus:outline-2 outline-slate-700 transition-colors transition-shadow duration-150 ease-linear;
 }
 
 @font-face {
@@ -33,7 +28,7 @@ option {
 }
 
 ::-webkit-scrollbar {
-  @apply transition-all ease-linear duration-300 bg-slate-900 hover:bg-slate-800;
+  @apply transition-colors ease-linear duration-300 bg-slate-900 hover:bg-slate-800;
 }
 
 ::-webkit-scrollbar-track {
@@ -61,5 +56,5 @@ option {
 }
 
 button {
-  @apply cursor-pointer;
+  @apply cursor-pointer transition-colors transition-shadow duration-150 ease-linear;
 }

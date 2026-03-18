@@ -144,10 +144,10 @@ export default function ApplyPage() {
   return (
     <>
       <motion.div
-        initial={{ y: 500, opacity: 0 }}
+        initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 5000 }}
-        className="flex flex-1 flex-col w-full "
+        exit={{ y: 24, opacity: 0 }}
+        className="flex flex-1 flex-col w-full transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
       >
         <input
           placeholder={t("search")}
@@ -221,17 +221,16 @@ export default function ApplyPage() {
               const dateString = t("localSyncDate", { date: formattedDate });
               return (
                 <motion.div
-                  initial={{ opacity: 0, y: 500 }}
-                  animate={{ y: 50, opacity: 0.2 }}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ y: 0, opacity: 1 }}
                   whileHover={{ y: -5 }}
-                  whileInView={{ y: 0, opacity: 1 }}
-                  transition={{ duration: 0.125, ease: "linear" }}
+                  transition={{ duration: 0.15, ease: "linear" }}
                   exit={{
                     opacity: 0,
-                    y: -500,
+                    y: -24,
                   }}
                   key={index}
-                  className="flex flex-col bg-slate-900 hover:bg-slate-950 p-4 rounded-4xl mx-5 my-5 h-max hover:shadow-lg hover:shadow-slate-950 "
+                  className="flex flex-col bg-slate-900 hover:bg-slate-950 p-4 rounded-4xl mx-5 my-5 h-max hover:shadow-lg hover:shadow-slate-950 transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
                 >
                   <h1 className="text-4xl font-extrabold max-w-56 w-56">
                     {modpack.name}
@@ -436,9 +435,9 @@ export default function ApplyPage() {
           <DialogBackdrop className="fixed inset-0 bg-slate-950/30 " />
           <AnimatePresence>
             <motion.div
-              initial={{ opacity: 0, y: -500, scale: 0.125 }}
-              animate={{ opacity: 1, y: 0, scale: 1.25 }}
-              exit={{ opacity: 0, y: 500 }}
+              initial={{ opacity: 0, y: -24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
               className="fixed inset-0 flex w-screen items-center justify-center p-4"
             >
               <DialogPanel className="max-w-xl space-y-4 rounded-4xl bg-slate-800 p-8">
