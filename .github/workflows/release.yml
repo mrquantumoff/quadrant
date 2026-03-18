@@ -1,6 +1,6 @@
 # @format
 
-name: "Build for Windows/Linux"
+name: Release
 
 on:
   push:
@@ -82,6 +82,15 @@ jobs:
           args: ${{ matrix.args }}
           tauriScript: ${{ (matrix.platform == 'windows-11-arm' && 'npm run tauri') || 'bun tauri' }}
           tagName: ${{github.ref_name}}
+
+  sync_flathub:
+    name: Sync Flathub
+    needs: publish-tauri
+    if: endsWith(github.ref_name, '-stable')
+    uses: ./.github/workflows/flatpak.yml
+    secrets: inherit
+    with:
+      tag: ${{ github.ref_name }}
 
   submit_update:
     runs-on: ubuntu-latest

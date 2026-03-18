@@ -1,73 +1,194 @@
 # @format
 
-name: "Build for Windows/Linux"
+name: Flathub Sync
 
 on:
-  push:
-    tags:
-      - "v*-stable"
-      - "v*-flatpak"
-
-# This workflow will trigger on each push to the `release` branch to create or update a GitHub release, build your app, and upload the artifacts to the release.
+  workflow_call:
+    inputs:
+      tag:
+        description: Stable tag to sync to Flathub, e.g. v26.3.1-stable
+        required: true
+        type: string
+      release_repo:
+        description: Repository that owns the release assets
+        required: false
+        type: string
+        default: mrquantumoff/quadrant
+    secrets:
+      FLATHUB_GH_TOKEN:
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Stable tag to sync to Flathub, e.g. v26.3.1-stable
+        required: true
+        type: string
+      release_repo:
+        description: Repository that owns the release assets
+        required: false
+        type: string
+        default: mrquantumoff/quadrant
 
 jobs:
-  build-for-flatpak:
+  open_flathub_pr:
+    name: Open Flathub PR
+    runs-on: ubuntu-latest
     permissions:
-      contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: "ubuntu-24.04"
-            args: ""
-
-    runs-on: ${{ matrix.platform }}
-    outputs:
-      assets: ${{steps.tauri.outputs.releaseUploadUrl}}
-      version: ${{steps.tauri.outputs.appVersion}}
+      contents: read
+    env:
+      TAG: ${{ inputs.tag }}
+      RELEASE_REPO: ${{ inputs.release_repo }}
+      FLATHUB_REPO: flathub/dev.mrquantumoff.mcmodpackmanager
+      FLATHUB_BRANCH: ci/flathub-${{ inputs.tag }}
+      MANIFEST_PATH: dev.mrquantumoff.mcmodpackmanager.yml
+      METAINFO_PATH: dev.mrquantumoff.mcmodpackmanager.metainfo.xml
+      GH_TOKEN: ${{ secrets.FLATHUB_GH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TAG }}
 
-      - name: Setup bun
-        uses: oven-sh/setup-bun@v2
-
-
-      - name: install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-24.04' || matrix.platform == 'ubuntu-24.04-arm'
+      - name: Validate stable tag
         run: |
-          sudo apt update
-          sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
+          set -euo pipefail
 
-      - name: install frontend dependencies (bun)
-        run: bun install
+          case "$TAG" in
+            v*-stable) ;;
+            *)
+              echo "Expected a stable tag starting with 'v' and ending with '-stable', got: $TAG" >&2
+              exit 1
+              ;;
+          esac
 
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "./src-tauri -> target"
+          VERSION="${TAG#v}"
+          BASE_VERSION="${VERSION%-stable}"
 
-      - uses: tauri-apps/tauri-action@v0
-        id: tauri
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          ETERNAL_API_TOKEN: ${{ secrets.ETERNAL_API_TOKEN }}
-          QUADRANT_API_KEY: ${{ secrets.QUADRANT_API_KEY }}
-          QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
-          QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
-          NO_STRIP: ${{ (matrix.platform == 'ubuntu-24.04' || matrix.platform == 'ubuntu-24.04-arm') && 'true' }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "BASE_VERSION=$BASE_VERSION" >> "$GITHUB_ENV"
 
-        with:
-          releaseName: "Quadrant v__VERSION__"
-          releaseBody: "See the assets to download this version and install. Check out the [changelog on my blog](https://blog.mrquantumoff.dev)"
-          releaseDraft: false
-          prerelease: ${{ !endsWith(github.ref_name, 'stable') }}
-          args: ${{ matrix.args }} -c ./src-tauri/tauri.flatpak.conf.json
-          tauriScript: 'bun tauri'
-          tagName: ${{github.ref_name}}
+      - name: Download stable release assets
+        run: |
+          set -euo pipefail
+
+          mkdir -p downloads
+
+          gh release download "$TAG" \
+            --repo "$RELEASE_REPO" \
+            --dir downloads \
+            --pattern "Quadrant_${VERSION}_amd64.deb" \
+            --pattern "Quadrant_${VERSION}_arm64.deb"
+
+      - name: Compute source hashes
+        id: hashes
+        run: |
+          set -euo pipefail
+
+          metainfo_sha="$(sha256sum "$METAINFO_PATH" | awk '{print $1}')"
+          amd64_sha="$(sha256sum "downloads/Quadrant_${VERSION}_amd64.deb" | awk '{print $1}')"
+          arm64_sha="$(sha256sum "downloads/Quadrant_${VERSION}_arm64.deb" | awk '{print $1}')"
+
+          echo "metainfo_sha=$metainfo_sha" >> "$GITHUB_OUTPUT"
+          echo "amd64_sha=$amd64_sha" >> "$GITHUB_OUTPUT"
+          echo "arm64_sha=$arm64_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Clone Flathub manifest repo
+        run: |
+          set -euo pipefail
+          gh repo clone "$FLATHUB_REPO" flathub-manifest
+
+      - name: Update Flathub manifest branch
+        id: update_manifest
+        run: |
+          set -euo pipefail
+
+          cd flathub-manifest
+
+          branch_exists=false
+          if git ls-remote --exit-code --heads origin "$FLATHUB_BRANCH" >/dev/null 2>&1; then
+            branch_exists=true
+          fi
+
+          git fetch origin master
+          if [ "$branch_exists" = true ]; then
+            git fetch origin "refs/heads/$FLATHUB_BRANCH:refs/remotes/origin/$FLATHUB_BRANCH"
+            git checkout -B "$FLATHUB_BRANCH" "origin/$FLATHUB_BRANCH"
+          else
+            git checkout -B "$FLATHUB_BRANCH" origin/master
+          fi
+
+          python3 "$GITHUB_WORKSPACE/scripts/update_flathub_manifest.py" \
+            --tag "$TAG" \
+            --version "$VERSION" \
+            --release-repo "$RELEASE_REPO" \
+            --metainfo-sha "${{ steps.hashes.outputs.metainfo_sha }}" \
+            --amd64-sha "${{ steps.hashes.outputs.amd64_sha }}" \
+            --arm64-sha "${{ steps.hashes.outputs.arm64_sha }}" \
+            --manifest-path "$MANIFEST_PATH"
+
+          if git diff --quiet -- "$MANIFEST_PATH"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "branch_exists=$branch_exists" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push Flathub branch
+        if: steps.update_manifest.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+
+          cd flathub-manifest
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$MANIFEST_PATH"
+          git commit -m "Update Quadrant to $VERSION"
+          git push --force-with-lease origin "$FLATHUB_BRANCH"
+
+      - name: Open or update Flathub PR
+        run: |
+          set -euo pipefail
+
+          metainfo_url="https://github.com/${RELEASE_REPO}/raw/${TAG}/${METAINFO_PATH}"
+          amd64_url="https://github.com/${RELEASE_REPO}/releases/download/${TAG}/Quadrant_${VERSION}_amd64.deb"
+          arm64_url="https://github.com/${RELEASE_REPO}/releases/download/${TAG}/Quadrant_${VERSION}_arm64.deb"
+          pr_head="${FLATHUB_REPO%%/*}:${FLATHUB_BRANCH}"
+
+          {
+            printf '%s\n' "This PR was generated from the Quadrant release workflow after publishing the stable release assets."
+            printf '\n'
+            printf '%s\n' "- Tag: \`${TAG}\`"
+            printf '%s\n' "- Metainfo URL: \`${metainfo_url}\`"
+            printf '%s\n' "- Metainfo SHA256: \`${{ steps.hashes.outputs.metainfo_sha }}\`"
+            printf '%s\n' "- amd64 URL: \`${amd64_url}\`"
+            printf '%s\n' "- amd64 SHA256: \`${{ steps.hashes.outputs.amd64_sha }}\`"
+            printf '%s\n' "- arm64 URL: \`${arm64_url}\`"
+            printf '%s\n' "- arm64 SHA256: \`${{ steps.hashes.outputs.arm64_sha }}\`"
+          } > pr-body.md
+
+          pr_number="$(gh pr list \
+            --repo "$FLATHUB_REPO" \
+            --head "$pr_head" \
+            --state open \
+            --json number \
+            --jq '.[0].number')"
+
+          if [ -n "$pr_number" ]; then
+            gh pr edit "$pr_number" \
+              --repo "$FLATHUB_REPO" \
+              --title "Update Quadrant to ${VERSION}" \
+              --body-file pr-body.md
+            exit 0
+          fi
+
+          if [ "${{ steps.update_manifest.outputs.changed }}" != "true" ] && [ "${{ steps.update_manifest.outputs.branch_exists }}" != "true" ]; then
+            echo "Manifest already matches master and no existing branch/PR was found for $TAG." >&2
+            exit 1
+          fi
+
+          gh pr create \
+            --repo "$FLATHUB_REPO" \
+            --base master \
+            --head "$pr_head" \
+            --title "Update Quadrant to ${VERSION}" \
+            --body-file pr-body.md
