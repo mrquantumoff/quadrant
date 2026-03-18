@@ -192,7 +192,7 @@ function Notifications({
             <div className={"flex justify-center items-center mr-2"}>
               <PopoverButton
                 className={
-                  "focus:outline-hidden rounded-full transition-all duration-150 ease-linear " +
+                  "focus:outline-hidden rounded-full transition-colors duration-150 ease-linear " +
                   areNotificationsHighlighted
                 }
               >
@@ -210,26 +210,20 @@ function Notifications({
                   anchor="top start"
                   initial={{
                     opacity: 0,
-                    y: -100,
-                    scaleY: 0,
-                    scaleX: 0,
-                    x: 50,
+                    y: -16,
+                    x: -150,
                   }}
                   animate={{
                     opacity: 1,
                     y: 0,
-                    scaleY: 1,
-                    scaleX: 1,
                     x: -150,
                   }}
                   exit={{
                     opacity: 0,
-                    y: -200,
-                    scaleY: 0,
-                    scaleX: 0,
-                    x: 50,
+                    y: -16,
+                    x: -150,
                   }}
-                  className="flex flex-col p-4 mt-4 font-bold bg-slate-800 rounded-4xl w-[35vw] my-8 h-[75vh] "
+                  className="flex flex-col p-4 mt-4 font-bold bg-slate-800 rounded-4xl w-[35vw] my-8 h-[75vh] transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
                 >
                   <div className="border-b-2 border-slate-700">
                     {snackBarHistory.length > 0 && (
@@ -248,7 +242,7 @@ function Notifications({
                           )}
                         </div>
                         <Button
-                          className="bg-slate-700 hover:bg-slate-600 transition-all flex items-center justify-center shrink-0"
+                          className="bg-slate-700 hover:bg-slate-600 transition-colors flex items-center justify-center shrink-0"
                           onClick={() => {
                             setSnackbarHistory([]);
                           }}
@@ -287,7 +281,7 @@ function Notifications({
                       let action: React.ReactElement | null = (
                         <>
                           <Button
-                            className="w-full bg-emerald-600 hover:bg-emerald-800 transition-all ease-linear flex items-center justify-center"
+                            className="w-full bg-emerald-600 hover:bg-emerald-800 transition-colors ease-linear flex items-center justify-center"
                             onClick={async () => {
                               await readNotification(
                                 notification.notification_id,
@@ -383,7 +377,7 @@ function Notifications({
                               onClick={async () => {
                                 await openIn(article.link);
                               }}
-                              className="bg-blue-700 hover:bg-blue-800 transition-all w-full flex items-center justify-center"
+                              className="bg-blue-700 hover:bg-blue-800 transition-colors w-full flex items-center justify-center"
                             >
                               {t("read")}
                               <MdOpenInBrowser className="w-4 h-4 mx-2" />

@@ -72,9 +72,10 @@ export default function CurrentModpackPage() {
   return (
     <>
       <motion.div
-        initial={{ y: 500, opacity: 0 }}
+        initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 5000 }}
+        exit={{ y: 24, opacity: 0 }}
+        className="transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
       >
         {currentModpack !== undefined ? (
           <ModpackView

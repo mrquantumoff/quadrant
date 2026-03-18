@@ -205,18 +205,18 @@ export default function SearchPage() {
   return (
     <>
       <motion.div
-        initial={{ y: 500, opacity: 0 }}
+        initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 5000 }}
-        className="flex flex-col w-full h-full justify-start items-center content-main "
+        exit={{ y: 24, opacity: 0 }}
+        className="flex flex-col w-full h-full justify-start items-center content-main transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
       >
         <div className="h-min w-full">
           <AnimatePresence>
             {filter && (
               <motion.div
-                initial={{ y: -500 }}
+                initial={{ y: -24 }}
                 animate={{ y: 0 }}
-                exit={{ y: 50, opacity: 0 }}
+                exit={{ y: 16, opacity: 0 }}
                 className="items-center font-bold text-center mt-8"
               >
                 {modpack} | {version} | {loader}
@@ -270,17 +270,17 @@ export default function SearchPage() {
                         {open && (
                           <PopoverPanel
                             anchor="bottom"
-                            className="bg-slate-900 border-2 mt-8 border-slate-700 p-8 rounded-4xl flex flex-col w-max"
+                            className="bg-slate-900 border-2 mt-8 border-slate-700 p-8 rounded-4xl flex flex-col w-max transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
                             static
                             as={motion.div}
                             initial={{
                               opacity: 0,
-                              scale: 0.125,
-                              x: 200,
-                              y: -50,
+                              scale: 0.98,
+                              x: 24,
+                              y: -16,
                             }}
                             animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.125, x: 200, y: -50 }}
+                            exit={{ opacity: 0, scale: 0.98, x: 24, y: -16 }}
                           >
                             <Fieldset>
                               <Field>
@@ -448,11 +448,11 @@ export default function SearchPage() {
                 <AnimatePresence>
                   {allResults.length > 50 * page && (
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.125 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
                       whileHover={{ opacity: 1 }}
-                      exit={{ y: 500 }}
-                      className="flex flex-col mb-8 items-center justify-center"
+                      exit={{ opacity: 0, y: 16 }}
+                      className="flex flex-col mb-8 items-center justify-center transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
                     >
                       <Button
                         onClick={() => {

@@ -43,6 +43,7 @@ import ShareSyncPage from "./components/Pages/ShareSyncPage/ShareSyncPage";
 import Button from "./components/core/Button";
 import { listen } from "@tauri-apps/api/event";
 import Notifications from "./components/shared/Notifications";
+import { platform } from "@tauri-apps/plugin-os";
 
 interface PageWithScroll {
   scrollPositionX: number;
@@ -112,6 +113,7 @@ function App() {
   const config = configRef.current!;
   const [contentHistory, setContentHistory] = useState<PageWithScroll[]>([]);
   const [extendedNavigation, setExtendedNavigation] = useState(false);
+  const [isLinux, setIsLinux] = useState(false);
 
   const [snackBarHistory, setSnackbarHistory] = useState<SnackbarHistoryItem[]>(
     [],
@@ -237,14 +239,17 @@ function App() {
         cleanupFns.push(modpackDownloadUnlisten);
       }
 
-      const [extendedNavigationValue, lastPageIndex] = await Promise.all([
-        config.get<boolean>("extendedNavigation"),
-        config.get<number>("lastPage"),
-      ]);
+      const [currentPlatform, extendedNavigationValue, lastPageIndex] =
+        await Promise.all([
+          platform(),
+          config.get<boolean>("extendedNavigation"),
+          config.get<number>("lastPage"),
+        ]);
 
       if (!isUnmounted) {
         const resolvedExtendedNavigation = extendedNavigationValue ?? false;
         const initialPage = pages[lastPageIndex ?? 0] ?? pages[0];
+        setIsLinux(currentPlatform === "linux");
         setExtendedNavigation(resolvedExtendedNavigation);
         setPage(initialPage);
         setContent(initialPage);
@@ -466,6 +471,18 @@ function App() {
     };
   }, []);
 
+  const updateContentWithTransition = (update: () => void) => {
+    if (
+      !isLinux &&
+      typeof document.startViewTransition === "function"
+    ) {
+      document.startViewTransition(update);
+      return;
+    }
+
+    update();
+  };
+
   const contextFunctions: IContentContext = {
     back: async () => {
       // If there's no previous history, do nothing.
@@ -479,13 +496,9 @@ function App() {
       const previousEntry = newHistory[newHistory.length - 1];
 
       // Update state with the previous page.
-      if (!document.startViewTransition) {
+      updateContentWithTransition(() => {
         setContent(previousEntry.page);
-      } else {
-        document.startViewTransition(() => {
-          setContent(previousEntry.page);
-        });
-      }
+      });
       setContentHistory(newHistory);
 
       // Wait a short time to ensure the new content is rendered before scrolling.
@@ -517,23 +530,15 @@ function App() {
         behavior: "instant",
       });
       console.log(newHistory);
-      if (!document.startViewTransition) {
+      updateContentWithTransition(() => {
         setContent(component);
-      } else {
-        document.startViewTransition(() => {
-          setContent(component);
-        });
-      }
+      });
     },
     changePage: (name) => {
       const newPage = pages.filter((pg) => pg.name === name);
-      if (!document.startViewTransition) {
+      updateContentWithTransition(() => {
         setContent(newPage[0]);
-      } else {
-        document.startViewTransition(() => {
-          setContent(newPage[0]);
-        });
-      }
+      });
       const newHistory = [...contentHistory];
       newHistory.push({
         page: newPage[0],
@@ -640,7 +645,7 @@ function App() {
                         animate
                         data-selected={isSelected}
                         className={
-                          "text-center items-center justify-center flex flex-col align-center w-full min-w-fit wrap-break-word relative min-h-fit  transition-all duration-200 ease-linear font-extrabold py-4 p-1 my-1 rounded-4xl " +
+                          "text-center items-center justify-center flex flex-col align-center w-full min-w-fit wrap-break-word relative min-h-fit transition-colors duration-200 ease-linear font-extrabold py-4 p-1 my-1 rounded-4xl " +
                           p.style +
                           (page === p ? "bg-slate-600" : "bg-slate-800")
                         }
@@ -758,11 +763,11 @@ function App() {
                   </div>
                 </div>
                 <motion.div
-                  initial={{ y: 500, opacity: 0 }}
+                  initial={{ y: 24, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: 5000 }}
+                  exit={{ y: 24, opacity: 0 }}
                   layoutScroll
-                  className="h-full overflow-y-auto "
+                  className="h-full overflow-y-auto transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
                   transition={{ type: "keyframes", duration: 0.1 }}
                   // key={content.name}
                   ref={contentRef}
@@ -784,11 +789,11 @@ function App() {
               <AnimatePresence>
                 {snackbarEnabled && (
                   <motion.div
-                    initial={{ opacity: 0, y: 5000, scale: 0.125 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 500, scale: 0.125 }}
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 16 }}
                     className={
-                      "transition-transform bottom-8 font-bold text-slate-50 left-8 fixed w-max h-max p-4 rounded-4xl flex flex-col items-center justify-center " +
+                      "bottom-8 left-8 fixed w-max h-max p-4 rounded-4xl flex flex-col items-center justify-center font-bold text-slate-50 transform-gpu [backface-visibility:hidden] [will-change:transform,opacity] " +
                       snackbarState.className
                     }
                   >
