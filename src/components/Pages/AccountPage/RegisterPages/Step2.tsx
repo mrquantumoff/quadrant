@@ -57,7 +57,7 @@ export default function SecondRegisterStep({ email }: SecondRegisterStepProps) {
         headers: {
           "Content-Type": "application/json",
         },
-      }
+      },
     );
     if (request.status !== 201) {
       context.setSnackbar({

@@ -35,7 +35,7 @@ export default function SyncPage() {
         <div className="bg-slate-800 flex flex-1 flex-col rounded-4xl w-[98%]  ">
           {modpacks.map((modpack) => {
             const localModpackResult = localModpacks.filter(
-              (localModpack) => localModpack.name === modpack.name
+              (localModpack) => localModpack.name === modpack.name,
             );
             let localModpack: LocalModpack | undefined = undefined;
             if (localModpackResult.length !== 0) {

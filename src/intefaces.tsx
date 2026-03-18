@@ -22,11 +22,11 @@ export const ModpackViewContext = createContext<IModpackViewContext>({
   removeMod: (_: string) => {},
 });
 
-  // Interface for grouped snackbar history items
-  export interface SnackbarHistoryItem extends SnackbarState {
-    count: number;
-    id: string; // unique key for rendering
-  }
+// Interface for grouped snackbar history items
+export interface SnackbarHistoryItem extends SnackbarState {
+  count: number;
+  id: string; // unique key for rendering
+}
 
 export const ContentContext = createContext<IContentContext>({
   back: async () => {},

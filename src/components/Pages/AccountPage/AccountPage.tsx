@@ -112,7 +112,8 @@ export default function AccountPage() {
                   response:
                     "<html><body><h1>" +
                     t("returnToTheApp") +
-                    "</h1></body></html>",ports: [4000,4001,4002,4003,4004,4005]
+                    "</h1></body></html>",
+                  ports: [4000, 4001, 4002, 4003, 4004, 4005],
                 });
                 let unlistenOAuth: (() => void) | null = null;
 
@@ -121,13 +122,13 @@ export default function AccountPage() {
                 const redirectUri = `http://127.0.0.1:${port}`;
                 const clientId = await invoke<string>("oauth2_client_id");
                 const authUrl = new URL(
-                  "https://mrquantumoff.dev/account/oauth2/authorize"
+                  "https://mrquantumoff.dev/account/oauth2/authorize",
                 );
                 authUrl.searchParams.set("client_id", clientId);
                 authUrl.searchParams.set("redirect_uri", redirectUri);
                 authUrl.searchParams.set(
                   "scope",
-                  "profile:read profile:write sync:read sync:write share:read share:write settings:read settings:write notifications:read"
+                  "profile:read profile:write sync:read sync:write share:read share:write settings:read settings:write notifications:read",
                 );
                 authUrl.searchParams.set("response_type", "code");
                 authUrl.searchParams.set("state", randomString);
@@ -189,7 +190,7 @@ export default function AccountPage() {
           className="bg-slate-700 hover:bg-slate-800 w-full h-full flex flex-row items-center justify-center text-lg"
           onClick={async () => {
             openIn(
-              "https://github.com/mrquantumoff/quadrant/blob/master/QUADRANT-ID-TOS.md"
+              "https://github.com/mrquantumoff/quadrant/blob/master/QUADRANT-ID-TOS.md",
             );
           }}
         >

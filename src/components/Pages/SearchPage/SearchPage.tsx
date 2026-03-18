@@ -298,7 +298,7 @@ export default function SearchPage() {
                                     setVersion(newVersion);
                                     await configStore.set(
                                       "lastUsedVersion",
-                                      newVersion
+                                      newVersion,
                                     );
                                     await configStore.save();
                                   }}
@@ -330,7 +330,7 @@ export default function SearchPage() {
 
                                     await configStore.set(
                                       "lastUsedAPI",
-                                      selectedLoader
+                                      selectedLoader,
                                     );
                                     await configStore.save();
                                   }}
@@ -352,7 +352,7 @@ export default function SearchPage() {
                                   onChange={async (e) => {
                                     e.preventDefault();
                                     const selectedModpack = modpacks.find(
-                                      (i) => i.name === e.target.value
+                                      (i) => i.name === e.target.value,
                                     );
                                     if (!selectedModpack) {
                                       return;
@@ -360,15 +360,15 @@ export default function SearchPage() {
 
                                     await configStore.set(
                                       "lastUsedModpack",
-                                      selectedModpack.name
+                                      selectedModpack.name,
                                     );
                                     await configStore.set(
                                       "lastUsedVersion",
-                                      selectedModpack.version
+                                      selectedModpack.version,
                                     );
                                     await configStore.set(
                                       "lastUsedAPI",
-                                      selectedModpack.modLoader
+                                      selectedModpack.modLoader,
                                     );
                                     await configStore.save();
                                     setModpack(selectedModpack.name);
@@ -464,7 +464,7 @@ export default function SearchPage() {
                               50 * page,
                               isThereNextPage
                                 ? 50 * (page + 1)
-                                : allResults.length
+                                : allResults.length,
                             ),
                           ]);
                           setPage(page + 1);

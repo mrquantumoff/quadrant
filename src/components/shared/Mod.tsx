@@ -42,8 +42,8 @@ export default function Mod(props: IModProps) {
     mod.source === ModSource.CurseForge
       ? "CurseForge"
       : mod.source === ModSource.Modrinth
-      ? "Modrinth"
-      : "?";
+        ? "Modrinth"
+        : "?";
   const desc = (
     mod.description.trim().length >= 36
       ? mod.description.trim().substring(0, 36) + "..."
@@ -114,8 +114,11 @@ export default function Mod(props: IModProps) {
         unlistenInstallProgress = await listen(
           "modInstallProgress",
           (event: any) => {
-            if (event.payload.modId === modId && event.payload.progress === 100) {
-                          console.log(event)
+            if (
+              event.payload.modId === modId &&
+              event.payload.progress === 100
+            ) {
+              console.log(event);
 
               if (!isAutoinstallable) {
                 setVisible(false);
@@ -124,7 +127,7 @@ export default function Mod(props: IModProps) {
               unlistenInstallProgress?.();
               unlistenInstallProgress = null;
             }
-          }
+          },
         );
         if (isUnmounted && unlistenInstallProgress) {
           unlistenInstallProgress();
@@ -252,7 +255,7 @@ export default function Mod(props: IModProps) {
                       mod.modType,
                       props.modpack,
                       mod.source,
-                      mod.id
+                      mod.id,
                     );
                   }}
                   className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-700 hover:bg-emerald-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
@@ -272,15 +275,12 @@ export default function Mod(props: IModProps) {
                       installRequestedRef.current = true;
                       // Get last used api, modpack, and loader
                       const config = new LazyStore("config.json");
-                      const lastUsedAPI = await config.get<string>(
-                        "lastUsedAPI"
-                      );
-                      const lastUsedModpack = await config.get<string>(
-                        "lastUsedModpack"
-                      );
-                      const lastUsedVersion = await config.get<string>(
-                        "lastUsedVersion"
-                      );
+                      const lastUsedAPI =
+                        await config.get<string>("lastUsedAPI");
+                      const lastUsedModpack =
+                        await config.get<string>("lastUsedModpack");
+                      const lastUsedVersion =
+                        await config.get<string>("lastUsedVersion");
                       try {
                         await installMod(
                           mod.id,
@@ -288,7 +288,7 @@ export default function Mod(props: IModProps) {
                           (lastUsedAPI as ModLoader) ?? ModLoader.Unknown,
                           mod.source,
                           mod.modType,
-                          lastUsedModpack ?? "free"
+                          lastUsedModpack ?? "free",
                         );
                       } catch (e: any) {
                         installRequestedRef.current = false;
@@ -322,7 +322,7 @@ export default function Mod(props: IModProps) {
                       id: mod.id,
                       source: mod.source,
                     },
-                    mod.modpack ?? ""
+                    mod.modpack ?? "",
                   );
                   modpackViewContext.removeMod(mod.id);
                 }}

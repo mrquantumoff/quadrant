@@ -12,7 +12,7 @@ export default function CurrentModpackPage() {
 
   const updateModpack = async () => {
     const newModpack = (await getModpacks(false)).filter(
-      (modpack) => modpack.isApplied
+      (modpack) => modpack.isApplied,
     )[0];
     if (!mountedRef.current) {
       return;
@@ -24,7 +24,7 @@ export default function CurrentModpackPage() {
     mountedRef.current = true;
     const effect = async () => {
       const newModpack = (await getModpacks(false)).filter(
-        (modpack) => modpack.isApplied
+        (modpack) => modpack.isApplied,
       )[0];
 
       if (mountedRef.current) {
@@ -42,7 +42,7 @@ export default function CurrentModpackPage() {
         },
         {
           delayMs: 500,
-        }
+        },
       );
 
       return unwatchMods;

@@ -28,7 +28,7 @@ export default function SharePage({
   modpackSync,
 }: SharePageProps) {
   const [modpack, setModpack] = useState<InstalledModpack | undefined>(
-    undefined
+    undefined,
   );
   const [mods, setMods] = useState<IMod[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -107,7 +107,7 @@ export default function SharePage({
                 selectable: false,
                 selectUrl: null,
               },
-              mod.source
+              mod.source,
             );
             setMods((prevMods) => [...prevMods, newMod]);
           } catch (error) {

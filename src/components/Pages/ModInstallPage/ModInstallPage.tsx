@@ -104,8 +104,8 @@ export default function ModInstallPage(props: IModInstallPageProps) {
     mod.source === ModSource.CurseForge
       ? "CurseForge"
       : mod.source === ModSource.Modrinth
-      ? "Modrinth"
-      : "?";
+        ? "Modrinth"
+        : "?";
 
   return (
     <motion.div
@@ -302,7 +302,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 onChange={async (e) => {
                   e.preventDefault();
                   const modpack = modpacks.filter(
-                    (i) => i.name === e.target.value
+                    (i) => i.name === e.target.value,
                   )[0];
                   setModpack(e.target.value);
                   setLoader(modpack.modLoader.toString());
@@ -341,7 +341,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                     mod.source,
                     mod.modType,
                     modpack,
-                    props.fileId
+                    props.fileId,
                   );
                 } catch (e: any) {
                   console.error(t(e));

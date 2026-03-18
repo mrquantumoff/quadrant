@@ -53,14 +53,14 @@ export default function SettingsPage() {
       // setRssFeeds((await box.get<boolean>("rssFeeds")) ?? false);
       // setSilentNews((await box.get<boolean>("silentNews")) ?? false);
       setUpdateChannel(
-        (await updateChannelBox.get<string>("channel")) ?? "stable"
+        (await updateChannelBox.get<string>("channel")) ?? "stable",
       );
       setAutoQuadrantSync(
-        (await box.get<boolean>("autoQuadrantSync")) ?? false
+        (await box.get<boolean>("autoQuadrantSync")) ?? false,
       );
 
       setShowUnupgradeableMods(
-        (await box.get("showUnupgradeableMods")) ?? false
+        (await box.get("showUnupgradeableMods")) ?? false,
       );
       setExperimentalFeatures((await box.get("experimentalFeatures")) || false);
       console.log("Minecraft folder: " + (await getMinecraftFolder(false)));
@@ -69,7 +69,7 @@ export default function SettingsPage() {
       setCurrentVersion(await getVersion());
       setCurrentTauriVersion(await getTauriVersion());
       setExtendedNavigation(
-        (await box.get<boolean>("extendedNavigation")) ?? false
+        (await box.get<boolean>("extendedNavigation")) ?? false,
       );
       setShowUpdateSettings(await invoke("is_autoupdate_enabled"));
     };
@@ -225,7 +225,7 @@ export default function SettingsPage() {
         onClick={async () => {
           await openIn(
             "https://mrquantumoff.dev/projects/quadrant/analytics/" +
-              (await box.get<string>("hardwareId"))
+              (await box.get<string>("hardwareId")),
           );
         }}
       >

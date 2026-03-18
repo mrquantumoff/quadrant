@@ -194,7 +194,7 @@ export default function SyncedModpackComponent({
                               onClick={async () => {
                                 await kickMember(
                                   modpack.modpack_id,
-                                  owner.username
+                                  owner.username,
                                 );
                                 syncContext.refreshSyncedModpacks();
                               }}
@@ -322,7 +322,7 @@ export default function SyncedModpackComponent({
                                   await inviteMember(
                                     modpack.modpack_id,
                                     userToInvite,
-                                    userToInviteAdmin
+                                    userToInviteAdmin,
                                   );
                                   contentContext.setSnackbar({
                                     message: (

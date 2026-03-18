@@ -16,33 +16,35 @@ import {
   SyncedModpack,
   UniversalModFile,
 } from "./intefaces";
-import { platform } from '@tauri-apps/plugin-os';
+import { platform } from "@tauri-apps/plugin-os";
 
 import { LazyStore } from "@tauri-apps/plugin-store";
 
 export async function applyModpack(name: string): Promise<void> {
   try {
-  await invoke("frontend_apply_modpack", { name })
+    await invoke("frontend_apply_modpack", { name });
   } catch (e) {
     console.error(e);
     const os = await platform();
     if (os === "windows") {
-      await openIn("https://github.com/mrquantumoff/quadrant/wiki/Fixing-Windows-issues");
+      await openIn(
+        "https://github.com/mrquantumoff/quadrant/wiki/Fixing-Windows-issues",
+      );
     }
   }
-  return ;
+  return;
 }
 
 export async function getModpacks(
   hideFree = true,
-  searchQuery: string | undefined = undefined
+  searchQuery: string | undefined = undefined,
 ): Promise<LocalModpack[]> {
   const res = await invoke<[LocalModpack]>("get_modpacks", { hideFree });
   res.sort((a, b) => b.lastSynced - a.lastSynced);
   const hasApplied = res.filter((modpack) => modpack.isApplied).length > 0;
   if (hasApplied) {
     res.sort((a, b) =>
-      a.isApplied === b.isApplied ? 0 : a.isApplied ? -1 : 1
+      a.isApplied === b.isApplied ? 0 : a.isApplied ? -1 : 1,
     );
   }
   if (searchQuery) {
@@ -70,7 +72,7 @@ export async function searchMods(args: GlobalSearchModsArgs): Promise<IMod[]> {
 
 export async function getMod(
   args: GetModArgs,
-  source: ModSource
+  source: ModSource,
 ): Promise<IMod> {
   if (source === ModSource.CurseForge) {
     const mod = await invoke<IMod>("get_mod_curseforge", { args: args });
@@ -90,7 +92,7 @@ export async function getVersions(): Promise<MinecraftVersion[]> {
 
 export async function getUserURL(
   username: string,
-  source: ModSource
+  source: ModSource,
 ): Promise<string> {
   const res = await invoke<string>("get_user_url", {
     username: username,
@@ -100,7 +102,7 @@ export async function getUserURL(
 }
 
 export async function getMinecraftFolder(
-  onlyRealFolder: boolean = false
+  onlyRealFolder: boolean = false,
 ): Promise<string> {
   if (!onlyRealFolder) {
     const store = await new LazyStore("config.json");
@@ -125,7 +127,7 @@ export async function deleteMod(modpackName: string, modId: string) {
 
 export async function getModOwners(
   source: ModSource,
-  modId: string
+  modId: string,
 ): Promise<string[]> {
   if (source === ModSource.CurseForge) {
     const owners = await invoke<string[]>("get_mod_owners_curseforge", {
@@ -143,7 +145,7 @@ export async function getModOwners(
 
 export async function getModDependencies(
   source: ModSource,
-  modId: string
+  modId: string,
 ): Promise<IMod[]> {
   if (source === ModSource.CurseForge) {
     const deps = await invoke<IMod[]>("get_mod_deps_curseforge", {
@@ -161,7 +163,7 @@ export async function getModDependencies(
 
 export async function updateModpack(
   originalModpack: string,
-  newDetails: LocalModpack
+  newDetails: LocalModpack,
 ) {
   await invoke("update_modpack", {
     modpackSource: originalModpack,
@@ -174,7 +176,7 @@ export async function updateModpack(
 export async function createModpack(
   name: string,
   version: string,
-  modLoader: ModLoader
+  modLoader: ModLoader,
 ) {
   await invoke("create_modpack", {
     name: name,
@@ -220,7 +222,7 @@ export async function installMod(
   source: ModSource,
   modType: ModType,
   modpack: string,
-  fileId?: string
+  fileId?: string,
 ) {
   await invoke("install_mod", {
     id: id,
@@ -249,7 +251,7 @@ export async function getModUpdate(
   mod: IMod,
   mcVersion: string,
   loader: ModLoader,
-  modpackName: string
+  modpackName: string,
 ): Promise<IMod | null> {
   const res = await invoke<IMod | null>("check_mod_updates", {
     modToUpdate: mod,
@@ -265,7 +267,7 @@ export async function installRemoteFile(
   modType: ModType,
   modpack: string | undefined,
   source: ModSource,
-  id: string
+  id: string,
 ) {
   await invoke("install_remote_file", {
     file: file,
@@ -298,7 +300,7 @@ export async function installModpack(modpack: InstalledModpack) {
 
 export async function getSyncedModpacks(
   showOwners: boolean,
-  modpackId?: string
+  modpackId?: string,
 ) {
   const res = await invoke<SyncedModpack[]>("get_synced_modpacks", {
     showOwners,
@@ -313,7 +315,7 @@ export async function kickMember(modpackId: string, username: string) {
 export async function inviteMember(
   modpackId: string,
   username: string,
-  admin: boolean
+  admin: boolean,
 ) {
   await invoke("invite_member", {
     modpackId: modpackId,
@@ -337,7 +339,7 @@ export async function readNotification(notificationId: string) {
 export async function answerInvite(
   modpackId: string,
   notificationId: string,
-  answer: boolean
+  answer: boolean,
 ) {
   await invoke("answer_invite", {
     modpackId: modpackId,
@@ -359,7 +361,9 @@ export const exportModpack = async (name: string) => {
   await invoke("export_modpack", { modpack: name });
 };
 
-export const identifyUnknownMods = async (modpack: string): Promise<IdentifiedMod[]> => {
+export const identifyUnknownMods = async (
+  modpack: string,
+): Promise<IdentifiedMod[]> => {
   return await invoke("identify_modpack", { modpack: modpack });
 };
 

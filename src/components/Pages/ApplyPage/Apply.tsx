@@ -104,7 +104,7 @@ export default function ApplyPage() {
         },
         {
           delayMs: 50,
-        }
+        },
       );
       await listen("quadrantShareSubmission", async (event: any) => {
         const usesLeft = event.payload.uses_left;
@@ -181,7 +181,7 @@ export default function ApplyPage() {
               await createModpack(
                 "free",
                 versions[0].version,
-                ModLoader.Unknown
+                ModLoader.Unknown,
               );
               await applyModpack("free");
               await updateModpacks();
@@ -216,7 +216,7 @@ export default function ApplyPage() {
                   hour: "2-digit",
                   minute: "2-digit",
                   hour12: false,
-                }
+                },
               ).format(date);
               const dateString = t("localSyncDate", { date: formattedDate });
               return (
@@ -334,7 +334,7 @@ export default function ApplyPage() {
                         setIsUpdateDialogOpen(true);
                         setIsDialogToCreate(false);
                         setOriginalModpackName(
-                          JSON.parse(JSON.stringify(modpack.name))
+                          JSON.parse(JSON.stringify(modpack.name)),
                         );
                         setModpackToUpdate(modpack);
                       }}
@@ -461,7 +461,7 @@ export default function ApplyPage() {
                       value={modpackToUpdate.version}
                       onChange={(newValue) => {
                         const modpack: LocalModpack = JSON.parse(
-                          JSON.stringify(modpackToUpdate)
+                          JSON.stringify(modpackToUpdate),
                         );
                         modpack.version = newValue.target.value;
                         setModpackToUpdate(modpack);
@@ -501,7 +501,7 @@ export default function ApplyPage() {
                       value={modpackToUpdate.modLoader}
                       onChange={(newValue) => {
                         const modpack: LocalModpack = JSON.parse(
-                          JSON.stringify(modpackToUpdate)
+                          JSON.stringify(modpackToUpdate),
                         );
                         const loaderString = newValue.target.value;
                         let loader = ModLoader.Unknown;
@@ -544,11 +544,11 @@ export default function ApplyPage() {
                       onChange={(newValue) => {
                         // Deep copy modpackToUpdate
                         const modpack: LocalModpack = JSON.parse(
-                          JSON.stringify(modpackToUpdate)
+                          JSON.stringify(modpackToUpdate),
                         );
                         const newName = newValue.target.value.replace(
                           /[<>:"/\\|?*]/,
-                          ""
+                          "",
                         );
 
                         modpack.name = newName;
@@ -574,7 +574,7 @@ export default function ApplyPage() {
                           await createModpack(
                             modpackToUpdate.name,
                             modpackToUpdate.version,
-                            modpackToUpdate.modLoader
+                            modpackToUpdate.modLoader,
                           );
                           context.setSnackbar({
                             message:
@@ -599,7 +599,7 @@ export default function ApplyPage() {
                         try {
                           await updateModpack(
                             originalModpackName,
-                            modpackToUpdate
+                            modpackToUpdate,
                           );
                           await updateModpacks();
                           context.setSnackbar({

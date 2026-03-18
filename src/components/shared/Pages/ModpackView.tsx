@@ -79,13 +79,13 @@ export default function ModpackView(modpack: LocalModpack) {
               selectable: false,
               selectUrl: null,
             },
-            mod.source
+            mod.source,
           );
         } catch (error) {
           console.error("Failed to retrieve mod:", error);
           return null;
         }
-      })
+      }),
     );
 
     const validMods = fetchedMods.filter((mod): mod is IMod => mod !== null);
@@ -115,18 +115,18 @@ export default function ModpackView(modpack: LocalModpack) {
             mod,
             modpack.version,
             modpack.modLoader,
-            modpack.name
+            modpack.name,
           );
           return update;
         } catch (e) {
           console.log("Error while checking for updates: " + e);
           return null;
         }
-      })
+      }),
     );
 
     const newUpdates = fetchedUpdates.filter(
-      (update): update is IMod => update !== null
+      (update): update is IMod => update !== null,
     );
     newUpdates.sort((a, b) => b.downloadCount - a.downloadCount);
 
@@ -136,7 +136,7 @@ export default function ModpackView(modpack: LocalModpack) {
       setModCount(mods.length);
     } else {
       const downloadableCount = newUpdates.filter(
-        (mod) => mod.downloadable === true
+        (mod) => mod.downloadable === true,
       ).length;
       setModCount(downloadableCount);
     }
@@ -151,7 +151,7 @@ export default function ModpackView(modpack: LocalModpack) {
       console.log(mod);
       if (
         newFetchedMods.filter(
-          (fetchedMod) => fetchedMod.fileName === mod.file_name
+          (fetchedMod) => fetchedMod.fileName === mod.file_name,
         ).length === 0
       ) {
         console.log("Adding a new mod from source.");
@@ -169,7 +169,7 @@ export default function ModpackView(modpack: LocalModpack) {
                 modLoader: modpack.modLoader,
                 modpack: modpack.name,
               },
-              mod.installed_mod.source
+              mod.installed_mod.source,
             ),
           ],
           fileName: mod.file_name,
@@ -177,7 +177,7 @@ export default function ModpackView(modpack: LocalModpack) {
       } else {
         console.log("Adding mod from an alternate source.");
         const index = newFetchedMods.findIndex(
-          (fMod) => fMod.fileName === mod.file_name
+          (fMod) => fMod.fileName === mod.file_name,
         );
         newFetchedMods[index].proposedMods.push(
           await getMod(
@@ -192,8 +192,8 @@ export default function ModpackView(modpack: LocalModpack) {
               modLoader: modpack.modLoader,
               modpack: modpack.name,
             },
-            mod.installed_mod.source
-          )
+            mod.installed_mod.source,
+          ),
         );
       }
     }
@@ -231,7 +231,7 @@ export default function ModpackView(modpack: LocalModpack) {
             let newToIdentify = [...toIdentify];
             newToIdentify = newToIdentify.filter(
               (mod) =>
-                mod.proposedMods.filter((mod) => mod.id === id).length === 0
+                mod.proposedMods.filter((mod) => mod.id === id).length === 0,
             );
             setToIdentify(newToIdentify);
             if (newToIdentify.length === 0) {
