@@ -7,7 +7,7 @@ fn maybe_reexec_with_linux_wayland_nvidia_workaround() {
     use std::path::Path;
     use std::process::Command;
 
-    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_some()
+    if std::env::var_os("__NV_DISABLE_EXPLICIT_SYNC").is_some()
         || !is_wayland_session()
         || !has_nvidia_driver()
     {
@@ -25,7 +25,7 @@ fn maybe_reexec_with_linux_wayland_nvidia_workaround() {
 
     let error = Command::new(current_exe)
         .args(args)
-        .env("WEBKIT_DISABLE_DMABUF_RENDERER", "1")
+        .env("__NV_DISABLE_EXPLICIT_SYNC", "1")
         .exec();
     eprintln!("Failed to relaunch with NVIDIA Wayland workaround: {error}");
 
