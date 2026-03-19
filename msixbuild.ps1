@@ -1,0 +1,187 @@
+param(
+    [string]$ContentRoot = "AppxContent",
+    [string]$OutDir = "AppxBundles",
+    [string]$MsixBundleCli = "msixbundle-cli",
+    [switch]$PrepareOnly,
+    [string]$Pfx,
+    [string]$PfxPassword,
+    [string]$TimestampUrl,
+    [ValidateSet("rfc3161", "authenticode")]
+    [string]$TimestampMode = "rfc3161"
+)
+
+$ErrorActionPreference = "Stop"
+
+function Copy-CommonContent {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$SourceDir,
+        [Parameter(Mandatory = $true)]
+        [string]$DestinationDir
+    )
+
+    $excludedNames = @("x64", "arm64")
+
+    Get-ChildItem -Path $SourceDir -Force | Where-Object { $_.Name -notin $excludedNames } | ForEach-Object {
+        Copy-Item -Path $_.FullName -Destination $DestinationDir -Recurse -Force
+    }
+}
+
+function Set-ManifestArchitecture {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ManifestPath,
+        [Parameter(Mandatory = $true)]
+        [string]$ProcessorArchitecture
+    )
+
+    [xml]$manifest = Get-Content -Path $ManifestPath
+    $namespaceManager = New-Object System.Xml.XmlNamespaceManager($manifest.NameTable)
+    $namespaceManager.AddNamespace("appx", $manifest.DocumentElement.NamespaceURI)
+
+    $identity = $manifest.SelectSingleNode("/appx:Package/appx:Identity", $namespaceManager)
+    if ($null -eq $identity) {
+        throw "Identity node was not found in manifest: $ManifestPath"
+    }
+
+    $identity.SetAttribute("ProcessorArchitecture", $ProcessorArchitecture)
+    $manifest.Save($ManifestPath)
+}
+
+function New-StageDirectory {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if (Test-Path -Path $Path) {
+        Remove-Item -Path $Path -Recurse -Force
+    }
+
+    New-Item -ItemType Directory -Path $Path -Force | Out-Null
+}
+
+$repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$contentRootPath = Join-Path $repoRoot $ContentRoot
+$bundleOutputPath = Join-Path $repoRoot $OutDir
+
+$templateContentManifestPath = Join-Path $contentRootPath "AppxManifest.xml"
+$rootManifestPath = Join-Path $repoRoot "AppxManifest.xml"
+
+$iconMappings = @(
+    @{ Source = "src-tauri\icons\Square150x150Logo.png"; Destination = "Images\Square150x150Logo.png" },
+    @{ Source = "src-tauri\icons\Square44x44Logo.png"; Destination = "Images\Square44x44Logo.png" },
+    @{ Source = "src-tauri\icons\StoreLogo.png"; Destination = "Images\StoreLogo.png" }
+)
+
+$architectures = @(
+    @{
+        Name = "x64"
+        Triple = "x86_64-pc-windows-msvc"
+        ProcessorArchitecture = "x64"
+        CliFlag = "--dir-x64"
+    },
+    @{
+        Name = "arm64"
+        Triple = "aarch64-pc-windows-msvc"
+        ProcessorArchitecture = "arm64"
+        CliFlag = "--dir-arm64"
+    }
+)
+
+New-Item -ItemType Directory -Path $contentRootPath -Force | Out-Null
+New-Item -ItemType Directory -Path $bundleOutputPath -Force | Out-Null
+
+$stagedArchitectures = @()
+
+foreach ($architecture in $architectures) {
+    $sourceExe = Join-Path $repoRoot "src-tauri\target\$($architecture.Triple)\release\quadrant_next.exe"
+    if (-not (Test-Path -Path $sourceExe -PathType Leaf)) {
+        continue
+    }
+
+    $stageDir = Join-Path $contentRootPath $architecture.Name
+    New-StageDirectory -Path $stageDir
+
+    if (Test-Path -Path $templateContentManifestPath -PathType Leaf) {
+        Copy-CommonContent -SourceDir $contentRootPath -DestinationDir $stageDir
+    } elseif (Test-Path -Path $rootManifestPath -PathType Leaf) {
+        $imagesDir = Join-Path $stageDir "Images"
+        New-Item -ItemType Directory -Path $imagesDir -Force | Out-Null
+        Copy-Item -Path $rootManifestPath -Destination (Join-Path $stageDir "AppxManifest.xml") -Force
+
+        foreach ($iconMapping in $iconMappings) {
+            $sourcePath = Join-Path $repoRoot $iconMapping.Source
+            if (-not (Test-Path -Path $sourcePath -PathType Leaf)) {
+                throw "Required icon was not found: $sourcePath"
+            }
+
+            $destinationPath = Join-Path $stageDir $iconMapping.Destination
+            $destinationParent = Split-Path -Parent $destinationPath
+            New-Item -ItemType Directory -Path $destinationParent -Force | Out-Null
+            Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+        }
+    } else {
+        throw "No AppxManifest.xml template was found in $contentRootPath or $repoRoot."
+    }
+
+    $stageManifestPath = Join-Path $stageDir "AppxManifest.xml"
+    if (-not (Test-Path -Path $stageManifestPath -PathType Leaf)) {
+        throw "A manifest was not staged for $($architecture.Name): $stageManifestPath"
+    }
+
+    Set-ManifestArchitecture -ManifestPath $stageManifestPath -ProcessorArchitecture $architecture.ProcessorArchitecture
+    Copy-Item -Path $sourceExe -Destination (Join-Path $stageDir "quadrant_next.exe") -Force
+
+    $stagedArchitectures += [pscustomobject]@{
+        Name = $architecture.Name
+        CliFlag = $architecture.CliFlag
+        Directory = $stageDir
+    }
+}
+
+if ($stagedArchitectures.Count -eq 0) {
+    $expectedOutputs = $architectures | ForEach-Object {
+        Join-Path $repoRoot "src-tauri\target\$($_.Triple)\release\quadrant_next.exe"
+    }
+
+    throw "No architecture-specific executables were found. Expected at least one of:`n$($expectedOutputs -join "`n")"
+}
+
+foreach ($stagedArchitecture in $stagedArchitectures) {
+    Write-Host "Prepared $($stagedArchitecture.Name) staging content in $($stagedArchitecture.Directory)"
+}
+
+if ($PrepareOnly) {
+    Write-Host "Skipping msixbundle-cli invocation because -PrepareOnly was supplied."
+    return
+}
+
+$cliCommand = Get-Command -Name $MsixBundleCli -ErrorAction SilentlyContinue
+if ($null -eq $cliCommand) {
+    throw "msixbundle-cli was not found on PATH. Install it with: cargo install msixbundle-cli"
+}
+
+$cliArgs = @("--out-dir", $bundleOutputPath)
+foreach ($stagedArchitecture in $stagedArchitectures) {
+    $cliArgs += @($stagedArchitecture.CliFlag, $stagedArchitecture.Directory)
+}
+
+if ($Pfx) {
+    $cliArgs += @("--pfx", $Pfx)
+}
+
+if ($PfxPassword) {
+    $cliArgs += @("--pfx-password", $PfxPassword)
+}
+
+if ($TimestampUrl) {
+    $cliArgs += @("--timestamp-url", $TimestampUrl, "--timestamp-mode", $TimestampMode)
+}
+
+Write-Host "Running $($cliCommand.Source) $($cliArgs -join ' ')"
+& $cliCommand.Source @cliArgs
+
+if ($LASTEXITCODE -ne 0) {
+    throw "msixbundle-cli failed with exit code $LASTEXITCODE"
+}

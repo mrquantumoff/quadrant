@@ -37,3 +37,5 @@ resources.pri
 src-tauri/versoview
 
 target/
+AppxContent
+AppxBundles
