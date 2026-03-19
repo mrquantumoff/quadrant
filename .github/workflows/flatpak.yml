@@ -38,7 +38,8 @@ jobs:
     env:
       TAG: ${{ inputs.tag }}
       RELEASE_REPO: ${{ inputs.release_repo }}
-      FLATHUB_REPO: flathub/dev.mrquantumoff.mcmodpackmanager
+      FLATHUB_BASE_REPO: flathub/dev.mrquantumoff.mcmodpackmanager
+      FLATHUB_REPO_NAME: dev.mrquantumoff.mcmodpackmanager
       FLATHUB_BRANCH: ci/flathub-${{ inputs.tag }}
       MANIFEST_PATH: dev.mrquantumoff.mcmodpackmanager.yml
       METAINFO_PATH: dev.mrquantumoff.mcmodpackmanager.metainfo.xml
@@ -95,31 +96,61 @@ jobs:
           set -euo pipefail
           gh auth setup-git
 
-      - name: Clone Flathub manifest repo
+      - name: Resolve writable Flathub fork
+        id: flathub_head_repo
         run: |
           set -euo pipefail
-          gh repo clone "$FLATHUB_REPO" flathub-manifest
+
+          owner="$(gh api user --jq .login)"
+          repo="${owner}/${FLATHUB_REPO_NAME}"
+
+          echo "owner=$owner" >> "$GITHUB_OUTPUT"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure writable Flathub fork exists
+        env:
+          FLATHUB_HEAD_REPO: ${{ steps.flathub_head_repo.outputs.repo }}
+        run: |
+          set -euo pipefail
+
+          if gh repo view "$FLATHUB_HEAD_REPO" >/dev/null 2>&1; then
+            exit 0
+          fi
+
+          gh repo fork "$FLATHUB_BASE_REPO" --remote=false --clone=false
+
+      - name: Clone Flathub manifest repo
+        env:
+          FLATHUB_HEAD_REPO: ${{ steps.flathub_head_repo.outputs.repo }}
+        run: |
+          set -euo pipefail
+          gh repo clone "$FLATHUB_HEAD_REPO" flathub-manifest
 
       - name: Update Flathub manifest branch
         id: update_manifest
         env:
           VERSION: ${{ steps.release_version.outputs.version }}
+          FLATHUB_HEAD_REPO: ${{ steps.flathub_head_repo.outputs.repo }}
         run: |
           set -euo pipefail
 
           cd flathub-manifest
+
+          if ! git remote get-url upstream >/dev/null 2>&1; then
+            git remote add upstream "https://github.com/${FLATHUB_BASE_REPO}.git"
+          fi
 
           branch_exists=false
           if git ls-remote --exit-code --heads origin "$FLATHUB_BRANCH" >/dev/null 2>&1; then
             branch_exists=true
           fi
 
-          git fetch origin master
+          git fetch upstream master
           if [ "$branch_exists" = true ]; then
             git fetch origin "refs/heads/$FLATHUB_BRANCH:refs/remotes/origin/$FLATHUB_BRANCH"
             git checkout -B "$FLATHUB_BRANCH" "origin/$FLATHUB_BRANCH"
           else
-            git checkout -B "$FLATHUB_BRANCH" origin/master
+            git checkout -B "$FLATHUB_BRANCH" upstream/master
           fi
 
           python3 "$GITHUB_WORKSPACE/scripts/update_flathub_manifest.py" \
@@ -156,13 +187,14 @@ jobs:
       - name: Open or update Flathub PR
         env:
           VERSION: ${{ steps.release_version.outputs.version }}
+          FLATHUB_HEAD_OWNER: ${{ steps.flathub_head_repo.outputs.owner }}
         run: |
           set -euo pipefail
 
           metainfo_url="https://github.com/${RELEASE_REPO}/raw/${TAG}/${METAINFO_PATH}"
           amd64_url="https://github.com/${RELEASE_REPO}/releases/download/${TAG}/Quadrant_${VERSION}_amd64.deb"
           arm64_url="https://github.com/${RELEASE_REPO}/releases/download/${TAG}/Quadrant_${VERSION}_arm64.deb"
-          pr_head="${FLATHUB_REPO%%/*}:${FLATHUB_BRANCH}"
+          pr_head="${FLATHUB_HEAD_OWNER}:${FLATHUB_BRANCH}"
 
           {
             printf '%s\n' "This PR was generated from the Quadrant release workflow after publishing the stable release assets."
@@ -177,7 +209,7 @@ jobs:
           } > pr-body.md
 
           pr_number="$(gh pr list \
-            --repo "$FLATHUB_REPO" \
+            --repo "$FLATHUB_BASE_REPO" \
             --head "$pr_head" \
             --state open \
             --json number \
@@ -185,7 +217,7 @@ jobs:
 
           if [ -n "$pr_number" ]; then
             gh pr edit "$pr_number" \
-              --repo "$FLATHUB_REPO" \
+              --repo "$FLATHUB_BASE_REPO" \
               --title "Update Quadrant to ${VERSION}" \
               --body-file pr-body.md
             exit 0
@@ -197,7 +229,7 @@ jobs:
           fi
 
           gh pr create \
-            --repo "$FLATHUB_REPO" \
+            --repo "$FLATHUB_BASE_REPO" \
             --base master \
             --head "$pr_head" \
             --title "Update Quadrant to ${VERSION}" \
