@@ -49,6 +49,8 @@ jobs:
           ref: ${{ env.TAG }}
 
       - name: Download stable release assets
+        env:
+          VERSION: ${{ inputs.tag }}
         run: |
           set -euo pipefail
 
