@@ -35,7 +35,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup bun
-        if: matrix.platform != 'windows-11-arm'
         uses: oven-sh/setup-bun@v2
 
 
@@ -49,11 +48,7 @@ jobs:
           sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
 
       - name: install frontend dependencies (bun)
-        if: matrix.platform != 'windows-11-arm'
         run: bun install
-      - name: install frontend dependencies (npm)
-        if: matrix.platform == 'windows-11-arm'
-        run: npm install --force
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -77,7 +72,7 @@ jobs:
           releaseDraft: false
           prerelease: ${{ !endsWith(github.ref_name, 'stable') }}
           args: ${{ matrix.args }}
-          tauriScript: ${{ (matrix.platform == 'windows-11-arm' && 'npm run tauri') || 'bun tauri' }}
+          tauriScript: 'bun tauri'
           tagName: ${{github.ref_name}}
 
   sync_flathub:

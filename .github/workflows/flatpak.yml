@@ -48,24 +48,6 @@ jobs:
         with:
           ref: ${{ env.TAG }}
 
-      - name: Validate stable tag
-        run: |
-          set -euo pipefail
-
-          case "$TAG" in
-            v*-stable) ;;
-            *)
-              echo "Expected a stable tag starting with 'v' and ending with '-stable', got: $TAG" >&2
-              exit 1
-              ;;
-          esac
-
-          VERSION="${TAG#v}"
-          BASE_VERSION="${VERSION%-stable}"
-
-          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          echo "BASE_VERSION=$BASE_VERSION" >> "$GITHUB_ENV"
-
       - name: Download stable release assets
         run: |
           set -euo pipefail
