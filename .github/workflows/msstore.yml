@@ -87,3 +87,81 @@ jobs:
 
           $bundlePaths = $bundleFiles | ForEach-Object { $_.FullName }
           gh release upload $env:TAG_NAME --clobber @bundlePaths
+
+      - name: Configure Microsoft Store CLI
+        uses: microsoft/microsoft-store-apppublisher@v1.1
+
+      - name: Submit package to Microsoft Store
+        shell: pwsh
+        env:
+          AZURE_AD_TENANT_ID: ${{ secrets.MSSTORE_TENANT_ID }}
+          SELLER_ID: ${{ secrets.MSSTORE_SELLER_ID }}
+          AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.MSSTORE_CLIENT_ID }}
+          AZURE_AD_APPLICATION_SECRET: ${{ secrets.MSSTORE_CLIENT_SECRET }}
+          MSSTORE_PRODUCT_ID: ${{ secrets.MSSTORE_APP_ID }}
+          # MSSTORE_FLIGHT_ID: ${{ vars.MSSTORE_FLIGHT_ID }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:MSSTORE_PRODUCT_ID)) {
+            throw "Repository variable 'MSSTORE_PRODUCT_ID' must be set to the Microsoft Store product ID."
+          }
+
+          msstore reconfigure `
+            --tenantId $env:AZURE_AD_TENANT_ID `
+            --sellerId $env:SELLER_ID `
+            --clientId $env:AZURE_AD_APPLICATION_CLIENT_ID `
+            --clientSecret $env:AZURE_AD_APPLICATION_SECRET
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "msstore reconfigure failed with exit code $LASTEXITCODE"
+          }
+
+          $packagePreference = @{
+            ".msixupload" = 0
+            ".appxupload" = 1
+            ".msixbundle" = 2
+            ".appxbundle" = 3
+            ".msix" = 4
+            ".appx" = 5
+          }
+
+          $packageCandidates = Get-ChildItem -Path AppxBundles -File -Recurse | Where-Object {
+            $packagePreference.ContainsKey($_.Extension.ToLowerInvariant())
+          } | Sort-Object @{
+            Expression = {
+              $packagePreference[$_.Extension.ToLowerInvariant()]
+            }
+          }, FullName
+
+          if ($packageCandidates.Count -eq 0) {
+            throw "No publishable MS Store package was found in AppxBundles."
+          }
+
+          $packagePath = $packageCandidates[0].FullName
+          Write-Host "Submitting package to Microsoft Store: $packagePath"
+
+          if ([string]::IsNullOrWhiteSpace($env:MSSTORE_FLIGHT_ID)) {
+            msstore publish $env:GITHUB_WORKSPACE --inputFile $packagePath -id $env:MSSTORE_PRODUCT_ID
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "msstore publish failed with exit code $LASTEXITCODE"
+            }
+
+            msstore submission poll $env:MSSTORE_PRODUCT_ID
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "msstore submission poll failed with exit code $LASTEXITCODE"
+            }
+          }
+          else {
+            msstore publish $env:GITHUB_WORKSPACE --inputFile $packagePath -id $env:MSSTORE_PRODUCT_ID --flightId $env:MSSTORE_FLIGHT_ID
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "msstore publish failed with exit code $LASTEXITCODE"
+            }
+
+            msstore flights submission poll $env:MSSTORE_PRODUCT_ID $env:MSSTORE_FLIGHT_ID
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "msstore flights submission poll failed with exit code $LASTEXITCODE"
+            }
+          }
