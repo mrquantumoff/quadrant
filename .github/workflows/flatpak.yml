@@ -48,9 +48,22 @@ jobs:
         with:
           ref: ${{ env.TAG }}
 
+      - name: Derive release version
+        id: release_version
+        run: |
+          set -euo pipefail
+
+          version="${TAG#v}"
+          if [ "$version" = "$TAG" ]; then
+            echo "Expected TAG to start with 'v', got: $TAG" >&2
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       - name: Download stable release assets
         env:
-          VERSION: ${{ inputs.tag }}
+          VERSION: ${{ steps.release_version.outputs.version }}
         run: |
           set -euo pipefail
 
@@ -64,6 +77,8 @@ jobs:
 
       - name: Compute source hashes
         id: hashes
+        env:
+          VERSION: ${{ steps.release_version.outputs.version }}
         run: |
           set -euo pipefail
 
@@ -82,6 +97,8 @@ jobs:
 
       - name: Update Flathub manifest branch
         id: update_manifest
+        env:
+          VERSION: ${{ steps.release_version.outputs.version }}
         run: |
           set -euo pipefail
 
@@ -118,6 +135,8 @@ jobs:
 
       - name: Commit and push Flathub branch
         if: steps.update_manifest.outputs.changed == 'true'
+        env:
+          VERSION: ${{ steps.release_version.outputs.version }}
         run: |
           set -euo pipefail
 
@@ -130,6 +149,8 @@ jobs:
           git push --force-with-lease origin "$FLATHUB_BRANCH"
 
       - name: Open or update Flathub PR
+        env:
+          VERSION: ${{ steps.release_version.outputs.version }}
         run: |
           set -euo pipefail
 
