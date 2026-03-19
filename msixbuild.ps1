@@ -4,7 +4,7 @@ param(
     [string]$MsixBundleCli = "msixbundle-cli",
     [switch]$PrepareOnly,
     [string]$Pfx,
-    [string]$PfxPassword,
+    [SecureString]$PfxPassword,
     [string]$TimestampUrl,
     [ValidateSet("rfc3161", "authenticode")]
     [string]$TimestampMode = "rfc3161"
@@ -61,6 +61,32 @@ function New-StageDirectory {
     New-Item -ItemType Directory -Path $Path -Force | Out-Null
 }
 
+function Get-ArchitectureExecutablePath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [hashtable]$Architecture,
+        [Parameter(Mandatory = $true)]
+        [string]$RepoRoot
+    )
+
+    $candidatePaths = @(
+        (Join-Path $RepoRoot "src-tauri\target\$($Architecture.Triple)\release\quadrant_next.exe")
+    )
+
+    # Cargo writes the host target to target\release when no explicit --target is supplied.
+    if ($Architecture.Name -eq "x64") {
+        $candidatePaths += Join-Path $RepoRoot "src-tauri\target\release\quadrant_next.exe"
+    }
+
+    foreach ($candidatePath in $candidatePaths) {
+        if (Test-Path -Path $candidatePath -PathType Leaf) {
+            return $candidatePath
+        }
+    }
+
+    return $null
+}
+
 $repoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $contentRootPath = Join-Path $repoRoot $ContentRoot
 $bundleOutputPath = Join-Path $repoRoot $OutDir
@@ -76,16 +102,16 @@ $iconMappings = @(
 
 $architectures = @(
     @{
-        Name = "x64"
-        Triple = "x86_64-pc-windows-msvc"
+        Name                  = "x64"
+        Triple                = "x86_64-pc-windows-msvc"
         ProcessorArchitecture = "x64"
-        CliFlag = "--dir-x64"
+        CliFlag               = "--dir-x64"
     },
     @{
-        Name = "arm64"
-        Triple = "aarch64-pc-windows-msvc"
+        Name                  = "arm64"
+        Triple                = "aarch64-pc-windows-msvc"
         ProcessorArchitecture = "arm64"
-        CliFlag = "--dir-arm64"
+        CliFlag               = "--dir-arm64"
     }
 )
 
@@ -95,7 +121,7 @@ New-Item -ItemType Directory -Path $bundleOutputPath -Force | Out-Null
 $stagedArchitectures = @()
 
 foreach ($architecture in $architectures) {
-    $sourceExe = Join-Path $repoRoot "src-tauri\target\$($architecture.Triple)\release\quadrant_next.exe"
+    $sourceExe = Get-ArchitectureExecutablePath -Architecture $architecture -RepoRoot $repoRoot
     if (-not (Test-Path -Path $sourceExe -PathType Leaf)) {
         continue
     }
@@ -105,7 +131,8 @@ foreach ($architecture in $architectures) {
 
     if (Test-Path -Path $templateContentManifestPath -PathType Leaf) {
         Copy-CommonContent -SourceDir $contentRootPath -DestinationDir $stageDir
-    } elseif (Test-Path -Path $rootManifestPath -PathType Leaf) {
+    }
+    elseif (Test-Path -Path $rootManifestPath -PathType Leaf) {
         $imagesDir = Join-Path $stageDir "Images"
         New-Item -ItemType Directory -Path $imagesDir -Force | Out-Null
         Copy-Item -Path $rootManifestPath -Destination (Join-Path $stageDir "AppxManifest.xml") -Force
@@ -121,7 +148,8 @@ foreach ($architecture in $architectures) {
             New-Item -ItemType Directory -Path $destinationParent -Force | Out-Null
             Copy-Item -Path $sourcePath -Destination $destinationPath -Force
         }
-    } else {
+    }
+    else {
         throw "No AppxManifest.xml template was found in $contentRootPath or $repoRoot."
     }
 
@@ -134,8 +162,8 @@ foreach ($architecture in $architectures) {
     Copy-Item -Path $sourceExe -Destination (Join-Path $stageDir "quadrant_next.exe") -Force
 
     $stagedArchitectures += [pscustomobject]@{
-        Name = $architecture.Name
-        CliFlag = $architecture.CliFlag
+        Name      = $architecture.Name
+        CliFlag   = $architecture.CliFlag
         Directory = $stageDir
     }
 }
@@ -144,6 +172,8 @@ if ($stagedArchitectures.Count -eq 0) {
     $expectedOutputs = $architectures | ForEach-Object {
         Join-Path $repoRoot "src-tauri\target\$($_.Triple)\release\quadrant_next.exe"
     }
+
+    $expectedOutputs += Join-Path $repoRoot "src-tauri\target\release\quadrant_next.exe"
 
     throw "No architecture-specific executables were found. Expected at least one of:`n$($expectedOutputs -join "`n")"
 }

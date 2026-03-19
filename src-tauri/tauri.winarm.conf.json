@@ -1,6 +1,0 @@
-{
-    "identifier": "dev.mrquantumoff.mcmodpackmanager",
-    "build": {
-        "beforeBuildCommand": "npm run build"
-    }
-}

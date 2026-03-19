@@ -21,9 +21,6 @@ jobs:
           # - platform: "windows-11-arm"
           #   args: ""
     runs-on: ${{ matrix.platform }}
-    outputs:
-      assets: ${{ steps.tauri.outputs.releaseUploadUrl }}
-      version: ${{ steps.tauri.outputs.appVersion }}
     steps:
       - uses: actions/checkout@v4
 
@@ -45,7 +42,6 @@ jobs:
         run: cargo install msixbundle-cli
 
       - name: Build the app
-        id: tauri
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ETERNAL_API_TOKEN: ${{ secrets.ETERNAL_API_TOKEN }}
@@ -53,12 +49,41 @@ jobs:
           QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
           QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
         run: |
+          rustup target add x86_64-pc-windows-msvc
           rustup target add aarch64-pc-windows-msvc
-          bun tauri build --config src-tauri/tauri.msstore.conf.json
-          bun tauri build --config src-tauri/tauri.winarm.conf.json --target aarch64-pc-windows-msvc
+          bun tauri build --config src-tauri/tauri.msstore.conf.json --target x86_64-pc-windows-msvc
+          bun tauri build --config src-tauri/tauri.msstore.conf.json --target aarch64-pc-windows-msvc
           powershell -NoProfile -ExecutionPolicy Bypass -File .\msixbuild.ps1
 
       - uses: actions/upload-artifact@v4
         with:
           name: quadrant_msstore
           path: "AppxBundles/*"
+
+      - name: Upload MS Store bundles to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          $releaseFound = $false
+          for ($attempt = 0; $attempt -lt 30; $attempt++) {
+            gh release view $env:TAG_NAME | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+              $releaseFound = $true
+              break
+            }
+
+            Start-Sleep -Seconds 10
+          }
+
+          if (-not $releaseFound) {
+            throw "GitHub release for tag '$env:TAG_NAME' was not found after waiting."
+          }
+
+          $bundleFiles = Get-ChildItem -Path AppxBundles -File -Recurse
+          if ($bundleFiles.Count -eq 0) {
+            throw "No files were found in AppxBundles to upload."
+          }
+
+          $bundlePaths = $bundleFiles | ForEach-Object { $_.FullName }
+          gh release upload $env:TAG_NAME --clobber @bundlePaths
