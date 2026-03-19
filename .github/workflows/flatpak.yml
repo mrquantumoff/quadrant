@@ -90,6 +90,11 @@ jobs:
           echo "amd64_sha=$amd64_sha" >> "$GITHUB_OUTPUT"
           echo "arm64_sha=$arm64_sha" >> "$GITHUB_OUTPUT"
 
+      - name: Configure GitHub authentication for git
+        run: |
+          set -euo pipefail
+          gh auth setup-git
+
       - name: Clone Flathub manifest repo
         run: |
           set -euo pipefail
@@ -142,8 +147,6 @@ jobs:
 
           cd flathub-manifest
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$MANIFEST_PATH"
           git commit -m "Update Quadrant to $VERSION"
           git push --force-with-lease origin "$FLATHUB_BRANCH"
