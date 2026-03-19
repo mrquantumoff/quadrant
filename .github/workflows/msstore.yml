@@ -138,9 +138,14 @@ jobs:
 
           $packagePath = $packageCandidates[0].FullName
           Write-Host "Submitting package to Microsoft Store: $packagePath"
+          $publishInputDirectory = Join-Path $env:RUNNER_TEMP "msstore-publish"
+          Remove-Item -Path $publishInputDirectory -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $publishInputDirectory | Out-Null
+          Copy-Item -Path $packagePath -Destination $publishInputDirectory
+          Write-Host "Using Microsoft Store input directory: $publishInputDirectory"
 
           if ([string]::IsNullOrWhiteSpace($env:MSSTORE_FLIGHT_ID)) {
-            msstore publish $env:GITHUB_WORKSPACE --inputFile $packagePath -id $env:MSSTORE_PRODUCT_ID
+            msstore publish $env:GITHUB_WORKSPACE --inputDirectory $publishInputDirectory -id $env:MSSTORE_PRODUCT_ID
 
             if ($LASTEXITCODE -ne 0) {
               throw "msstore publish failed with exit code $LASTEXITCODE"
@@ -153,7 +158,7 @@ jobs:
             }
           }
           else {
-            msstore publish $env:GITHUB_WORKSPACE --inputFile $packagePath -id $env:MSSTORE_PRODUCT_ID --flightId $env:MSSTORE_FLIGHT_ID
+            msstore publish $env:GITHUB_WORKSPACE --inputDirectory $publishInputDirectory -id $env:MSSTORE_PRODUCT_ID --flightId $env:MSSTORE_FLIGHT_ID
 
             if ($LASTEXITCODE -ne 0) {
               throw "msstore publish failed with exit code $LASTEXITCODE"
