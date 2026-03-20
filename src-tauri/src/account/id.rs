@@ -34,6 +34,7 @@ const SHOWN_NOTIFICATIONS_KEY: &str = "shownNotifications";
 const MODPACK_SYNC_INTERVAL_SECS: u64 = 60;
 const SETTINGS_SYNC_INTERVAL_SECS: u64 = 120;
 const WS_REPLAY_LIMIT: usize = 500;
+const NOTIFICATION_TITLE: &str = "Quadrant ID";
 
 #[derive(Default, Clone)]
 pub struct NotificationRuntimeState {
@@ -47,6 +48,108 @@ pub struct NotificationRuntimeState {
 struct UpsertOutcome {
     changed: bool,
     inserted: bool,
+}
+
+impl NotificationRuntimeState {
+    fn merge(&mut self, notifications: Vec<Notification>) -> bool {
+        let mut changed = false;
+        for notification in notifications {
+            changed |= self.upsert(notification).changed;
+        }
+        changed
+    }
+
+    fn upsert(&mut self, notification: Notification) -> UpsertOutcome {
+        self.advance_cursor(&notification);
+        match self.by_id.get(&notification.notification_id) {
+            Some(existing) if existing == &notification => UpsertOutcome {
+                changed: false,
+                inserted: false,
+            },
+            Some(_) => {
+                self.by_id
+                    .insert(notification.notification_id.clone(), notification);
+                self.sort_ids();
+                UpsertOutcome {
+                    changed: true,
+                    inserted: false,
+                }
+            }
+            None => {
+                self.ordered_ids.push(notification.notification_id.clone());
+                self.by_id
+                    .insert(notification.notification_id.clone(), notification);
+                self.sort_ids();
+                UpsertOutcome {
+                    changed: true,
+                    inserted: true,
+                }
+            }
+        }
+    }
+
+    fn mark_read(&mut self, notification_id: &str) -> bool {
+        let Some(notification) = self.by_id.get_mut(notification_id) else {
+            return false;
+        };
+        if notification.read {
+            return false;
+        }
+        notification.read = true;
+        true
+    }
+
+    fn notifications_for_ui(&self) -> Vec<Notification> {
+        let mut notifications = self
+            .ordered_ids
+            .iter()
+            .filter_map(|id| self.by_id.get(id))
+            .cloned()
+            .collect::<Vec<_>>();
+        notifications.sort_by(|a, b| {
+            b.created_at_unix
+                .cmp(&a.created_at_unix)
+                .then_with(|| b.notification_id.cmp(&a.notification_id))
+        });
+        notifications
+    }
+
+    fn advance_cursor(&mut self, notification: &Notification) {
+        let current_created_at = self.cursor.created_at.as_deref();
+        let current_notification_id = self.cursor.notification_id.as_deref();
+        let is_newer = match current_created_at {
+            None => true,
+            Some(created_at) => {
+                notification.created_at.as_str() > created_at
+                    || (notification.created_at.as_str() == created_at
+                        && current_notification_id
+                            .map(|id| notification.notification_id.as_str() > id)
+                            .unwrap_or(true))
+            }
+        };
+
+        if is_newer {
+            self.cursor = NotificationCursor {
+                created_at: Some(notification.created_at.clone()),
+                notification_id: Some(notification.notification_id.clone()),
+            };
+        }
+    }
+
+    fn sort_ids(&mut self) {
+        self.ordered_ids.sort_by(|left, right| {
+            let left_notification = self.by_id.get(left).expect("missing notification");
+            let right_notification = self.by_id.get(right).expect("missing notification");
+            left_notification
+                .created_at_unix
+                .cmp(&right_notification.created_at_unix)
+                .then_with(|| {
+                    left_notification
+                        .notification_id
+                        .cmp(&right_notification.notification_id)
+                })
+        });
+    }
 }
 
 #[tauri::command]
@@ -99,18 +202,8 @@ pub async fn read_notification(
     .await
     .map_err(tauri::Error::from)?;
 
-    let notifications_to_emit = {
-        let state = app.state::<Mutex<AppState>>();
-        let mut state = state.lock().await;
-        if mark_notification_read_local(&mut state.notification_state, &notification_id) {
-            Some(current_notifications_for_ui(&state.notification_state))
-        } else {
-            None
-        }
-    };
-
-    if let Some(notifications) = notifications_to_emit {
-        app.emit("refreshNotifications", notifications)?;
+    if let Some(notifications) = mark_notification_read_and_snapshot(&app, &notification_id).await {
+        emit_notification_refresh(&app, notifications)?;
     }
 
     Ok(())
@@ -186,27 +279,21 @@ async fn bootstrap_notifications(app: &AppHandle) -> Result<(), anyhow::Error> {
     let notifications_to_emit = {
         let state = app.state::<Mutex<AppState>>();
         let mut state = state.lock().await;
-        let changed = merge_notifications(&mut state.notification_state, notifications);
-        let cursor_changed = state.notification_state.cursor != next_cursor;
-        if cursor_changed {
-            state.notification_state.cursor = next_cursor.clone();
+        let runtime = &mut state.notification_state;
+        let changed = runtime.merge(notifications);
+        if runtime.cursor != next_cursor {
+            runtime.cursor = next_cursor.clone();
         }
-        if changed {
-            Some(current_notifications_for_ui(&state.notification_state))
-        } else {
-            None
-        }
+        changed.then(|| runtime.notifications_for_ui())
     };
 
     persist_notification_cursor(app, &next_cursor)?;
 
     if let Some(notifications) = notifications_to_emit {
-        app.emit("refreshNotifications", notifications)?;
+        emit_notification_refresh(app, notifications)?;
     }
 
-    let state = app.state::<Mutex<AppState>>();
-    let mut state = state.lock().await;
-    state.notification_state.reconnect_attempt = 0;
+    set_reconnect_attempt(app, 0).await;
 
     Ok(())
 }
@@ -229,11 +316,7 @@ async fn run_notification_socket(app: AppHandle) -> Result<(), anyhow::Error> {
         .insert("User-Agent", get_user_agent().parse()?);
 
     let (mut socket, _) = connect_async(request).await?;
-    {
-        let state = app.state::<Mutex<AppState>>();
-        let mut state = state.lock().await;
-        state.notification_state.reconnect_attempt = 0;
-    }
+    set_reconnect_attempt(&app, 0).await;
 
     while let Some(frame) = socket.next().await {
         match frame? {
@@ -271,19 +354,17 @@ async fn handle_notification_ws_frame(app: &AppHandle, payload: &str) -> Result<
             let notifications_to_emit = {
                 let state = app.state::<Mutex<AppState>>();
                 let mut state = state.lock().await;
-                let outcome = upsert_notification(&mut state.notification_state, notification);
-                if outcome.changed {
-                    Some((
-                        current_notifications_for_ui(&state.notification_state),
+                let outcome = state.notification_state.upsert(notification);
+                outcome.changed.then(|| {
+                    (
+                        state.notification_state.notifications_for_ui(),
                         outcome.inserted,
-                    ))
-                } else {
-                    None
-                }
+                    )
+                })
             };
 
             if let Some((notifications, inserted)) = notifications_to_emit {
-                app.emit("refreshNotifications", notifications)?;
+                emit_notification_refresh(app, notifications)?;
                 if should_notify && inserted {
                     maybe_show_native_notification(
                         app,
@@ -348,117 +429,30 @@ fn reconnect_delay(attempt: u32) -> Duration {
     Duration::from_secs(secs)
 }
 
-fn merge_notifications(
-    state: &mut NotificationRuntimeState,
+fn emit_notification_refresh(
+    app: &AppHandle,
     notifications: Vec<Notification>,
-) -> bool {
-    let mut changed = false;
-    for notification in notifications {
-        if upsert_notification(state, notification).changed {
-            changed = true;
-        }
-    }
-    changed
+) -> Result<(), anyhow::Error> {
+    app.emit("refreshNotifications", notifications)?;
+    Ok(())
 }
 
-fn upsert_notification(
-    state: &mut NotificationRuntimeState,
-    notification: Notification,
-) -> UpsertOutcome {
-    advance_cursor(state, &notification);
-    match state.by_id.get(&notification.notification_id) {
-        Some(existing) if existing == &notification => UpsertOutcome {
-            changed: false,
-            inserted: false,
-        },
-        Some(_) => {
-            state
-                .by_id
-                .insert(notification.notification_id.clone(), notification);
-            sort_notification_ids(state);
-            UpsertOutcome {
-                changed: true,
-                inserted: false,
-            }
-        }
-        None => {
-            state.ordered_ids.push(notification.notification_id.clone());
-            state
-                .by_id
-                .insert(notification.notification_id.clone(), notification);
-            sort_notification_ids(state);
-            UpsertOutcome {
-                changed: true,
-                inserted: true,
-            }
-        }
-    }
-}
-
-fn mark_notification_read_local(
-    state: &mut NotificationRuntimeState,
+async fn mark_notification_read_and_snapshot(
+    app: &AppHandle,
     notification_id: &str,
-) -> bool {
-    let Some(notification) = state.by_id.get_mut(notification_id) else {
-        return false;
-    };
-    if notification.read {
-        return false;
-    }
-    notification.read = true;
-    true
+) -> Option<Vec<Notification>> {
+    let state = app.state::<Mutex<AppState>>();
+    let mut state = state.lock().await;
+    state
+        .notification_state
+        .mark_read(notification_id)
+        .then(|| state.notification_state.notifications_for_ui())
 }
 
-fn current_notifications_for_ui(state: &NotificationRuntimeState) -> Vec<Notification> {
-    let mut notifications = state
-        .ordered_ids
-        .iter()
-        .filter_map(|id| state.by_id.get(id))
-        .cloned()
-        .collect::<Vec<_>>();
-    notifications.sort_by(|a, b| {
-        b.created_at_unix
-            .cmp(&a.created_at_unix)
-            .then_with(|| b.notification_id.cmp(&a.notification_id))
-    });
-    notifications
-}
-
-fn advance_cursor(state: &mut NotificationRuntimeState, notification: &Notification) {
-    let current_created_at = state.cursor.created_at.as_deref();
-    let current_notification_id = state.cursor.notification_id.as_deref();
-    let is_newer = match current_created_at {
-        None => true,
-        Some(created_at) => {
-            notification.created_at.as_str() > created_at
-                || (notification.created_at.as_str() == created_at
-                    && current_notification_id
-                        .map(|id| notification.notification_id.as_str() > id)
-                        .unwrap_or(true))
-        }
-    };
-
-    if is_newer {
-        state.cursor = NotificationCursor {
-            created_at: Some(notification.created_at.clone()),
-            notification_id: Some(notification.notification_id.clone()),
-        };
-    }
-}
-
-fn sort_notification_ids(state: &mut NotificationRuntimeState) {
-    state.ordered_ids.sort_by(|left, right| {
-        let left_notification = state.by_id.get(left).expect("missing notification");
-        let right_notification = state.by_id.get(right).expect("missing notification");
-        left_notification
-            .created_at_unix
-            .cmp(&right_notification.created_at_unix)
-            .then_with(|| {
-                left_notification
-                    .notification_id
-                    .cmp(&right_notification.notification_id)
-            })
-    });
+async fn set_reconnect_attempt(app: &AppHandle, attempt: u32) {
+    let state = app.state::<Mutex<AppState>>();
+    let mut state = state.lock().await;
+    state.notification_state.reconnect_attempt = attempt;
 }
 
 fn load_notification_cursor(app: &AppHandle) -> Result<NotificationCursor, anyhow::Error> {
@@ -525,7 +519,7 @@ async fn maybe_show_native_notification(
 
     app.notification()
         .builder()
-        .title("Quadrant ID")
+        .title(NOTIFICATION_TITLE)
         .body(body)
         .show()?;
 
@@ -663,10 +657,7 @@ async fn sync_remote_settings(app: AppHandle) -> Result<(), anyhow::Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        Notification, NotificationCursor, NotificationRuntimeState, current_notifications_for_ui,
-        mark_notification_read_local, merge_notifications,
-    };
+    use super::{Notification, NotificationCursor, NotificationRuntimeState};
 
     fn notification(id: &str, unix: i64, read: bool) -> Notification {
         Notification {
@@ -682,16 +673,13 @@ mod tests {
     #[test]
     fn merge_notifications_deduplicates_and_orders() {
         let mut state = NotificationRuntimeState::default();
-        assert!(merge_notifications(
-            &mut state,
-            vec![notification("n1", 1, false), notification("n2", 2, false)]
-        ));
-        assert!(!merge_notifications(
-            &mut state,
-            vec![notification("n1", 1, false)]
-        ));
+        assert!(state.merge(vec![
+            notification("n1", 1, false),
+            notification("n2", 2, false)
+        ]));
+        assert!(!state.merge(vec![notification("n1", 1, false)]));
 
-        let notifications = current_notifications_for_ui(&state);
+        let notifications = state.notifications_for_ui();
         assert_eq!(notifications[0].notification_id, "n2");
         assert_eq!(notifications[1].notification_id, "n1");
         assert_eq!(
@@ -706,9 +694,9 @@ mod tests {
     #[test]
     fn mark_notification_read_local_updates_cached_notification() {
         let mut state = NotificationRuntimeState::default();
-        merge_notifications(&mut state, vec![notification("n1", 1, false)]);
-        assert!(mark_notification_read_local(&mut state, "n1"));
+        state.merge(vec![notification("n1", 1, false)]);
+        assert!(state.mark_read("n1"));
         assert!(state.by_id.get("n1").unwrap().read);
-        assert!(!mark_notification_read_local(&mut state, "n1"));
+        assert!(!state.mark_read("n1"));
     }
 }

@@ -404,7 +404,7 @@ async fn check_update(_app: tauri::AppHandle) -> Result<(), anyhow::Error> {
             .updater_builder()
             .endpoints(update_urls)?
             .version_comparator(|current, update| update.version != current)
-            .header("User-Agent", get_user_agent())?;
+            .header("User-Agent", quadrant_core::mc_mod::get_user_agent())?;
 
         if ms_store_build {
             return Ok(());

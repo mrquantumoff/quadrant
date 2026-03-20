@@ -101,7 +101,7 @@ function Notifications({
     } else {
       setAreNotificationsHighlighted("bg-slate-700 hover:bg-slate-800 ");
     }
-  }, [notifications]);
+  }, [news, notifications]);
 
   return (
     <Popover className="relative">
@@ -142,7 +142,7 @@ function Notifications({
                     y: -16,
                     x: -150,
                   }}
-                  className="flex flex-col p-4 mt-4 font-bold bg-slate-800 rounded-4xl w-[35vw] my-8 h-[75vh] transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
+                  className="flex flex-col p-4 mt-4 font-bold bg-slate-800 rounded-4xl w-[35vw] my-8 h-[75vh] transform-gpu backface-hidden will-change-[transform,opacity]"
                 >
                   <div className="border-b-2 border-slate-700">
                     {snackBarHistory.length > 0 && (

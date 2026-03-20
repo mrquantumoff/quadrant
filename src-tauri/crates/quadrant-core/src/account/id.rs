@@ -3,7 +3,7 @@
 use std::{collections::HashMap, env};
 
 use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{
     Result,
@@ -15,6 +15,9 @@ use super::quadrant_sync::SyncedModpack;
 
 const DEFAULT_NOTIFICATION_HISTORY_LIMIT: usize = 500;
 const DEFAULT_NOTIFICATION_HISTORY_SINCE: &str = "1970-01-01T00:00:00Z";
+const EMPTY_NOTIFICATION_HISTORY_BODY: &str = "Notification history request returned an empty body";
+const EMPTY_ACCOUNT_INFO_BODY: &str = "Account info request returned an empty body";
+const EMPTY_OAUTH_BODY: &str = "OAuth2 token endpoint returned an empty body";
 
 fn backend_base_url() -> String {
     env::var("QUADRANT_API_BASE_URL").unwrap_or_else(|_| QNT_BASE_URL.to_string())
@@ -48,12 +51,92 @@ pub struct Notification {
     pub user_id: String,
     /// Human-readable notification message as a JSON string.
     pub message: String,
-    /// RFC3339 creation timestamp.
+    /// RFC3339 creation timestamp for new APIs, or a normalized string from legacy payloads.
+    #[serde(deserialize_with = "deserialize_notification_created_at")]
     pub created_at: String,
     /// Creation timestamp in seconds since the Unix epoch.
+    #[serde(default, deserialize_with = "deserialize_notification_created_at_unix")]
     pub created_at_unix: i64,
     /// Whether the notification has been marked as read.
     pub read: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum NotificationCreatedAt {
+    String(String),
+    Integer(i64),
+}
+
+fn deserialize_notification_created_at<'de, D>(
+    deserializer: D,
+) -> std::result::Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let created_at = NotificationCreatedAt::deserialize(deserializer)?;
+    Ok(match created_at {
+        NotificationCreatedAt::String(value) => value,
+        NotificationCreatedAt::Integer(value) => value.to_string(),
+    })
+}
+
+fn deserialize_notification_created_at_unix<'de, D>(
+    deserializer: D,
+) -> std::result::Result<i64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Value {
+        Integer(i64),
+        String(String),
+        Null,
+    }
+
+    let value = Value::deserialize(deserializer)?;
+    match value {
+        Value::Integer(value) => Ok(value),
+        Value::String(value) => Ok(value.parse::<i64>().unwrap_or_default()),
+        Value::Null => Ok(0),
+    }
+}
+
+fn notification_history_query(
+    cursor: Option<&NotificationCursor>,
+    read: Option<bool>,
+    limit: Option<usize>,
+) -> Vec<(String, String)> {
+    let cursor = cursor.cloned().unwrap_or_default();
+    let limit = limit
+        .unwrap_or(DEFAULT_NOTIFICATION_HISTORY_LIMIT)
+        .min(DEFAULT_NOTIFICATION_HISTORY_LIMIT);
+    let since = cursor
+        .created_at
+        .unwrap_or_else(|| DEFAULT_NOTIFICATION_HISTORY_SINCE.to_string());
+
+    let mut query = vec![
+        ("since".to_string(), since),
+        ("limit".to_string(), limit.to_string()),
+    ];
+    if let Some(after_id) = cursor.notification_id {
+        query.push(("after_id".to_string(), after_id));
+    }
+    if let Some(read) = read {
+        query.push(("read".to_string(), read.to_string()));
+    }
+    query
+}
+
+fn notification_cursor_from_last(
+    notifications: &[Notification],
+    fallback: NotificationCursor,
+) -> NotificationCursor {
+    notifications.last().map_or(fallback, |last| NotificationCursor {
+        created_at: Some(last.created_at.clone()),
+        notification_id: Some(last.notification_id.clone()),
+    })
 }
 
 /// Paginated notification history response.
@@ -142,14 +225,7 @@ pub async fn try_refresh_token(
         .send()
         .await?;
 
-    if !response.status().is_success() {
-        return Err(anyhow::anyhow!(
-            "Token refresh failed: {}",
-            response.status()
-        ));
-    }
-
-    let res = response.json::<OAuth2Response>().await?;
+    let res = parse_oauth_token_response(response, "Token refresh failed").await?;
     set_secret(secret_store, "accountToken", &res.access_token)?;
     if let Some(new_refresh_token) = res.refresh_token {
         set_secret(secret_store, "refreshToken", &new_refresh_token)?;
@@ -175,8 +251,7 @@ pub async fn get_account_info(
         .send()
         .await?;
 
-    let response_raw = response.text().await?;
-    Ok(serde_json::from_str(&response_raw)?)
+    parse_account_info_response(response).await
 }
 
 /// Fetches account info and attempts a token refresh if the request is unauthorized.
@@ -207,12 +282,10 @@ pub async fn get_account_info_with_refresh(
             .bearer_auth(&new_token)
             .send()
             .await?;
-        let raw = retry.text().await?;
-        return Ok(serde_json::from_str(&raw)?);
+        return parse_account_info_response(retry).await;
     }
 
-    let response_raw = response.text().await?;
-    Ok(serde_json::from_str(&response_raw)?)
+    parse_account_info_response(response).await
 }
 
 /// Completes the OAuth authorization code flow and persists returned tokens.
@@ -239,8 +312,7 @@ pub async fn oauth2_login(
         .send()
         .await?;
 
-    let res = response.text().await?;
-    let res = serde_json::from_str::<OAuth2Response>(&res)?;
+    let res = parse_oauth_token_response(response, "OAuth2 login failed").await?;
     if !res.scope.contains("profile:read")
         || !res.scope.contains("sync:read")
         || !res.scope.contains("notifications:read")
@@ -264,34 +336,37 @@ pub async fn get_notification_history_page(
     limit: Option<usize>,
 ) -> Result<NotificationHistoryResponse> {
     let token = get_account_token(secret_store)?;
-    let cursor = cursor.cloned().unwrap_or_default();
-    let limit = limit
-        .unwrap_or(DEFAULT_NOTIFICATION_HISTORY_LIMIT)
-        .min(DEFAULT_NOTIFICATION_HISTORY_LIMIT);
-    let since = cursor
-        .created_at
-        .unwrap_or_else(|| DEFAULT_NOTIFICATION_HISTORY_SINCE.to_string());
-    let mut query = vec![
-        ("since".to_string(), since),
-        ("limit".to_string(), limit.to_string()),
-    ];
-    if let Some(after_id) = cursor.notification_id {
-        query.push(("after_id".to_string(), after_id));
-    }
-    if let Some(read) = read {
-        query.push(("read".to_string(), read.to_string()));
-    }
+    let query = notification_history_query(cursor, read, limit);
 
     let response = reqwest::Client::new()
         .get(format!("{}/account/notifications/get", backend_base_url()))
         .header("User-Agent", user_agent)
-        .bearer_auth(token)
+        .bearer_auth(&token)
         .query(&query)
         .send()
         .await?;
 
-    let response_raw = response.text().await?;
-    Ok(serde_json::from_str(&response_raw)?)
+    if response.status() == StatusCode::UNAUTHORIZED {
+        log::info!("Notification history request unauthorized, attempting token refresh");
+        try_refresh_token(
+            secret_store,
+            env!("QUADRANT_OAUTH2_CLIENT_ID"),
+            env!("QUADRANT_OAUTH2_CLIENT_SECRET"),
+            user_agent,
+        )
+        .await?;
+        let new_token = get_account_token(secret_store)?;
+        let retry = reqwest::Client::new()
+            .get(format!("{}/account/notifications/get", backend_base_url()))
+            .header("User-Agent", user_agent)
+            .bearer_auth(new_token)
+            .query(&query)
+            .send()
+            .await?;
+        return parse_notification_history_response(retry).await;
+    }
+
+    parse_notification_history_response(response).await
 }
 
 /// Fetches all notification history pages from the provided cursor onward.
@@ -314,12 +389,7 @@ pub async fn get_notification_history_all_since(
         )
         .await?;
 
-        if let Some(last) = page.notifications.last() {
-            page_cursor = NotificationCursor {
-                created_at: Some(last.created_at.clone()),
-                notification_id: Some(last.notification_id.clone()),
-            };
-        }
+        page_cursor = notification_cursor_from_last(&page.notifications, page_cursor);
         notifications.extend(page.notifications);
 
         if !page.has_more {
@@ -331,6 +401,68 @@ pub async fn get_notification_history_all_since(
     }
 
     Ok((notifications, page_cursor))
+}
+
+async fn parse_notification_history_response(
+    response: reqwest::Response,
+) -> Result<NotificationHistoryResponse> {
+    parse_json_response(response, "Notification history request failed", EMPTY_NOTIFICATION_HISTORY_BODY).await
+}
+
+async fn parse_account_info_response(response: reqwest::Response) -> Result<AccountInfo> {
+    parse_json_response(response, "Account info request failed", EMPTY_ACCOUNT_INFO_BODY).await
+}
+
+async fn parse_oauth_token_response(
+    response: reqwest::Response,
+    error_prefix: &str,
+) -> Result<OAuth2Response> {
+    parse_json_response(response, error_prefix, EMPTY_OAUTH_BODY).await
+}
+
+async fn parse_json_response<T: serde::de::DeserializeOwned>(
+    response: reqwest::Response,
+    error_prefix: &str,
+    empty_body_error: &str,
+) -> Result<T> {
+    let status = response.status();
+    let response_raw = response.text().await?;
+    if !status.is_success() {
+        let body_preview = response_preview(&response_raw);
+        return Err(anyhow::anyhow!(
+            "{} with {}: {}",
+            error_prefix,
+            status,
+            body_preview
+        ));
+    }
+
+    let trimmed = response_raw.trim();
+    if trimmed.is_empty() {
+        return Err(anyhow::anyhow!("{}", empty_body_error));
+    }
+
+    serde_json::from_str(trimmed).map_err(|error| {
+        anyhow::anyhow!(
+            "{}: invalid JSON response: {}; body preview: {}",
+            error_prefix,
+            error,
+            response_preview(trimmed)
+        )
+    })
+}
+
+fn response_preview(body: &str) -> String {
+    let trimmed = body.trim();
+    if trimmed.is_empty() {
+        return "<empty body>".to_string();
+    }
+    let preview = if trimmed.len() > 300 {
+        &trimmed[..300]
+    } else {
+        trimmed
+    };
+    preview.to_string()
 }
 
 /// Marks a notification as read in the Quadrant backend.
