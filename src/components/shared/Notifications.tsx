@@ -11,12 +11,6 @@ import {
 } from "@headlessui/react";
 import { listen } from "@tauri-apps/api/event";
 import {
-  isPermissionGranted,
-  requestPermission,
-  sendNotification,
-} from "@tauri-apps/plugin-notification";
-import { LazyStore } from "@tauri-apps/plugin-store";
-import {
   MdCheck,
   MdClear,
   MdMarkEmailRead,
@@ -29,16 +23,9 @@ import {
   Article,
   SnackbarHistoryItem,
 } from "../../intefaces";
-import {
-  answerInvite,
-  getAccountInfo,
-  getNews,
-  openIn,
-  readNotification,
-} from "../../tools";
+import { answerInvite, getNews, openIn, readNotification } from "../../tools";
 
 type NotificationsProps = {
-  config: LazyStore;
   snackBarHistory: SnackbarHistoryItem[];
   setSnackbarHistory: React.Dispatch<
     React.SetStateAction<SnackbarHistoryItem[]>
@@ -46,7 +33,6 @@ type NotificationsProps = {
 };
 
 function Notifications({
-  config,
   snackBarHistory,
   setSnackbarHistory,
 }: NotificationsProps) {
@@ -64,69 +50,14 @@ function Notifications({
     const effect = async () => {
       const refreshNotificationsUnlisten = await listen(
         "refreshNotifications",
-        async (event) => {
+        (event) => {
           if (isUnmounted) {
             return;
           }
           const sortedNotifications = [
             ...(event.payload as AccountNotification[]),
-          ].sort((a, b) => b.created_at - a.created_at);
-
-          let newlyReceived: AccountNotification[] = [];
-          setNotifications((prevNotifications) => {
-            const previousIds = new Set(
-              prevNotifications.map((n) => n.notification_id),
-            );
-            newlyReceived = sortedNotifications.filter(
-              (notification) => !previousIds.has(notification.notification_id),
-            );
-            return sortedNotifications;
-          });
-
-          if (newlyReceived.length === 0) {
-            return;
-          }
-
-          let permissionGranted = await isPermissionGranted();
-          if (!permissionGranted) {
-            const permission = await requestPermission();
-            permissionGranted = permission === "granted";
-            console.log("Permission granted: " + permissionGranted);
-          }
-
-          if (!permissionGranted || isUnmounted) {
-            return;
-          }
-
-          const shownNotifications: string[] =
-            (await config.get("shownNotifications")) ?? [];
-
-          const unseenNotifications = newlyReceived.filter(
-            (notification) =>
-              !notification.read &&
-              !shownNotifications.includes(notification.notification_id),
-          );
-
-          if (unseenNotifications.length === 0 || isUnmounted) {
-            return;
-          }
-
-          const updatedShown = [...shownNotifications];
-          for (const notification of unseenNotifications) {
-            updatedShown.push(notification.notification_id);
-            if (isUnmounted) {
-              break;
-            }
-            await sendNotification({
-              title: "Quadrant ID",
-              body: JSON.parse(notification.message)["simple_message"],
-            });
-          }
-
-          if (!isUnmounted) {
-            await config.set("shownNotifications", updatedShown);
-            await config.save();
-          }
+          ].sort((a, b) => b.created_at_unix - a.created_at_unix);
+          setNotifications(sortedNotifications);
         },
       );
       if (isUnmounted) {
@@ -135,18 +66,6 @@ function Notifications({
         cleanupFns.push(refreshNotificationsUnlisten);
       }
 
-      try {
-        const accountInfo = await getAccountInfo();
-        if (!isUnmounted) {
-          const newNotifications = [...accountInfo.notifications];
-          newNotifications.sort((a, b) => {
-            return b.created_at - a.created_at;
-          });
-          setNotifications(newNotifications);
-        }
-      } catch (e) {
-        console.log(e);
-      }
       try {
         const latestNews = await getNews();
         if (!isUnmounted) {
@@ -172,7 +91,7 @@ function Notifications({
         }
       }
     };
-  }, [config]);
+  }, []);
 
   useEffect(() => {
     if (notifications.filter((n) => !n.read).length > 0) {
