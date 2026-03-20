@@ -16,7 +16,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--amd64-sha", required=True)
     parser.add_argument("--arm64-sha", required=True)
     parser.add_argument("--manifest-path", required=True)
-    parser.add_argument("--release-repo", default="mrquantumoff/quadrant")
+    parser.add_argument("--release-repo", default="quadrantmc/quadrant")
     return parser.parse_args()
 
 
