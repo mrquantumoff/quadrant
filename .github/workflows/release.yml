@@ -20,9 +20,9 @@ jobs:
         include:
           - platform: "blacksmith-4vcpu-ubuntu-2404"
             args: ""
-          - platform: "windows-latest"
+          - platform: "blacksmith-4vcpu-windows-2025"
             args: ""
-          - platform: "blacksmith-4vcpu-ubuntu-2404"
+          - platform: "blacksmith-4vcpu-ubuntu-2404-arm"
             args: ""
           - platform: "windows-11-arm"
             args: ""
