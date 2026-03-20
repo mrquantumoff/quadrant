@@ -1,5 +1,9 @@
 <!-- @format -->
 
+## WARNING: QUADRANT IS CURRENTLY MOVING TO ITS OWN ORGANIZATION
+### The up to date repo is [here](https://github.com/QuadrantMC/quadrant)
+
+
 # Quadrant for Minecraft
 
 > An easy way to manage your modpacks, written in React and Rust.
