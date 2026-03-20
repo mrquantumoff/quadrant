@@ -18,11 +18,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "blacksmith-4vcpu-ubuntu-2404"
+          - platform: "ubuntu-latest"
             args: ""
-          - platform: "blacksmith-4vcpu-windows-2025"
+          - platform: "windows-latest"
             args: ""
-          - platform: "blacksmith-4vcpu-ubuntu-2404-arm"
+          - platform: "ubuntu-latest-arm"
             args: ""
           - platform: "windows-11-arm"
             args: ""
