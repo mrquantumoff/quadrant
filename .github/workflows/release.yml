@@ -18,11 +18,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "ubuntu-24.04"
+          - platform: "blacksmith-4vcpu-ubuntu-2404"
             args: ""
           - platform: "windows-latest"
             args: ""
-          - platform: "ubuntu-24.04-arm"
+          - platform: "blacksmith-4vcpu-ubuntu-2404"
             args: ""
           - platform: "windows-11-arm"
             args: ""
@@ -85,7 +85,7 @@ jobs:
       tag: ${{ github.ref_name }}
 
   submit_update:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs: publish-tauri
     if: endsWith(github.ref_name, '-flatpak') == false || endsWith(github.ref_name, '-msstore') == false
     steps:
