@@ -190,7 +190,7 @@ export default function AccountPage() {
           className="bg-slate-700 hover:bg-slate-800 w-full h-full flex flex-row items-center justify-center text-lg"
           onClick={async () => {
             openIn(
-              "https://github.com/mrquantumoff/quadrant/blob/master/QUADRANT-ID-TOS.md",
+              "https://github.com/quadrantmc/quadrant/blob/master/QUADRANT-ID-TOS.md",
             );
           }}
         >

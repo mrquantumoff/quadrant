@@ -13,7 +13,7 @@ on:
         description: Repository that owns the release assets
         required: false
         type: string
-        default: mrquantumoff/quadrant
+        default: quadrantmc/quadrant
     secrets:
       FLATHUB_GH_TOKEN:
         required: true
@@ -27,12 +27,12 @@ on:
         description: Repository that owns the release assets
         required: false
         type: string
-        default: mrquantumoff/quadrant
+        default: quadrantmc/quadrant
 
 jobs:
   open_flathub_pr:
     name: Open Flathub PR
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
       contents: read
     env:

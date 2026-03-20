@@ -1,16 +1,19 @@
 use config::init_config;
-use mc_mod::get_user_agent;
 use tauri::{
-    Emitter, Manager, Url,
+    Emitter, Manager,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconEvent},
 };
 use tauri_plugin_cli::CliExt;
-use tauri_plugin_store::StoreExt;
-use tauri_plugin_updater::UpdaterExt;
 use tokio::sync::Mutex;
 
+#[cfg(feature = "updater")]
+use tauri::Url;
 use tauri_plugin_deep_link::DeepLinkExt;
+#[cfg(feature = "updater")]
+use tauri_plugin_store::StoreExt;
+#[cfg(feature = "updater")]
+use tauri_plugin_updater::UpdaterExt;
 
 #[allow(dead_code)] // This is used in the  Quadrant ID feature
 pub(crate) const QNT_BASE_URL: &str = "https://api.mrquantumoff.dev/api/v3";
@@ -30,6 +33,8 @@ pub struct AppState {
     pub is_update_enabled: bool,
     pub update: Option<tauri_plugin_updater::Update>,
     pub update_bytes: Vec<u8>,
+    #[cfg(feature = "quadrant_id")]
+    pub notification_state: account::id::NotificationRuntimeState,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -43,6 +48,8 @@ pub async fn run() {
         updated_modpacks: vec![],
         update: None,
         update_bytes: vec![],
+        #[cfg(feature = "quadrant_id")]
+        notification_state: account::id::NotificationRuntimeState::default(),
     }));
 
     #[cfg(desktop)]
@@ -202,17 +209,11 @@ pub async fn run() {
             }
             #[cfg(feature = "quadrant_id")]
             {
-                log::info!("Starting the check for account updates...");
+                log::info!("Starting Quadrant notification and sync workers...");
                 let app_handle = app.handle().clone();
-                let mut interval_timer =
-                    tokio::time::interval(chrono::Duration::seconds(3).to_std().unwrap());
-
-                let _ = tokio::task::spawn(async move {
-                    loop {
-                        interval_timer.tick().await;
-                        let _task = account::id::check_account_updates(app_handle.clone()).await;
-                    }
-                });
+                account::id::start_notification_worker(app_handle.clone());
+                account::id::start_modpack_sync_worker(app_handle.clone());
+                account::id::start_settings_sync_worker(app_handle);
             }
             log::info!("Initializing tray...");
             let tray = app.tray_by_id("main");
@@ -359,9 +360,10 @@ async fn is_autoupdate_enabled(app: tauri::AppHandle) -> Result<bool, tauri::Err
     let state = state.lock().await;
     Ok(state.is_update_enabled)
 }
-async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
+async fn check_update(_app: tauri::AppHandle) -> Result<(), anyhow::Error> {
     #[cfg(feature = "updater")]
     {
+        let app = _app;
         let update_url = Url::parse(
             "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{target}}/{{arch}}/{{current_version}}?variant={{bundle_type}}",
         )?;
@@ -402,7 +404,7 @@ async fn check_update(app: tauri::AppHandle) -> Result<(), anyhow::Error> {
             .updater_builder()
             .endpoints(update_urls)?
             .version_comparator(|current, update| update.version != current)
-            .header("User-Agent", get_user_agent())?;
+            .header("User-Agent", quadrant_core::mc_mod::get_user_agent())?;
 
         if ms_store_build {
             return Ok(());
