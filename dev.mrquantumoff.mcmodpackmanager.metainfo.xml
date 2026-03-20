@@ -15,9 +15,9 @@
       NOTE: This app and its developer are not affiliated with Mojang Studios or Microsoft.
     </p>
   </description>
-  <url type="homepage">https://mrquantumoff.dev/projects/quadrant</url>
-  <url type="vcs-browser">https://github.com/mrquantumoff/quadrant</url>
-  <url type="bugtracker">https://github.com/mrquantumoff/quadrant/issues</url>
+  <url type="homepage">https://usequadrant.dev</url>
+  <url type="vcs-browser">https://github.com/quadrantmc/quadrant</url>
+  <url type="bugtracker">https://github.com/quadrantmc/quadrant/issues</url>
   <categories>
     <category>Game</category>
     <category>Utility</category>
