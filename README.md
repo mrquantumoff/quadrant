@@ -22,7 +22,7 @@
 
 #### OR
 
-[Grab the latest build manually (Linux/Windows on x86_64/aarch64)](https://github.com/mrquantumoff/quadrant/releases/latest)
+[Grab the latest build manually (Linux/Windows on x86_64/aarch64)](https://github.com/quadrantmc/quadrant/releases/latest)
 
 ### Working features
 

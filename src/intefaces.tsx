@@ -194,7 +194,8 @@ export interface AccountNotification {
   notification_id: string;
   user_id: string;
   message: string;
-  created_at: number;
+  created_at: string;
+  created_at_unix: number;
   read: boolean;
 }
 
