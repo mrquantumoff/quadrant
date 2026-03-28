@@ -41,14 +41,21 @@ export default function ShareSyncPage() {
   const contentContext = useContext(ContentContext);
 
   useEffect(() => {
+    let isUnmounted = false;
+    const cleanupFns: Array<() => void> = [];
+
     const effect = async () => {
       try {
         const accountInfo = await getAccountInfo();
-        if (accountInfo.quadrant_sync_limit !== 0) {
+        if (!isUnmounted && accountInfo.quadrant_sync_limit !== 0) {
           setSyncActive(true);
         }
-        await listen("quadrantShareSubmission", async (event: any) => {
+
+        const unlisten = await listen("quadrantShareSubmission", async (event: any) => {
           const usesLeft = event.payload.uses_left;
+          if (isUnmounted) {
+            return;
+          }
           contentContext.setSnackbar({
             message: (
               <span className="flex">
@@ -60,11 +67,28 @@ export default function ShareSyncPage() {
             timeout: 5000,
           });
         });
+        if (isUnmounted) {
+          unlisten();
+        } else {
+          cleanupFns.push(unlisten);
+        }
       } catch (e) {
         console.error(e);
       }
     };
     effect().catch(console.error);
+
+    return () => {
+      isUnmounted = true;
+      while (cleanupFns.length > 0) {
+        const cleanup = cleanupFns.pop();
+        try {
+          cleanup?.();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    };
   }, [contentContext, t]);
 
   const MotionTab = motion(Tab);
