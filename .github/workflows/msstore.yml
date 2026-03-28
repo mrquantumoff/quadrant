@@ -44,6 +44,10 @@ jobs:
         uses: egor-tensin/setup-clang@v2
         with:
           version: latest
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64_arm64
 
       - name: Build the app
         env:
