@@ -15,8 +15,8 @@ use tauri_plugin_store::StoreExt;
 #[cfg(feature = "updater")]
 use tauri_plugin_updater::UpdaterExt;
 
-#[allow(dead_code)] // This is used in the  Quadrant ID feature
-pub(crate) const QNT_BASE_URL: &str = "https://api.mrquantumoff.dev/api/v3";
+#[allow(dead_code)] // This is used in the Quadrant ID feature
+pub(crate) const QNT_BASE_URL: &str = "https://api.usequadrant.dev/api/v3";
 
 #[cfg(feature = "quadrant_id")]
 pub mod account;
@@ -364,7 +364,7 @@ async fn check_update(_app: tauri::AppHandle) -> Result<(), anyhow::Error> {
     {
         let app = _app;
         let update_url = Url::parse(
-            "https://api.mrquantumoff.dev/api/any/quadrant/updates/stable/{{target}}/{{arch}}/{{current_version}}?variant={{bundle_type}}",
+            "https://api.usequadrant.dev/api/any/quadrant/updates/stable/{{target}}/{{arch}}/{{current_version}}?variant={{bundle_type}}",
         )?;
 
         let mut update_urls = vec![update_url];
@@ -384,7 +384,7 @@ async fn check_update(_app: tauri::AppHandle) -> Result<(), anyhow::Error> {
             let channel = update_config.get("channel").unwrap();
             let channel = channel.as_str().unwrap_or(defualt_channel);
             if channel != "stable" {
-                update_urls.push(Url::parse(&format!("https://api.mrquantumoff.dev/api/any/quadrant/updates/{}/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}",channel))?);
+                update_urls.push(Url::parse(&format!("https://api.usequadrant.dev/api/any/quadrant/updates/{}/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}",channel))?);
             }
         }
         // Prefer the preview version if we're updating from a preview version

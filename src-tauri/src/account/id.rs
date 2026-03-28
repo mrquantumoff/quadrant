@@ -70,7 +70,9 @@ impl NotificationRuntimeState {
                 inserted: false,
             },
             Some(_) => {
-                if let Some(previous) = self.by_key.insert(identity_key.clone(), notification.clone())
+                if let Some(previous) = self
+                    .by_key
+                    .insert(identity_key.clone(), notification.clone())
                 {
                     self.key_by_notification_id
                         .remove(previous.notification_id.as_str());
@@ -85,7 +87,8 @@ impl NotificationRuntimeState {
             }
             None => {
                 self.ordered_keys.push(identity_key.clone());
-                self.by_key.insert(identity_key.clone(), notification.clone());
+                self.by_key
+                    .insert(identity_key.clone(), notification.clone());
                 self.key_by_notification_id
                     .insert(notification.notification_id.clone(), identity_key);
                 self.sort_keys();
@@ -231,7 +234,7 @@ pub fn start_notification_worker(app: AppHandle) {
     tokio::task::spawn(async move {
         loop {
             if let Err(error) = bootstrap_notifications(&app).await {
-                log::warn!("Notification bootstrap failed: {error}");
+                log::error!("Notification bootstrap failed: {error}");
             }
 
             let stream_result = run_notification_socket(app.clone()).await;
@@ -592,7 +595,8 @@ async fn handle_modpack_sync_notification(
 ) -> Result<(), anyhow::Error> {
     let synced_modpack = resolve_synced_modpack_from_notification(notification).await?;
     let local_modpack = resolve_local_modpack_for_sync(app, &synced_modpack).await?;
-    let local_modpack = maybe_backfill_local_modpack_id(app, local_modpack, &synced_modpack).await?;
+    let local_modpack =
+        maybe_backfill_local_modpack_id(app, local_modpack, &synced_modpack).await?;
 
     let config = app.store("config.json")?;
     let auto_quadrant_sync = config
@@ -600,9 +604,7 @@ async fn handle_modpack_sync_notification(
         .and_then(|value| value.as_bool())
         .unwrap_or(false);
 
-    if auto_quadrant_sync
-        && let Some(local_modpack) = local_modpack
-    {
+    if auto_quadrant_sync && let Some(local_modpack) = local_modpack {
         maybe_apply_remote_modpack_update(app, &local_modpack, &synced_modpack).await?;
     }
 
@@ -643,9 +645,9 @@ async fn resolve_local_modpack_for_sync(
         return Ok(Some(local_modpack));
     }
 
-    Ok(modpacks.into_iter().find(|modpack| {
-        modpack.last_synced != 0 && modpack.name == synced_modpack.name
-    }))
+    Ok(modpacks
+        .into_iter()
+        .find(|modpack| modpack.last_synced != 0 && modpack.name == synced_modpack.name))
 }
 
 async fn maybe_backfill_local_modpack_id(
@@ -810,9 +812,8 @@ mod tests {
             user_id: "u1".to_string(),
             notification_type: Some("modpack_sync".to_string()),
             resource_id: Some("modpack-1".to_string()),
-            message:
-                "{\"notification_type\":\"modpack_sync\",\"simple_message\":\"hello\"}"
-                    .to_string(),
+            message: "{\"notification_type\":\"modpack_sync\",\"simple_message\":\"hello\"}"
+                .to_string(),
             created_at: "2026-03-20T10:01:00Z".to_string(),
             created_at_unix: 1,
             read: false,
@@ -822,9 +823,8 @@ mod tests {
             user_id: "u1".to_string(),
             notification_type: Some("modpack_sync".to_string()),
             resource_id: Some("modpack-1".to_string()),
-            message:
-                "{\"notification_type\":\"modpack_sync\",\"simple_message\":\"updated\"}"
-                    .to_string(),
+            message: "{\"notification_type\":\"modpack_sync\",\"simple_message\":\"updated\"}"
+                .to_string(),
             created_at: "2026-03-20T10:02:00Z".to_string(),
             created_at_unix: 2,
             read: false,
