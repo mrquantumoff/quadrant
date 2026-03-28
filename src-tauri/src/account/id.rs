@@ -310,13 +310,16 @@ async fn bootstrap_notifications(app: &AppHandle) -> Result<(), anyhow::Error> {
 
 async fn run_notification_socket(app: AppHandle) -> Result<(), anyhow::Error> {
     let token = account::get_account_token()?;
-    let cursor = {
+    let (cursor, connection_id) = {
         let state = app.state::<Mutex<AppState>>();
         let state = state.lock().await;
-        state.notification_state.cursor.clone()
+        (
+            state.notification_state.cursor.clone(),
+            state.notification_connection_id.clone(),
+        )
     };
 
-    let ws_url = build_notification_ws_url(&cursor)?;
+    let ws_url = build_notification_ws_url(&cursor, &connection_id)?;
     let mut request = ws_url.as_str().into_client_request()?;
     request
         .headers_mut()
@@ -411,7 +414,10 @@ async fn handle_notification_ws_frame(app: &AppHandle, payload: &str) -> Result<
     Ok(())
 }
 
-fn build_notification_ws_url(cursor: &NotificationCursor) -> Result<Url, anyhow::Error> {
+fn build_notification_ws_url(
+    cursor: &NotificationCursor,
+    connection_id: &str,
+) -> Result<Url, anyhow::Error> {
     let base = std::env::var("QUADRANT_API_BASE_URL")
         .unwrap_or_else(|_| quadrant_core::account::QNT_BASE_URL.to_string());
     let mut url = Url::parse(&base)?;
@@ -433,6 +439,7 @@ fn build_notification_ws_url(cursor: &NotificationCursor) -> Result<Url, anyhow:
         }
         query.append_pair("replay_limit", &WS_REPLAY_LIMIT.to_string());
         query.append_pair("modpack_sync", "true");
+        query.append_pair("connection_id", connection_id);
     }
     Ok(url)
 }
@@ -759,7 +766,9 @@ async fn sync_remote_settings(app: AppHandle) -> Result<(), anyhow::Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Notification, NotificationCursor, NotificationRuntimeState};
+    use super::{
+        Notification, NotificationCursor, NotificationRuntimeState, build_notification_ws_url,
+    };
 
     fn notification(id: &str, unix: i64, read: bool) -> Notification {
         Notification {
@@ -840,5 +849,21 @@ mod tests {
             state.key_by_notification_id.get("n2").map(String::as_str),
             Some("modpack_sync:modpack-1")
         );
+    }
+
+    #[test]
+    fn notification_websocket_url_includes_modpack_sync_and_connection_id() {
+        let cursor = NotificationCursor {
+            created_at: Some("2026-03-20T10:02:00Z".to_string()),
+            notification_id: Some("n2".to_string()),
+        };
+
+        let url = build_notification_ws_url(&cursor, "client-connection-123").unwrap();
+        let query = url.query().unwrap_or_default();
+
+        assert!(query.contains("since=2026-03-20T10%3A02%3A00Z"));
+        assert!(query.contains("replay_limit=500"));
+        assert!(query.contains("modpack_sync=true"));
+        assert!(query.contains("connection_id=client-connection-123"));
     }
 }

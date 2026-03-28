@@ -1,8 +1,10 @@
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
+use tokio::sync::Mutex;
 
 pub use quadrant_core::account::quadrant_sync::{ModpackOwner, SyncedModpack};
 
 use crate::{
+    AppState,
     mc_mod::get_user_agent,
     modpacks::general::LocalModpack,
     tauri_adapter::{TauriSecretStore, mc_folder},
@@ -69,11 +71,18 @@ pub async fn sync_modpack(
     overwrite: bool,
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
+    let connection_id = {
+        let state = app.state::<Mutex<AppState>>();
+        let state = state.lock().await;
+        state.notification_connection_id.clone()
+    };
+
     let timestamp = quadrant_core::account::quadrant_sync::sync_modpack(
         &TauriSecretStore,
         &get_user_agent(),
         modpack.clone(),
         overwrite,
+        Some(connection_id.as_str()),
     )
     .await
     .map_err(tauri::Error::from)?;

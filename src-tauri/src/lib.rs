@@ -14,6 +14,8 @@ use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_store::StoreExt;
 #[cfg(feature = "updater")]
 use tauri_plugin_updater::UpdaterExt;
+#[cfg(feature = "quadrant_id")]
+use uuid::Uuid;
 
 #[allow(dead_code)] // This is used in the Quadrant ID feature
 pub(crate) const QNT_BASE_URL: &str = "https://api.usequadrant.dev/api/v3";
@@ -34,6 +36,8 @@ pub struct AppState {
     pub update: Option<tauri_plugin_updater::Update>,
     pub update_bytes: Vec<u8>,
     #[cfg(feature = "quadrant_id")]
+    pub notification_connection_id: String,
+    #[cfg(feature = "quadrant_id")]
     pub notification_state: account::id::NotificationRuntimeState,
 }
 
@@ -48,6 +52,8 @@ pub async fn run() {
         updated_modpacks: vec![],
         update: None,
         update_bytes: vec![],
+        #[cfg(feature = "quadrant_id")]
+        notification_connection_id: Uuid::now_v7().to_string(),
         #[cfg(feature = "quadrant_id")]
         notification_state: account::id::NotificationRuntimeState::default(),
     }));
