@@ -52,15 +52,12 @@ struct UpsertOutcome {
     inserted: bool,
 }
 
-impl NotificationRuntimeState {
-    fn merge(&mut self, notifications: Vec<Notification>) -> bool {
-        let mut changed = false;
-        for notification in notifications {
-            changed |= self.upsert(notification).changed;
-        }
-        changed
-    }
+struct MergeNotificationsOutcome {
+    notifications_for_ui: Option<Vec<Notification>>,
+    modpack_sync_notifications: Vec<Notification>,
+}
 
+impl NotificationRuntimeState {
     fn upsert(&mut self, notification: Notification) -> UpsertOutcome {
         self.advance_cursor(&notification);
         let identity_key = notification_identity_key(&notification);
@@ -286,26 +283,72 @@ async fn bootstrap_notifications(app: &AppHandle) -> Result<(), anyhow::Error> {
         return Ok(());
     }
 
-    let notifications_to_emit = {
+    let merge_outcome = {
         let state = app.state::<Mutex<AppState>>();
         let mut state = state.lock().await;
         let runtime = &mut state.notification_state;
-        let changed = runtime.merge(notifications);
+        let merge_outcome = merge_notifications_and_collect_updates(runtime, notifications);
         if runtime.cursor != next_cursor {
             runtime.cursor = next_cursor.clone();
         }
-        changed.then(|| runtime.notifications_for_ui())
+        merge_outcome
     };
 
     persist_notification_cursor(app, &next_cursor)?;
 
-    if let Some(notifications) = notifications_to_emit {
+    if let Some(notifications) = merge_outcome.notifications_for_ui {
         emit_notification_refresh(app, notifications)?;
+    }
+
+    for notification in merge_outcome.modpack_sync_notifications {
+        if let Err(error) = handle_modpack_sync_notification(app, &notification).await {
+            log::warn!("Failed to process bootstrapped modpack sync notification: {error}");
+        }
     }
 
     set_reconnect_attempt(app, 0).await;
 
     Ok(())
+}
+
+fn merge_notifications_and_collect_updates(
+    runtime: &mut NotificationRuntimeState,
+    mut notifications: Vec<Notification>,
+) -> MergeNotificationsOutcome {
+    notifications.sort_by(|left, right| {
+        left.created_at_unix
+            .cmp(&right.created_at_unix)
+            .then_with(|| left.notification_id.cmp(&right.notification_id))
+    });
+
+    let mut changed = false;
+    let mut latest_modpack_sync_by_key = HashMap::new();
+    let mut modpack_sync_order = Vec::new();
+
+    for notification in notifications {
+        let outcome = runtime.upsert(notification.clone());
+        changed |= outcome.changed;
+
+        if outcome.changed && is_modpack_sync_notification(&notification) {
+            let identity_key = notification_identity_key(&notification);
+            latest_modpack_sync_by_key.insert(identity_key.clone(), notification);
+            if let Some(index) = modpack_sync_order
+                .iter()
+                .position(|existing| existing == &identity_key)
+            {
+                modpack_sync_order.remove(index);
+            }
+            modpack_sync_order.push(identity_key);
+        }
+    }
+
+    MergeNotificationsOutcome {
+        notifications_for_ui: changed.then(|| runtime.notifications_for_ui()),
+        modpack_sync_notifications: modpack_sync_order
+            .into_iter()
+            .filter_map(|identity_key| latest_modpack_sync_by_key.remove(&identity_key))
+            .collect(),
+    }
 }
 
 async fn run_notification_socket(app: AppHandle) -> Result<(), anyhow::Error> {
@@ -836,6 +879,7 @@ async fn sync_remote_settings(app: AppHandle) -> Result<(), anyhow::Error> {
 mod tests {
     use super::{
         Notification, NotificationCursor, NotificationRuntimeState, build_notification_ws_url,
+        merge_notifications_and_collect_updates,
     };
 
     fn notification(id: &str, unix: i64, read: bool) -> Notification {
@@ -854,11 +898,17 @@ mod tests {
     #[test]
     fn merge_notifications_deduplicates_and_orders() {
         let mut state = NotificationRuntimeState::default();
-        assert!(state.merge(vec![
-            notification("n1", 1, false),
-            notification("n2", 2, false)
-        ]));
-        assert!(!state.merge(vec![notification("n1", 1, false)]));
+        assert!(merge_notifications_and_collect_updates(
+            &mut state,
+            vec![notification("n1", 1, false), notification("n2", 2, false)]
+        )
+        .notifications_for_ui
+        .is_some());
+        assert!(
+            merge_notifications_and_collect_updates(&mut state, vec![notification("n1", 1, false)])
+                .notifications_for_ui
+                .is_none()
+        );
 
         let notifications = state.notifications_for_ui();
         assert_eq!(notifications[0].notification_id, "n2");
@@ -875,7 +925,7 @@ mod tests {
     #[test]
     fn mark_notification_read_local_updates_cached_notification() {
         let mut state = NotificationRuntimeState::default();
-        state.merge(vec![notification("n1", 1, false)]);
+        let _ = merge_notifications_and_collect_updates(&mut state, vec![notification("n1", 1, false)]);
         assert!(state.mark_read("n1"));
         assert!(state.by_key.get("n1").unwrap().read);
         assert!(!state.mark_read("n1"));
@@ -907,8 +957,16 @@ mod tests {
             read: false,
         };
 
-        assert!(state.merge(vec![first]));
-        assert!(state.merge(vec![second]));
+        assert!(
+            merge_notifications_and_collect_updates(&mut state, vec![first])
+                .notifications_for_ui
+                .is_some()
+        );
+        assert!(
+            merge_notifications_and_collect_updates(&mut state, vec![second])
+                .notifications_for_ui
+                .is_some()
+        );
 
         let notifications = state.notifications_for_ui();
         assert_eq!(notifications.len(), 1);
@@ -933,5 +991,54 @@ mod tests {
         assert!(query.contains("replay_limit=500"));
         assert!(query.contains("modpack_sync=true"));
         assert!(query.contains("connection_id=client-connection-123"));
+    }
+
+    #[test]
+    fn bootstrap_merge_collects_latest_changed_modpack_sync_per_resource() {
+        let mut state = NotificationRuntimeState::default();
+        let invite = notification("n0", 0, false);
+        let sync_first = Notification {
+            notification_id: "n1".to_string(),
+            user_id: "u1".to_string(),
+            notification_type: Some("modpack_sync".to_string()),
+            resource_id: Some("modpack-1".to_string()),
+            message: "{\"notification_type\":\"modpack_sync\",\"simple_message\":\"hello\"}"
+                .to_string(),
+            created_at: "2026-03-20T10:01:00Z".to_string(),
+            created_at_unix: 1,
+            read: false,
+        };
+        let sync_second = Notification {
+            notification_id: "n2".to_string(),
+            user_id: "u1".to_string(),
+            notification_type: Some("modpack_sync".to_string()),
+            resource_id: Some("modpack-1".to_string()),
+            message: "{\"notification_type\":\"modpack_sync\",\"simple_message\":\"updated\"}"
+                .to_string(),
+            created_at: "2026-03-20T10:02:00Z".to_string(),
+            created_at_unix: 2,
+            read: false,
+        };
+        let sync_other = Notification {
+            notification_id: "n3".to_string(),
+            user_id: "u1".to_string(),
+            notification_type: Some("modpack_sync".to_string()),
+            resource_id: Some("modpack-2".to_string()),
+            message: "{\"notification_type\":\"modpack_sync\",\"simple_message\":\"other\"}"
+                .to_string(),
+            created_at: "2026-03-20T10:03:00Z".to_string(),
+            created_at_unix: 3,
+            read: false,
+        };
+
+        let outcome = merge_notifications_and_collect_updates(
+            &mut state,
+            vec![sync_second.clone(), invite, sync_first, sync_other.clone()],
+        );
+
+        assert!(outcome.notifications_for_ui.is_some());
+        assert_eq!(outcome.modpack_sync_notifications.len(), 2);
+        assert_eq!(outcome.modpack_sync_notifications[0].notification_id, "n2");
+        assert_eq!(outcome.modpack_sync_notifications[1].notification_id, "n3");
     }
 }
