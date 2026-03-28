@@ -212,7 +212,6 @@ pub async fn run() {
                 log::info!("Starting Quadrant notification and sync workers...");
                 let app_handle = app.handle().clone();
                 account::id::start_notification_worker(app_handle.clone());
-                account::id::start_modpack_sync_worker(app_handle.clone());
                 account::id::start_settings_sync_worker(app_handle);
             }
             log::info!("Initializing tray...");

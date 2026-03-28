@@ -6,6 +6,7 @@ import { getModpacks, getSyncedModpacks } from "../../../tools";
 
 import SyncedModpackComponent from "./SyncedModpack/SyncedModpack";
 import { motion } from "motion/react";
+import { listen } from "@tauri-apps/api/event";
 
 export default function SyncPage() {
   const [modpacks, setModpacks] = useState<SyncedModpack[]>([]);
@@ -20,7 +21,20 @@ export default function SyncPage() {
   };
 
   useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
     fetchSyncedModpacks().catch(console.error);
+    listen<string>("refreshSyncedModpacks", () => {
+      void fetchSyncedModpacks();
+    })
+      .then((cleanup) => {
+        unlisten = cleanup;
+      })
+      .catch(console.error);
+
+    return () => {
+      unlisten?.();
+    };
   }, []);
 
   return (
@@ -34,13 +48,14 @@ export default function SyncPage() {
       >
         <div className="bg-slate-800 flex flex-1 flex-col rounded-4xl w-[98%]  ">
           {modpacks.map((modpack) => {
-            const localModpackResult = localModpacks.filter(
-              (localModpack) => localModpack.name === modpack.name,
-            );
-            let localModpack: LocalModpack | undefined = undefined;
-            if (localModpackResult.length !== 0) {
-              localModpack = localModpackResult[0];
-            }
+            const localModpack =
+              localModpacks.find(
+                (candidate) => candidate.modpackId === modpack.modpack_id,
+              ) ??
+              localModpacks.find(
+                (candidate) =>
+                  !candidate.modpackId && candidate.name === modpack.name,
+              );
             return (
               <SyncedModpackComponent
                 modpack={modpack}

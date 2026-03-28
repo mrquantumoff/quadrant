@@ -1,13 +1,12 @@
-use std::path::Path;
-
-use anyhow::anyhow;
-use serde_json::json;
 use tauri::AppHandle;
-use tauri_plugin_store::StoreExt;
 
 pub use quadrant_core::account::quadrant_sync::{ModpackOwner, SyncedModpack};
 
-use crate::{mc_mod::get_user_agent, tauri_adapter::TauriSecretStore};
+use crate::{
+    mc_mod::get_user_agent,
+    modpacks::general::LocalModpack,
+    tauri_adapter::{TauriSecretStore, mc_folder},
+};
 
 #[tauri::command]
 pub async fn get_synced_modpacks(
@@ -79,17 +78,9 @@ pub async fn sync_modpack(
     .await
     .map_err(tauri::Error::from)?;
 
-    let config = app.store("config.json").map_err(|e| anyhow!(e))?;
-    let binding = config.get("mcFolder").unwrap();
-    let mc_folder = binding.as_str().unwrap();
-    let modpack_folder = Path::new(mc_folder).join("modpacks").join(&modpack.name);
-    if !modpack_folder.exists() {
-        return Ok(());
-    }
-    std::fs::write(
-        modpack_folder.join("quadrantSync.json"),
-        serde_json::to_string_pretty(&json!({ "last_synced": timestamp }))?,
-    )?;
+    let persisted_modpack_id = resolve_submitted_modpack_id(&modpack, timestamp).await?;
+    persist_sync_metadata(&app, &modpack.name, timestamp as u64, persisted_modpack_id.as_deref())
+        .map_err(tauri::Error::from)?;
     Ok(())
 }
 
@@ -109,4 +100,51 @@ pub async fn answer_invite(
     .await
     .map_err(tauri::Error::from)?;
     super::id::read_notification(notification_id, app).await
+}
+
+async fn resolve_submitted_modpack_id(
+    modpack: &LocalModpack,
+    timestamp: i64,
+) -> Result<Option<String>, tauri::Error> {
+    let synced_modpacks = quadrant_core::account::quadrant_sync::get_synced_modpacks(
+        &TauriSecretStore,
+        &get_user_agent(),
+        false,
+        None,
+    )
+    .await
+    .map_err(tauri::Error::from)?;
+
+    let mut matching = synced_modpacks.into_iter().filter(|synced_modpack| {
+        synced_modpack.name == modpack.name
+            && synced_modpack.minecraft_version == modpack.version
+            && synced_modpack.mod_loader == modpack.mod_loader
+            && synced_modpack.last_synced == timestamp
+    });
+
+    let first = matching.next().map(|modpack| modpack.modpack_id);
+    if matching.next().is_some() {
+        return Ok(None);
+    }
+
+    Ok(first)
+}
+
+pub fn persist_sync_metadata(
+    app: &AppHandle,
+    modpack_name: &str,
+    last_synced: u64,
+    modpack_id: Option<&str>,
+) -> Result<(), anyhow::Error> {
+    let modpack_folder = mc_folder(app)?.join("modpacks").join(modpack_name);
+    if !modpack_folder.exists() {
+        return Ok(());
+    }
+
+    quadrant_core::modpacks::set_modpack_sync_date(
+        &mc_folder(app)?,
+        last_synced,
+        modpack_name,
+        modpack_id,
+    )
 }

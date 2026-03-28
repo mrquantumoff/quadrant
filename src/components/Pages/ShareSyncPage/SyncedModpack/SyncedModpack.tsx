@@ -130,6 +130,7 @@ export default function SyncedModpackComponent({
               shareSyncContext.changeTab(0);
               shareSyncContext.setModpack(modConfigObject);
               shareSyncContext.setSync(modpack.last_synced);
+              shareSyncContext.setModpackId(modpack.modpack_id);
             }}
           >
             {t("download")}

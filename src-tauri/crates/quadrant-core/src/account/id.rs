@@ -49,6 +49,12 @@ pub struct Notification {
     pub notification_id: String,
     /// Owning user identifier.
     pub user_id: String,
+    /// Backend notification category when available.
+    #[serde(default)]
+    pub notification_type: Option<String>,
+    /// Stable resource identifier when available.
+    #[serde(default)]
+    pub resource_id: Option<String>,
     /// Human-readable notification message as a JSON string.
     pub message: String,
     /// RFC3339 creation timestamp for new APIs, or a normalized string from legacy payloads.
@@ -107,6 +113,7 @@ fn notification_history_query(
     cursor: Option<&NotificationCursor>,
     read: Option<bool>,
     limit: Option<usize>,
+    include_modpack_sync: bool,
 ) -> Vec<(String, String)> {
     let cursor = cursor.cloned().unwrap_or_default();
     let limit = limit
@@ -125,6 +132,9 @@ fn notification_history_query(
     }
     if let Some(read) = read {
         query.push(("read".to_string(), read.to_string()));
+    }
+    if include_modpack_sync {
+        query.push(("modpack_sync".to_string(), "true".to_string()));
     }
     query
 }
@@ -334,9 +344,10 @@ pub async fn get_notification_history_page(
     cursor: Option<&NotificationCursor>,
     read: Option<bool>,
     limit: Option<usize>,
+    include_modpack_sync: bool,
 ) -> Result<NotificationHistoryResponse> {
     let token = get_account_token(secret_store)?;
-    let query = notification_history_query(cursor, read, limit);
+    let query = notification_history_query(cursor, read, limit, include_modpack_sync);
 
     let response = reqwest::Client::new()
         .get(format!("{}/account/notifications/get", backend_base_url()))
@@ -375,6 +386,7 @@ pub async fn get_notification_history_all_since(
     user_agent: &str,
     cursor: Option<&NotificationCursor>,
     read: Option<bool>,
+    include_modpack_sync: bool,
 ) -> Result<(Vec<Notification>, NotificationCursor)> {
     let mut page_cursor = cursor.cloned().unwrap_or_default();
     let mut notifications = Vec::new();
@@ -386,6 +398,7 @@ pub async fn get_notification_history_all_since(
             Some(&page_cursor),
             read,
             Some(DEFAULT_NOTIFICATION_HISTORY_LIMIT),
+            include_modpack_sync,
         )
         .await?;
 
@@ -490,38 +503,6 @@ pub async fn read_notification(
     Ok(())
 }
 
-/// Compares local and remote sync timestamps to find pending cloud updates.
-pub fn determine_pending_modpack_updates(
-    local_modpacks: &[crate::models::LocalModpack],
-    synced_modpacks: &[SyncedModpack],
-    updated_modpacks: &[String],
-) -> Vec<PendingModpackUpdate> {
-    log::info!("Determining pending modpack updates");
-    let mut pending = Vec::new();
-    for modpack in local_modpacks {
-        if modpack.last_synced == 0 {
-            continue;
-        }
-        for matching_modpack in synced_modpacks.iter().filter(|m| m.name == modpack.name) {
-            let cloud_sync_time = matching_modpack.last_synced;
-            let local_sync_time = modpack.last_synced / 1000;
-            let is_updated = updated_modpacks.contains(&modpack.name);
-            let is_older = cloud_sync_time <= local_sync_time;
-            if is_older || is_updated {
-                continue;
-            }
-            pending.push(PendingModpackUpdate {
-                synced_modpack: matching_modpack.clone(),
-                local_name: modpack.name.clone(),
-                local_version: modpack.version.clone(),
-                local_sync_time,
-            });
-        }
-    }
-    log::info!("Found {} pending modpack update(s)", pending.len());
-    pending
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
@@ -557,6 +538,8 @@ mod tests {
         Notification {
             notification_id: id.to_string(),
             user_id: "user-1".to_string(),
+            notification_type: Some("invite_to_sync".to_string()),
+            resource_id: None,
             message: "{\"simple_message\":\"hi\"}".to_string(),
             created_at: ts.to_string(),
             created_at_unix: unix,
@@ -578,7 +561,8 @@ mod tests {
                 .header("authorization", "Bearer token-123")
                 .query_param("since", "2026-03-20T00:00:00Z")
                 .query_param("after_id", "cursor-1")
-                .query_param("limit", "500");
+                .query_param("limit", "500")
+                .query_param("modpack_sync", "true");
             then.status(200).json_body_obj(&serde_json::json!({
                 "notifications": [],
                 "has_more": false,
@@ -596,6 +580,7 @@ mod tests {
             }),
             None,
             Some(999),
+            true,
         )
         .await
         .unwrap();
@@ -615,7 +600,8 @@ mod tests {
             when.method(GET)
                 .path("/account/notifications/get")
                 .query_param("since", "2026-03-20T00:00:00Z")
-                .query_param("limit", "500");
+                .query_param("limit", "500")
+                .query_param("modpack_sync", "true");
             then.status(200).json_body_obj(&serde_json::json!({
                 "notifications": [notification("n1", "2026-03-20T10:00:00Z", 1)],
                 "has_more": true,
@@ -629,7 +615,8 @@ mod tests {
                 .path("/account/notifications/get")
                 .query_param("since", "2026-03-20T10:00:00Z")
                 .query_param("after_id", "n1")
-                .query_param("limit", "500");
+                .query_param("limit", "500")
+                .query_param("modpack_sync", "true");
             then.status(200).json_body_obj(&serde_json::json!({
                 "notifications": [notification("n2", "2026-03-20T10:15:30.123Z", 2)],
                 "has_more": false,
@@ -646,6 +633,7 @@ mod tests {
                 notification_id: None,
             }),
             None,
+            true,
         )
         .await
         .unwrap();

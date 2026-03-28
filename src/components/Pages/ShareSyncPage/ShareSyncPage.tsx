@@ -16,12 +16,14 @@ export interface IShareSyncContext {
   changeTab: (index: number) => void;
   setModpack: (modpack: InstalledModpack) => void;
   setSync: (time: number) => void;
+  setModpackId: (modpackId: string | null) => void;
 }
 
 export const ShareSyncContext = createContext<IShareSyncContext>({
   changeTab: () => {},
   setModpack: () => {},
   setSync: () => {},
+  setModpackId: () => {},
 });
 
 export default function ShareSyncPage() {
@@ -34,6 +36,7 @@ export default function ShareSyncPage() {
   >();
 
   const [modpackSync, setModpackSync] = useState<number | null>(null);
+  const [modpackId, setModpackId] = useState<string | null>(null);
 
   const contentContext = useContext(ContentContext);
 
@@ -78,6 +81,7 @@ export default function ShareSyncPage() {
           changeTab: (index) => setSelectedTab(index),
           setModpack: (modpack) => setPreselectedModpack(modpack),
           setSync: (time) => setModpackSync(time),
+          setModpackId: (newModpackId) => setModpackId(newModpackId),
         }}
       >
         <TabGroup
@@ -101,6 +105,7 @@ export default function ShareSyncPage() {
                   onClick={() => {
                     setModpackSync(null);
                     setPreselectedModpack(undefined);
+                    setModpackId(null);
                   }}
                   whileHover={{ scale: 1.1, y: -5 }}
                   whileTap={{ scale: 0.9 }}
@@ -127,6 +132,7 @@ export default function ShareSyncPage() {
               <SharePage
                 preselectedModpack={preselectedModpack}
                 modpackSync={modpackSync}
+                modpackId={modpackId}
               />
             </TabPanel>
             <TabPanel className={"w-full h-full flex-col flex items-center"}>

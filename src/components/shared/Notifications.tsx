@@ -32,6 +32,22 @@ type NotificationsProps = {
   >;
 };
 
+type ParsedNotificationMessage = {
+  notification_type?: string;
+  simple_message?: string;
+  message?: string;
+  invite_id?: string;
+};
+
+function parseNotificationMessage(message: string): ParsedNotificationMessage | null {
+  try {
+    return JSON.parse(message) as ParsedNotificationMessage;
+  } catch (error) {
+    console.error("Failed to parse notification message", error);
+    return null;
+  }
+}
+
 function Notifications({
   snackBarHistory,
   setSnackbarHistory,
@@ -193,9 +209,16 @@ function Notifications({
                   </div>
                   <div className="border-b-2 border-slate-700">
                     {notifications.map((notification) => {
-                      const detailedMessage = JSON.parse(notification.message);
-                      const messageType = detailedMessage.notification_type;
-                      let message: string;
+                      const detailedMessage = parseNotificationMessage(
+                        notification.message,
+                      );
+                      const messageType =
+                        notification.notification_type ??
+                        detailedMessage?.notification_type;
+                      let message =
+                        detailedMessage?.simple_message ??
+                        notification.message ??
+                        "Notification";
 
                       let action: React.ReactElement | null = (
                         <>
@@ -213,7 +236,12 @@ function Notifications({
                         </>
                       );
 
-                      if (messageType == "invite_to_sync") {
+                      if (
+                        messageType == "invite_to_sync" &&
+                        detailedMessage?.message &&
+                        detailedMessage?.invite_id
+                      ) {
+                        const inviteId = detailedMessage.invite_id;
                         const inviter = (
                           detailedMessage.message as string
                         ).split(
@@ -229,7 +257,7 @@ function Notifications({
                                 className="bg-emerald-600 hover:bg-emerald-800 w-full flex items-center justify-center mr-2"
                                 onClick={async () => {
                                   await answerInvite(
-                                    detailedMessage.invite_id,
+                                    inviteId,
                                     notification.notification_id,
                                     true,
                                   );
@@ -242,7 +270,7 @@ function Notifications({
                                 className="bg-red-700 hover:bg-red-800 w-full flex items-center justify-center"
                                 onClick={async () => {
                                   await answerInvite(
-                                    detailedMessage.invite_id,
+                                    inviteId,
                                     notification.notification_id,
                                     false,
                                   );
@@ -254,8 +282,6 @@ function Notifications({
                             </div>
                           </>
                         );
-                      } else {
-                        message = detailedMessage.simple_message;
                       }
 
                       if (notification.read) {

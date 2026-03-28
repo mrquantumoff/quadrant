@@ -1,7 +1,8 @@
-use std::{collections::HashMap, path::PathBuf, time::Duration};
+use std::{collections::HashMap, time::Duration};
 
 use anyhow::anyhow;
 use futures::StreamExt;
+use serde::Deserialize;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_store::StoreExt;
@@ -17,10 +18,10 @@ use crate::{
     account::{
         self,
         quadrant_settings_sync::{get_quadrant_settings, submit_quadrant_settings},
-        quadrant_sync::get_synced_modpacks,
+        quadrant_sync::{SyncedModpack, get_synced_modpacks, persist_sync_metadata},
     },
     mc_mod::get_user_agent,
-    modpacks::general::{InstalledModpack, get_modpacks, install_modpack},
+    modpacks::general::{InstalledModpack, LocalModpack, get_modpacks, install_modpack},
     tauri_adapter::TauriSecretStore,
 };
 
@@ -31,15 +32,16 @@ pub use quadrant_core::account::id::{
 const NOTIFICATION_CURSOR_CREATED_AT_KEY: &str = "notificationCursorCreatedAt";
 const NOTIFICATION_CURSOR_NOTIFICATION_ID_KEY: &str = "notificationCursorNotificationId";
 const SHOWN_NOTIFICATIONS_KEY: &str = "shownNotifications";
-const MODPACK_SYNC_INTERVAL_SECS: u64 = 60;
 const SETTINGS_SYNC_INTERVAL_SECS: u64 = 120;
 const WS_REPLAY_LIMIT: usize = 500;
 const NOTIFICATION_TITLE: &str = "Quadrant ID";
+const REFRESH_SYNCED_MODPACKS_EVENT: &str = "refreshSyncedModpacks";
 
 #[derive(Default, Clone)]
 pub struct NotificationRuntimeState {
-    pub by_id: HashMap<String, Notification>,
-    pub ordered_ids: Vec<String>,
+    pub by_key: HashMap<String, Notification>,
+    pub key_by_notification_id: HashMap<String, String>,
+    pub ordered_keys: Vec<String>,
     pub cursor: NotificationCursor,
     pub reconnect_attempt: u32,
 }
@@ -61,25 +63,32 @@ impl NotificationRuntimeState {
 
     fn upsert(&mut self, notification: Notification) -> UpsertOutcome {
         self.advance_cursor(&notification);
-        match self.by_id.get(&notification.notification_id) {
+        let identity_key = notification_identity_key(&notification);
+        match self.by_key.get(&identity_key) {
             Some(existing) if existing == &notification => UpsertOutcome {
                 changed: false,
                 inserted: false,
             },
             Some(_) => {
-                self.by_id
-                    .insert(notification.notification_id.clone(), notification);
-                self.sort_ids();
+                if let Some(previous) = self.by_key.insert(identity_key.clone(), notification.clone())
+                {
+                    self.key_by_notification_id
+                        .remove(previous.notification_id.as_str());
+                }
+                self.key_by_notification_id
+                    .insert(notification.notification_id.clone(), identity_key);
+                self.sort_keys();
                 UpsertOutcome {
                     changed: true,
                     inserted: false,
                 }
             }
             None => {
-                self.ordered_ids.push(notification.notification_id.clone());
-                self.by_id
-                    .insert(notification.notification_id.clone(), notification);
-                self.sort_ids();
+                self.ordered_keys.push(identity_key.clone());
+                self.by_key.insert(identity_key.clone(), notification.clone());
+                self.key_by_notification_id
+                    .insert(notification.notification_id.clone(), identity_key);
+                self.sort_keys();
                 UpsertOutcome {
                     changed: true,
                     inserted: true,
@@ -89,7 +98,10 @@ impl NotificationRuntimeState {
     }
 
     fn mark_read(&mut self, notification_id: &str) -> bool {
-        let Some(notification) = self.by_id.get_mut(notification_id) else {
+        let Some(identity_key) = self.key_by_notification_id.get(notification_id).cloned() else {
+            return false;
+        };
+        let Some(notification) = self.by_key.get_mut(identity_key.as_str()) else {
             return false;
         };
         if notification.read {
@@ -101,9 +113,9 @@ impl NotificationRuntimeState {
 
     fn notifications_for_ui(&self) -> Vec<Notification> {
         let mut notifications = self
-            .ordered_ids
+            .ordered_keys
             .iter()
-            .filter_map(|id| self.by_id.get(id))
+            .filter_map(|key| self.by_key.get(key))
             .cloned()
             .collect::<Vec<_>>();
         notifications.sort_by(|a, b| {
@@ -136,10 +148,10 @@ impl NotificationRuntimeState {
         }
     }
 
-    fn sort_ids(&mut self) {
-        self.ordered_ids.sort_by(|left, right| {
-            let left_notification = self.by_id.get(left).expect("missing notification");
-            let right_notification = self.by_id.get(right).expect("missing notification");
+    fn sort_keys(&mut self) {
+        self.ordered_keys.sort_by(|left, right| {
+            let left_notification = self.by_key.get(left).expect("missing notification");
+            let right_notification = self.by_key.get(right).expect("missing notification");
             left_notification
                 .created_at_unix
                 .cmp(&right_notification.created_at_unix)
@@ -150,6 +162,12 @@ impl NotificationRuntimeState {
                 })
         });
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct ModpackSyncPayload {
+    notification_type: String,
+    modpack: SyncedModpack,
 }
 
 #[tauri::command]
@@ -237,18 +255,6 @@ pub fn start_notification_worker(app: AppHandle) {
     });
 }
 
-pub fn start_modpack_sync_worker(app: AppHandle) {
-    tokio::task::spawn(async move {
-        let mut interval = tokio::time::interval(Duration::from_secs(MODPACK_SYNC_INTERVAL_SECS));
-        loop {
-            interval.tick().await;
-            if let Err(error) = sync_modpack_updates(app.clone()).await {
-                log::warn!("Modpack sync worker failed: {error}");
-            }
-        }
-    });
-}
-
 pub fn start_settings_sync_worker(app: AppHandle) {
     tokio::task::spawn(async move {
         let mut interval = tokio::time::interval(Duration::from_secs(SETTINGS_SYNC_INTERVAL_SECS));
@@ -269,6 +275,7 @@ async fn bootstrap_notifications(app: &AppHandle) -> Result<(), anyhow::Error> {
             &get_user_agent(),
             Some(&cursor),
             None,
+            true,
         )
         .await?;
 
@@ -350,6 +357,8 @@ async fn handle_notification_ws_frame(app: &AppHandle, payload: &str) -> Result<
             let should_notify = delivery == "live" && !notification.read;
             let notification_id = notification.notification_id.clone();
             let simple_message = notification_simple_message(&notification);
+            let is_modpack_sync = is_modpack_sync_notification(&notification);
+            let notification_for_processing = notification.clone();
 
             let notifications_to_emit = {
                 let state = app.state::<Mutex<AppState>>();
@@ -372,6 +381,14 @@ async fn handle_notification_ws_frame(app: &AppHandle, payload: &str) -> Result<
                         simple_message.as_deref(),
                     )
                     .await?;
+                }
+            }
+
+            if is_modpack_sync {
+                if let Err(error) =
+                    handle_modpack_sync_notification(app, &notification_for_processing).await
+                {
+                    log::warn!("Failed to process modpack sync notification: {error}");
                 }
             }
         }
@@ -412,6 +429,7 @@ fn build_notification_ws_url(cursor: &NotificationCursor) -> Result<Url, anyhow:
             query.append_pair("since", created_at);
         }
         query.append_pair("replay_limit", &WS_REPLAY_LIMIT.to_string());
+        query.append_pair("modpack_sync", "true");
     }
     Ok(url)
 }
@@ -434,6 +452,11 @@ fn emit_notification_refresh(
     notifications: Vec<Notification>,
 ) -> Result<(), anyhow::Error> {
     app.emit("refreshNotifications", notifications)?;
+    Ok(())
+}
+
+fn emit_synced_modpacks_refresh(app: &AppHandle, modpack_id: &str) -> Result<(), anyhow::Error> {
+    app.emit(REFRESH_SYNCED_MODPACKS_EVENT, modpack_id)?;
     Ok(())
 }
 
@@ -543,96 +566,173 @@ fn notification_simple_message(notification: &Notification) -> Option<String> {
         })
 }
 
-async fn sync_modpack_updates(app: AppHandle) -> Result<(), anyhow::Error> {
+fn parse_notification_message(notification: &Notification) -> Option<ModpackSyncPayload> {
+    serde_json::from_str::<ModpackSyncPayload>(&notification.message)
+        .ok()
+        .filter(|payload| payload.notification_type == "modpack_sync")
+}
+
+fn is_modpack_sync_notification(notification: &Notification) -> bool {
+    notification.notification_type.as_deref() == Some("modpack_sync")
+}
+
+fn notification_identity_key(notification: &Notification) -> String {
+    if is_modpack_sync_notification(notification)
+        && let Some(resource_id) = notification.resource_id.as_deref()
+    {
+        return format!("modpack_sync:{resource_id}");
+    }
+
+    notification.notification_id.clone()
+}
+
+async fn handle_modpack_sync_notification(
+    app: &AppHandle,
+    notification: &Notification,
+) -> Result<(), anyhow::Error> {
+    let synced_modpack = resolve_synced_modpack_from_notification(notification).await?;
+    let local_modpack = resolve_local_modpack_for_sync(app, &synced_modpack).await?;
+    let local_modpack = maybe_backfill_local_modpack_id(app, local_modpack, &synced_modpack).await?;
+
     let config = app.store("config.json")?;
     let auto_quadrant_sync = config
         .get("autoQuadrantSync")
         .and_then(|value| value.as_bool())
         .unwrap_or(false);
-    if !auto_quadrant_sync {
+
+    if auto_quadrant_sync
+        && let Some(local_modpack) = local_modpack
+    {
+        maybe_apply_remote_modpack_update(app, &local_modpack, &synced_modpack).await?;
+    }
+
+    emit_synced_modpacks_refresh(app, &synced_modpack.modpack_id)?;
+
+    Ok(())
+}
+
+async fn resolve_synced_modpack_from_notification(
+    notification: &Notification,
+) -> Result<SyncedModpack, anyhow::Error> {
+    if let Some(payload) = parse_notification_message(notification) {
+        return Ok(payload.modpack);
+    }
+
+    let resource_id = notification
+        .resource_id
+        .as_deref()
+        .ok_or_else(|| anyhow!("modpack sync notification missing resource_id"))?;
+    let mut synced_modpacks = get_synced_modpacks(false, Some(resource_id.to_string())).await?;
+    synced_modpacks
+        .drain(..)
+        .next()
+        .ok_or_else(|| anyhow!("modpack sync fallback fetch returned no modpack"))
+}
+
+async fn resolve_local_modpack_for_sync(
+    app: &AppHandle,
+    synced_modpack: &SyncedModpack,
+) -> Result<Option<LocalModpack>, anyhow::Error> {
+    let modpacks = get_modpacks(true, app.clone()).await;
+
+    if let Some(local_modpack) = modpacks
+        .iter()
+        .find(|modpack| modpack.modpack_id.as_deref() == Some(synced_modpack.modpack_id.as_str()))
+        .cloned()
+    {
+        return Ok(Some(local_modpack));
+    }
+
+    Ok(modpacks.into_iter().find(|modpack| {
+        modpack.last_synced != 0 && modpack.name == synced_modpack.name
+    }))
+}
+
+async fn maybe_backfill_local_modpack_id(
+    app: &AppHandle,
+    local_modpack: Option<LocalModpack>,
+    synced_modpack: &SyncedModpack,
+) -> Result<Option<LocalModpack>, anyhow::Error> {
+    let Some(mut local_modpack) = local_modpack else {
+        return Ok(None);
+    };
+
+    if local_modpack.modpack_id.as_deref() == Some(synced_modpack.modpack_id.as_str()) {
+        return Ok(Some(local_modpack));
+    }
+
+    let local_sync_time = u64::try_from(local_modpack.last_synced / 1000).unwrap_or_default();
+    persist_sync_metadata(
+        app,
+        &local_modpack.name,
+        local_sync_time,
+        Some(synced_modpack.modpack_id.as_str()),
+    )?;
+    local_modpack.modpack_id = Some(synced_modpack.modpack_id.clone());
+
+    Ok(Some(local_modpack))
+}
+
+async fn maybe_apply_remote_modpack_update(
+    app: &AppHandle,
+    local_modpack: &LocalModpack,
+    synced_modpack: &SyncedModpack,
+) -> Result<(), anyhow::Error> {
+    let local_sync_time = local_modpack.last_synced / 1000;
+    if synced_modpack.last_synced <= local_sync_time {
         return Ok(());
     }
 
-    let mc_folder = config
-        .get("mcFolder")
-        .and_then(|value| value.as_str().map(PathBuf::from))
-        .ok_or_else(|| anyhow!("mcFolder not configured"))?;
-    let modpacks_folder = mc_folder.join("modpacks");
-
-    let modpacks = get_modpacks(true, app.clone()).await;
-    let synced_modpacks = get_synced_modpacks(false, None).await?;
-    let state = app.state::<Mutex<AppState>>();
-    let currently_updated = {
-        let state = state.lock().await;
-        state.updated_modpacks.clone()
-    };
-    let pending = quadrant_core::account::id::determine_pending_modpack_updates(
-        &modpacks,
-        &synced_modpacks,
-        &currently_updated,
-    );
-
-    for pending_update in pending {
-        {
-            let mut state_mutex = state.lock().await;
-            if state_mutex
-                .updated_modpacks
-                .contains(&pending_update.local_name)
-            {
-                continue;
-            }
-            state_mutex
-                .updated_modpacks
-                .push(pending_update.local_name.clone());
-        }
-
-        app.notification()
-            .builder()
-            .title(pending_update.local_name.clone())
-            .large_body(format!(
-                "{} | {}",
-                pending_update.local_name, pending_update.local_version
-            ))
-            .body("Updating...")
-            .show()?;
-
-        install_modpack(
-            InstalledModpack {
-                mod_loader: pending_update.synced_modpack.mod_loader,
-                name: pending_update.synced_modpack.name.clone(),
-                version: pending_update.synced_modpack.minecraft_version.clone(),
-                mods: serde_json::from_str(&pending_update.synced_modpack.mods)?,
-            },
-            app.clone(),
-        )
-        .await?;
-
-        std::fs::write(
-            modpacks_folder
-                .join(&pending_update.local_name)
-                .join("quadrantSync.json"),
-            serde_json::to_string_pretty(&serde_json::json!({
-                "last_synced": pending_update.synced_modpack.last_synced,
-            }))?,
-        )?;
-
-        app.notification()
-            .builder()
-            .large_body(format!(
-                "{} | {}",
-                pending_update.local_name, pending_update.local_version
-            ))
-            .title(pending_update.local_name.clone())
-            .body("Successfully updated!")
-            .show()?;
-
-        let mut state_mutex = state.lock().await;
-        state_mutex
-            .updated_modpacks
-            .retain(|name| name != &pending_update.local_name);
+    if !begin_modpack_update(app, &local_modpack.name).await {
+        return Ok(());
     }
 
+    let install_result = install_modpack(
+        InstalledModpack {
+            mod_loader: synced_modpack.mod_loader,
+            name: synced_modpack.name.clone(),
+            version: synced_modpack.minecraft_version.clone(),
+            mods: serde_json::from_str(&synced_modpack.mods)?,
+        },
+        app.clone(),
+    )
+    .await;
+
+    if let Err(error) = install_result {
+        finish_modpack_update(app, &local_modpack.name).await;
+        return Err(error.into());
+    }
+
+    persist_sync_metadata(
+        app,
+        &local_modpack.name,
+        synced_modpack.last_synced as u64,
+        Some(synced_modpack.modpack_id.as_str()),
+    )?;
+    finish_modpack_update(app, &local_modpack.name).await;
+
     Ok(())
+}
+
+async fn begin_modpack_update(app: &AppHandle, modpack_name: &str) -> bool {
+    let state = app.state::<Mutex<AppState>>();
+    let mut state = state.lock().await;
+    if state
+        .updated_modpacks
+        .iter()
+        .any(|name| name == modpack_name)
+    {
+        return false;
+    }
+
+    state.updated_modpacks.push(modpack_name.to_string());
+    true
+}
+
+async fn finish_modpack_update(app: &AppHandle, modpack_name: &str) {
+    let state = app.state::<Mutex<AppState>>();
+    let mut state = state.lock().await;
+    state.updated_modpacks.retain(|name| name != modpack_name);
 }
 
 async fn sync_remote_settings(app: AppHandle) -> Result<(), anyhow::Error> {
@@ -663,6 +763,8 @@ mod tests {
         Notification {
             notification_id: id.to_string(),
             user_id: "u1".to_string(),
+            notification_type: Some("invite_to_sync".to_string()),
+            resource_id: None,
             message: "{\"simple_message\":\"hello\"}".to_string(),
             created_at: format!("2026-03-20T10:{unix:02}:00Z"),
             created_at_unix: unix,
@@ -696,7 +798,47 @@ mod tests {
         let mut state = NotificationRuntimeState::default();
         state.merge(vec![notification("n1", 1, false)]);
         assert!(state.mark_read("n1"));
-        assert!(state.by_id.get("n1").unwrap().read);
+        assert!(state.by_key.get("n1").unwrap().read);
         assert!(!state.mark_read("n1"));
+    }
+
+    #[test]
+    fn modpack_sync_notifications_replace_previous_resource_entry() {
+        let mut state = NotificationRuntimeState::default();
+        let first = Notification {
+            notification_id: "n1".to_string(),
+            user_id: "u1".to_string(),
+            notification_type: Some("modpack_sync".to_string()),
+            resource_id: Some("modpack-1".to_string()),
+            message:
+                "{\"notification_type\":\"modpack_sync\",\"simple_message\":\"hello\"}"
+                    .to_string(),
+            created_at: "2026-03-20T10:01:00Z".to_string(),
+            created_at_unix: 1,
+            read: false,
+        };
+        let second = Notification {
+            notification_id: "n2".to_string(),
+            user_id: "u1".to_string(),
+            notification_type: Some("modpack_sync".to_string()),
+            resource_id: Some("modpack-1".to_string()),
+            message:
+                "{\"notification_type\":\"modpack_sync\",\"simple_message\":\"updated\"}"
+                    .to_string(),
+            created_at: "2026-03-20T10:02:00Z".to_string(),
+            created_at_unix: 2,
+            read: false,
+        };
+
+        assert!(state.merge(vec![first]));
+        assert!(state.merge(vec![second]));
+
+        let notifications = state.notifications_for_ui();
+        assert_eq!(notifications.len(), 1);
+        assert_eq!(notifications[0].notification_id, "n2");
+        assert_eq!(
+            state.key_by_notification_id.get("n2").map(String::as_str),
+            Some("modpack_sync:modpack-1")
+        );
     }
 }
