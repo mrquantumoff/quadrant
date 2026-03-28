@@ -16,7 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: "winows-latest"
+          - platform: "windows-latest"
             args: ""
           # - platform: "windows-11-arm"
           #   args: ""
