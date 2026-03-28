@@ -1,12 +1,15 @@
 [package]
 name = "quadrant_next"
-version = "26.4.0-stable"
+version.workspace = true
 description = "An easy way to manage your Minecraft mods and modpacks"
 authors = ["Demir Yerli <me@mrquantumoff.dev>"]
 edition = "2024"
 
 [workspace]
 members = ["crates/quadrant-core"]
+
+[workspace.package]
+version = "26.4.0-stable"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

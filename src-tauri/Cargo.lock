@@ -4314,7 +4314,7 @@ checksum = "b5a041e753da8b807c9255f28de81879c78c876392ff2469cde94799b2896b9d"
 
 [[package]]
 name = "quadrant-core"
-version = "1.0.0"
+version = "26.4.0-stable"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4331,7 +4331,7 @@ dependencies = [
  "rss",
  "serde",
  "serde_json",
- "sha1 0.10.6",
+ "sha1 0.11.0",
  "tempfile",
  "tokio",
  "urlencoding",
