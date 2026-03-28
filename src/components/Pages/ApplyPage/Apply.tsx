@@ -82,8 +82,14 @@ export default function ApplyPage() {
 
   // Get the modpacks for the first time and listen for changes to the Minecraft folder from the backend
   useEffect(() => {
+    let isUnmounted = false;
+    const cleanupFns: Array<() => void> = [];
+
     const effect = async () => {
       const versions = await getVersions();
+      if (isUnmounted) {
+        return;
+      }
       setModpacks(await getModpacks());
       setVersions(versions);
 
@@ -97,17 +103,28 @@ export default function ApplyPage() {
         unknownMods: false,
       });
 
-      await watch(
+      const unwatch = await watch(
         await path.join(await getMinecraftFolder(false)),
         async () => {
-          await updateModpacks();
+          if (!isUnmounted) {
+            await updateModpacks();
+          }
         },
         {
           delayMs: 50,
         },
       );
-      await listen("quadrantShareSubmission", async (event: any) => {
+      if (isUnmounted) {
+        unwatch();
+      } else {
+        cleanupFns.push(unwatch);
+      }
+
+      const unlisten = await listen("quadrantShareSubmission", async (event: any) => {
         const usesLeft = event.payload.uses_left;
+        if (isUnmounted) {
+          return;
+        }
         context.setSnackbar({
           message: (
             <span className="flex">
@@ -119,8 +136,26 @@ export default function ApplyPage() {
           timeout: 5000,
         });
       });
+      if (isUnmounted) {
+        unlisten();
+      } else {
+        cleanupFns.push(unlisten);
+      }
     };
-    effect();
+
+    effect().catch(console.error);
+
+    return () => {
+      isUnmounted = true;
+      while (cleanupFns.length > 0) {
+        const cleanup = cleanupFns.pop();
+        try {
+          cleanup?.();
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    };
   }, []);
 
   useEffect(() => {

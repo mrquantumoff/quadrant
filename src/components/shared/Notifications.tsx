@@ -10,6 +10,7 @@ import {
   PopoverPanel,
 } from "@headlessui/react";
 import { listen } from "@tauri-apps/api/event";
+import { LazyStore } from "@tauri-apps/plugin-store";
 import {
   MdCheck,
   MdClear,
@@ -19,11 +20,18 @@ import {
 } from "react-icons/md";
 import Button from "../core/Button";
 import {
+  AccountInfo,
   AccountNotification,
   Article,
   SnackbarHistoryItem,
 } from "../../intefaces";
-import { answerInvite, getNews, openIn, readNotification } from "../../tools";
+import {
+  answerInvite,
+  getAccountInfo,
+  getNews,
+  openIn,
+  readNotification,
+} from "../../tools";
 
 type NotificationsProps = {
   snackBarHistory: SnackbarHistoryItem[];
@@ -32,15 +40,43 @@ type NotificationsProps = {
   >;
 };
 
+type ParsedNotificationMessage = {
+  notification_type?: string;
+  simple_message?: string;
+  message?: string;
+  invite_id?: string;
+  updated_by?: string;
+};
+
+function parseNotificationMessage(message: string): ParsedNotificationMessage | null {
+  try {
+    return JSON.parse(message) as ParsedNotificationMessage;
+  } catch (error) {
+    console.error("Failed to parse notification message", error);
+    return null;
+  }
+}
+
+function normalizeIdentity(identity?: string | null): string | null {
+  const normalized = identity?.trim().toLocaleLowerCase();
+  return normalized ? normalized : null;
+}
+
 function Notifications({
   snackBarHistory,
   setSnackbarHistory,
 }: NotificationsProps) {
   const { t } = useTranslation();
+  const config = new LazyStore("config.json");
   const [notifications, setNotifications] = useState<AccountNotification[]>([]);
   const [areNotificationsHighlighted, setAreNotificationsHighlighted] =
     useState("bg-slate-700 hover:bg-slate-600");
   const [news, setNews] = useState<Article[]>([]);
+  const [showModpackUpdateNotifications, setShowModpackUpdateNotifications] =
+    useState(true);
+  const [accountInfo, setAccountInfo] = useState<AccountInfo | null | undefined>(
+    undefined,
+  );
   const newsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -48,6 +84,24 @@ function Notifications({
     const cleanupFns: Array<() => void> = [];
 
     const effect = async () => {
+      const refreshAccountInfo = async () => {
+        try {
+          const currentAccountInfo = await getAccountInfo();
+          if (!isUnmounted) {
+            setAccountInfo(currentAccountInfo);
+          }
+        } catch (error) {
+          console.error("Failed to get account info", error);
+          if (!isUnmounted) {
+            setAccountInfo(null);
+          }
+        }
+      };
+
+      setShowModpackUpdateNotifications(
+        (await config.get<boolean>("showModpackUpdateNotifications")) ?? true,
+      );
+
       const refreshNotificationsUnlisten = await listen(
         "refreshNotifications",
         (event) => {
@@ -65,6 +119,31 @@ function Notifications({
       } else {
         cleanupFns.push(refreshNotificationsUnlisten);
       }
+
+      const notificationSettingsUnlisten = await config.onKeyChange(
+        "showModpackUpdateNotifications",
+        (value) => {
+          if (!isUnmounted) {
+            setShowModpackUpdateNotifications((value as boolean | null) ?? true);
+          }
+        },
+      );
+      if (isUnmounted) {
+        notificationSettingsUnlisten();
+      } else {
+        cleanupFns.push(notificationSettingsUnlisten);
+      }
+
+      const accountRecheckUnlisten = await listen("recheckAccountToken", () => {
+        void refreshAccountInfo();
+      });
+      if (isUnmounted) {
+        accountRecheckUnlisten();
+      } else {
+        cleanupFns.push(accountRecheckUnlisten);
+      }
+
+      await refreshAccountInfo();
 
       try {
         const latestNews = await getNews();
@@ -93,15 +172,45 @@ function Notifications({
     };
   }, []);
 
+  const visibleNotifications = notifications.filter((notification) => {
+    const detailedMessage = parseNotificationMessage(notification.message);
+    const messageType =
+      notification.notification_type ?? detailedMessage?.notification_type;
+
+    if (messageType !== "modpack_sync") {
+      return true;
+    }
+
+    if (!showModpackUpdateNotifications) {
+      return false;
+    }
+
+    const updatedBy = normalizeIdentity(detailedMessage?.updated_by);
+    if (!updatedBy) {
+      return true;
+    }
+
+    if (accountInfo === undefined) {
+      return false;
+    }
+
+    const currentIdentities = [
+      normalizeIdentity(accountInfo?.name),
+      normalizeIdentity(accountInfo?.login),
+    ].filter((identity): identity is string => identity !== null);
+
+    return !currentIdentities.includes(updatedBy);
+  });
+
   useEffect(() => {
-    if (notifications.filter((n) => !n.read).length > 0) {
+    if (visibleNotifications.filter((n) => !n.read).length > 0) {
       setAreNotificationsHighlighted("bg-red-600 hover:bg-red-500 ");
     } else if (news.filter((n) => n.new).length > 0) {
       setAreNotificationsHighlighted("bg-indigo-700 hover:bg-indigo-600 ");
     } else {
       setAreNotificationsHighlighted("bg-slate-700 hover:bg-slate-800 ");
     }
-  }, [news, notifications]);
+  }, [news, visibleNotifications]);
 
   return (
     <Popover className="relative">
@@ -192,10 +301,17 @@ function Notifications({
                     })}
                   </div>
                   <div className="border-b-2 border-slate-700">
-                    {notifications.map((notification) => {
-                      const detailedMessage = JSON.parse(notification.message);
-                      const messageType = detailedMessage.notification_type;
-                      let message: string;
+                    {visibleNotifications.map((notification) => {
+                      const detailedMessage = parseNotificationMessage(
+                        notification.message,
+                      );
+                      const messageType =
+                        notification.notification_type ??
+                        detailedMessage?.notification_type;
+                      let message =
+                        detailedMessage?.simple_message ??
+                        notification.message ??
+                        "Notification";
 
                       let action: React.ReactElement | null = (
                         <>
@@ -213,7 +329,12 @@ function Notifications({
                         </>
                       );
 
-                      if (messageType == "invite_to_sync") {
+                      if (
+                        messageType == "invite_to_sync" &&
+                        detailedMessage?.message &&
+                        detailedMessage?.invite_id
+                      ) {
+                        const inviteId = detailedMessage.invite_id;
                         const inviter = (
                           detailedMessage.message as string
                         ).split(
@@ -229,7 +350,7 @@ function Notifications({
                                 className="bg-emerald-600 hover:bg-emerald-800 w-full flex items-center justify-center mr-2"
                                 onClick={async () => {
                                   await answerInvite(
-                                    detailedMessage.invite_id,
+                                    inviteId,
                                     notification.notification_id,
                                     true,
                                   );
@@ -242,7 +363,7 @@ function Notifications({
                                 className="bg-red-700 hover:bg-red-800 w-full flex items-center justify-center"
                                 onClick={async () => {
                                   await answerInvite(
-                                    detailedMessage.invite_id,
+                                    inviteId,
                                     notification.notification_id,
                                     false,
                                   );
@@ -254,8 +375,6 @@ function Notifications({
                             </div>
                           </>
                         );
-                      } else {
-                        message = detailedMessage.simple_message;
                       }
 
                       if (notification.read) {
