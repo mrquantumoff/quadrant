@@ -87,7 +87,8 @@ pub async fn sync_modpack(
     .await
     .map_err(tauri::Error::from)?;
 
-    let persisted_modpack_id = resolve_submitted_modpack_id(&modpack, timestamp).await?;
+    let persisted_modpack_id =
+        choose_persisted_modpack_id(&modpack, resolve_submitted_modpack_id(&modpack, timestamp).await?);
     persist_sync_metadata(&app, &modpack.name, timestamp as u64, persisted_modpack_id.as_deref())
         .map_err(tauri::Error::from)?;
     Ok(())
@@ -139,6 +140,13 @@ async fn resolve_submitted_modpack_id(
     Ok(first)
 }
 
+fn choose_persisted_modpack_id(
+    modpack: &LocalModpack,
+    resolved_modpack_id: Option<String>,
+) -> Option<String> {
+    resolved_modpack_id.or_else(|| modpack.modpack_id.clone())
+}
+
 pub fn persist_sync_metadata(
     app: &AppHandle,
     modpack_name: &str,
@@ -156,4 +164,46 @@ pub fn persist_sync_metadata(
         modpack_name,
         modpack_id,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::choose_persisted_modpack_id;
+    use crate::modpacks::general::LocalModpack;
+    use quadrant_core::models::{InstalledMod, ModLoader, ModSource};
+
+    fn local_modpack(modpack_id: Option<&str>) -> LocalModpack {
+        LocalModpack {
+            name: "Better Create".to_string(),
+            version: "1.20.1".to_string(),
+            mod_loader: ModLoader::Fabric,
+            mods: vec![InstalledMod {
+                id: "abc".to_string(),
+                source: ModSource::Modrinth,
+                download_url: "https://example.com/mod.jar".to_string(),
+            }],
+            unknown_mods: false,
+            is_applied: false,
+            last_synced: 0,
+            modpack_id: modpack_id.map(ToOwned::to_owned),
+        }
+    }
+
+    #[test]
+    fn choose_persisted_modpack_id_keeps_existing_id_when_lookup_is_empty() {
+        let modpack = local_modpack(Some("existing-modpack-id"));
+
+        let chosen = choose_persisted_modpack_id(&modpack, None);
+
+        assert_eq!(chosen.as_deref(), Some("existing-modpack-id"));
+    }
+
+    #[test]
+    fn choose_persisted_modpack_id_prefers_resolved_id() {
+        let modpack = local_modpack(Some("existing-modpack-id"));
+
+        let chosen = choose_persisted_modpack_id(&modpack, Some("resolved-modpack-id".to_string()));
+
+        assert_eq!(chosen.as_deref(), Some("resolved-modpack-id"));
+    }
 }
