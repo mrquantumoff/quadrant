@@ -40,6 +40,10 @@ jobs:
         uses: microsoft/setup-msbuild@v2
       - name: Install msixbundle-cli
         run: cargo install msixbundle-cli
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v2
+        with:
+          version: latest
 
       - name: Build the app
         env:
