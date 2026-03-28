@@ -60,8 +60,6 @@ jobs:
           rustup target add x86_64-pc-windows-msvc
           rustup target add aarch64-pc-windows-msvc
           bun tauri build --config src-tauri/tauri.msstore.conf.json --target x86_64-pc-windows-msvc
-          call "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
-          dir "%VCToolsInstallDir%lib\arm64"
           bun tauri build --config src-tauri/tauri.msstore.conf.json --target aarch64-pc-windows-msvc
           powershell -NoProfile -ExecutionPolicy Bypass -File .\msixbuild.ps1
 
