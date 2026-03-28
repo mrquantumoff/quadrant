@@ -383,6 +383,7 @@ async fn handle_notification_ws_frame(app: &AppHandle, payload: &str) -> Result<
                 if should_notify && inserted {
                     maybe_show_native_notification(
                         app,
+                        &notification_for_processing,
                         &notification_id,
                         simple_message.as_deref(),
                     )
@@ -533,6 +534,7 @@ fn persist_notification_cursor(
 
 async fn maybe_show_native_notification(
     app: &AppHandle,
+    notification: &Notification,
     notification_id: &str,
     body: Option<&str>,
 ) -> Result<(), anyhow::Error> {
@@ -540,6 +542,12 @@ async fn maybe_show_native_notification(
         Some(body) if !body.is_empty() => body,
         _ => return Ok(()),
     };
+
+    if is_modpack_sync_notification(notification)
+        && !should_show_modpack_sync_notification(app, notification).await
+    {
+        return Ok(());
+    }
 
     let store = app.store("config.json")?;
     let mut shown_notifications = store
@@ -576,6 +584,16 @@ fn notification_simple_message(notification: &Notification) -> Option<String> {
         })
 }
 
+fn notification_updated_by(notification: &Notification) -> Option<String> {
+    serde_json::from_str::<serde_json::Value>(&notification.message)
+        .ok()
+        .and_then(|message| {
+            message
+                .get("updated_by")
+                .and_then(|value| value.as_str().map(ToOwned::to_owned))
+        })
+}
+
 fn parse_notification_message(notification: &Notification) -> Option<ModpackSyncPayload> {
     serde_json::from_str::<ModpackSyncPayload>(&notification.message)
         .ok()
@@ -594,6 +612,56 @@ fn notification_identity_key(notification: &Notification) -> String {
     }
 
     notification.notification_id.clone()
+}
+
+async fn should_show_modpack_sync_notification(
+    app: &AppHandle,
+    notification: &Notification,
+) -> bool {
+    let Ok(config) = app.store("config.json") else {
+        return true;
+    };
+    if !config
+        .get("showModpackUpdateNotifications")
+        .and_then(|value| value.as_bool())
+        .unwrap_or(true)
+    {
+        return false;
+    }
+
+    let Some(updated_by) = notification_updated_by(notification) else {
+        return true;
+    };
+
+    let updated_by = normalize_identity(updated_by.as_str());
+    if updated_by.is_empty() {
+        return true;
+    }
+
+    match quadrant_core::account::id::get_account_info_with_refresh(
+        &TauriSecretStore,
+        &get_user_agent(),
+        env!("QUADRANT_OAUTH2_CLIENT_ID"),
+        env!("QUADRANT_OAUTH2_CLIENT_SECRET"),
+    )
+    .await
+    {
+        Ok(account_info) => {
+            let identities = [account_info.name, account_info.login];
+            !identities
+                .iter()
+                .map(|identity| normalize_identity(identity.as_str()))
+                .any(|identity| !identity.is_empty() && identity == updated_by)
+        }
+        Err(error) => {
+            log::warn!("Failed to resolve current account for notification filtering: {error}");
+            true
+        }
+    }
+}
+
+fn normalize_identity(identity: &str) -> String {
+    identity.trim().to_lowercase()
 }
 
 async fn handle_modpack_sync_notification(

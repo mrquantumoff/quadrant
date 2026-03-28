@@ -119,6 +119,7 @@
   "resetPassword": "Скинути пароль",
   "share": "Поділитися",
   "autoQuadrantSync": "Автоматично синхронізувати модпаки за допомогою Quadrant Sync",
+  "showModpackUpdateNotifications": "Показувати сповіщення про оновлення модпаків",
   "newerVersionOfModpackUpdateAvailable": "Доступна новіша версія синхронізованого модпаку!",
   "enableDataCollectionForAdvancedFeatures": "Увімкніть збір даних для розширених функцій, наприклад Quadrant Share",
   "dontBotherMeAgain": "Більше не показувати",
