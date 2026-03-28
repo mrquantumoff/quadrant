@@ -65,7 +65,7 @@ export default function ShareSyncPage() {
       }
     };
     effect().catch(console.error);
-  }, []);
+  }, [contentContext, t]);
 
   const MotionTab = motion(Tab);
 
@@ -74,7 +74,7 @@ export default function ShareSyncPage() {
       initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 24, opacity: 0 }}
-      className="flex flex-1 flex-col items-center w-full h-full transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
+      className="flex flex-1 flex-col items-center w-full h-full transform-gpu backface-hidden will-change-[transform,opacity]"
     >
       <ShareSyncContext.Provider
         value={{

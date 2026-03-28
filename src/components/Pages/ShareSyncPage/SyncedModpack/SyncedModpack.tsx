@@ -109,7 +109,7 @@ export default function SyncedModpackComponent({
 
   return (
     <motion.div
-      className="p-4 bg-slate-900 m-4 rounded-4xl transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
+      className="p-4 bg-slate-900 m-4 rounded-4xl transform-gpu backface-hidden will-change-[transform,opacity]"
       initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
     >
