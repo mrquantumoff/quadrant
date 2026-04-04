@@ -9,7 +9,7 @@ import {
 } from "../../../tools";
 import { Field, Label, Select, Switch } from "@headlessui/react";
 import quadrantLocale from "../../../i18n";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import "./SettingsPage.css";
 import { motion } from "motion/react";
 import {
@@ -21,11 +21,15 @@ import {
   isAutoupdateEnabled,
   openDialog,
 } from "../../../desktop";
+import { ContentContext } from "../../../intefaces";
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const box = createDesktopStore("config.json");
-  const updateChannelBox = createDesktopStore("updateConfig.json");
+  const boxRef = useRef(createDesktopStore("config.json"));
+  const updateChannelBoxRef = useRef(createDesktopStore("updateConfig.json"));
+  const box = boxRef.current;
+  const updateChannelBox = updateChannelBoxRef.current;
+  const contentContext = useContext(ContentContext);
 
   const [currentLocale, setCurrentLocale] = useState("en");
   const [updateChannel, setUpdateChannel] = useState("stable");
@@ -48,6 +52,23 @@ export default function SettingsPage() {
   const [currentRuntimeVersion, setCurrentRuntimeVersion] = useState("");
   const [extendedNavigation, setExtendedNavigation] = useState(false);
   const [showUpdateSettings, setShowUpdateSettings] = useState(true);
+
+  const applyCollectDataPreference = async (enabled: boolean) => {
+    setCollectData(enabled);
+    await box.set("collectUserData", enabled);
+    await box.save();
+
+    try {
+      await invoke(enabled ? "send_telemetry" : "remove_telemetry");
+    } catch (error) {
+      console.error(error);
+      contentContext.setSnackbar({
+        message: t(typeof error === "string" ? error : "unknown"),
+        className: "bg-red-700 rounded-4xl",
+        timeout: 5000,
+      });
+    }
+  };
 
   useEffect(() => {
     const initializeValues = async () => {
@@ -87,7 +108,7 @@ export default function SettingsPage() {
     };
 
     initializeValues();
-  }, []);
+  }, [box, updateChannelBox]);
 
   return (
     <motion.div
@@ -197,17 +218,7 @@ export default function SettingsPage() {
           }
           checked={collectData}
           onChange={async () => {
-            if (collectData) {
-              await invoke("remove_telemetry");
-              setCollectData(false);
-              await box.set("collectUserData", false);
-              await box.save();
-            } else {
-              await invoke("send_telemetry");
-              setCollectData(true);
-              await box.set("collectUserData", true);
-              await box.save();
-            }
+            await applyCollectDataPreference(!collectData);
           }}
         >
           <span
@@ -220,10 +231,7 @@ export default function SettingsPage() {
       <Button
         className="bg-slate-800 hover:bg-slate-700 w-fit my-4"
         onClick={async () => {
-          await invoke("send_telemetry");
-          setCollectData(true);
-          await box.set("collectUserData", true);
-          await box.save();
+          await applyCollectDataPreference(true);
         }}
       >
         {t("collectData")}
@@ -250,10 +258,7 @@ export default function SettingsPage() {
       <Button
         className="bg-slate-800 hover:text-slate-50 hover:bg-red-700 w-fit my-4"
         onClick={async () => {
-          await invoke("remove_telemetry");
-          setCollectData(false);
-          await box.set("collectUserData", false);
-          await box.save();
+          await applyCollectDataPreference(false);
         }}
       >
         {t("deleteYourUsageData")}

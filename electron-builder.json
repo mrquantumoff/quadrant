@@ -1,5 +1,5 @@
 {
-  "appId": "dev.usequadrant.quadrant",
+  "appId": "dev.mrquantumoff.mcmodpackmanager",
   "productName": "Quadrant",
   "directories": {
     "output": "dist-electron"

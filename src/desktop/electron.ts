@@ -34,9 +34,9 @@ function normalizeElectronInvokeError(error: unknown): string {
       ? error.message
       : serializedMessage !== null
         ? serializedMessage
-      : typeof error === "string"
-        ? error
-        : String(error);
+        : typeof error === "string"
+          ? error
+          : String(error);
 
   const message = rawMessage
     .replace(/^Error occurred in handler for 'quadrant:invoke':\s*/, "")
@@ -73,22 +73,26 @@ class ElectronStoreAdapter implements DesktopStoreAdapter {
   }
 
   async onChange(listener: (key: string) => void): Promise<UnlistenFn> {
-    return getBridge().addStoreChangeListener((event: DesktopStoreChangeEvent) => {
-      if (event.storeName === this.storeName) {
-        listener(event.key);
-      }
-    });
+    return getBridge().addStoreChangeListener(
+      (event: DesktopStoreChangeEvent) => {
+        if (event.storeName === this.storeName) {
+          listener(event.key);
+        }
+      },
+    );
   }
 
   async onKeyChange<T>(
     key: string,
     listener: (value: T | null) => void,
   ): Promise<UnlistenFn> {
-    return getBridge().addStoreChangeListener((event: DesktopStoreChangeEvent) => {
-      if (event.storeName === this.storeName && event.key === key) {
-        listener((event.value as T | null | undefined) ?? null);
-      }
-    });
+    return getBridge().addStoreChangeListener(
+      (event: DesktopStoreChangeEvent) => {
+        if (event.storeName === this.storeName && event.key === key) {
+          listener((event.value as T | null | undefined) ?? null);
+        }
+      },
+    );
   }
 }
 

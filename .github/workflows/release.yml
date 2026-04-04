@@ -37,7 +37,6 @@ jobs:
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
 
-
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
@@ -71,7 +70,7 @@ jobs:
           releaseDraft: false
           prerelease: ${{ !endsWith(github.ref_name, 'stable') }}
           args: ${{ matrix.args }}
-          tauriScript: 'bun tauri'
+          tauriScript: "bun tauri"
           tagName: ${{github.ref_name}}
 
   publish-electron:

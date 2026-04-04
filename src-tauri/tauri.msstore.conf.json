@@ -1,13 +1,11 @@
 {
-    "identifier": "dev.mrquantumoff.mcmodpackmanager",
-    "version": "26.4.1-msstore",
-    "bundle": {
-        "active": false,
-        "createUpdaterArtifacts": false
-    },
-    "build": {
-        "features": [
-            "proprietary"
-        ]
-    }
+  "identifier": "dev.mrquantumoff.mcmodpackmanager",
+  "version": "26.4.1-msstore",
+  "bundle": {
+    "active": false,
+    "createUpdaterArtifacts": false
+  },
+  "build": {
+    "features": ["proprietary"]
+  }
 }

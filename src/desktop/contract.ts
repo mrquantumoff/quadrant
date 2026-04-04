@@ -15,7 +15,10 @@ export interface DesktopStoreAdapter {
   set(key: string, value: unknown): Promise<void>;
   save(): Promise<void>;
   onChange(listener: (key: string) => void): Promise<UnlistenFn>;
-  onKeyChange<T>(key: string, listener: (value: T | null) => void): Promise<UnlistenFn>;
+  onKeyChange<T>(
+    key: string,
+    listener: (value: T | null) => void,
+  ): Promise<UnlistenFn>;
 }
 
 export interface DesktopWindowAdapter {

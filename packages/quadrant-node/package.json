@@ -1,6 +1,6 @@
 {
   "name": "@quadrant/quadrant-node",
-  "version": "26.4.0",
+  "version": "26.4.1-preview.0",
   "type": "module",
   "main": "index.js",
   "exports": {

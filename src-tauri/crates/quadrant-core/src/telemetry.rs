@@ -45,12 +45,7 @@ pub async fn get_telemetry_info(
         .unwrap_or_default();
     let date_time = Utc::now();
 
-    let country_info = reqwest::Client::new()
-        .get("https://ipinfo.io/json")
-        .send()
-        .await?
-        .json::<MyIPResponse>()
-        .await?;
+    let country = fetch_country_code().await;
 
     Ok(AppInfo {
         version,
@@ -61,8 +56,35 @@ pub async fn get_telemetry_info(
         manual_input_usage: 0,
         hardware_id,
         date: date_time,
-        country: country_info.country,
+        country,
     })
+}
+
+async fn fetch_country_code() -> String {
+    match reqwest::Client::new()
+        .get("https://ipinfo.io/json")
+        .send()
+        .await
+    {
+        Ok(response) => match response.error_for_status() {
+            Ok(response) => match response.json::<MyIPResponse>().await {
+                Ok(payload) if !payload.country.trim().is_empty() => payload.country,
+                Ok(_) => "unknown".to_string(),
+                Err(error) => {
+                    log::warn!("Failed to decode telemetry country lookup response: {error}");
+                    "unknown".to_string()
+                }
+            },
+            Err(error) => {
+                log::warn!("Telemetry country lookup failed: {error}");
+                "unknown".to_string()
+            }
+        },
+        Err(error) => {
+            log::warn!("Telemetry country lookup request failed: {error}");
+            "unknown".to_string()
+        }
+    }
 }
 
 /// Sends telemetry data when collection is enabled in settings.
@@ -86,7 +108,8 @@ pub async fn send_telemetry(
         .header("Authorization", api_key)
         .header("User-Agent", user_agent)
         .send()
-        .await?;
+        .await?
+        .error_for_status()?;
 
     Ok(())
 }
@@ -108,7 +131,8 @@ pub async fn remove_telemetry(
         .header("User-Agent", user_agent)
         .query(&[("hardware_id", hardware_id)])
         .send()
-        .await?;
+        .await?
+        .error_for_status()?;
 
     Ok(())
 }

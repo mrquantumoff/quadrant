@@ -104,7 +104,8 @@ const targetPlatform = normalizePlatform(
   getArgValue("--platform") ?? getArgValue("--os"),
 );
 const targetArch = normalizeArch(getArgValue("--arch"));
-const rustTarget = getArgValue("--target") ?? getRustTargetTriple(targetPlatform, targetArch);
+const rustTarget =
+  getArgValue("--target") ?? getRustTargetTriple(targetPlatform, targetArch);
 const cargoCommand = resolveCargoCommand();
 
 runCommand(
@@ -137,14 +138,20 @@ if (!builtNode || !existsSync(builtNode)) {
 
 const nativeDir = path.join(rootDir, "packages", "quadrant-node", "native");
 mkdirSync(nativeDir, { recursive: true });
-cpSync(path.join(srcTauriDir, "crates", "quadrant-napi", "index.js"), path.join(nativeDir, "index.js"));
+cpSync(
+  path.join(srcTauriDir, "crates", "quadrant-napi", "index.js"),
+  path.join(nativeDir, "index.js"),
+);
 const targetNativeDir = path.join(nativeDir, `${targetPlatform}-${targetArch}`);
 mkdirSync(targetNativeDir, { recursive: true });
 try {
   cpSync(builtNode, path.join(targetNativeDir, "index.node"));
   cpSync(builtNode, path.join(nativeDir, "index.node"));
 } catch (error) {
-  if (error && (error.code === "EIO" || error.code === "EPERM" || error.code === "EBUSY")) {
+  if (
+    error &&
+    (error.code === "EIO" || error.code === "EPERM" || error.code === "EBUSY")
+  ) {
     throw new Error(
       `Built Quadrant N-API successfully, but could not update packages/quadrant-node/native/index.node because it is locked. Close Electron or any process using the addon, then rerun \`node scripts/build-napi.mjs\`. Original error: ${error.message}`,
     );

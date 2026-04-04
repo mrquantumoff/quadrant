@@ -73,7 +73,13 @@ await waitForChildProcess(
 const napiBuild = spawnProcess("node", ["scripts/build-napi.mjs"]);
 await waitForChildProcess(napiBuild, "scripts/build-napi.mjs");
 
-const viteProcess = spawnProcess("bun", ["run", "dev", "--", "--host", "127.0.0.1"]);
+const viteProcess = spawnProcess("bun", [
+  "run",
+  "dev",
+  "--",
+  "--host",
+  "127.0.0.1",
+]);
 
 const cleanup = () => {
   viteProcess.kill();

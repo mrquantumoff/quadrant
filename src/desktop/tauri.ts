@@ -1,9 +1,15 @@
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { listen as tauriListen } from "@tauri-apps/api/event";
 import { getVersion, getTauriVersion } from "@tauri-apps/api/app";
-import { getCurrentWindow, ProgressBarStatus as TauriProgressBarStatus } from "@tauri-apps/api/window";
+import {
+  getCurrentWindow,
+  ProgressBarStatus as TauriProgressBarStatus,
+} from "@tauri-apps/api/window";
 import { join as tauriJoin } from "@tauri-apps/api/path";
-import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
+import {
+  open as openDialog,
+  save as saveDialog,
+} from "@tauri-apps/plugin-dialog";
 import { watch as watchPath } from "@tauri-apps/plugin-fs";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
@@ -116,7 +122,10 @@ export const tauriRuntime: RuntimeAdapter = {
       payload as Record<string, unknown> | undefined,
     );
   },
-  async listen<T = unknown>(event: string, listener: (event: Event<T>) => void) {
+  async listen<T = unknown>(
+    event: string,
+    listener: (event: Event<T>) => void,
+  ) {
     return tauriListen<T>(event, listener);
   },
   async watch(targetPath: string, listener, options) {

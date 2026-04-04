@@ -291,9 +291,12 @@ export async function shareModpack(modpack: string) {
 }
 
 export async function shareModpackRaw(modpack: InstalledModpack) {
-  const response = await invoke<{ code: string | number }>("share_modpack_raw", {
-    modConfig: modpack,
-  });
+  const response = await invoke<{ code: string | number }>(
+    "share_modpack_raw",
+    {
+      modConfig: modpack,
+    },
+  );
   await writeClipboardText(String(response.code));
 }
 

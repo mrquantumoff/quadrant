@@ -39,7 +39,7 @@ use quadrant_core::{
     telemetry::{AppInfo, get_telemetry_info, remove_telemetry, send_telemetry},
 };
 use serde::{Deserialize, Deserializer, Serialize, de::DeserializeOwned, de::Error as DeError};
-use serde_json::{Value, json};
+use serde_json::Value;
 use tokio::{
     sync::{Mutex as AsyncMutex, broadcast},
     task::JoinHandle,
@@ -144,26 +144,42 @@ struct JsonFileStore {
 
 impl JsonFileStore {
     fn new(path: PathBuf) -> Result<Self> {
-        let values = if path.exists() {
-            let raw = fs::read_to_string(&path)?;
-            let parsed = serde_json::from_str::<Value>(&raw).unwrap_or_else(|_| json!({}));
-            parsed
-                .as_object()
-                .cloned()
-                .unwrap_or_default()
-                .into_iter()
-                .collect::<HashMap<_, _>>()
-        } else {
-            HashMap::new()
-        };
+        let values = Self::read_values_from_disk(&path)?;
         Ok(Self {
             path,
             values: Arc::new(Mutex::new(values)),
         })
     }
 
+    fn read_values_from_disk(path: &PathBuf) -> Result<HashMap<String, Value>> {
+        if !path.exists() {
+            return Ok(HashMap::new());
+        }
+
+        let raw = fs::read_to_string(path)?;
+        let parsed = serde_json::from_str::<Value>(&raw)
+            .map_err(|error| anyhow!("failed to parse {}: {error}", path.display()))?;
+        Ok(parsed
+            .as_object()
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .collect::<HashMap<_, _>>())
+    }
+
+    fn reload(&self, values: &mut HashMap<String, Value>) -> Result<()> {
+        match Self::read_values_from_disk(&self.path) {
+            Ok(updated_values) => *values = updated_values,
+            Err(error) => {
+                log::warn!("Failed to reload settings store {}: {error}", self.path.display());
+            }
+        }
+        Ok(())
+    }
+
     fn delete_key(&self, key: &str) -> Result<()> {
         let mut values = self.values.lock().map_err(|_| anyhow!("settings store is busy"))?;
+        self.reload(&mut values)?;
         values.remove(key);
         self.persist(&values)
     }
@@ -172,28 +188,35 @@ impl JsonFileStore {
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent)?;
         }
+        let temp_path = self
+            .path
+            .with_extension(format!("{}.tmp", Uuid::now_v7()));
         fs::write(
-            &self.path,
+            &temp_path,
             serde_json::to_vec_pretty(&Value::Object(values.clone().into_iter().collect()))?,
         )?;
+        fs::rename(temp_path, &self.path)?;
         Ok(())
     }
 }
 
 impl SettingsStore for JsonFileStore {
     fn get_value(&self, key: &str) -> Result<Option<Value>> {
-        let values = self.values.lock().map_err(|_| anyhow!("settings store is busy"))?;
+        let mut values = self.values.lock().map_err(|_| anyhow!("settings store is busy"))?;
+        self.reload(&mut values)?;
         Ok(values.get(key).cloned())
     }
 
     fn set_value(&self, key: &str, value: Value) -> Result<()> {
         let mut values = self.values.lock().map_err(|_| anyhow!("settings store is busy"))?;
+        self.reload(&mut values)?;
         values.insert(key.to_string(), value);
         self.persist(&values)
     }
 
     fn entries(&self) -> Result<Vec<(String, Value)>> {
-        let values = self.values.lock().map_err(|_| anyhow!("settings store is busy"))?;
+        let mut values = self.values.lock().map_err(|_| anyhow!("settings store is busy"))?;
+        self.reload(&mut values)?;
         Ok(values
             .iter()
             .map(|(key, value)| (key.clone(), value.clone()))
