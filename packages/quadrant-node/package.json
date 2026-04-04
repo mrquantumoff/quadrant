@@ -1,0 +1,7 @@
+{
+  "name": "@quadrant/quadrant-node",
+  "version": "26.4.0",
+  "type": "module",
+  "main": "index.js",
+  "types": "index.d.ts"
+}

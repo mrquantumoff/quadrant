@@ -1,0 +1,10 @@
+{
+  "name": "@quadrant/quadrant-napi",
+  "version": "26.4.0",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "index.node",
+    "*.node"
+  ]
+}

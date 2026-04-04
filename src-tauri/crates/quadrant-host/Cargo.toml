@@ -1,0 +1,31 @@
+[package]
+name = "quadrant-host"
+version.workspace = true
+edition = "2024"
+
+[features]
+default = []
+curseforge = ["quadrant-core/curseforge"]
+
+[dependencies]
+anyhow = "1.0.102"
+futures = "0.3.32"
+keyring = { version = "3.6.3", features = [
+    "apple-native",
+    "windows-native",
+    "sync-secret-service",
+] }
+log = "0.4.29"
+quadrant-core = { path = "../quadrant-core" }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+tokio = { version = "1.50.0", features = ["full"] }
+tokio-tungstenite = { version = "0.29.0", features = [
+    "rustls-tls-webpki-roots",
+    "connect",
+] }
+url = "2.5.8"
+uuid = { version = "1.23.0", features = ["v7"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"

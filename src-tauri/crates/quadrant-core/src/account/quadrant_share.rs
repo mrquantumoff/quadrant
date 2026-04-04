@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Result,
-    account::QNT_BASE_URL,
+    account::backend_base_url,
     models::InstalledModpack,
     ports::{SecretStore, SettingsStore},
 };
@@ -52,7 +52,7 @@ pub async fn share_modpack_raw(
     }
 
     let token = secret_store.get_secret("accountToken")?;
-    let mut url = format!("{}/quadrant/share/submit", QNT_BASE_URL);
+    let mut url = format!("{}/quadrant/share/submit", backend_base_url());
     if token.is_some() {
         url = format!("{}/id", url);
     }
@@ -86,7 +86,7 @@ pub async fn get_quadrant_share_modpack(
 ) -> Result<InstalledModpack> {
     log::info!("Fetching shared modpack with code: {code}");
     let response = reqwest::Client::new()
-        .get(format!("{}/quadrant/share/get", QNT_BASE_URL))
+        .get(format!("{}/quadrant/share/get", backend_base_url()))
         .query(&[("code", code)])
         .header("User-Agent", user_agent)
         .header("Authorization", api_key)

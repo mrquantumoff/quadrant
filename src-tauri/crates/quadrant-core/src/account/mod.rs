@@ -1,5 +1,7 @@
 //! Account token helpers and Quadrant cloud entrypoints.
 
+use std::env;
+
 use crate::{Result, ports::SecretStore};
 
 pub mod id;
@@ -11,6 +13,11 @@ pub mod quadrant_sync;
 pub const QNT_BASE_URL: &str = "https://api.usequadrant.dev/api/v3";
 /// Stable keyring service name used by the current app.
 pub const KEYRING_SERVICE: &str = "dev.mrquantumoff.mcmodpackmanager";
+
+/// Resolves the backend base URL, preferring an explicit runtime override.
+pub fn backend_base_url() -> String {
+    env::var("QUADRANT_API_BASE_URL").unwrap_or_else(|_| QNT_BASE_URL.to_string())
+}
 
 /// Persists a named secret in the host secret store.
 pub fn set_secret(secret_store: &impl SecretStore, key: &str, value: &str) -> Result<()> {

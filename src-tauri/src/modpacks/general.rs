@@ -1,11 +1,12 @@
 use std::path::{Path, PathBuf};
 
+use quadrant_host::QuadrantHost;
 use quadrant_core::ports::Shell;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 pub use quadrant_core::models::{InstalledModpack, LocalModpack, ModLoader, SyncInfo};
 
-use crate::tauri_adapter::{TauriEventSink, TauriSettingsStore, TauriShell, mc_folder};
+use crate::tauri_adapter::TauriShell;
 
 pub fn get_modpack_path(mc_folder: &Path, modpack: &LocalModpack) -> PathBuf {
     quadrant_core::models::modpack_path(mc_folder, &modpack.name)
@@ -13,16 +14,21 @@ pub fn get_modpack_path(mc_folder: &Path, modpack: &LocalModpack) -> PathBuf {
 
 #[tauri::command]
 pub async fn get_modpacks(hide_free: bool, app: AppHandle) -> Vec<LocalModpack> {
-    quadrant_core::modpacks::get_modpacks(&mc_folder(&app).unwrap(), hide_free).unwrap_or_default()
+    app.state::<QuadrantHost>()
+        .get_modpacks(hide_free)
+        .await
+        .unwrap_or_default()
 }
 
 #[tauri::command]
 pub fn frontend_apply_modpack(name: String, app: AppHandle) -> Result<(), tauri::Error> {
-    apply_modpack(name, app).map_err(tauri::Error::from)
+    app.state::<QuadrantHost>()
+        .frontend_apply_modpack(name)
+        .map_err(tauri::Error::from)
 }
 
 pub fn apply_modpack(name: String, app: AppHandle) -> Result<(), anyhow::Error> {
-    quadrant_core::modpacks::apply_modpack(&mc_folder(&app)?, &name)
+    app.state::<QuadrantHost>().frontend_apply_modpack(name)
 }
 
 #[tauri::command]
@@ -30,14 +36,10 @@ pub async fn install_modpack(
     mod_config: InstalledModpack,
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
-    quadrant_core::modpacks::install_modpack(
-        &mc_folder(&app).map_err(tauri::Error::from)?,
-        mod_config,
-        &TauriSettingsStore::new(app.clone(), "config.json"),
-        &TauriEventSink::new(app),
-    )
-    .await
-    .map_err(tauri::Error::from)
+    app.state::<QuadrantHost>()
+        .install_modpack(mod_config)
+        .await
+        .map_err(tauri::Error::from)
 }
 
 #[tauri::command]
@@ -47,13 +49,9 @@ pub async fn set_modpack_sync_date(
     modpack_id: Option<String>,
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
-    quadrant_core::modpacks::set_modpack_sync_date(
-        &mc_folder(&app).map_err(tauri::Error::from)?,
-        time,
-        &modpack,
-        modpack_id.as_deref(),
-    )
-    .map_err(tauri::Error::from)
+    app.state::<QuadrantHost>()
+        .set_modpack_sync_date(time, modpack, modpack_id)
+        .map_err(tauri::Error::from)
 }
 
 #[tauri::command]
@@ -66,11 +64,8 @@ pub async fn export_modpack(modpack: String, app: AppHandle) -> Result<(), tauri
         return Ok(());
     };
 
-    quadrant_core::modpacks::export_modpack_to(
-        &mc_folder(&app).map_err(tauri::Error::from)?,
-        &modpack,
-        &destination,
-        &TauriEventSink::new(app),
-    )
-    .map_err(tauri::Error::from)
+    app.state::<QuadrantHost>()
+        .export_modpack_to(modpack, destination)
+        .await
+        .map_err(tauri::Error::from)
 }
