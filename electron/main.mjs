@@ -138,7 +138,8 @@ function resolveIconPath() {
 }
 
 function resolveTrayIconPath() {
-  return path.join(rootDir, "public", "tray.png");
+  const trayIconPath = path.join(rootDir, "public", "tray.png");
+  return fs.existsSync(trayIconPath) ? trayIconPath : resolveIconPath();
 }
 
 function storeFilePath(storeName) {
@@ -233,16 +234,16 @@ async function createQuadrantHostClient() {
 }
 
 async function configureUpdater() {
+  const updateStore = await readStore("updateConfig.json");
+  const channel = updateStore.channel ?? "stable";
+  autoUpdater.allowPrerelease = channel !== "stable";
+
   if (updaterConfigured) {
     return;
   }
 
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = false;
-
-  const updateStore = await readStore("updateConfig.json");
-  const channel = updateStore.channel ?? "stable";
-  autoUpdater.allowPrerelease = channel !== "stable";
   updaterConfigured = true;
 
   autoUpdater.on("download-progress", (progress) => {
@@ -390,6 +391,8 @@ const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 }
+
+queueDeepLinks(parseDeepLinkUrls(process.argv));
 
 app.on("second-instance", (_event, commandLine) => {
   showMainWindow();
