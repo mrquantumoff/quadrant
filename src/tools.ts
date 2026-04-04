@@ -370,6 +370,7 @@ export const getNews = async () => {
 
 export const exportModpack = async (name: string) => {
   const destination = await openDialog({
+    mode: "save",
     multiple: false,
     title: "Export Modpack",
     defaultPath: `${name}.quadrantExport.zip`,

@@ -48,6 +48,7 @@ const storeCache = new Map();
 const watchRegistry = new Map();
 const oauthServers = new Map();
 const pendingDeepLinks = [];
+let openUrlRendererReady = false;
 
 function broadcast(channel, payload) {
   for (const window of BrowserWindow.getAllWindows()) {
@@ -62,11 +63,11 @@ function parseDeepLinkUrls(values) {
 }
 
 function flushPendingDeepLinks() {
-  if (pendingDeepLinks.length === 0) {
+  if (!mainWindow || !openUrlRendererReady || pendingDeepLinks.length === 0) {
     return;
   }
   const urls = pendingDeepLinks.splice(0, pendingDeepLinks.length);
-  broadcast("quadrant:open-url", urls);
+  mainWindow.webContents.send("quadrant:open-url", urls);
 }
 
 function loadGeneratedRuntimeConfig() {
@@ -187,7 +188,7 @@ function queueDeepLinks(urls) {
     return;
   }
   pendingDeepLinks.push(...urls);
-  if (mainWindow) {
+  if (mainWindow && openUrlRendererReady) {
     flushPendingDeepLinks();
   }
 }
@@ -280,6 +281,7 @@ async function requestCheckForUpdates() {
 }
 
 function createMainWindow() {
+  openUrlRendererReady = false;
   nativeTheme.themeSource = "dark";
 
   const window = new BrowserWindow({
@@ -310,7 +312,14 @@ function createMainWindow() {
 
   window.on("closed", () => {
     if (mainWindow === window) {
+      openUrlRendererReady = false;
       mainWindow = null;
+    }
+  });
+
+  window.webContents.on("did-start-loading", () => {
+    if (mainWindow === window) {
+      openUrlRendererReady = false;
     }
   });
 
@@ -410,7 +419,6 @@ app.whenReady().then(async () => {
   tray = createTray();
 
   await createQuadrantHostClient();
-  flushPendingDeepLinks();
 });
 
 app.on("window-all-closed", () => {
@@ -422,7 +430,6 @@ app.on("window-all-closed", () => {
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     mainWindow = createMainWindow();
-    flushPendingDeepLinks();
     return;
   }
   showMainWindow();
@@ -500,6 +507,20 @@ ipcMain.handle("quadrant:path:join", async (_event, { segments }) => {
 });
 
 ipcMain.handle("quadrant:dialog:open", async (_event, { options }) => {
+  if (options?.mode === "save") {
+    const result = await dialog.showSaveDialog(getWindow(), {
+      title: options?.title,
+      defaultPath: options?.defaultPath,
+      showOverwriteConfirmation: true,
+    });
+
+    if (result.canceled) {
+      return null;
+    }
+
+    return result.filePath ?? null;
+  }
+
   const result = await dialog.showOpenDialog(getWindow(), {
     title: options?.title,
     properties: [
@@ -519,6 +540,13 @@ ipcMain.handle("quadrant:dialog:open", async (_event, { options }) => {
   }
 
   return result.filePaths[0] ?? null;
+});
+
+ipcMain.handle("quadrant:open-url:listener-ready", (event) => {
+  if (mainWindow && event.sender.id === mainWindow.webContents.id) {
+    openUrlRendererReady = true;
+    flushPendingDeepLinks();
+  }
 });
 
 ipcMain.handle("quadrant:shell:open-external", async (_event, { url }) => {

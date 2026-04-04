@@ -90,6 +90,7 @@ export interface DesktopEventMap {
 export type DesktopEventName = keyof DesktopEventMap;
 
 export interface DesktopDialogOptions {
+	mode?: "open" | "save";
 	multiple?: boolean;
 	directory?: boolean;
 	recursive?: boolean;

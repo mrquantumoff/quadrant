@@ -3,7 +3,7 @@ import { listen as tauriListen } from "@tauri-apps/api/event";
 import { getVersion, getTauriVersion } from "@tauri-apps/api/app";
 import { getCurrentWindow, ProgressBarStatus as TauriProgressBarStatus } from "@tauri-apps/api/window";
 import { join as tauriJoin } from "@tauri-apps/api/path";
-import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { open as openDialog, save as saveDialog } from "@tauri-apps/plugin-dialog";
 import { watch as watchPath } from "@tauri-apps/plugin-fs";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
@@ -126,7 +126,20 @@ export const tauriRuntime: RuntimeAdapter = {
     return tauriJoin(...segments);
   },
   async openDialog(options) {
-    return openDialog(options);
+    if (options?.mode === "save") {
+      return saveDialog({
+        title: options.title,
+        defaultPath: options.defaultPath,
+      });
+    }
+
+    return openDialog({
+      multiple: options?.multiple,
+      directory: options?.directory,
+      recursive: options?.recursive,
+      title: options?.title,
+      defaultPath: options?.defaultPath,
+    });
   },
   async openExternal(url: string) {
     await openUrl(url);

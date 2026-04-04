@@ -100,7 +100,11 @@ const api = {
     return ipcRenderer.invoke("quadrant:window:set-progress-bar", { state });
   },
   addOpenUrlListener(listener) {
-    return listen("quadrant:open-url", listener);
+    const unlisten = listen("quadrant:open-url", listener);
+    ipcRenderer.invoke("quadrant:open-url:listener-ready").catch((error) => {
+      console.error("Failed to mark open-url listener as ready", error);
+    });
+    return unlisten;
   },
   startOAuthServer(options) {
     return ipcRenderer.invoke("quadrant:oauth:start", { options });
