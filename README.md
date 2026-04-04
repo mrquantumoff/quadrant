@@ -6,34 +6,10 @@
 
 ## Desktop Runtimes
 
-Quadrant supports two desktop shells that share the same React renderer and backend contract:
+Quadrant supports two desktop runtimes, they share the frontend and backend logic, but differ in technicalities:
 
-- `Tauri`: the existing Rust desktop shell in `src-tauri/`
-- `Electron`: the Node/Electron shell in `electron/`, backed by the Quadrant N-API bindings
-
-Renderer code should go through the shared desktop API in `src/desktop/` so pages and components stay runtime-neutral.
-
-## Development
-
-- `bun run dev`: run the shared Vite renderer only
-- `bun run dev:tauri`: run the Tauri desktop app
-- `bun run dev:electron`: run the Electron desktop app
-- `bun run build`: build the shared renderer
-- `bun run build:tauri`: build the Tauri desktop app
-- `bun run build:electron`: build the Electron desktop app
-- `bun run package:electron`: package the Electron app
-- `bun run build:napi`: rebuild the N-API addon used by Electron
-
-ARM builds are supported through the same scripts by passing an architecture flag, for example `bun run package:electron -- --arch=arm64`.
-
-## Backend Notes
-
-- Tauri and Electron should keep the same backend command and event names.
-- Tauri uses Rust commands/plugins directly.
-- Electron uses `@quadrant/quadrant-node`, which loads `quadrant-napi` and forwards the same `QuadrantHost` contract.
-- Both runtimes should keep using the same persisted files and keyring service names so users can switch between shells without migrating data.
-
-See `docs/backend-compatibility.md` and `docs/desktop-backends.md` for the runtime contract and backend responsibilities.
+- `Tauri`: the original Quadrant experience.
+- `Electron`: the Node/Electron shell in `electron/`, backed by the Quadrant N-API bindings, should work better on Linux, because it replaces WebKit with CEF.
 
 ### Installation guide:
 

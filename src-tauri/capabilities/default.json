@@ -49,6 +49,7 @@
     "core:window:allow-set-focus",
     "dialog:default",
     "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text",
     "notification:default",
     "core:window:allow-start-dragging",
     "core:window:allow-hide",
