@@ -118,6 +118,7 @@ jobs:
 
       - name: Package Electron app
         env:
+          ETERNAL_API_TOKEN: ${{ secrets.ETERNAL_API_TOKEN }}
           QUADRANT_API_KEY: ${{ secrets.QUADRANT_API_KEY }}
           QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
           QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
