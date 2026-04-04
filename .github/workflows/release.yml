@@ -83,8 +83,16 @@ jobs:
         include:
           - platform: "blacksmith-4vcpu-windows-2025"
             os: "windows"
+            arch: "x64"
           - platform: "blacksmith-4vcpu-ubuntu-2404"
             os: "linux"
+            arch: "x64"
+          - platform: "windows-11-arm"
+            os: "windows"
+            arch: "arm64"
+          - platform: "blacksmith-4vcpu-ubuntu-2404-arm"
+            os: "linux"
+            arch: "arm64"
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
@@ -114,7 +122,7 @@ jobs:
           QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
           QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
           QUADRANT_API_BASE_URL: ${{ vars.QUADRANT_API_BASE_URL }}
-        run: bun run package:electron
+        run: bun run package:electron -- --arch=${{ matrix.arch }}
 
       - name: Upload Electron assets to release
         env:

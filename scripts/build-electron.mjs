@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import path from "node:path";
 
 const rootDir = path.resolve(import.meta.dirname, "..");
+const extraArgs = process.argv.slice(2);
 
 function run(command, args) {
 	const result = spawnSync(command, args, {
@@ -19,4 +20,4 @@ function run(command, args) {
 
 run("node", ["scripts/write-electron-runtime-config.mjs"]);
 run("bun", ["run", "build"]);
-run("node", ["scripts/build-napi.mjs", "--release"]);
+run("node", ["scripts/build-napi.mjs", "--release", ...extraArgs]);

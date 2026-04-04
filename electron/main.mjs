@@ -196,6 +196,8 @@ async function createQuadrantHostClient() {
     return quadrantClient;
   }
 
+  // Electron talks to the same QuadrantHost backend contract as Tauri, but it
+  // instantiates it through the N-API addon instead of Rust invoke handlers.
   const runtimeConfig = getRuntimeConfig();
   ensureRuntimeSecrets(runtimeConfig);
 

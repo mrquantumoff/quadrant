@@ -11,6 +11,8 @@ import { getRuntimeAdapter } from "./runtime";
 async function withRuntime<T>(
   callback: (runtime: RuntimeAdapter) => Promise<T>,
 ): Promise<T> {
+  // Runtime detection is lazy so browser-based tooling and tests do not have
+  // to eagerly load Tauri or Electron modules.
   const runtime = await getRuntimeAdapter();
   return callback(runtime);
 }
@@ -19,6 +21,8 @@ export class DesktopStore {
   constructor(private readonly name: string) {}
 
   private async adapter() {
+    // Stores are resolved through the active runtime so config/update storage
+    // keeps the same call sites in the renderer for both backends.
     const runtime = await getRuntimeAdapter();
     return runtime.createStore(this.name);
   }

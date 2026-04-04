@@ -4,8 +4,76 @@ import { spawnSync } from "node:child_process";
 
 const rootDir = path.resolve(import.meta.dirname, "..");
 const srcTauriDir = path.join(rootDir, "src-tauri");
-const release = process.argv.includes("--release");
+const args = process.argv.slice(2);
+const release = args.includes("--release");
 const profile = release ? "release" : "debug";
+
+function getArgValue(flag) {
+  const exactMatch = args.find((arg) => arg.startsWith(`${flag}=`));
+  if (exactMatch) {
+    return exactMatch.slice(flag.length + 1);
+  }
+
+  const flagIndex = args.indexOf(flag);
+  if (flagIndex >= 0) {
+    return args[flagIndex + 1];
+  }
+
+  return undefined;
+}
+
+function normalizePlatform(platform) {
+  if (!platform) {
+    return process.platform;
+  }
+
+  switch (platform) {
+    case "windows":
+      return "win32";
+    case "mac":
+    case "macos":
+      return "darwin";
+    default:
+      return platform;
+  }
+}
+
+function normalizeArch(arch) {
+  if (!arch) {
+    return process.arch;
+  }
+
+  switch (arch) {
+    case "aarch64":
+      return "arm64";
+    case "amd64":
+      return "x64";
+    default:
+      return arch;
+  }
+}
+
+function getRustTargetTriple(platform, arch) {
+  const key = `${platform}-${arch}`;
+  switch (key) {
+    case "win32-x64":
+      return "x86_64-pc-windows-msvc";
+    case "win32-arm64":
+      return "aarch64-pc-windows-msvc";
+    case "linux-x64":
+      return "x86_64-unknown-linux-gnu";
+    case "linux-arm64":
+      return "aarch64-unknown-linux-gnu";
+    case "darwin-x64":
+      return "x86_64-apple-darwin";
+    case "darwin-arm64":
+      return "aarch64-apple-darwin";
+    default:
+      throw new Error(
+        `Unsupported Electron native build target: platform=${platform} arch=${arch}`,
+      );
+  }
+}
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -45,16 +113,24 @@ function findNativeBinary(directory) {
   return null;
 }
 
+const targetPlatform = normalizePlatform(
+  getArgValue("--platform") ?? getArgValue("--os"),
+);
+const targetArch = normalizeArch(getArgValue("--arch"));
+const rustTarget = getArgValue("--target") ?? getRustTargetTriple(targetPlatform, targetArch);
+
 run("cargo", [
   "build",
   "--manifest-path",
   path.join("src-tauri", "Cargo.toml"),
   "-p",
   "quadrant-napi",
+  "--target",
+  rustTarget,
   ...(release ? ["--release"] : []),
 ]);
 
-const targetDir = path.join(srcTauriDir, "target", profile);
+const targetDir = path.join(srcTauriDir, "target", rustTarget, profile);
 const builtNode = findNativeBinary(targetDir);
 
 if (!builtNode || !existsSync(builtNode)) {
@@ -64,7 +140,10 @@ if (!builtNode || !existsSync(builtNode)) {
 const nativeDir = path.join(rootDir, "packages", "quadrant-node", "native");
 mkdirSync(nativeDir, { recursive: true });
 cpSync(path.join(srcTauriDir, "crates", "quadrant-napi", "index.js"), path.join(nativeDir, "index.js"));
+const targetNativeDir = path.join(nativeDir, `${targetPlatform}-${targetArch}`);
+mkdirSync(targetNativeDir, { recursive: true });
 try {
+  cpSync(builtNode, path.join(targetNativeDir, "index.node"));
   cpSync(builtNode, path.join(nativeDir, "index.node"));
 } catch (error) {
   if (error && (error.code === "EIO" || error.code === "EPERM" || error.code === "EBUSY")) {
@@ -75,4 +154,6 @@ try {
   throw error;
 }
 
-console.log(`Copied ${builtNode} to ${path.join(nativeDir, "index.node")}`);
+console.log(
+  `Copied ${builtNode} to ${path.join(targetNativeDir, "index.node")} and ${path.join(nativeDir, "index.node")}`,
+);

@@ -15,7 +15,7 @@
   },
   "asar": true,
   "asarUnpack": [
-    "packages/quadrant-node/native/*.node"
+    "packages/quadrant-node/native/**/*.node"
   ],
   "npmRebuild": false,
   "buildDependenciesFromSource": false,

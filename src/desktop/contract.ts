@@ -28,6 +28,8 @@ export interface DesktopWindowAdapter {
 }
 
 export interface RuntimeAdapter {
+  // Every desktop shell implements this contract so the renderer can stay
+  // runtime-neutral and feature code never has to import Tauri/Electron APIs.
   createStore(name: string): DesktopStoreAdapter;
   invoke<T>(command: DesktopCommand, payload?: unknown): Promise<T>;
   listen<T = unknown>(
@@ -62,6 +64,8 @@ export interface RuntimeAdapter {
 }
 
 export interface ElectronBridge {
+  // This is the preload-exposed surface. It intentionally mirrors the shared
+  // runtime contract closely so the renderer can switch shells without forks.
   invoke<T>(command: DesktopCommand, payload?: unknown): Promise<T>;
   addBackendEventListener(
     listener: (event: DesktopBackendEventEnvelope) => void,
