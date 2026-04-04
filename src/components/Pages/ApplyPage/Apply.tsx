@@ -120,22 +120,25 @@ export default function ApplyPage() {
         cleanupFns.push(unwatch);
       }
 
-      const unlisten = await listen("quadrantShareSubmission", async (event: any) => {
-        const usesLeft = event.payload.uses_left;
-        if (isUnmounted) {
-          return;
-        }
-        context.setSnackbar({
-          message: (
-            <span className="flex">
-              <MdCheck className="w-6 h-6 mx-2" />
-              {t("copiedToClipboard", { amount: usesLeft })}
-            </span>
-          ),
-          className: "bg-emerald-700 rounded-4xl",
-          timeout: 5000,
-        });
-      });
+      const unlisten = await listen(
+        "quadrantShareSubmission",
+        async (event: any) => {
+          const usesLeft = event.payload.uses_left;
+          if (isUnmounted) {
+            return;
+          }
+          context.setSnackbar({
+            message: (
+              <span className="flex">
+                <MdCheck className="w-6 h-6 mx-2" />
+                {t("copiedToClipboard", { amount: usesLeft })}
+              </span>
+            ),
+            className: "bg-emerald-700 rounded-4xl",
+            timeout: 5000,
+          });
+        },
+      );
       if (isUnmounted) {
         unlisten();
       } else {

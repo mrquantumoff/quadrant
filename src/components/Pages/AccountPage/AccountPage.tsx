@@ -18,9 +18,9 @@ import { invoke } from "@tauri-apps/api/core";
 
 export default function AccountPage() {
   const { t } = useTranslation();
-  const [accountInfo, setAccountInfo] = useState<AccountInfo | null | undefined>(
-    undefined,
-  );
+  const [accountInfo, setAccountInfo] = useState<
+    AccountInfo | null | undefined
+  >(undefined);
   const [loginWarning, setLoginWarning] = useState<string | null>(null);
 
   const updateAccountInfo = async (showLoader = true) => {
@@ -55,11 +55,14 @@ export default function AccountPage() {
     let unlistenRecheck: (() => void) | null = null;
 
     const effect = async () => {
-      unlistenRecheck = await listen<string>("recheckAccountToken", async () => {
-        if (!isUnmounted) {
-          await updateAccountInfo();
-        }
-      });
+      unlistenRecheck = await listen<string>(
+        "recheckAccountToken",
+        async () => {
+          if (!isUnmounted) {
+            await updateAccountInfo();
+          }
+        },
+      );
 
       await updateAccountInfo();
     };

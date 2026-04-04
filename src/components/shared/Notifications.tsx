@@ -48,7 +48,9 @@ type ParsedNotificationMessage = {
   updated_by?: string;
 };
 
-function parseNotificationMessage(message: string): ParsedNotificationMessage | null {
+function parseNotificationMessage(
+  message: string,
+): ParsedNotificationMessage | null {
   try {
     return JSON.parse(message) as ParsedNotificationMessage;
   } catch (error) {
@@ -74,9 +76,9 @@ function Notifications({
   const [news, setNews] = useState<Article[]>([]);
   const [showModpackUpdateNotifications, setShowModpackUpdateNotifications] =
     useState(true);
-  const [accountInfo, setAccountInfo] = useState<AccountInfo | null | undefined>(
-    undefined,
-  );
+  const [accountInfo, setAccountInfo] = useState<
+    AccountInfo | null | undefined
+  >(undefined);
   const newsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -124,7 +126,9 @@ function Notifications({
         "showModpackUpdateNotifications",
         (value) => {
           if (!isUnmounted) {
-            setShowModpackUpdateNotifications((value as boolean | null) ?? true);
+            setShowModpackUpdateNotifications(
+              (value as boolean | null) ?? true,
+            );
           }
         },
       );
