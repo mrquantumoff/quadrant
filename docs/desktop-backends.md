@@ -32,10 +32,16 @@ Quadrant supports two desktop shells that share one renderer and one backend con
 ### Electron Responsibilities
 
 - creating the main window and tray
-- updater orchestration with `electron-updater`
+- updater orchestration against the same Quadrant update endpoints used by Tauri
 - store file persistence for `config.json` and `updateConfig.json`
 - deep-link routing and OAuth callback server support
 - forwarding `QuadrantHost` events back into the renderer
+
+### Linux Packaging
+
+- Electron release builds publish Linux AppImages for x64 and arm64.
+- The Flatpak manifest repacks those AppImages through `org.electronjs.Electron2.BaseApp` and launches Quadrant through `zypak-wrapper`.
+- The Flathub sync workflow rewrites the AppImage URLs and hashes in the manifest for each stable tag.
 
 ## Build Matrix
 
