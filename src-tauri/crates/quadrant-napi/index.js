@@ -6,6 +6,10 @@
 
 /** @format */
 
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+
 const candidates = [
 	process.env.QUADRANT_NAPI_BINDING,
 	"./index.node",

@@ -1,25 +1,62 @@
 /** @format */
 
 import { EventEmitter } from "node:events";
-import { createRequire } from "node:module";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
-const require = createRequire(import.meta.url);
-
-function loadNativeModule() {
-	if (process.env.QUADRANT_NAPI_MODULE) {
-		return require(process.env.QUADRANT_NAPI_MODULE);
+function normalizeNativeModule(module) {
+	if (!module) {
+		return module;
 	}
 
-	try {
-		return require("./native/index.js");
-	} catch (error) {
-		if (process.env.NODE_ENV === "development") {
-			console.warn("Failed to load packaged Quadrant native module", error);
+	if (typeof module.QuadrantHostAddon === "function") {
+		return module;
+	}
+
+	if (module.default && typeof module.default.QuadrantHostAddon === "function") {
+		return module.default;
+	}
+
+	return module;
+}
+
+function resolveModuleSpecifier(specifier) {
+	if (
+		specifier.startsWith("./") ||
+		specifier.startsWith("../") ||
+		specifier.startsWith("/") ||
+		/^[A-Za-z]:[\\/]/.test(specifier)
+	) {
+		return pathToFileURL(path.resolve(process.cwd(), specifier)).href;
+	}
+
+	return specifier;
+}
+
+async function loadNativeModule() {
+	if (process.env.QUADRANT_NAPI_MODULE) {
+		try {
+			return normalizeNativeModule(
+				await import(resolveModuleSpecifier(process.env.QUADRANT_NAPI_MODULE)),
+			);
+		} catch (error) {
+			throw new Error(
+				`Failed to load Quadrant native module from ${process.env.QUADRANT_NAPI_MODULE}: ${error}`,
+			);
 		}
 	}
 
-	return require("../../src-tauri/crates/quadrant-napi/index.js").default;
+	try {
+		return normalizeNativeModule(await import("./native/index.js"));
+	} catch (error) {
+		const packageDir = path.dirname(fileURLToPath(import.meta.url));
+		throw new Error(
+			`Failed to load Quadrant native module from ${packageDir}: ${error}`,
+		);
+	}
 }
+
+const defaultNativeModule = await loadNativeModule();
 
 function nativeMethod(target, ...names) {
 	for (const name of names) {
@@ -31,25 +68,44 @@ function nativeMethod(target, ...names) {
 }
 
 function mapOptions(options) {
-	return {
-		data_dir: options.dataDir,
-		mc_folder: options.mcFolder ?? null,
-		api_base_url: options.apiBaseUrl ?? null,
-		oauth_client_id: options.oauthClientId,
-		oauth_client_secret: options.oauthClientSecret,
-		quadrant_api_key: options.quadrantApiKey,
-		config_store_name: options.configStoreName ?? null,
-		update_store_name: options.updateStoreName ?? null,
-		keyring_service_name: options.keyringServiceName ?? null,
-		app_version: options.appVersion ?? null,
-		os_name: options.osName ?? null,
-		user_agent: options.userAgent ?? null,
+	const mappedOptions = {
+		dataDir: options.dataDir,
+		oauthClientId: options.oauthClientId,
+		oauthClientSecret: options.oauthClientSecret,
+		quadrantApiKey: options.quadrantApiKey,
 	};
+
+	if (options.mcFolder != null) {
+		mappedOptions.mcFolder = options.mcFolder;
+	}
+	if (options.apiBaseUrl != null) {
+		mappedOptions.apiBaseUrl = options.apiBaseUrl;
+	}
+	if (options.configStoreName != null) {
+		mappedOptions.configStoreName = options.configStoreName;
+	}
+	if (options.updateStoreName != null) {
+		mappedOptions.updateStoreName = options.updateStoreName;
+	}
+	if (options.keyringServiceName != null) {
+		mappedOptions.keyringServiceName = options.keyringServiceName;
+	}
+	if (options.appVersion != null) {
+		mappedOptions.appVersion = options.appVersion;
+	}
+	if (options.osName != null) {
+		mappedOptions.osName = options.osName;
+	}
+	if (options.userAgent != null) {
+		mappedOptions.userAgent = options.userAgent;
+	}
+
+	return mappedOptions;
 }
 
 export function createQuadrantClient(
 	options,
-	nativeModule = loadNativeModule(),
+	nativeModule = defaultNativeModule,
 ) {
 	const host = new nativeModule.QuadrantHostAddon(mapOptions(options));
 	const emitter = new EventEmitter();

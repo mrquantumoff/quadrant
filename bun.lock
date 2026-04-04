@@ -7,7 +7,7 @@
       "dependencies": {
         "@fabianlars/tauri-plugin-oauth": "^2.0.0",
         "@headlessui/react": "^2.2.9",
-        "@quadrant/quadrant-node": "file:packages/quadrant-node",
+        "@quadrant/quadrant-node": "workspace:*",
         "@tauri-apps/api": "^2.10.1",
         "@tauri-apps/plugin-autostart": "~2.5.1",
         "@tauri-apps/plugin-cli": "~2.4.1",

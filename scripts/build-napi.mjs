@@ -64,6 +64,15 @@ if (!builtNode || !existsSync(builtNode)) {
 const nativeDir = path.join(rootDir, "packages", "quadrant-node", "native");
 mkdirSync(nativeDir, { recursive: true });
 cpSync(path.join(srcTauriDir, "crates", "quadrant-napi", "index.js"), path.join(nativeDir, "index.js"));
-cpSync(builtNode, path.join(nativeDir, "index.node"));
+try {
+  cpSync(builtNode, path.join(nativeDir, "index.node"));
+} catch (error) {
+  if (error && (error.code === "EIO" || error.code === "EPERM" || error.code === "EBUSY")) {
+    throw new Error(
+      `Built Quadrant N-API successfully, but could not update packages/quadrant-node/native/index.node because it is locked. Close Electron or any process using the addon, then rerun \`node scripts/build-napi.mjs\`. Original error: ${error.message}`,
+    );
+  }
+  throw error;
+}
 
 console.log(`Copied ${builtNode} to ${path.join(nativeDir, "index.node")}`);

@@ -3,6 +3,9 @@
   "version": "26.4.0",
   "type": "module",
   "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
   "types": "index.d.ts",
   "files": [
     "index.js",

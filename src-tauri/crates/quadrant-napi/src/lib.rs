@@ -99,18 +99,20 @@ impl QuadrantHostAddon {
 
         let tsfn = callback.build_threadsafe_function().build()?;
         let mut receiver = self.host.subscribe_events();
-        let handle = tokio::spawn(async move {
-            loop {
-                match receiver.recv().await {
-                    Ok(event) => {
-                        if let Ok(payload) = serde_json::to_string(&event) {
-                            let _ = tsfn.call(payload, ThreadsafeFunctionCallMode::NonBlocking);
+        let handle = napi::bindgen_prelude::within_runtime_if_available(|| {
+            tokio::spawn(async move {
+                loop {
+                    match receiver.recv().await {
+                        Ok(event) => {
+                            if let Ok(payload) = serde_json::to_string(&event) {
+                                let _ = tsfn.call(payload, ThreadsafeFunctionCallMode::NonBlocking);
+                            }
                         }
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
                     }
-                    Err(tokio::sync::broadcast::error::RecvError::Lagged(_)) => {}
-                    Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
                 }
-            }
+            })
         });
 
         *self

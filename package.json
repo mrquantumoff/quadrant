@@ -23,7 +23,7 @@
     "tauri:windows:build": "tauri-windows-bundle build"
   },
   "dependencies": {
-    "@quadrant/quadrant-node": "file:packages/quadrant-node",
+    "@quadrant/quadrant-node": "workspace:*",
     "@fabianlars/tauri-plugin-oauth": "^2.0.0",
     "@headlessui/react": "^2.2.9",
     "@tauri-apps/api": "^2.10.1",
