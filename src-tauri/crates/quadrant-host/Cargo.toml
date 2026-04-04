@@ -9,6 +9,7 @@ curseforge = ["quadrant-core/curseforge"]
 
 [dependencies]
 anyhow = "1.0.102"
+colog = "1.4.0"
 futures = "0.3.32"
 keyring = { version = "3.6.3", features = [
     "apple-native",

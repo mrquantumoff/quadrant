@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fs,
     path::{PathBuf},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, Once},
     time::Duration,
 };
 
@@ -61,6 +61,7 @@ const NOTIFICATION_CURSOR_NOTIFICATION_ID_KEY: &str = "notificationCursorNotific
 const SETTINGS_SYNC_INTERVAL_SECS: u64 = 120;
 const WS_REPLAY_LIMIT: usize = 500;
 const REFRESH_SYNCED_MODPACKS_EVENT: &str = "refreshSyncedModpacks";
+static LOGGER_INIT: Once = Once::new();
 
 #[derive(Debug, Clone)]
 pub struct QuadrantHostOptions {
@@ -317,6 +318,9 @@ impl EventSink for HostEventBridge {
 
 impl QuadrantHost {
     pub fn new(options: QuadrantHostOptions) -> Result<Self> {
+        LOGGER_INIT.call_once(|| {
+            colog::init();
+        });
         fs::create_dir_all(&options.data_dir)?;
         if let Some(api_base_url) = &options.api_base_url {
             unsafe {
