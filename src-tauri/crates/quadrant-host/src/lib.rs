@@ -1876,6 +1876,7 @@ struct CreateModpackArgs {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RegisterModArgs {
+    #[serde(alias = "mod")]
     mod_: InstalledMod,
     modpack: String,
 }
@@ -1984,12 +1985,14 @@ struct GetSyncedModpacksArgs {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct KickMemberArgs {
     modpack_id: String,
     username: String,
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct InviteMemberArgs {
     modpack_id: String,
     username: String,
@@ -1997,6 +2000,7 @@ struct InviteMemberArgs {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct ModpackIdArgs {
     modpack_id: String,
 }
@@ -2008,6 +2012,7 @@ struct SyncModpackArgs {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct AnswerInviteArgs {
     modpack_id: String,
     notification_id: String,
@@ -2015,6 +2020,7 @@ struct AnswerInviteArgs {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct ModpackNameArgs {
     modpack_name: String,
 }
