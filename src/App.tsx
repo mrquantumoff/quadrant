@@ -16,7 +16,6 @@ import { I18nextProvider, useTranslation } from "react-i18next";
 import ApplyPage from "./components/Pages/ApplyPage/Apply";
 import SettingsPage from "./components/Pages/SettingsPage/Settings";
 import quadrantLocale from "./i18n";
-import { LazyStore } from "@tauri-apps/plugin-store";
 import {
   MdAccountCircle,
   MdArchive,
@@ -33,17 +32,23 @@ import {
 import CurrentModpackPage from "./components/Pages/CurrentModpackPage/CurrentModpackPage";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import SearchPage from "./components/Pages/SearchPage/SearchPage";
-import { onOpenUrl } from "@tauri-apps/plugin-deep-link";
-import { getCurrentWindow, ProgressBarStatus } from "@tauri-apps/api/window";
 import { getMod, requestCheckForUpdates } from "./tools";
 import ModInstallPage from "./components/Pages/ModInstallPage/ModInstallPage";
 import AccountPage from "./components/Pages/AccountPage/AccountPage";
-import { invoke } from "@tauri-apps/api/core";
 import ShareSyncPage from "./components/Pages/ShareSyncPage/ShareSyncPage";
 import Button from "./components/core/Button";
-import { listen } from "@tauri-apps/api/event";
 import Notifications from "./components/shared/Notifications";
-import { platform } from "@tauri-apps/plugin-os";
+import {
+  createDesktopStore,
+  getCurrentDesktopWindow,
+  installUpdate,
+  invoke,
+  isProductionBuild,
+  listen,
+  onOpenUrl,
+  platform,
+  ProgressBarStatus,
+} from "./desktop";
 
 interface PageWithScroll {
   scrollPositionX: number;
@@ -106,11 +111,8 @@ function App() {
   const [page, setPage] = useState(pages[0]);
   const [content, setContent] = useState<Page>(pages[0]);
   const [updateDownloadProgress, setUpdateDownloadProgress] = useState(0);
-  const configRef = useRef<LazyStore | null>(null);
-  if (configRef.current === null) {
-    configRef.current = new LazyStore("config.json");
-  }
-  const config = configRef.current!;
+  const configRef = useRef(createDesktopStore("config.json"));
+  const config = configRef.current;
   const [contentHistory, setContentHistory] = useState<PageWithScroll[]>([]);
   const [extendedNavigation, setExtendedNavigation] = useState(false);
   const [isLinux, setIsLinux] = useState(false);
@@ -128,6 +130,10 @@ function App() {
     let requestUpdatesTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const effect = async () => {
+      if (await isProductionBuild()) {
+        document.addEventListener("contextmenu", disableContextMenu);
+      }
+
       const updateDownloadUnlisten = await listen(
         "updateDownloadProgress",
         (e: any) => {
@@ -151,21 +157,6 @@ function App() {
         updateDownloadUnlisten();
       } else {
         cleanupFns.push(updateDownloadUnlisten);
-      }
-
-      const disableRightClickUnlisten = await listen(
-        "disableRightClick",
-        () => {
-          document.addEventListener("contextmenu", disableContextMenu);
-        },
-      );
-      if (isUnmounted) {
-        disableRightClickUnlisten();
-      } else {
-        cleanupFns.push(() => {
-          disableRightClickUnlisten();
-          document.removeEventListener("contextmenu", disableContextMenu);
-        });
       }
 
       const exportProgressUnlisten = await listen(
@@ -299,7 +290,7 @@ function App() {
         }
         console.log("deep link:", urls);
         for (const gottenUrl of urls) {
-          const url = URL.parse(gottenUrl);
+          const url = new URL(gottenUrl);
           const actionType = url?.protocol;
           console.log("url:", url);
           await currentWindow.setFocus();
@@ -626,7 +617,7 @@ function App() {
       };
     }
   }, [snackbarEnabled, snackbarState.timeout]);
-  const currentWindow = getCurrentWindow();
+  const currentWindow = getCurrentDesktopWindow();
   return (
     <I18nextProvider i18n={quadrantLocale}>
       <MotionConfig>
@@ -716,7 +707,7 @@ function App() {
                         }
                         onClick={async () => {
                           if (updateDownloadProgress === 1) {
-                            await invoke("install_update");
+                            await installUpdate();
                           }
                         }}
                       >

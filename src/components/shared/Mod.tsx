@@ -24,10 +24,9 @@ import {
 } from "../../tools";
 import { useContext, useEffect, useRef, useState } from "react";
 import ModInstallPage from "../Pages/ModInstallPage/ModInstallPage";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { LazyStore } from "@tauri-apps/plugin-store";
 import Button from "../core/Button";
 import "./Mod.css";
+import { createDesktopStore, listen } from "../../desktop";
 
 export interface IModProps {
   mod: IMod;
@@ -59,11 +58,8 @@ export default function Mod(props: IModProps) {
   const context = useContext(ContentContext);
   const installRequestedRef = useRef(false);
 
-  const configRef = useRef<LazyStore | null>(null);
-  if (configRef.current === null) {
-    configRef.current = new LazyStore("config.json");
-  }
-  const config = configRef.current!;
+  const configRef = useRef(createDesktopStore("config.json"));
+  const config = configRef.current;
   const modpackViewContext = useContext(ModpackViewContext);
   const modId = mod.id;
   const isAutoinstallable = mod.autoinstallable;
@@ -87,8 +83,8 @@ export default function Mod(props: IModProps) {
 
   useEffect(() => {
     let isUnmounted = false;
-    let unlistenProgress: UnlistenFn | null = null;
-    let unlistenInstallProgress: UnlistenFn | null = null;
+    let unlistenProgress: (() => void | Promise<void>) | null = null;
+    let unlistenInstallProgress: (() => void | Promise<void>) | null = null;
 
     const effect = async () => {
       try {
@@ -273,7 +269,7 @@ export default function Mod(props: IModProps) {
                     if (mod.autoinstallable) {
                       installRequestedRef.current = true;
                       // Get last used api, modpack, and loader
-                      const config = new LazyStore("config.json");
+                      const config = createDesktopStore("config.json");
                       const lastUsedAPI =
                         await config.get<string>("lastUsedAPI");
                       const lastUsedModpack =

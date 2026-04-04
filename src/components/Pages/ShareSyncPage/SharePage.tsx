@@ -12,11 +12,9 @@ import {
   installModpack,
 } from "../../../tools";
 import Mod from "../../shared/Mod";
-import { readText } from "@tauri-apps/plugin-clipboard-manager";
-import { listen } from "@tauri-apps/api/event";
 import { ContentContext } from "../../../intefaces";
 import { useContext } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, listen, readClipboardText } from "../../../desktop";
 
 export interface SharePageProps {
   preselectedModpack: InstalledModpack | undefined;
@@ -201,7 +199,7 @@ export default function SharePage({
                 <Button
                   className="mt-2 w-full ml-1 bg-sky-500 hover:bg-sky-700 "
                   onClick={async () => {
-                    const clipboardText = await readText();
+                    const clipboardText = await readClipboardText();
                     if (clipboardText.trim().length > 7) {
                       return;
                     }

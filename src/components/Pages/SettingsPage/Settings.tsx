@@ -2,7 +2,6 @@
 
 import { useTranslation } from "react-i18next";
 import Button from "../../core/Button";
-import { LazyStore } from "@tauri-apps/plugin-store";
 import {
   getMinecraftFolder,
   openIn,
@@ -12,15 +11,20 @@ import { Field, Label, Select, Switch } from "@headlessui/react";
 import quadrantLocale from "../../../i18n";
 import { useEffect, useState } from "react";
 import "./SettingsPage.css";
-import { open } from "@tauri-apps/plugin-dialog";
-import { getTauriVersion, getVersion } from "@tauri-apps/api/app";
-import { invoke } from "@tauri-apps/api/core";
 import { motion } from "motion/react";
+import {
+  createDesktopStore,
+  getAppVersion,
+  getRuntimeVersion,
+  invoke,
+  isAutoupdateEnabled,
+  openDialog,
+} from "../../../desktop";
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const box = new LazyStore("config.json");
-  const updateChannelBox = new LazyStore("updateConfig.json");
+  const box = createDesktopStore("config.json");
+  const updateChannelBox = createDesktopStore("updateConfig.json");
 
   const [currentLocale, setCurrentLocale] = useState("en");
   const [updateChannel, setUpdateChannel] = useState("stable");
@@ -71,12 +75,12 @@ export default function SettingsPage() {
       console.log("Minecraft folder: " + (await getMinecraftFolder(false)));
       setMcFolder(await getMinecraftFolder(false));
       setSyncSettings((await box.get("syncSettings")) || false);
-      setCurrentVersion(await getVersion());
-      setCurrentTauriVersion(await getTauriVersion());
+      setCurrentVersion(await getAppVersion());
+      setCurrentTauriVersion(await getRuntimeVersion());
       setExtendedNavigation(
         (await box.get<boolean>("extendedNavigation")) ?? false,
       );
-      setShowUpdateSettings(await invoke("is_autoupdate_enabled"));
+      setShowUpdateSettings(await isAutoupdateEnabled());
     };
 
     initializeValues();
@@ -162,13 +166,13 @@ export default function SettingsPage() {
           <Button
             className="bg-slate-800 hover:bg-slate-900 w-full ml-4"
             onClick={async () => {
-              const newFolder = await open({
+              const newFolder = await openDialog({
                 multiple: false,
                 directory: true,
                 recursive: true,
                 title: t("overrideMinecraftFolder"),
               });
-              if (newFolder === null) {
+              if (typeof newFolder !== "string" || newFolder.length === 0) {
                 return;
               }
               console.log("New Minecraft folder: " + newFolder);

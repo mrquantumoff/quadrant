@@ -3,5 +3,10 @@
   "version": "26.4.0",
   "type": "module",
   "main": "index.js",
-  "types": "index.d.ts"
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "native/**/*"
+  ]
 }

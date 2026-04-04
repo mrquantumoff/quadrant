@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-electron
 dist-ssr
 *.local
 
@@ -39,3 +40,5 @@ src-tauri/versoview
 target/
 AppxContent
 AppxBundles
+electron/runtime-config.generated.json
+packages/quadrant-node/native/

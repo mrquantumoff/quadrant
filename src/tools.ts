@@ -1,4 +1,3 @@
-import { invoke } from "@tauri-apps/api/core";
 import {
   AccountInfo,
   Article,
@@ -16,9 +15,18 @@ import {
   SyncedModpack,
   UniversalModFile,
 } from "./intefaces";
-import { platform } from "@tauri-apps/plugin-os";
+import {
+  createDesktopStore,
+  invoke,
+  openDialog,
+  openExternal,
+  openPath,
+  platform,
+  requestCheckForUpdates as requestDesktopCheckForUpdates,
+  writeClipboardText,
+} from "./desktop";
 
-import { LazyStore } from "@tauri-apps/plugin-store";
+const configStore = createDesktopStore("config.json");
 
 export async function applyModpack(name: string): Promise<void> {
   try {
@@ -77,7 +85,7 @@ export async function getMod(
   if (source === ModSource.CurseForge) {
     const mod = await invoke<IMod>("get_mod_curseforge", { args: args });
     return mod;
-  } else if (ModSource.Modrinth) {
+  } else if (source === ModSource.Modrinth) {
     const mod = await invoke<IMod>("get_mod_modrinth", { args: args });
     return mod;
   } else {
@@ -105,9 +113,7 @@ export async function getMinecraftFolder(
   onlyRealFolder: boolean = false,
 ): Promise<string> {
   if (!onlyRealFolder) {
-    const store = await new LazyStore("config.json");
-
-    const mcFolder = await store?.get<string>("mcFolder");
+    const mcFolder = await configStore.get<string>("mcFolder");
     if (mcFolder !== undefined) {
       return mcFolder;
     }
@@ -210,9 +216,7 @@ export function shuffle(array: any[]) {
 
 export async function openIn(url: string) {
   console.log("Opening link: " + url);
-  await invoke("open_link", {
-    url: url,
-  });
+  await openExternal(url);
 }
 
 export async function installMod(
@@ -236,7 +240,8 @@ export async function installMod(
 }
 
 export async function openModpacksFolder() {
-  await invoke("open_modpacks_folder");
+  const modpacksFolder = await invoke<string>("get_modpacks_folder");
+  await openPath(modpacksFolder);
 }
 
 export async function getAccountInfo(): Promise<AccountInfo> {
@@ -279,11 +284,17 @@ export async function installRemoteFile(
 }
 
 export async function shareModpack(modpack: string) {
-  await invoke("share_modpack", { modpackName: modpack });
+  const response = await invoke<{ code: string | number }>("share_modpack", {
+    modpackName: modpack,
+  });
+  await writeClipboardText(String(response.code));
 }
 
 export async function shareModpackRaw(modpack: InstalledModpack) {
-  await invoke("share_modpack_raw", { modConfig: modpack });
+  const response = await invoke<{ code: string | number }>("share_modpack_raw", {
+    modConfig: modpack,
+  });
+  await writeClipboardText(String(response.code));
 }
 
 export async function getQuadrantShareModpack(code: string) {
@@ -349,7 +360,7 @@ export async function answerInvite(
 }
 
 export const requestCheckForUpdates = async () => {
-  await invoke("request_check_for_updates");
+  await requestDesktopCheckForUpdates();
 };
 
 export const getNews = async () => {
@@ -358,7 +369,18 @@ export const getNews = async () => {
 };
 
 export const exportModpack = async (name: string) => {
-  await invoke("export_modpack", { modpack: name });
+  const destination = await openDialog({
+    multiple: false,
+    title: "Export Modpack",
+    defaultPath: `${name}.quadrantExport.zip`,
+  });
+  if (typeof destination !== "string" || destination.length === 0) {
+    return;
+  }
+  await invoke("export_modpack_to", {
+    modpack: name,
+    destination,
+  });
 };
 
 export const identifyUnknownMods = async (

@@ -1,0 +1,59 @@
+{
+  "appId": "dev.usequadrant.quadrant",
+  "productName": "Quadrant",
+  "directories": {
+    "output": "dist-electron"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "packages/quadrant-node/**/*",
+    "package.json"
+  ],
+  "extraMetadata": {
+    "main": "electron/main.mjs"
+  },
+  "asar": true,
+  "asarUnpack": [
+    "packages/quadrant-node/native/*.node"
+  ],
+  "npmRebuild": false,
+  "buildDependenciesFromSource": false,
+  "protocols": [
+    {
+      "name": "Quadrant",
+      "schemes": [
+        "quadrantnext",
+        "curseforge",
+        "modrinth"
+      ]
+    }
+  ],
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "quadrantmc",
+      "repo": "quadrant"
+    }
+  ],
+  "artifactName": "Quadrant-${version}-${os}-${arch}-electron.${ext}",
+  "win": {
+    "icon": "src-tauri/icons/icon.ico",
+    "target": [
+      "nsis",
+      "zip"
+    ]
+  },
+  "linux": {
+    "icon": "src-tauri/icons",
+    "target": [
+      "AppImage",
+      "deb"
+    ],
+    "category": "Utility"
+  },
+  "nsis": {
+    "allowToChangeInstallationDirectory": true,
+    "oneClick": false
+  }
+}

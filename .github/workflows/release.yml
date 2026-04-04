@@ -74,6 +74,57 @@ jobs:
           tauriScript: 'bun tauri'
           tagName: ${{github.ref_name}}
 
+  publish-electron:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "blacksmith-4vcpu-windows-2025"
+            os: "windows"
+          - platform: "blacksmith-4vcpu-ubuntu-2404"
+            os: "linux"
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: install dependencies (ubuntu only)
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libsecret-1-dev libarchive-tools rpm
+
+      - name: install frontend dependencies (bun)
+        run: bun install
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Package Electron app
+        env:
+          QUADRANT_API_KEY: ${{ secrets.QUADRANT_API_KEY }}
+          QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
+          QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
+          QUADRANT_API_BASE_URL: ${{ vars.QUADRANT_API_BASE_URL }}
+        run: bun run package:electron
+
+      - name: Upload Electron assets to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          mapfile -d '' files < <(find dist-electron -maxdepth 1 -type f -print0)
+          gh release upload "$TAG_NAME" "${files[@]}" --clobber
+
   sync_flathub:
     name: Sync Flathub
     needs: publish-tauri
