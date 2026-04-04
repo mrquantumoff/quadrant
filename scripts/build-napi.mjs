@@ -1,6 +1,6 @@
 import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { resolveCargoCommand, runCommand } from "./command-utils.mjs";
 
 const rootDir = path.resolve(import.meta.dirname, "..");
 const srcTauriDir = path.join(rootDir, "src-tauri");
@@ -75,19 +75,6 @@ function getRustTargetTriple(platform, arch) {
   }
 }
 
-function run(command, args, options = {}) {
-  const result = spawnSync(command, args, {
-    cwd: rootDir,
-    stdio: "inherit",
-    shell: process.platform === "win32",
-    ...options,
-  });
-
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
-}
-
 function findNativeBinary(directory) {
   const entries = readdirSync(directory, { withFileTypes: true });
   for (const entry of entries) {
@@ -118,17 +105,28 @@ const targetPlatform = normalizePlatform(
 );
 const targetArch = normalizeArch(getArgValue("--arch"));
 const rustTarget = getArgValue("--target") ?? getRustTargetTriple(targetPlatform, targetArch);
+const cargoCommand = resolveCargoCommand();
 
-run("cargo", [
-  "build",
-  "--manifest-path",
-  path.join("src-tauri", "Cargo.toml"),
-  "-p",
-  "quadrant-napi",
-  "--target",
-  rustTarget,
-  ...(release ? ["--release"] : []),
-]);
+runCommand(
+  cargoCommand,
+  [
+    "build",
+    "--manifest-path",
+    path.join("src-tauri", "Cargo.toml"),
+    "-p",
+    "quadrant-napi",
+    "--target",
+    rustTarget,
+    ...(release ? ["--release"] : []),
+  ],
+  {
+    cwd: rootDir,
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    notFoundMessage:
+      "Rust is required to build the Electron native addon, but `cargo` was not found. Install Rust and ensure `cargo` is on PATH, or set `CARGO=/absolute/path/to/cargo` before running `bun run dev:electron`.",
+  },
+);
 
 const targetDir = path.join(srcTauriDir, "target", rustTarget, profile);
 const builtNode = findNativeBinary(targetDir);

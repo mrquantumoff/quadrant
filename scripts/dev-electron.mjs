@@ -17,6 +17,25 @@ function spawnProcess(command, args, extraEnv = {}) {
   });
 }
 
+function waitForChildProcess(childProcess, label) {
+  return new Promise((resolve, reject) => {
+    childProcess.on("error", (error) => {
+      reject(new Error(`Failed to start ${label}: ${error.message}`));
+    });
+    childProcess.on("exit", (code, signal) => {
+      if (code === 0) {
+        resolve(undefined);
+        return;
+      }
+      if (signal) {
+        reject(new Error(`${label} terminated with signal ${signal}`));
+        return;
+      }
+      process.exit(code ?? 1);
+    });
+  });
+}
+
 async function waitForUrl(url, timeoutMs = 120000) {
   const startedAt = Date.now();
 
@@ -46,27 +65,13 @@ async function waitForUrl(url, timeoutMs = 120000) {
 const prepareConfig = spawnProcess("node", [
   "scripts/write-electron-runtime-config.mjs",
 ]);
-
-await new Promise((resolve, reject) => {
-  prepareConfig.on("exit", (code) => {
-    if (code === 0) {
-      resolve(undefined);
-      return;
-    }
-    reject(new Error(`write-electron-runtime-config exited with ${code}`));
-  });
-});
+await waitForChildProcess(
+  prepareConfig,
+  "scripts/write-electron-runtime-config.mjs",
+);
 
 const napiBuild = spawnProcess("node", ["scripts/build-napi.mjs"]);
-await new Promise((resolve, reject) => {
-  napiBuild.on("exit", (code) => {
-    if (code === 0) {
-      resolve(undefined);
-      return;
-    }
-    reject(new Error(`build-napi exited with ${code}`));
-  });
-});
+await waitForChildProcess(napiBuild, "scripts/build-napi.mjs");
 
 const viteProcess = spawnProcess("bun", ["run", "dev", "--", "--host", "127.0.0.1"]);
 

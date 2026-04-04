@@ -20,6 +20,43 @@ function getBridge() {
   return window.quadrantElectron;
 }
 
+function normalizeElectronInvokeError(error: unknown): string {
+  const serializedMessage =
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof (error as { message?: unknown }).message === "string"
+      ? (error as { message: string }).message
+      : null;
+
+  const rawMessage =
+    error instanceof Error
+      ? error.message
+      : serializedMessage !== null
+        ? serializedMessage
+      : typeof error === "string"
+        ? error
+        : String(error);
+
+  const message = rawMessage
+    .replace(/^Error occurred in handler for 'quadrant:invoke':\s*/, "")
+    .trim();
+
+  const nestedErrorMatch = message.match(
+    /^\[Error:\s*([^[\]]+?)\](?:\s*\{.*\})?$/s,
+  );
+  if (nestedErrorMatch) {
+    return nestedErrorMatch[1].trim();
+  }
+
+  const directErrorMatch = message.match(/^Error:\s*(.+)$/s);
+  if (directErrorMatch) {
+    return directErrorMatch[1].trim();
+  }
+
+  return message.replace(/\s*\{ code: .*$/s, "").trim();
+}
+
 class ElectronStoreAdapter implements DesktopStoreAdapter {
   constructor(private readonly storeName: string) {}
 
@@ -86,7 +123,11 @@ export const electronRuntime: RuntimeAdapter = {
     return new ElectronStoreAdapter(name);
   },
   async invoke<T>(command: DesktopCommand, payload?: unknown) {
-    return getBridge().invoke<T>(command, payload);
+    try {
+      return await getBridge().invoke<T>(command, payload);
+    } catch (error) {
+      throw normalizeElectronInvokeError(error);
+    }
   },
   async listen<T = unknown>(
     event: string,

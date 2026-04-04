@@ -1,5 +1,5 @@
-import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { runCommand } from "./command-utils.mjs";
 
 const rootDir = path.resolve(import.meta.dirname, "..");
 const extraArgs = process.argv.slice(2);
@@ -34,15 +34,11 @@ function normalizeArch(arch) {
 }
 
 function run(command, args) {
-  const result = spawnSync(command, args, {
+  runCommand(command, args, {
     cwd: rootDir,
     stdio: "inherit",
     shell: process.platform === "win32",
   });
-
-  if (result.status !== 0) {
-    process.exit(result.status ?? 1);
-  }
 }
 
 const targetArch = normalizeArch(getArgValue("--arch"));

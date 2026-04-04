@@ -57,6 +57,7 @@ export default function Mod(props: IModProps) {
 
   const context = useContext(ContentContext);
   const installRequestedRef = useRef(false);
+  const installInFlightRef = useRef(false);
 
   const configRef = useRef(createDesktopStore("config.json"));
   const config = configRef.current;
@@ -145,11 +146,12 @@ export default function Mod(props: IModProps) {
         unlistenInstallProgress();
       }
     };
-  }, [isAutoinstallable, modId]);
+  }, [config, isAutoinstallable, modId]);
 
   useEffect(() => {
     if (isAutoinstallable && progress === 100 && installRequestedRef.current) {
       installRequestedRef.current = false;
+      installInFlightRef.current = false;
       context.setSnackbar({
         message: t("downloadSuccess"),
         className: "bg-emerald-700 text-white",
@@ -238,20 +240,32 @@ export default function Mod(props: IModProps) {
                 <Button
                   animate
                   onClick={async () => {
-                    if (!clickableDownload) {
+                    if (!clickableDownload || installInFlightRef.current) {
                       return;
                     }
+                    installInFlightRef.current = true;
                     setClickableDownload(false);
                     installRequestedRef.current = true;
-                    await deleteMod(props.modpack!, mod.id);
+                    try {
+                      await deleteMod(props.modpack!, mod.id);
 
-                    await installRemoteFile(
-                      mod.newVersion!,
-                      mod.modType,
-                      props.modpack,
-                      mod.source,
-                      mod.id,
-                    );
+                      await installRemoteFile(
+                        mod.newVersion!,
+                        mod.modType,
+                        props.modpack,
+                        mod.source,
+                        mod.id,
+                      );
+                    } catch (e: any) {
+                      installRequestedRef.current = false;
+                      installInFlightRef.current = false;
+                      setClickableDownload(true);
+                      context.setSnackbar({
+                        message: t(e),
+                        className: "bg-red-700 text-white",
+                        timeout: 3000,
+                      });
+                    }
                   }}
                   className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-700 hover:bg-emerald-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 >
@@ -262,11 +276,13 @@ export default function Mod(props: IModProps) {
                 <Button
                   animate
                   onClick={async () => {
-                    if (progress !== -1) {
+                    if (progress !== -1 || installInFlightRef.current) {
                       return;
                     }
                     console.log("Autoinstallable: " + mod.autoinstallable);
                     if (mod.autoinstallable) {
+                      installInFlightRef.current = true;
+                      setClickableDownload(false);
                       installRequestedRef.current = true;
                       // Get last used api, modpack, and loader
                       const config = createDesktopStore("config.json");
@@ -287,6 +303,8 @@ export default function Mod(props: IModProps) {
                         );
                       } catch (e: any) {
                         installRequestedRef.current = false;
+                        installInFlightRef.current = false;
+                        setClickableDownload(true);
                         context.setSnackbar({
                           message: t(e),
                           className: "bg-red-700 text-white",

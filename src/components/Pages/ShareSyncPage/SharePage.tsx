@@ -1,6 +1,6 @@
 /** @format */
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { IMod, InstalledModpack } from "../../../intefaces";
 import CircularProgress from "../../core/CircularProgress";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,6 @@ import {
 } from "../../../tools";
 import Mod from "../../shared/Mod";
 import { ContentContext } from "../../../intefaces";
-import { useContext } from "react";
 import { invoke, listen, readClipboardText } from "../../../desktop";
 
 export interface SharePageProps {
@@ -35,6 +34,7 @@ export default function SharePage({
   const { t } = useTranslation();
   const [code, setCode] = useState("");
   const [progress, setProgress] = useState(1);
+  const modpackInstallRequestedRef = useRef(false);
 
   const getModpack = async () => {
     if (code.trim().length !== 7) {
@@ -48,15 +48,25 @@ export default function SharePage({
   };
 
   const installRemoteModpack = async () => {
-    if (progress !== 1) {
+    if (progress !== 1 || modpackInstallRequestedRef.current) {
       return;
     }
-    await installModpack(modpack!);
-    if (modpackSync) {
-      await invoke("set_modpack_sync_date", {
-        time: modpackSync,
-        modpack: modpack!.name,
-        modpackId: modpackId,
+    modpackInstallRequestedRef.current = true;
+    try {
+      await installModpack(modpack!);
+      if (modpackSync) {
+        await invoke("set_modpack_sync_date", {
+          time: modpackSync,
+          modpack: modpack!.name,
+          modpackId: modpackId,
+        });
+      }
+    } catch (e: any) {
+      modpackInstallRequestedRef.current = false;
+      context.setSnackbar({
+        className: "bg-red-700 text-white",
+        message: t(e),
+        timeout: 5000,
       });
     }
   };
@@ -68,20 +78,46 @@ export default function SharePage({
   }, [mods]);
 
   useEffect(() => {
-    listen("modpackDownloadProgress", (progress: any) => {
-      if (progress.payload === 1) {
-        context.setSnackbar({
-          className: "bg-emerald-700 text-white",
-          message: t("downloadSuccess"),
-          timeout: 5000,
-        });
+    let isUnmounted = false;
+    let unlisten: (() => void | Promise<void>) | null = null;
+
+    const attachListener = async () => {
+      unlisten = await listen("modpackDownloadProgress", (progress: any) => {
+        if (isUnmounted) {
+          return;
+        }
+        setProgress(progress.payload);
+        if (progress.payload === 1 && modpackInstallRequestedRef.current) {
+          modpackInstallRequestedRef.current = false;
+          context.setSnackbar({
+            className: "bg-emerald-700 text-white",
+            message: t("downloadSuccess"),
+            timeout: 5000,
+          });
+        }
+      });
+
+      if (isUnmounted && unlisten) {
+        await unlisten();
+        unlisten = null;
       }
-      setProgress(progress.payload);
-    });
+    };
+
+    attachListener().catch(console.error);
+
+    return () => {
+      isUnmounted = true;
+      if (unlisten) {
+        unlisten();
+      }
+    };
+  }, [context, t]);
+
+  useEffect(() => {
     if (preselectedModpack !== undefined) {
       setModpack(preselectedModpack);
     }
-  }, []);
+  }, [preselectedModpack]);
 
   useEffect(() => {
     const effect = async () => {
