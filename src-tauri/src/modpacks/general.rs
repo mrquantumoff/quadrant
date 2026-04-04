@@ -69,3 +69,15 @@ pub async fn export_modpack(modpack: String, app: AppHandle) -> Result<(), tauri
         .await
         .map_err(tauri::Error::from)
 }
+
+#[tauri::command]
+pub async fn export_modpack_to(
+    modpack: String,
+    destination: String,
+    app: AppHandle,
+) -> Result<(), tauri::Error> {
+    app.state::<QuadrantHost>()
+        .export_modpack_to(modpack, destination.into())
+        .await
+        .map_err(tauri::Error::from)
+}

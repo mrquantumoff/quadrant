@@ -66,6 +66,14 @@ pub async fn open_modpacks_folder(app: AppHandle) -> Result<(), tauri::Error> {
 }
 
 #[tauri::command]
+pub fn get_modpacks_folder(app: AppHandle) -> Result<String, tauri::Error> {
+    app.state::<QuadrantHost>()
+        .get_modpacks_folder()
+        .map(|path| path.to_string_lossy().into_owned())
+        .map_err(tauri::Error::from)
+}
+
+#[tauri::command]
 pub async fn register_mod(
     mod_: crate::mc_mod::InstalledMod,
     modpack: String,
