@@ -40,7 +40,7 @@
   "mod": "{{source}} Mod",
   "resourcepack": "{{source}} kaynak paketi",
   "shaderpack": "{{source}} gölgelendirici",
-  "currentVersion": "{{version}} versiyonu yüklü, Tauri {{tauriVersion}} sürümü ile derlenmiştir",
+  "currentVersion": "{{version}} versiyonu yüklü, {{runtimeName}} {{runtimeVersion}} üzerinde çalışıyor",
   "latestVersion": "En son versiyon {{version}}",
   "openLatestRelease": "Son sürümü aç",
   "openInTheWeb": "Tarayıcıda aç",

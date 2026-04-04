@@ -23,6 +23,14 @@ const rootDir = path.resolve(__dirname, "..");
 const appId = "dev.mrquantumoff.mcmodpackmanager";
 const schemes = ["quadrantnext", "curseforge", "modrinth"];
 const { autoUpdater } = electronUpdater;
+const packageMetadata = JSON.parse(
+  fs.readFileSync(path.join(rootDir, "package.json"), "utf8"),
+);
+const quadrantAppVersion =
+  typeof packageMetadata.version === "string" &&
+  packageMetadata.version.trim().length > 0
+    ? packageMetadata.version.trim()
+    : app.getVersion();
 
 app.setPath("userData", path.join(app.getPath("appData"), appId));
 
@@ -75,19 +83,38 @@ function loadGeneratedRuntimeConfig() {
   return JSON.parse(fs.readFileSync(runtimeConfigPath, "utf8"));
 }
 
+function normalizeOptionalConfigValue(value) {
+  if (typeof value !== "string") {
+    return value ?? null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeRequiredConfigValue(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
 function getRuntimeConfig() {
   const generated = loadGeneratedRuntimeConfig();
   return {
-    oauthClientId:
-      process.env.QUADRANT_OAUTH2_CLIENT_ID ?? generated.oauthClientId ?? "",
-    oauthClientSecret:
-      process.env.QUADRANT_OAUTH2_CLIENT_SECRET ??
-      generated.oauthClientSecret ??
-      "",
-    quadrantApiKey:
-      process.env.QUADRANT_API_KEY ?? generated.quadrantApiKey ?? "",
-    apiBaseUrl:
-      process.env.QUADRANT_API_BASE_URL ?? generated.apiBaseUrl ?? null,
+    oauthClientId: normalizeRequiredConfigValue(
+      process.env.QUADRANT_OAUTH2_CLIENT_ID ?? generated.oauthClientId,
+    ),
+    oauthClientSecret: normalizeRequiredConfigValue(
+      process.env.QUADRANT_OAUTH2_CLIENT_SECRET ?? generated.oauthClientSecret,
+    ),
+    quadrantApiKey: normalizeRequiredConfigValue(
+      process.env.QUADRANT_API_KEY ?? generated.quadrantApiKey,
+    ),
+    apiBaseUrl: normalizeOptionalConfigValue(
+      process.env.QUADRANT_API_BASE_URL ?? generated.apiBaseUrl,
+    ),
   };
 }
 
@@ -178,9 +205,9 @@ async function createQuadrantHostClient() {
     oauthClientId: runtimeConfig.oauthClientId,
     oauthClientSecret: runtimeConfig.oauthClientSecret,
     quadrantApiKey: runtimeConfig.quadrantApiKey,
-    appVersion: app.getVersion(),
+    appVersion: quadrantAppVersion,
     osName: process.platform.toUpperCase(),
-    userAgent: `Quadrant/${app.getVersion()} Electron/${process.versions.electron}`,
+    userAgent: `Quadrant/${quadrantAppVersion} Electron/${process.versions.electron}`,
   });
 
   quadrantClient.on("event", (event) => {
@@ -506,7 +533,7 @@ ipcMain.handle("quadrant:clipboard:write-text", async (_event, { text }) => {
 });
 
 ipcMain.handle("quadrant:platform", async () => process.platform);
-ipcMain.handle("quadrant:app-version", async () => app.getVersion());
+ipcMain.handle("quadrant:app-version", async () => quadrantAppVersion);
 ipcMain.handle("quadrant:runtime-version", async () => process.versions.electron);
 
 ipcMain.handle("quadrant:updater:check", async () => {

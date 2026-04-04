@@ -15,6 +15,7 @@ import { motion } from "motion/react";
 import {
   createDesktopStore,
   getAppVersion,
+  getRuntimeName,
   getRuntimeVersion,
   invoke,
   isAutoupdateEnabled,
@@ -43,7 +44,8 @@ export default function SettingsPage() {
   const [syncSettings, setSyncSettings] = useState(false);
   const [mcFolder, setMcFolder] = useState("");
   const [currentVersion, setCurrentVersion] = useState("");
-  const [currentTauriVersion, setCurrentTauriVersion] = useState("");
+  const [currentRuntimeName, setCurrentRuntimeName] = useState("");
+  const [currentRuntimeVersion, setCurrentRuntimeVersion] = useState("");
   const [extendedNavigation, setExtendedNavigation] = useState(false);
   const [showUpdateSettings, setShowUpdateSettings] = useState(true);
 
@@ -76,7 +78,8 @@ export default function SettingsPage() {
       setMcFolder(await getMinecraftFolder(false));
       setSyncSettings((await box.get("syncSettings")) || false);
       setCurrentVersion(await getAppVersion());
-      setCurrentTauriVersion(await getRuntimeVersion());
+      setCurrentRuntimeName(await getRuntimeName());
+      setCurrentRuntimeVersion(await getRuntimeVersion());
       setExtendedNavigation(
         (await box.get<boolean>("extendedNavigation")) ?? false,
       );
@@ -100,7 +103,8 @@ export default function SettingsPage() {
         <p className="font-extrabold my-2 bg-slate-900 rounded-4xl p-4">
           {t("currentVersion", {
             version: currentVersion,
-            tauriVersion: currentTauriVersion,
+            runtimeName: currentRuntimeName,
+            runtimeVersion: currentRuntimeVersion,
           })}
         </p>
       </div>
@@ -159,6 +163,7 @@ export default function SettingsPage() {
               console.log("New Minecraft folder: " + newFolder);
               setMcFolder(newFolder);
               await box.set("mcFolder", newFolder);
+              await box.save();
             }}
           >
             {t("resetMinecraftFolder")}
@@ -178,6 +183,7 @@ export default function SettingsPage() {
               console.log("New Minecraft folder: " + newFolder);
               setMcFolder(newFolder);
               await box.set("mcFolder", newFolder);
+              await box.save();
             }}
           >
             {t("overrideMinecraftFolder")}
@@ -217,6 +223,7 @@ export default function SettingsPage() {
           await invoke("send_telemetry");
           setCollectData(true);
           await box.set("collectUserData", true);
+          await box.save();
         }}
       >
         {t("collectData")}
@@ -244,6 +251,9 @@ export default function SettingsPage() {
         className="bg-slate-800 hover:text-slate-50 hover:bg-red-700 w-fit my-4"
         onClick={async () => {
           await invoke("remove_telemetry");
+          setCollectData(false);
+          await box.set("collectUserData", false);
+          await box.save();
         }}
       >
         {t("deleteYourUsageData")}

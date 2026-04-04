@@ -8,11 +8,32 @@ const outputPath = path.join(
   "runtime-config.generated.json",
 );
 
+function normalizeOptionalConfigValue(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizeRequiredConfigValue(value) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
 const config = {
-  oauthClientId: process.env.QUADRANT_OAUTH2_CLIENT_ID ?? "",
-  oauthClientSecret: process.env.QUADRANT_OAUTH2_CLIENT_SECRET ?? "",
-  quadrantApiKey: process.env.QUADRANT_API_KEY ?? "",
-  apiBaseUrl: process.env.QUADRANT_API_BASE_URL ?? "",
+  oauthClientId: normalizeRequiredConfigValue(
+    process.env.QUADRANT_OAUTH2_CLIENT_ID,
+  ),
+  oauthClientSecret: normalizeRequiredConfigValue(
+    process.env.QUADRANT_OAUTH2_CLIENT_SECRET,
+  ),
+  quadrantApiKey: normalizeRequiredConfigValue(process.env.QUADRANT_API_KEY),
+  apiBaseUrl: normalizeOptionalConfigValue(process.env.QUADRANT_API_BASE_URL),
 };
 
 mkdirSync(path.dirname(outputPath), { recursive: true });

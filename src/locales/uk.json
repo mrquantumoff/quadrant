@@ -40,7 +40,7 @@
   "mod": "Мод з {{source}}",
   "resourcepack": "Набір ресурсів з {{source}}",
   "shaderpack": "Шейдери з {{source}}",
-  "currentVersion": "Встановлена весрія - {{version}}, ця версія побудована на Tauri {{tauriVersion}}",
+  "currentVersion": "Встановлена весрія - {{version}}, працює на {{runtimeName}} {{runtimeVersion}}",
   "latestVersion": "Остання весрія - {{version}}",
   "openLatestRelease": "Відкрити останню версію",
   "openInTheWeb": "Відкрити в інтернеті",

@@ -5,8 +5,11 @@ edition = "2024"
 build = "build.rs"
 
 [features]
-default = ["curseforge"]
+default = ["proprietary"]
 curseforge = ["quadrant-host/curseforge"]
+telemetry = []
+quadrant_id = []
+proprietary = ["curseforge", "telemetry", "quadrant_id"]
 
 [lib]
 crate-type = ["cdylib"]

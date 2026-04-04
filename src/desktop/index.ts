@@ -98,6 +98,10 @@ export async function platform() {
   return withRuntime((runtime) => runtime.platform());
 }
 
+export async function getRuntimeName() {
+  return withRuntime((runtime) => runtime.getRuntimeName());
+}
+
 export async function getAppVersion() {
   return withRuntime((runtime) => runtime.getAppVersion());
 }

@@ -143,6 +143,9 @@ export const tauriRuntime: RuntimeAdapter = {
   async platform() {
     return tauriPlatform();
   },
+  async getRuntimeName() {
+    return "Tauri";
+  },
   async getAppVersion() {
     return getVersion();
   },

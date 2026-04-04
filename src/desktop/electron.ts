@@ -126,6 +126,9 @@ export const electronRuntime: RuntimeAdapter = {
   async platform() {
     return getBridge().platform();
   },
+  async getRuntimeName() {
+    return "Electron";
+  },
   async getAppVersion() {
     return getBridge().getAppVersion();
   },

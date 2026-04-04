@@ -46,6 +46,7 @@ export interface RuntimeAdapter {
   readClipboardText(): Promise<string>;
   writeClipboardText(text: string): Promise<void>;
   platform(): Promise<string>;
+  getRuntimeName(): Promise<string>;
   getAppVersion(): Promise<string>;
   getRuntimeVersion(): Promise<string>;
   requestCheckForUpdates(): Promise<void>;

@@ -87,6 +87,9 @@ export const browserRuntime: RuntimeAdapter = {
   async platform() {
     return "web";
   },
+  async getRuntimeName() {
+    return "Browser";
+  },
   async getAppVersion() {
     return "web";
   },
