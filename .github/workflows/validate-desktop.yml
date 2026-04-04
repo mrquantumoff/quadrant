@@ -11,6 +11,13 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-24.04
+    env:
+      # quadrant-core still uses compile-time env!() for these desktop-only
+      # credentials, so CI must provide placeholder values for every Rust build.
+      QUADRANT_API_KEY: dev
+      QUADRANT_OAUTH2_CLIENT_ID: dev
+      QUADRANT_OAUTH2_CLIENT_SECRET: dev
+      ETERNAL_API_TOKEN: dev
     steps:
       - uses: actions/checkout@v4
 
@@ -39,15 +46,7 @@ jobs:
         run: bun run build:napi
 
       - name: Build Electron shell
-        env:
-          QUADRANT_API_KEY: dev
-          QUADRANT_OAUTH2_CLIENT_ID: dev
-          QUADRANT_OAUTH2_CLIENT_SECRET: dev
         run: node scripts/build-electron.mjs
 
       - name: Build Tauri shell
-        env:
-          QUADRANT_API_KEY: dev
-          QUADRANT_OAUTH2_CLIENT_ID: dev
-          QUADRANT_OAUTH2_CLIENT_SECRET: dev
         run: bun tauri build --no-bundle
