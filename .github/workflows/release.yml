@@ -135,7 +135,9 @@ jobs:
 
   sync_flathub:
     name: Sync Flathub
-    needs: publish-tauri
+    needs:
+      - publish-tauri
+      - publish-electron
     if: endsWith(github.ref_name, '-stable') || endsWith(github.ref_name, '-flatpak')
     uses: ./.github/workflows/flatpak.yml
     secrets: inherit
