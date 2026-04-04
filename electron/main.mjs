@@ -9,7 +9,7 @@ import {
   nativeTheme,
   shell,
 } from "electron";
-import { autoUpdater } from "electron-updater";
+import electronUpdater from "electron-updater";
 import chokidar from "chokidar";
 import { createQuadrantClient } from "@quadrant/quadrant-node";
 import fs from "node:fs";
@@ -22,6 +22,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 const appId = "dev.mrquantumoff.mcmodpackmanager";
 const schemes = ["quadrantnext", "curseforge", "modrinth"];
+const { autoUpdater } = electronUpdater;
 
 app.setPath("userData", path.join(app.getPath("appData"), appId));
 
