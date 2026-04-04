@@ -149,6 +149,17 @@ function resolveTrayIconPath() {
   return fs.existsSync(trayIconPath) ? trayIconPath : resolveIconPath();
 }
 
+function normalizeDesktopPlatform(platform) {
+  switch (platform) {
+    case "win32":
+      return "windows";
+    case "darwin":
+      return "macos";
+    default:
+      return platform;
+  }
+}
+
 function storeFilePath(storeName) {
   return path.join(app.getPath("userData"), storeName);
 }
@@ -600,7 +611,9 @@ ipcMain.handle("quadrant:clipboard:write-text", async (_event, { text }) => {
   clipboard.writeText(text);
 });
 
-ipcMain.handle("quadrant:platform", async () => process.platform);
+ipcMain.handle("quadrant:platform", async () =>
+  normalizeDesktopPlatform(process.platform),
+);
 ipcMain.handle("quadrant:app-version", async () => quadrantAppVersion);
 ipcMain.handle(
   "quadrant:runtime-version",
