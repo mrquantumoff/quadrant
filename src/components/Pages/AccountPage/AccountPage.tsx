@@ -202,6 +202,7 @@ export default function AccountPage() {
                     });
                   } catch (error) {
                     console.error(error);
+                    setAccountInfo(null);
                     showLoginFailureWarning();
                   } finally {
                     await cancel(port);
