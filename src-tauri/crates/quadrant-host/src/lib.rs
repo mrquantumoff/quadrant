@@ -38,7 +38,7 @@ use quadrant_core::{
     ports::{EventSink, SecretStore, SettingsStore},
     telemetry::{AppInfo, get_telemetry_info, remove_telemetry, send_telemetry},
 };
-use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use serde::{Deserialize, Deserializer, Serialize, de::DeserializeOwned, de::Error as DeError};
 use serde_json::{Value, json};
 use tokio::{
     sync::{Mutex as AsyncMutex, broadcast},
@@ -1896,6 +1896,7 @@ struct ExportModpackArgs {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct SetModpackSyncDateArgs {
+    #[serde(deserialize_with = "deserialize_integral_u64")]
     time: u64,
     modpack: String,
     modpack_id: Option<String>,
@@ -2023,6 +2024,36 @@ struct AnswerInviteArgs {
 #[serde(rename_all = "camelCase")]
 struct ModpackNameArgs {
     modpack_name: String,
+}
+
+fn deserialize_integral_u64<'de, D>(deserializer: D) -> std::result::Result<u64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Value::deserialize(deserializer)?;
+    match value {
+        Value::Number(number) => {
+            if let Some(value) = number.as_u64() {
+                return Ok(value);
+            }
+            if let Some(value) = number.as_i64() {
+                return u64::try_from(value)
+                    .map_err(|_| D::Error::custom("integer is out of range for u64"));
+            }
+            if let Some(value) = number.as_f64()
+                && value.is_finite()
+                && value.fract() == 0.0
+                && value >= 0.0
+                && value <= u64::MAX as f64
+            {
+                return Ok(value as u64);
+            }
+            Err(D::Error::custom("expected an integer-valued number"))
+        }
+        other => Err(D::Error::custom(format!(
+            "expected a number for integer deserialization, got {other}"
+        ))),
+    }
 }
 
 #[derive(Deserialize)]

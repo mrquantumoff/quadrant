@@ -1,7 +1,8 @@
 //! Shared serialization-friendly data models used across core services.
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::Error as DeError};
+use serde_json::Value;
 use std::path::{Path, PathBuf};
 
 /// Source provider for a mod or downloadable file.
@@ -116,6 +117,7 @@ pub struct LocalModpack {
     /// Whether this modpack is currently applied as the active `mods` folder.
     pub is_applied: bool,
     /// Last successful sync time in milliseconds since the Unix epoch.
+    #[serde(deserialize_with = "deserialize_integral_i64")]
     pub last_synced: i64,
     /// Stable synced modpack identifier when this modpack is linked to Quadrant Sync.
     pub modpack_id: Option<String>,
@@ -154,6 +156,36 @@ impl From<(InstalledModpack, bool, i64)> for LocalModpack {
             modpack_id: None,
             unknown_mods: false,
         }
+    }
+}
+
+fn deserialize_integral_i64<'de, D>(deserializer: D) -> Result<i64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Value::deserialize(deserializer)?;
+    match value {
+        Value::Number(number) => {
+            if let Some(value) = number.as_i64() {
+                return Ok(value);
+            }
+            if let Some(value) = number.as_u64() {
+                return i64::try_from(value)
+                    .map_err(|_| D::Error::custom("integer is out of range for i64"));
+            }
+            if let Some(value) = number.as_f64()
+                && value.is_finite()
+                && value.fract() == 0.0
+                && value >= i64::MIN as f64
+                && value <= i64::MAX as f64
+            {
+                return Ok(value as i64);
+            }
+            Err(D::Error::custom("expected an integer-valued number"))
+        }
+        other => Err(D::Error::custom(format!(
+            "expected a number for integer deserialization, got {other}"
+        ))),
     }
 }
 
