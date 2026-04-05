@@ -24,8 +24,9 @@ Quadrant supports two desktop shells that share one renderer and one backend con
 
 ## Electron Backend
 
-- Shell entrypoint: `electron/main.mjs`
-- Preload bridge: `electron/preload.mjs`
+- Shell entrypoint source: `electron/main.ts`
+- Preload bridge source: `electron/preload.ts`
+- Built Electron shell output: `dist-electron-shell/*.js`
 - Renderer bridge: `src/desktop/electron.ts`
 - Backend implementation: `@quadrant/quadrant-node` -> `quadrant-napi` -> `quadrant-host`
 

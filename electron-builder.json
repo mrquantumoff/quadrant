@@ -6,13 +6,13 @@
   },
   "files": [
     "dist/**/*",
-    "electron/**/*",
+    "dist-electron-shell/**/*",
     "packages/quadrant-node/**/*",
     "public/tray.png",
     "package.json"
   ],
   "extraMetadata": {
-    "main": "electron/main.mjs"
+    "main": "dist-electron-shell/main.js"
   },
   "asar": true,
   "asarUnpack": ["packages/quadrant-node/native/**/*.node"],

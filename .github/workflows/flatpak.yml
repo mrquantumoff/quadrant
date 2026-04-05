@@ -45,7 +45,7 @@ jobs:
       METAINFO_PATH: dev.mrquantumoff.mcmodpackmanager.metainfo.xml
       GH_TOKEN: ${{ secrets.FLATHUB_GH_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ env.TAG }}
 

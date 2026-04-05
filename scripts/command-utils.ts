@@ -1,13 +1,19 @@
+/** @format */
+
+import { spawnSync, type SpawnSyncOptions } from "node:child_process";
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
 
-function formatCommand(command, args) {
+export interface RunCommandOptions extends SpawnSyncOptions {
+  notFoundMessage?: string;
+}
+
+function formatCommand(command: string, args: readonly string[]): string {
   return [command, ...args].join(" ");
 }
 
-export function resolveCargoCommand() {
+export function resolveCargoCommand(): string {
   if (process.env.CARGO?.trim()) {
     return process.env.CARGO.trim();
   }
@@ -25,12 +31,17 @@ export function resolveCargoCommand() {
   return "cargo";
 }
 
-export function runCommand(command, args, options = {}) {
+export function runCommand(
+  command: string,
+  args: string[],
+  options: RunCommandOptions = {},
+): ReturnType<typeof spawnSync> {
   const { notFoundMessage, ...spawnOptions } = options;
   const result = spawnSync(command, args, spawnOptions);
 
   if (result.error) {
-    if (result.error.code === "ENOENT") {
+    const error = result.error as NodeJS.ErrnoException;
+    if (error.code === "ENOENT") {
       throw new Error(
         notFoundMessage ??
           `Failed to run \`${formatCommand(command, args)}\`: command not found.`,
@@ -38,7 +49,7 @@ export function runCommand(command, args, options = {}) {
     }
 
     throw new Error(
-      `Failed to run \`${formatCommand(command, args)}\`: ${result.error.message}`,
+      `Failed to run \`${formatCommand(command, args)}\`: ${error.message}`,
     );
   }
 

@@ -1,17 +1,26 @@
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import http from "node:http";
 import path from "node:path";
-import chokidar from "chokidar";
+import { fileURLToPath } from "node:url";
+import chokidar, { type FSWatcher } from "chokidar";
 
-const rootDir = path.resolve(import.meta.dirname, "..");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.resolve(scriptDir, "..");
 const devUrl = "http://127.0.0.1:1420";
 const electronWatchGlobs = [
-  "electron/**/*",
+  "electron/**/*.ts",
   "package.json",
-  "packages/quadrant-node/**/*",
-  "scripts/build-napi.mjs",
-  "scripts/command-utils.mjs",
-  "scripts/write-electron-runtime-config.mjs",
+  "electron-builder.json",
+  "tsconfig.electron.json",
+  "tsconfig.scripts.json",
+  "scripts/build-napi.ts",
+  "scripts/build-electron.ts",
+  "scripts/command-utils.ts",
+  "scripts/dev-electron.ts",
+  "scripts/package-electron.ts",
+  "scripts/sync-quadrant-node-package.ts",
+  "scripts/quadrant-node/**/*",
+  "scripts/write-electron-runtime-config.ts",
   "src-tauri/Cargo.toml",
   "src-tauri/Cargo.lock",
   "src-tauri/crates/quadrant-napi/**/*",
@@ -19,7 +28,7 @@ const electronWatchGlobs = [
 const ignoredWatchGlobs = [
   "**/.DS_Store",
   "**/node_modules/**",
-  "electron/runtime-config.generated.json",
+  "dist-electron-shell/runtime-config.generated.json",
   "packages/quadrant-node/native/**",
   "src-tauri/target/**",
 ];
@@ -27,10 +36,14 @@ const ignoredWatchGlobs = [
 let isShuttingDown = false;
 let isRestartingElectron = false;
 let electronRestartQueued = false;
-let electronRestartTimer = null;
-let electronProcess = null;
+let electronRestartTimer: ReturnType<typeof setTimeout> | null = null;
+let electronProcess: ChildProcess | null = null;
 
-function spawnProcess(command, args, extraEnv = {}) {
+function spawnProcess(
+  command: string,
+  args: string[],
+  extraEnv: NodeJS.ProcessEnv = {},
+): ChildProcess {
   return spawn(command, args, {
     cwd: rootDir,
     stdio: "inherit",
@@ -42,14 +55,17 @@ function spawnProcess(command, args, extraEnv = {}) {
   });
 }
 
-function waitForChildProcess(childProcess, label) {
+function waitForChildProcess(
+  childProcess: ChildProcess,
+  label: string,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     childProcess.on("error", (error) => {
       reject(new Error(`Failed to start ${label}: ${error.message}`));
     });
     childProcess.on("exit", (code, signal) => {
       if (code === 0) {
-        resolve(undefined);
+        resolve();
         return;
       }
       if (signal) {
@@ -61,17 +77,17 @@ function waitForChildProcess(childProcess, label) {
   });
 }
 
-async function waitForUrl(url, timeoutMs = 120000) {
+async function waitForUrl(url: string, timeoutMs = 120_000): Promise<void> {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < timeoutMs) {
-    const isReady = await new Promise((resolve) => {
+    const isReady = await new Promise<boolean>((resolve) => {
       const request = http.get(url, (response) => {
         response.resume();
         resolve(response.statusCode !== undefined && response.statusCode < 500);
       });
       request.on("error", () => resolve(false));
-      request.setTimeout(2000, () => {
+      request.setTimeout(2_000, () => {
         request.destroy();
         resolve(false);
       });
@@ -81,34 +97,39 @@ async function waitForUrl(url, timeoutMs = 120000) {
       return;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
   }
 
   throw new Error(`Timed out waiting for ${url}`);
 }
 
-async function runPrepareStep(command, args, label) {
+async function runPrepareStep(
+  command: string,
+  args: string[],
+  label: string,
+): Promise<void> {
   const childProcess = spawnProcess(command, args);
   await waitForChildProcess(childProcess, label);
 }
 
-async function runElectronPrepareSteps() {
+async function runElectronPrepareSteps(): Promise<void> {
+  await runPrepareStep("bun", ["run", "build:electron-shell"], "build:electron-shell");
   await runPrepareStep(
-    "node",
-    ["scripts/write-electron-runtime-config.mjs"],
-    "scripts/write-electron-runtime-config.mjs",
+    "bun",
+    ["scripts/write-electron-runtime-config.ts"],
+    "scripts/write-electron-runtime-config.ts",
   );
   await runPrepareStep(
-    "node",
-    ["scripts/build-napi.mjs"],
-    "scripts/build-napi.mjs",
+    "bun",
+    ["scripts/build-napi.ts"],
+    "scripts/build-napi.ts",
   );
 }
 
-function launchElectron() {
+function launchElectron(): void {
   const nextElectronProcess = spawnProcess(
     "bunx",
-    ["electron", "electron/main.mjs"],
+    ["electron", "dist-electron-shell/main.js"],
     {
       QUADRANT_ELECTRON_DEV_SERVER_URL: devUrl,
     },
@@ -136,7 +157,7 @@ function launchElectron() {
   });
 }
 
-async function stopElectronProcess() {
+async function stopElectronProcess(): Promise<void> {
   if (!electronProcess || electronProcess.exitCode !== null) {
     electronProcess = null;
     return;
@@ -144,7 +165,7 @@ async function stopElectronProcess() {
 
   const runningElectronProcess = electronProcess;
 
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     let resolved = false;
 
     const finalize = () => {
@@ -153,14 +174,14 @@ async function stopElectronProcess() {
       }
       resolved = true;
       clearTimeout(forceKillTimeout);
-      resolve(undefined);
+      resolve();
     };
 
     const forceKillTimeout = setTimeout(() => {
       if (!runningElectronProcess.killed) {
         runningElectronProcess.kill("SIGKILL");
       }
-    }, 10000);
+    }, 10_000);
 
     runningElectronProcess.once("exit", finalize);
     runningElectronProcess.kill("SIGTERM");
@@ -171,7 +192,7 @@ async function stopElectronProcess() {
   }
 }
 
-async function restartElectron(reason) {
+async function restartElectron(reason: string): Promise<void> {
   if (isShuttingDown) {
     return;
   }
@@ -194,16 +215,16 @@ async function restartElectron(reason) {
         launchElectron();
       }
     } catch (error) {
-      console.error(
-        `[dev:electron] Failed to restart Electron: ${error.message}`,
-      );
+      const message =
+        error instanceof Error ? error.message : `Unknown error: ${String(error)}`;
+      console.error(`[dev:electron] Failed to restart Electron: ${message}`);
     }
   } while (electronRestartQueued && !isShuttingDown);
 
   isRestartingElectron = false;
 }
 
-function scheduleElectronRestart(reason) {
+function scheduleElectronRestart(reason: string): void {
   if (isShuttingDown) {
     return;
   }
@@ -215,9 +236,9 @@ function scheduleElectronRestart(reason) {
   electronRestartTimer = setTimeout(() => {
     electronRestartTimer = null;
     restartElectron(reason).catch((error) => {
-      console.error(
-        `[dev:electron] Unexpected restart failure: ${error.message}`,
-      );
+      const message =
+        error instanceof Error ? error.message : `Unknown error: ${String(error)}`;
+      console.error(`[dev:electron] Unexpected restart failure: ${message}`);
     });
   }, 250);
 }
@@ -230,7 +251,7 @@ const viteProcess = spawnProcess("bun", [
   "127.0.0.1",
 ]);
 
-const electronWatcher = chokidar.watch(electronWatchGlobs, {
+const electronWatcher: FSWatcher = chokidar.watch(electronWatchGlobs, {
   cwd: rootDir,
   ignoreInitial: true,
   ignored: ignoredWatchGlobs,
@@ -240,7 +261,7 @@ electronWatcher.on("all", (eventName, filePath) => {
   scheduleElectronRestart(`${eventName} ${filePath}`);
 });
 
-const cleanup = async () => {
+const cleanup = async (): Promise<void> => {
   if (isShuttingDown) {
     return;
   }
@@ -252,10 +273,7 @@ const cleanup = async () => {
     electronRestartTimer = null;
   }
 
-  await Promise.allSettled([
-    electronWatcher.close(),
-    stopElectronProcess(),
-  ]);
+  await Promise.allSettled([electronWatcher.close(), stopElectronProcess()]);
 
   if (viteProcess.exitCode === null) {
     viteProcess.kill("SIGTERM");

@@ -11,7 +11,36 @@ on:
 # This workflow will trigger on each push to the `release` branch to create or update a GitHub release, build your app, and upload the artifacts to the release.
 
 jobs:
+  ensure-release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Ensure GitHub release exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          if gh release view "$TAG_NAME" --repo "$REPO" >/dev/null 2>&1; then
+            exit 0
+          fi
+
+          version="${TAG_NAME#v}"
+          prerelease_flag=()
+          if [[ "$TAG_NAME" != *stable ]]; then
+            prerelease_flag+=(--prerelease)
+          fi
+
+          gh release create "$TAG_NAME" \
+            --repo "$REPO" \
+            --title "Quadrant v${version}" \
+            --notes "See the assets to download this version and install. Check out the [changelog on my blog](https://blog.mrquantumoff.dev)" \
+            "${prerelease_flag[@]}"
+
   publish-tauri:
+    needs: ensure-release
     permissions:
       contents: write
     strategy:
@@ -32,7 +61,7 @@ jobs:
       assets: ${{steps.tauri.outputs.releaseUploadUrl}}
       version: ${{steps.tauri.outputs.appVersion}}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
@@ -74,6 +103,7 @@ jobs:
           tagName: ${{github.ref_name}}
 
   publish-electron:
+    needs: ensure-release
     permissions:
       contents: write
     strategy:
@@ -94,7 +124,7 @@ jobs:
             arch: "arm64"
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
@@ -106,7 +136,7 @@ jobs:
         if: matrix.os == 'linux'
         run: |
           sudo apt update
-          sudo apt install -y libsecret-1-dev libarchive-tools rpm
+          sudo apt install -y xdg-utils libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev pkg-config libsecret-1-dev libarchive-tools rpm 
 
       - name: install frontend dependencies (bun)
         run: bun install
@@ -128,16 +158,64 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
         shell: bash
         run: |
-          mapfile -d '' files < <(find dist-electron -maxdepth 1 -type f -print0)
-          gh release upload "$TAG_NAME" "${files[@]}" --clobber
+          mapfile -d '' files < <(
+            if [[ "${{ matrix.os }}" == "windows" ]]; then
+              find dist-electron -maxdepth 1 -type f -not -name 'latest.yml' -print0
+            else
+              find dist-electron -maxdepth 1 -type f -print0
+            fi
+          )
+          gh release upload "$TAG_NAME" "${files[@]}" --clobber --repo "$REPO"
+
+      - name: Upload Windows Electron update metadata
+        if: matrix.os == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-windows-${{ matrix.arch }}-latest-yml
+          path: dist-electron/latest.yml
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-electron-windows-metadata:
+    needs: publish-electron
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download Windows x64 update metadata
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-windows-x64-latest-yml
+          path: artifacts/windows-x64
+
+      - name: Download Windows arm64 update metadata
+        uses: actions/download-artifact@v4
+        with:
+          name: electron-windows-arm64-latest-yml
+          path: artifacts/windows-arm64
+
+      - name: Merge Windows Electron update metadata
+        run: |
+          python3 scripts/merge-electron-latest-yml.py \
+            --base artifacts/windows-x64/latest.yml \
+            --extra artifacts/windows-arm64/latest.yml \
+            --output artifacts/windows/latest.yml
+
+      - name: Upload merged Windows latest.yml to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: gh release upload "$TAG_NAME" artifacts/windows/latest.yml --clobber --repo "$REPO"
 
   sync_flathub:
     name: Sync Flathub
-    needs:
-      - publish-tauri
-      - publish-electron
+    needs: publish-electron-windows-metadata
     if: endsWith(github.ref_name, '-stable') || endsWith(github.ref_name, '-flatpak')
     uses: ./.github/workflows/flatpak.yml
     secrets: inherit

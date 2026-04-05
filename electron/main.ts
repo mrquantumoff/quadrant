@@ -1,6 +1,28 @@
-/** @format */
+/**
+ * eslint-disable no-undef
+ *
+ * @format
+ */
 
+import electron, {
+	type BrowserWindow as BrowserWindowType,
+	type OpenDialogOptions,
+	type Tray as TrayType,
+} from "electron";
+import chokidar, { type FSWatcher } from "chokidar";
+import electronUpdater from "electron-updater";
 import {
+	createQuadrantClient,
+	type QuadrantClient,
+} from "@quadrant/quadrant-node";
+import fs from "node:fs";
+import fsPromises from "node:fs/promises";
+import http from "node:http";
+import { randomUUID } from "node:crypto";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const {
 	app,
 	BrowserWindow,
 	Menu,
@@ -10,25 +32,57 @@ import {
 	ipcMain,
 	nativeTheme,
 	shell,
-} from "electron";
-import electronUpdater from "electron-updater";
-import chokidar from "chokidar";
-import { createQuadrantClient } from "@quadrant/quadrant-node";
-import fs from "node:fs";
-import fsPromises from "node:fs/promises";
-import http from "node:http";
-import { randomUUID } from "node:crypto";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+} = electron;
+const { autoUpdater } = electronUpdater;
+
+interface RuntimeConfig {
+	oauthClientId: string;
+	oauthClientSecret: string;
+	quadrantApiKey: string;
+	apiBaseUrl: string | null;
+}
+
+type RuntimeConfigFile = Partial<RuntimeConfig>;
+
+interface StoreData {
+	[key: string]: unknown;
+}
+
+interface FsWatchOptions {
+	delayMs?: number;
+}
+
+interface DesktopDialogOptions {
+	mode?: "open" | "save";
+	multiple?: boolean;
+	directory?: boolean;
+	recursive?: boolean;
+	title?: string;
+	defaultPath?: string;
+}
+
+interface WindowProgressState {
+	progress: number;
+	status?: "none" | "normal" | "error" | "paused" | "indeterminate";
+}
+
+interface OAuthStartOptions {
+	response?: string;
+	ports?: number[];
+}
+
+interface BackendEventEnvelope<T = unknown> {
+	event: string;
+	payload: T;
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, "..");
 const appId = "dev.mrquantumoff.mcmodpackmanager";
 const schemes = ["quadrantnext", "curseforge", "modrinth"];
-const { autoUpdater } = electronUpdater;
 const packageMetadata = JSON.parse(
 	fs.readFileSync(path.join(rootDir, "package.json"), "utf8"),
-);
+) as { version?: unknown };
 const quadrantAppVersion =
 	(
 		typeof packageMetadata.version === "string" &&
@@ -44,31 +98,32 @@ const isAutostart = argv.includes("--autostart");
 const updaterDisabledByCli = argv.includes("--noupdater");
 const devServerUrl = process.env.QUADRANT_ELECTRON_DEV_SERVER_URL;
 
-let mainWindow = null;
-let tray = null;
-let quadrantClient = null;
+let mainWindow: BrowserWindowType | null = null;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let tray: TrayType | null = null;
+let quadrantClient: QuadrantClient | null = null;
 let updaterConfigured = false;
 let updateDownloaded = false;
-const storeCache = new Map();
-const storeWriteQueues = new Map();
-const watchRegistry = new Map();
-const oauthServers = new Map();
-const pendingDeepLinks = [];
+const storeCache = new Map<string, StoreData>();
+const storeWriteQueues = new Map<string, Promise<unknown>>();
+const watchRegistry = new Map<string, FSWatcher>();
+const oauthServers = new Map<number, http.Server>();
+const pendingDeepLinks: string[] = [];
 let openUrlRendererReady = false;
 
-function broadcast(channel, payload) {
+function broadcast(channel: string, payload: unknown): void {
 	for (const window of BrowserWindow.getAllWindows()) {
 		window.webContents.send(channel, payload);
 	}
 }
 
-function parseDeepLinkUrls(values) {
+function parseDeepLinkUrls(values: string[]): string[] {
 	return values.filter((value) =>
 		schemes.some((scheme) => value.startsWith(`${scheme}:`)),
 	);
 }
 
-function flushPendingDeepLinks() {
+function flushPendingDeepLinks(): void {
 	if (!mainWindow || !openUrlRendererReady || pendingDeepLinks.length === 0) {
 		return;
 	}
@@ -76,10 +131,9 @@ function flushPendingDeepLinks() {
 	mainWindow.webContents.send("quadrant:open-url", urls);
 }
 
-function loadGeneratedRuntimeConfig() {
+function loadGeneratedRuntimeConfig(): RuntimeConfigFile {
 	const runtimeConfigPath = path.join(
-		rootDir,
-		"electron",
+		__dirname,
 		"runtime-config.generated.json",
 	);
 
@@ -87,19 +141,21 @@ function loadGeneratedRuntimeConfig() {
 		return {};
 	}
 
-	return JSON.parse(fs.readFileSync(runtimeConfigPath, "utf8"));
+	return JSON.parse(
+		fs.readFileSync(runtimeConfigPath, "utf8"),
+	) as RuntimeConfigFile;
 }
 
-function normalizeOptionalConfigValue(value) {
+function normalizeOptionalConfigValue(value: unknown): string | null {
 	if (typeof value !== "string") {
-		return value ?? null;
+		return value == null ? null : String(value);
 	}
 
 	const trimmed = value.trim();
 	return trimmed.length > 0 ? trimmed : null;
 }
 
-function normalizeRequiredConfigValue(value) {
+function normalizeRequiredConfigValue(value: unknown): string {
 	if (typeof value !== "string") {
 		return "";
 	}
@@ -107,7 +163,7 @@ function normalizeRequiredConfigValue(value) {
 	return value.trim();
 }
 
-function getRuntimeConfig() {
+function getRuntimeConfig(): RuntimeConfig {
 	const generated = loadGeneratedRuntimeConfig();
 	return {
 		oauthClientId: normalizeRequiredConfigValue(
@@ -125,7 +181,7 @@ function getRuntimeConfig() {
 	};
 }
 
-function ensureRuntimeSecrets(config) {
+function ensureRuntimeSecrets(config: RuntimeConfig): void {
 	if (
 		!config.oauthClientId ||
 		!config.oauthClientSecret ||
@@ -137,23 +193,23 @@ function ensureRuntimeSecrets(config) {
 	}
 }
 
-function getWindow() {
+function getWindow(): BrowserWindowType {
 	if (!mainWindow) {
 		throw new Error("Main window is not ready");
 	}
 	return mainWindow;
 }
 
-function resolveIconPath() {
+function resolveIconPath(): string {
 	return path.join(rootDir, "src-tauri", "icons", "128x128.png");
 }
 
-function resolveTrayIconPath() {
+function resolveTrayIconPath(): string {
 	const trayIconPath = path.join(rootDir, "public", "tray.png");
 	return fs.existsSync(trayIconPath) ? trayIconPath : resolveIconPath();
 }
 
-function normalizeDesktopPlatform(platform) {
+function normalizeDesktopPlatform(platform: NodeJS.Platform): string {
 	switch (platform) {
 		case "win32":
 			return "windows";
@@ -164,22 +220,24 @@ function normalizeDesktopPlatform(platform) {
 	}
 }
 
-function storeFilePath(storeName) {
+function storeFilePath(storeName: string): string {
 	return path.join(app.getPath("userData"), storeName);
 }
 
-async function readStore(storeName) {
+async function readStore(storeName: string): Promise<StoreData> {
 	const filePath = storeFilePath(storeName);
 	await fsPromises.mkdir(path.dirname(filePath), { recursive: true });
 
-	let data = {};
+	let data: StoreData = {};
 	if (fs.existsSync(filePath)) {
 		try {
-			data = JSON.parse(await fsPromises.readFile(filePath, "utf8"));
+			data = JSON.parse(
+				await fsPromises.readFile(filePath, "utf8"),
+			) as StoreData;
 		} catch (error) {
 			if (storeCache.has(storeName)) {
 				console.warn(`Failed to parse ${filePath}, using cached copy`, error);
-				return storeCache.get(storeName);
+				return storeCache.get(storeName) ?? {};
 			}
 			console.warn(`Failed to parse ${filePath}`, error);
 		}
@@ -189,13 +247,19 @@ async function readStore(storeName) {
 	return data;
 }
 
-async function writeStoreFile(filePath, data) {
+async function writeStoreFile(
+	filePath: string,
+	data: StoreData,
+): Promise<void> {
 	const tempPath = `${filePath}.${randomUUID()}.tmp`;
 	await fsPromises.writeFile(tempPath, JSON.stringify(data, null, 2));
 	await fsPromises.rename(tempPath, filePath);
 }
 
-async function saveStore(storeName, dataOverride) {
+async function saveStore(
+	storeName: string,
+	dataOverride?: StoreData,
+): Promise<void> {
 	const data =
 		dataOverride ?? storeCache.get(storeName) ?? (await readStore(storeName));
 	const filePath = storeFilePath(storeName);
@@ -203,9 +267,12 @@ async function saveStore(storeName, dataOverride) {
 	await writeStoreFile(filePath, data);
 }
 
-function queueStoreWrite(storeName, operation) {
+function queueStoreWrite<T>(
+	storeName: string,
+	operation: () => Promise<T>,
+): Promise<T> {
 	const previous = storeWriteQueues.get(storeName) ?? Promise.resolve();
-	const next = previous.catch(() => {}).then(operation);
+	const next = previous.catch(() => undefined).then(operation);
 	storeWriteQueues.set(storeName, next);
 	return next.finally(() => {
 		if (storeWriteQueues.get(storeName) === next) {
@@ -214,7 +281,11 @@ function queueStoreWrite(storeName, operation) {
 	});
 }
 
-async function setStoreValue(storeName, key, value) {
+async function setStoreValue(
+	storeName: string,
+	key: string,
+	value: unknown,
+): Promise<void> {
 	await queueStoreWrite(storeName, async () => {
 		const data = await readStore(storeName);
 		data[key] = value;
@@ -224,7 +295,7 @@ async function setStoreValue(storeName, key, value) {
 	broadcast("quadrant:store:changed", { storeName, key, value });
 }
 
-function queueDeepLinks(urls) {
+function queueDeepLinks(urls: string[]): void {
 	if (urls.length === 0) {
 		return;
 	}
@@ -234,13 +305,11 @@ function queueDeepLinks(urls) {
 	}
 }
 
-async function createQuadrantHostClient() {
+async function createQuadrantHostClient(): Promise<QuadrantClient> {
 	if (quadrantClient) {
 		return quadrantClient;
 	}
 
-	// Electron talks to the same QuadrantHost backend contract as Tauri, but it
-	// instantiates it through the N-API addon instead of Rust invoke handlers.
 	const runtimeConfig = getRuntimeConfig();
 	ensureRuntimeSecrets(runtimeConfig);
 
@@ -275,9 +344,10 @@ async function createQuadrantHostClient() {
 	return quadrantClient;
 }
 
-async function configureUpdater() {
+async function configureUpdater(): Promise<void> {
 	const updateStore = await readStore("updateConfig.json");
-	const channel = updateStore.channel ?? "stable";
+	const channel =
+		typeof updateStore.channel === "string" ? updateStore.channel : "stable";
 	autoUpdater.allowPrerelease = channel !== "stable";
 
 	if (updaterConfigured) {
@@ -292,7 +362,7 @@ async function configureUpdater() {
 		broadcast("quadrant:backend-event", {
 			event: "updateDownloadProgress",
 			payload: progress.percent / 100,
-		});
+		} satisfies BackendEventEnvelope<number>);
 	});
 
 	autoUpdater.on("update-downloaded", () => {
@@ -300,7 +370,7 @@ async function configureUpdater() {
 		broadcast("quadrant:backend-event", {
 			event: "updateDownloadProgress",
 			payload: 1,
-		});
+		} satisfies BackendEventEnvelope<number>);
 	});
 
 	autoUpdater.on("update-not-available", () => {
@@ -308,11 +378,11 @@ async function configureUpdater() {
 	});
 }
 
-function isAutoupdateEnabled() {
+function isAutoupdateEnabled(): boolean {
 	return app.isPackaged && !updaterDisabledByCli;
 }
 
-async function requestCheckForUpdates() {
+async function requestCheckForUpdates(): Promise<void> {
 	if (!isAutoupdateEnabled()) {
 		return;
 	}
@@ -321,7 +391,7 @@ async function requestCheckForUpdates() {
 	await autoUpdater.checkForUpdates();
 }
 
-function createMainWindow() {
+function createMainWindow(): BrowserWindowType {
 	openUrlRendererReady = false;
 	nativeTheme.themeSource = "dark";
 
@@ -336,7 +406,7 @@ function createMainWindow() {
 		backgroundColor: "#020617",
 		icon: resolveIconPath(),
 		webPreferences: {
-			preload: path.join(__dirname, "preload.mjs"),
+			preload: path.join(__dirname, "preload.js"),
 			contextIsolation: true,
 			nodeIntegration: false,
 			sandbox: false,
@@ -365,16 +435,16 @@ function createMainWindow() {
 	});
 
 	if (devServerUrl) {
-		window.loadURL(devServerUrl);
+		void window.loadURL(devServerUrl);
 		window.webContents.openDevTools({ mode: "detach" });
 	} else {
-		window.loadFile(path.join(rootDir, "dist", "index.html"));
+		void window.loadFile(path.join(rootDir, "dist", "index.html"));
 	}
 
 	return window;
 }
 
-function showMainWindow() {
+function showMainWindow(): void {
 	if (!mainWindow) {
 		return;
 	}
@@ -385,7 +455,7 @@ function showMainWindow() {
 	}
 }
 
-function toggleMainWindowVisibility() {
+function toggleMainWindowVisibility(): void {
 	if (!mainWindow) {
 		return;
 	}
@@ -397,7 +467,7 @@ function toggleMainWindowVisibility() {
 	}
 }
 
-function createTray() {
+function createTray(): TrayType {
 	const nextTray = new Tray(resolveTrayIconPath());
 	const menu = Menu.buildFromTemplate([
 		{
@@ -423,12 +493,12 @@ function createTray() {
 	return nextTray;
 }
 
-function registerProtocolHandlers() {
+function registerProtocolHandlers(): void {
 	for (const scheme of schemes) {
 		if (process.defaultApp) {
 			if (process.argv.length >= 2) {
 				app.setAsDefaultProtocolClient(scheme, process.execPath, [
-					path.resolve(process.argv[1]),
+					path.resolve(process.argv[1] ?? ""),
 				]);
 			}
 			continue;
@@ -496,101 +566,131 @@ app.on("before-quit", async () => {
 	}
 });
 
-ipcMain.handle("quadrant:invoke", async (_event, { command, payload }) => {
-	const client = await createQuadrantHostClient();
-	return client.invoke(command, payload ?? null);
-});
-
-ipcMain.handle("quadrant:store:get", async (_event, { storeName, key }) => {
-	const store = await readStore(storeName);
-	return store[key];
-});
-
 ipcMain.handle(
-	"quadrant:store:set",
-	async (_event, { storeName, key, value }) => {
-		await setStoreValue(storeName, key, value);
+	"quadrant:invoke",
+	async (_event, payload: { command: string; payload?: unknown }) => {
+		const client = await createQuadrantHostClient();
+		return client.invoke(payload.command, payload.payload ?? null);
 	},
 );
 
-ipcMain.handle("quadrant:store:save", async (_event, { storeName }) => {
-	await queueStoreWrite(storeName, async () => {
-		await saveStore(storeName);
-	});
-});
+ipcMain.handle(
+	"quadrant:store:get",
+	async (_event, payload: { storeName: string; key: string }) => {
+		const store = await readStore(payload.storeName);
+		return store[payload.key];
+	},
+);
+
+ipcMain.handle(
+	"quadrant:store:set",
+	async (
+		_event,
+		payload: { storeName: string; key: string; value: unknown },
+	) => {
+		await setStoreValue(payload.storeName, payload.key, payload.value);
+	},
+);
+
+ipcMain.handle(
+	"quadrant:store:save",
+	async (_event, payload: { storeName: string }) => {
+		await queueStoreWrite(payload.storeName, async () => {
+			await saveStore(payload.storeName);
+		});
+	},
+);
 
 ipcMain.handle(
 	"quadrant:fs-watch:start",
-	async (event, { watchId, targetPath, options }) => {
-		const watcher = chokidar.watch(targetPath, {
+	async (
+		event,
+		payload: { watchId: string; targetPath: string; options?: FsWatchOptions },
+	) => {
+		const watcher = chokidar.watch(payload.targetPath, {
 			ignoreInitial: true,
 			awaitWriteFinish:
-				options?.delayMs ?
+				payload.options?.delayMs ?
 					{
-						stabilityThreshold: options.delayMs,
-						pollInterval: Math.max(50, Math.floor(options.delayMs / 2)),
+						stabilityThreshold: payload.options.delayMs,
+						pollInterval: Math.max(50, Math.floor(payload.options.delayMs / 2)),
 					}
 				:	false,
 		});
 		const sendChange = () => {
-			event.sender.send("quadrant:fs-watch:event", { watchId });
+			event.sender.send("quadrant:fs-watch:event", {
+				watchId: payload.watchId,
+			});
 		};
 		watcher.on("add", sendChange);
 		watcher.on("change", sendChange);
 		watcher.on("unlink", sendChange);
 		watcher.on("addDir", sendChange);
 		watcher.on("unlinkDir", sendChange);
-		watchRegistry.set(watchId, watcher);
+		watchRegistry.set(payload.watchId, watcher);
 	},
 );
 
-ipcMain.handle("quadrant:fs-watch:stop", async (_event, { watchId }) => {
-	const watcher = watchRegistry.get(watchId);
-	if (watcher) {
-		await watcher.close();
-		watchRegistry.delete(watchId);
-	}
-});
+ipcMain.handle(
+	"quadrant:fs-watch:stop",
+	async (_event, payload: { watchId: string }) => {
+		const watcher = watchRegistry.get(payload.watchId);
+		if (watcher) {
+			await watcher.close();
+			watchRegistry.delete(payload.watchId);
+		}
+	},
+);
 
-ipcMain.handle("quadrant:path:join", async (_event, { segments }) => {
-	return path.join(...segments);
-});
+ipcMain.handle(
+	"quadrant:path:join",
+	async (_event, payload: { segments: string[] }) =>
+		path.join(...payload.segments),
+);
 
-ipcMain.handle("quadrant:dialog:open", async (_event, { options }) => {
-	if (options?.mode === "save") {
-		const result = await dialog.showSaveDialog(getWindow(), {
+ipcMain.handle(
+	"quadrant:dialog:open",
+	async (_event, payload: { options?: DesktopDialogOptions }) => {
+		const { options } = payload;
+
+		if (options?.mode === "save") {
+			const result = await dialog.showSaveDialog(getWindow(), {
+				title: options.title,
+				defaultPath: options.defaultPath,
+			});
+
+			if (result.canceled) {
+				return null;
+			}
+
+			return result.filePath ?? null;
+		}
+
+		const properties: OpenDialogOptions["properties"] = [
+			options?.directory ? "openDirectory" : "openFile",
+			...(options?.multiple ? (["multiSelections"] as const) : []),
+			...(options?.directory && options?.recursive ?
+				(["createDirectory"] as const)
+			:	[]),
+		];
+
+		const result = await dialog.showOpenDialog(getWindow(), {
 			title: options?.title,
+			properties,
 			defaultPath: options?.defaultPath,
-			showOverwriteConfirmation: true,
 		});
 
 		if (result.canceled) {
 			return null;
 		}
 
-		return result.filePath ?? null;
-	}
+		if (options?.multiple) {
+			return result.filePaths;
+		}
 
-	const result = await dialog.showOpenDialog(getWindow(), {
-		title: options?.title,
-		properties: [
-			options?.directory ? "openDirectory" : "openFile",
-			...(options?.multiple ? ["multiSelections"] : []),
-			...(options?.directory && options?.recursive ? ["createDirectory"] : []),
-		],
-		defaultPath: options?.defaultPath,
-	});
-
-	if (result.canceled) {
-		return null;
-	}
-
-	if (options?.multiple) {
-		return result.filePaths;
-	}
-
-	return result.filePaths[0] ?? null;
-});
+		return result.filePaths[0] ?? null;
+	},
+);
 
 ipcMain.handle("quadrant:open-url:listener-ready", (event) => {
 	if (mainWindow && event.sender.id === mainWindow.webContents.id) {
@@ -599,23 +699,32 @@ ipcMain.handle("quadrant:open-url:listener-ready", (event) => {
 	}
 });
 
-ipcMain.handle("quadrant:shell:open-external", async (_event, { url }) => {
-	await shell.openExternal(url);
-});
+ipcMain.handle(
+	"quadrant:shell:open-external",
+	async (_event, payload: { url: string }) => {
+		await shell.openExternal(payload.url);
+	},
+);
 
-ipcMain.handle("quadrant:shell:open-path", async (_event, { targetPath }) => {
-	const errorMessage = await shell.openPath(targetPath);
-	if (errorMessage) {
-		throw new Error(errorMessage);
-	}
-});
+ipcMain.handle(
+	"quadrant:shell:open-path",
+	async (_event, payload: { targetPath: string }) => {
+		const errorMessage = await shell.openPath(payload.targetPath);
+		if (errorMessage) {
+			throw new Error(errorMessage);
+		}
+	},
+);
 
 ipcMain.handle("quadrant:clipboard:read-text", async () =>
 	clipboard.readText(),
 );
-ipcMain.handle("quadrant:clipboard:write-text", async (_event, { text }) => {
-	clipboard.writeText(text);
-});
+ipcMain.handle(
+	"quadrant:clipboard:write-text",
+	async (_event, payload: { text: string }) => {
+		clipboard.writeText(payload.text);
+	},
+);
 
 ipcMain.handle("quadrant:platform", async () =>
 	normalizeDesktopPlatform(process.platform),
@@ -649,9 +758,12 @@ ipcMain.handle("quadrant:window:hide", async () => {
 	getWindow().hide();
 });
 
-ipcMain.handle("quadrant:window:set-enabled", async (_event, { enabled }) => {
-	getWindow().setEnabled(enabled);
-});
+ipcMain.handle(
+	"quadrant:window:set-enabled",
+	async (_event, payload: { enabled: boolean }) => {
+		getWindow().setEnabled(payload.enabled);
+	},
+);
 
 ipcMain.handle("quadrant:window:set-focus", async () => {
 	getWindow().focus();
@@ -666,61 +778,74 @@ ipcMain.handle("quadrant:window:unminimize", async () => {
 
 ipcMain.handle(
 	"quadrant:window:set-progress-bar",
-	async (_event, { state }) => {
+	async (_event, payload: { state: WindowProgressState }) => {
 		const window = getWindow();
 		const normalizedProgress =
-			typeof state.progress === "number" && state.progress <= 1 ?
-				state.progress
-			:	state.progress / 100;
-		const progress = state.status === "none" ? -1 : normalizedProgress;
+			(
+				typeof payload.state.progress === "number" &&
+				payload.state.progress <= 1
+			) ?
+				payload.state.progress
+			:	payload.state.progress / 100;
+		const progress = payload.state.status === "none" ? -1 : normalizedProgress;
 		window.setProgressBar(progress);
 	},
 );
 
-ipcMain.handle("quadrant:oauth:start", async (_event, { options }) => {
-	const responseHtml =
-		options?.response ??
-		"<html><body><h1>You can return to Quadrant now.</h1></body></html>";
-	const ports = options?.ports ?? [4000, 4001, 4002, 4003, 4004, 4005];
+ipcMain.handle(
+	"quadrant:oauth:start",
+	async (_event, payload: { options?: OAuthStartOptions }) => {
+		const responseHtml =
+			payload.options?.response ??
+			"<html><body><h1>You can return to Quadrant now.</h1></body></html>";
+		const ports = payload.options?.ports ?? [
+			4000, 4001, 4002, 4003, 4004, 4005,
+		];
 
-	for (const port of ports) {
-		try {
-			const server = http.createServer((request, response) => {
-				const url = `http://127.0.0.1:${port}${request.url ?? "/"}`;
-				broadcast("quadrant:oauth:url", url);
-				response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-				response.end(responseHtml);
-			});
+		for (const port of ports) {
+			try {
+				const server = http.createServer((request, response) => {
+					const url = `http://127.0.0.1:${port}${request.url ?? "/"}`;
+					broadcast("quadrant:oauth:url", url);
+					response.writeHead(200, {
+						"Content-Type": "text/html; charset=utf-8",
+					});
+					response.end(responseHtml);
+				});
 
-			await new Promise((resolve, reject) => {
-				server.once("error", reject);
-				server.listen(port, "127.0.0.1", () => resolve(undefined));
-			});
+				await new Promise<void>((resolve, reject) => {
+					server.once("error", reject);
+					server.listen(port, "127.0.0.1", () => resolve());
+				});
 
-			oauthServers.set(port, server);
-			return port;
-		} catch (error) {
-			console.warn(`Failed to bind OAuth server on ${port}`, error);
-		}
-	}
-
-	throw new Error("No available OAuth callback port");
-});
-
-ipcMain.handle("quadrant:oauth:cancel", async (_event, { port }) => {
-	const server = oauthServers.get(port);
-	if (!server) {
-		return;
-	}
-
-	await new Promise((resolve, reject) => {
-		server.close((error) => {
-			if (error) {
-				reject(error);
-				return;
+				oauthServers.set(port, server);
+				return port;
+			} catch (error) {
+				console.warn(`Failed to bind OAuth server on ${port}`, error);
 			}
-			resolve(undefined);
+		}
+
+		throw new Error("No available OAuth callback port");
+	},
+);
+
+ipcMain.handle(
+	"quadrant:oauth:cancel",
+	async (_event, payload: { port: number }) => {
+		const server = oauthServers.get(payload.port);
+		if (!server) {
+			return;
+		}
+
+		await new Promise<void>((resolve, reject) => {
+			server.close((error) => {
+				if (error) {
+					reject(error);
+					return;
+				}
+				resolve();
+			});
 		});
-	});
-	oauthServers.delete(port);
-});
+		oauthServers.delete(payload.port);
+	},
+);
