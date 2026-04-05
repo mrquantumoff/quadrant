@@ -11,7 +11,34 @@ on:
 # This workflow will trigger on each push to the `release` branch to create or update a GitHub release, build your app, and upload the artifacts to the release.
 
 jobs:
+  ensure-release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Ensure GitHub release exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            exit 0
+          fi
+
+          version="${TAG_NAME#v}"
+          prerelease_flag=()
+          if [[ "$TAG_NAME" != *stable ]]; then
+            prerelease_flag+=(--prerelease)
+          fi
+
+          gh release create "$TAG_NAME" \
+            --title "Quadrant v${version}" \
+            --notes "See the assets to download this version and install. Check out the [changelog on my blog](https://blog.mrquantumoff.dev)" \
+            "${prerelease_flag[@]}"
+
   publish-tauri:
+    needs: ensure-release
     permissions:
       contents: write
     strategy:
@@ -74,6 +101,7 @@ jobs:
           tagName: ${{github.ref_name}}
 
   publish-electron:
+    needs: ensure-release
     permissions:
       contents: write
     strategy:
