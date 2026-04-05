@@ -1,7 +1,7 @@
 {
   "name": "quadrant-next",
   "private": true,
-  "version": "26.4.1-preview.1",
+  "version": "26.4.1-preview.2",
   "type": "module",
   "description": "An easy way to manage your Minecraft mods and modpacks.",
   "author": "Demir Yerli <me@mrquantumoff.dev>",
