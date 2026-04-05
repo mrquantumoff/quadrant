@@ -8,9 +8,10 @@ const devUrl = "http://127.0.0.1:1420";
 const electronWatchGlobs = [
   "electron/**/*",
   "package.json",
-  "packages/quadrant-node/**/*",
   "scripts/build-napi.mjs",
   "scripts/command-utils.mjs",
+  "scripts/sync-quadrant-node-package.mjs",
+  "scripts/quadrant-node/**/*",
   "scripts/write-electron-runtime-config.mjs",
   "src-tauri/Cargo.toml",
   "src-tauri/Cargo.lock",

@@ -41,4 +41,6 @@ target/
 AppxContent
 AppxBundles
 electron/runtime-config.generated.json
+packages/quadrant-node/index.js
+packages/quadrant-node/index.d.ts
 packages/quadrant-node/native/

@@ -1,6 +1,7 @@
 import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { resolveCargoCommand, runCommand } from "./command-utils.mjs";
+import { syncQuadrantNodePackage } from "./sync-quadrant-node-package.mjs";
 
 const rootDir = path.resolve(import.meta.dirname, "..");
 const srcTauriDir = path.join(rootDir, "src-tauri");
@@ -107,6 +108,8 @@ const targetArch = normalizeArch(getArgValue("--arch"));
 const rustTarget =
   getArgValue("--target") ?? getRustTargetTriple(targetPlatform, targetArch);
 const cargoCommand = resolveCargoCommand();
+
+syncQuadrantNodePackage();
 
 runCommand(
   cargoCommand,
