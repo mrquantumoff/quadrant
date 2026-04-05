@@ -61,7 +61,7 @@ jobs:
       assets: ${{steps.tauri.outputs.releaseUploadUrl}}
       version: ${{steps.tauri.outputs.appVersion}}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
@@ -124,7 +124,7 @@ jobs:
             arch: "arm64"
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
