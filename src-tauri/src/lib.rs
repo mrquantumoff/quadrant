@@ -58,8 +58,6 @@ fn build_quadrant_host(app: &tauri::AppHandle) -> Result<QuadrantHost, anyhow::E
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[allow(deprecated)]
 pub async fn run() {
-    colog::init();
-
     log::info!("Initializing Tauri...");
     let mut builder = tauri::Builder::default().manage(Mutex::new(AppState {
         updated_modpacks: vec![],
