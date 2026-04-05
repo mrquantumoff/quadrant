@@ -79,7 +79,9 @@ pub async fn search_mods_modrinth(
             let icon = mod_data["icon_url"]
                 .as_str()
                 .filter(|value| !value.trim().is_empty())
-                .unwrap_or("https://raw.githubusercontent.com/mrquantumoff/quadrant/next/public/logonobg.png")
+                .unwrap_or(
+                    "https://raw.githubusercontent.com/quadrantmc/quadrant/next/public/logonobg.png",
+                )
                 .to_string();
             let slug = mod_data["slug"].as_str().unwrap_or_default().to_string();
 

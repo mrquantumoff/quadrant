@@ -1,5 +1,5 @@
-use quadrant_host::QuadrantHost;
 use quadrant_core::ports::Shell;
+use quadrant_host::QuadrantHost;
 use tauri::{AppHandle, Manager};
 
 use crate::tauri_adapter::TauriShell;
@@ -58,8 +58,7 @@ pub async fn open_modpacks_folder(app: AppHandle) -> Result<(), tauri::Error> {
     let modpacks_path = app
         .state::<QuadrantHost>()
         .get_modpacks_folder()
-        .map_err(tauri::Error::from)?
-        ;
+        .map_err(tauri::Error::from)?;
     TauriShell::new(app)
         .open_path(&modpacks_path)
         .map_err(tauri::Error::from)

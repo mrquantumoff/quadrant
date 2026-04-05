@@ -139,10 +139,12 @@ fn notification_cursor_from_last(
     notifications: &[Notification],
     fallback: NotificationCursor,
 ) -> NotificationCursor {
-    notifications.last().map_or(fallback, |last| NotificationCursor {
-        created_at: Some(last.created_at.clone()),
-        notification_id: Some(last.notification_id.clone()),
-    })
+    notifications
+        .last()
+        .map_or(fallback, |last| NotificationCursor {
+            created_at: Some(last.created_at.clone()),
+            notification_id: Some(last.notification_id.clone()),
+        })
 }
 
 /// Paginated notification history response.
@@ -457,11 +459,21 @@ pub async fn get_notification_history_all_since_with_refresh(
 async fn parse_notification_history_response(
     response: reqwest::Response,
 ) -> Result<NotificationHistoryResponse> {
-    parse_json_response(response, "Notification history request failed", EMPTY_NOTIFICATION_HISTORY_BODY).await
+    parse_json_response(
+        response,
+        "Notification history request failed",
+        EMPTY_NOTIFICATION_HISTORY_BODY,
+    )
+    .await
 }
 
 async fn parse_account_info_response(response: reqwest::Response) -> Result<AccountInfo> {
-    parse_json_response(response, "Account info request failed", EMPTY_ACCOUNT_INFO_BODY).await
+    parse_json_response(
+        response,
+        "Account info request failed",
+        EMPTY_ACCOUNT_INFO_BODY,
+    )
+    .await
 }
 
 async fn parse_oauth_token_response(

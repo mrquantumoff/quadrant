@@ -3,7 +3,9 @@
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{Result, account::QNT_BASE_URL, ports::SettingsStore};
+use crate::{
+    Result, account::QNT_BASE_URL, mc_mod::http::provider_http_client, ports::SettingsStore,
+};
 
 /// Telemetry payload submitted to the Quadrant backend.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -40,9 +42,7 @@ pub async fn get_telemetry_info(
     version: String,
     os: String,
 ) -> Result<AppInfo> {
-    let hardware_id = settings_store
-        .get_string("hardwareId")?
-        .unwrap_or_default();
+    let hardware_id = settings_store.get_string("hardwareId")?.unwrap_or_default();
     let date_time = Utc::now();
 
     let country = fetch_country_code().await;
@@ -61,8 +61,8 @@ pub async fn get_telemetry_info(
 }
 
 async fn fetch_country_code() -> String {
-    match reqwest::Client::new()
-        .get("https://ipinfo.io/json")
+    match provider_http_client()
+        .get("https://ipapi.co/json")
         .send()
         .await
     {
@@ -102,7 +102,7 @@ pub async fn send_telemetry(
 
     log::info!("Sending telemetry for version {version} on {os}");
     let info = get_telemetry_info(settings_store, version, os).await?;
-    reqwest::Client::new()
+    provider_http_client()
         .post(format!("{}/quadrant/usage/submit", QNT_BASE_URL))
         .json(&info)
         .header("Authorization", api_key)
@@ -121,11 +121,9 @@ pub async fn remove_telemetry(
     api_key: &str,
 ) -> Result<()> {
     log::info!("Removing telemetry data");
-    let hardware_id = settings_store
-        .get_string("hardwareId")?
-        .unwrap_or_default();
+    let hardware_id = settings_store.get_string("hardwareId")?.unwrap_or_default();
 
-    reqwest::Client::new()
+    provider_http_client()
         .delete(format!("{}/quadrant/usage/delete", QNT_BASE_URL))
         .header("Authorization", api_key)
         .header("User-Agent", user_agent)

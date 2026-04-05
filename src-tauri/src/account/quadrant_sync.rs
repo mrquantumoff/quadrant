@@ -41,10 +41,7 @@ pub async fn invite_member(
 }
 
 #[tauri::command]
-pub async fn delete_synced_modpack(
-    modpack_id: String,
-    app: AppHandle,
-) -> Result<(), tauri::Error> {
+pub async fn delete_synced_modpack(modpack_id: String, app: AppHandle) -> Result<(), tauri::Error> {
     app.state::<QuadrantHost>()
         .delete_synced_modpack(modpack_id)
         .await

@@ -1,11 +1,7 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use napi::{
-    Result,
-    bindgen_prelude::Function,
-    threadsafe_function::ThreadsafeFunctionCallMode,
-};
+use napi::{Result, bindgen_prelude::Function, threadsafe_function::ThreadsafeFunctionCallMode};
 use napi_derive::napi;
 use quadrant_host::{QuadrantHost, QuadrantHostOptions};
 use serde_json::Value;

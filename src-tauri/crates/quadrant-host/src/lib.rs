@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs,
-    path::{PathBuf},
+    path::PathBuf,
     sync::{Arc, Mutex, Once},
     time::Duration,
 };
@@ -19,8 +19,13 @@ use quadrant_core::{
             oauth2_login, read_notification,
         },
         quadrant_settings_sync,
-        quadrant_share::{QuadrantShareSubmissionResponse, get_quadrant_share_modpack, share_modpack_raw},
-        quadrant_sync::{SyncedModpack, answer_invite, delete_synced_modpack, get_synced_modpacks, invite_member, kick_member},
+        quadrant_share::{
+            QuadrantShareSubmissionResponse, get_quadrant_share_modpack, share_modpack_raw,
+        },
+        quadrant_sync::{
+            SyncedModpack, answer_invite, delete_synced_modpack, get_synced_modpacks,
+            invite_member, kick_member,
+        },
         set_secret,
     },
     config::{ensure_default_app_config, get_mc_folder},
@@ -32,8 +37,8 @@ use quadrant_core::{
     },
     models::{Article, InstalledMod, InstalledModpack, LocalModpack, ModLoader, ModSource},
     modpacks::{
-        apply_modpack, create_modpack, delete_mod, delete_modpack, export_modpack_to,
-        get_modpacks, install_modpack, register_mod, set_modpack_sync_date, update_modpack,
+        apply_modpack, create_modpack, delete_mod, delete_modpack, export_modpack_to, get_modpacks,
+        install_modpack, register_mod, set_modpack_sync_date, update_modpack,
     },
     ports::{EventSink, SecretStore, SettingsStore},
     telemetry::{AppInfo, get_telemetry_info, remove_telemetry, send_telemetry},
@@ -51,10 +56,14 @@ use tokio_tungstenite::{
 use url::Url;
 use uuid::Uuid;
 
-pub use quadrant_core::mc_mod::{get_mod_url, get_user_url};
-pub use quadrant_core::mc_mod::modrinth::{get_mod_deps_modrinth, get_mod_modrinth, get_mod_owners_modrinth};
 #[cfg(feature = "curseforge")]
-pub use quadrant_core::mc_mod::curseforge::{get_mod_curseforge, get_mod_deps_curseforge, get_mod_owners_curseforge};
+pub use quadrant_core::mc_mod::curseforge::{
+    get_mod_curseforge, get_mod_deps_curseforge, get_mod_owners_curseforge,
+};
+pub use quadrant_core::mc_mod::modrinth::{
+    get_mod_deps_modrinth, get_mod_modrinth, get_mod_owners_modrinth,
+};
+pub use quadrant_core::mc_mod::{get_mod_url, get_user_url};
 
 const NOTIFICATION_CURSOR_CREATED_AT_KEY: &str = "notificationCursorCreatedAt";
 const NOTIFICATION_CURSOR_NOTIFICATION_ID_KEY: &str = "notificationCursorNotificationId";
@@ -172,14 +181,20 @@ impl JsonFileStore {
         match Self::read_values_from_disk(&self.path) {
             Ok(updated_values) => *values = updated_values,
             Err(error) => {
-                log::warn!("Failed to reload settings store {}: {error}", self.path.display());
+                log::warn!(
+                    "Failed to reload settings store {}: {error}",
+                    self.path.display()
+                );
             }
         }
         Ok(())
     }
 
     fn delete_key(&self, key: &str) -> Result<()> {
-        let mut values = self.values.lock().map_err(|_| anyhow!("settings store is busy"))?;
+        let mut values = self
+            .values
+            .lock()
+            .map_err(|_| anyhow!("settings store is busy"))?;
         self.reload(&mut values)?;
         values.remove(key);
         self.persist(&values)
@@ -189,9 +204,7 @@ impl JsonFileStore {
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent)?;
         }
-        let temp_path = self
-            .path
-            .with_extension(format!("{}.tmp", Uuid::now_v7()));
+        let temp_path = self.path.with_extension(format!("{}.tmp", Uuid::now_v7()));
         fs::write(
             &temp_path,
             serde_json::to_vec_pretty(&Value::Object(values.clone().into_iter().collect()))?,
@@ -203,20 +216,29 @@ impl JsonFileStore {
 
 impl SettingsStore for JsonFileStore {
     fn get_value(&self, key: &str) -> Result<Option<Value>> {
-        let mut values = self.values.lock().map_err(|_| anyhow!("settings store is busy"))?;
+        let mut values = self
+            .values
+            .lock()
+            .map_err(|_| anyhow!("settings store is busy"))?;
         self.reload(&mut values)?;
         Ok(values.get(key).cloned())
     }
 
     fn set_value(&self, key: &str, value: Value) -> Result<()> {
-        let mut values = self.values.lock().map_err(|_| anyhow!("settings store is busy"))?;
+        let mut values = self
+            .values
+            .lock()
+            .map_err(|_| anyhow!("settings store is busy"))?;
         self.reload(&mut values)?;
         values.insert(key.to_string(), value);
         self.persist(&values)
     }
 
     fn entries(&self) -> Result<Vec<(String, Value)>> {
-        let mut values = self.values.lock().map_err(|_| anyhow!("settings store is busy"))?;
+        let mut values = self
+            .values
+            .lock()
+            .map_err(|_| anyhow!("settings store is busy"))?;
         self.reload(&mut values)?;
         Ok(values
             .iter()
@@ -472,7 +494,11 @@ impl QuadrantHost {
     }
 
     pub async fn delete_modpack(&self, name: String) -> Result<()> {
-        delete_modpack(&self.get_minecraft_folder()?, &self.get_modpacks(false).await?, &name)
+        delete_modpack(
+            &self.get_minecraft_folder()?,
+            &self.get_modpacks(false).await?,
+            &name,
+        )
     }
 
     pub async fn register_mod(&self, mod_: InstalledMod, modpack: String) -> Result<()> {
@@ -604,8 +630,16 @@ impl QuadrantHost {
     }
 
     pub async fn identify_modpack(&self, modpack: String) -> Result<Vec<IdentifiedMod>> {
-        let curseforge_enabled = self.inner.config_store.get_bool("curseforge")?.unwrap_or(false);
-        let modrinth_enabled = self.inner.config_store.get_bool("modrinth")?.unwrap_or(false);
+        let curseforge_enabled = self
+            .inner
+            .config_store
+            .get_bool("curseforge")?
+            .unwrap_or(false);
+        let modrinth_enabled = self
+            .inner
+            .config_store
+            .get_bool("modrinth")?
+            .unwrap_or(false);
         identify_modpack(
             &self.get_minecraft_folder()?,
             modpack,
@@ -691,7 +725,9 @@ impl QuadrantHost {
         )
         .await?;
 
-        if let Some(notifications) = self.mark_notification_read_and_snapshot(&notification_id).await
+        if let Some(notifications) = self
+            .mark_notification_read_and_snapshot(&notification_id)
+            .await
         {
             self.inner
                 .event_sink
@@ -769,7 +805,11 @@ impl QuadrantHost {
             .resolve_submitted_modpack_id(&modpack, timestamp)
             .await?
             .or_else(|| modpack.modpack_id.clone());
-        self.persist_sync_metadata(&modpack.name, timestamp as u64, persisted_modpack_id.as_deref())
+        self.persist_sync_metadata(
+            &modpack.name,
+            timestamp as u64,
+            persisted_modpack_id.as_deref(),
+        )
     }
 
     pub async fn answer_invite(
@@ -953,13 +993,19 @@ impl QuadrantHost {
             }
             "update_modpack" => {
                 let args: UpdateModpackArgs = from_value(payload)?;
-                self.update_modpack(args.modpack_source, args.name, args.version, args.mod_loader)
-                    .await?;
+                self.update_modpack(
+                    args.modpack_source,
+                    args.name,
+                    args.version,
+                    args.mod_loader,
+                )
+                .await?;
                 Ok(Value::Null)
             }
             "create_modpack" => {
                 let args: CreateModpackArgs = from_value(payload)?;
-                self.create_modpack(args.name, args.version, args.mod_loader).await?;
+                self.create_modpack(args.name, args.version, args.mod_loader)
+                    .await?;
                 Ok(Value::Null)
             }
             "delete_modpack" => {
@@ -1020,8 +1066,14 @@ impl QuadrantHost {
             }
             "install_remote_file" => {
                 let args: InstallRemoteFileArgs = from_value(payload)?;
-                self.install_remote_file(args.file, args.mod_type, args.modpack, args.source, args.id)
-                    .await?;
+                self.install_remote_file(
+                    args.file,
+                    args.mod_type,
+                    args.modpack,
+                    args.source,
+                    args.id,
+                )
+                .await?;
                 Ok(Value::Null)
             }
             "identify_modpack" => {
@@ -1090,7 +1142,10 @@ impl QuadrantHost {
             }
             "get_synced_modpacks" => {
                 let args: GetSyncedModpacksArgs = from_value(payload)?;
-                to_value(self.get_synced_modpacks(args.show_owners, args.modpack_id).await?)
+                to_value(
+                    self.get_synced_modpacks(args.show_owners, args.modpack_id)
+                        .await?,
+                )
             }
             "kick_member" => {
                 let args: KickMemberArgs = from_value(payload)?;
@@ -1099,7 +1154,8 @@ impl QuadrantHost {
             }
             "invite_member" => {
                 let args: InviteMemberArgs = from_value(payload)?;
-                self.invite_member(args.modpack_id, args.username, args.admin).await?;
+                self.invite_member(args.modpack_id, args.username, args.admin)
+                    .await?;
                 Ok(Value::Null)
             }
             "delete_synced_modpack" => {
@@ -1400,8 +1456,12 @@ impl QuadrantHost {
                 .unwrap_or(quadrant_core::account::QNT_BASE_URL),
         )?;
         match url.scheme() {
-            "https" => url.set_scheme("wss").map_err(|_| anyhow!("invalid ws scheme"))?,
-            "http" => url.set_scheme("ws").map_err(|_| anyhow!("invalid ws scheme"))?,
+            "https" => url
+                .set_scheme("wss")
+                .map_err(|_| anyhow!("invalid ws scheme"))?,
+            "http" => url
+                .set_scheme("ws")
+                .map_err(|_| anyhow!("invalid ws scheme"))?,
             "wss" | "ws" => {}
             _ => return Err(anyhow!("unsupported backend scheme")),
         }
@@ -1419,7 +1479,9 @@ impl QuadrantHost {
     }
 
     async fn handle_modpack_sync_notification(&self, notification: &Notification) -> Result<()> {
-        let synced_modpack = self.resolve_synced_modpack_from_notification(notification).await?;
+        let synced_modpack = self
+            .resolve_synced_modpack_from_notification(notification)
+            .await?;
         let auto_quadrant_sync = self
             .inner
             .config_store
@@ -1473,7 +1535,9 @@ impl QuadrantHost {
 
         if let Some(local_modpack) = modpacks
             .iter()
-            .find(|modpack| modpack.modpack_id.as_deref() == Some(synced_modpack.modpack_id.as_str()))
+            .find(|modpack| {
+                modpack.modpack_id.as_deref() == Some(synced_modpack.modpack_id.as_str())
+            })
             .cloned()
         {
             return Ok(Some(local_modpack));
@@ -1546,7 +1610,11 @@ impl QuadrantHost {
 
     async fn begin_modpack_update(&self, modpack_name: &str) -> bool {
         let mut state = self.inner.runtime_state.lock().await;
-        if state.updated_modpacks.iter().any(|name| name == modpack_name) {
+        if state
+            .updated_modpacks
+            .iter()
+            .any(|name| name == modpack_name)
+        {
             return false;
         }
         state.updated_modpacks.push(modpack_name.to_string());
@@ -1627,10 +1695,10 @@ impl QuadrantHost {
                 .delete_key(NOTIFICATION_CURSOR_CREATED_AT_KEY)?,
         }
         match &cursor.notification_id {
-            Some(notification_id) => self
-                .inner
-                .config_store
-                .set_string(NOTIFICATION_CURSOR_NOTIFICATION_ID_KEY, notification_id.clone())?,
+            Some(notification_id) => self.inner.config_store.set_string(
+                NOTIFICATION_CURSOR_NOTIFICATION_ID_KEY,
+                notification_id.clone(),
+            )?,
             None => self
                 .inner
                 .config_store
@@ -1673,7 +1741,9 @@ impl NotificationRuntimeState {
         match self.by_key.get(&identity_key) {
             Some(existing) if existing == &notification => UpsertOutcome { changed: false },
             Some(_) => {
-                if let Some(previous) = self.by_key.insert(identity_key.clone(), notification.clone())
+                if let Some(previous) = self
+                    .by_key
+                    .insert(identity_key.clone(), notification.clone())
                 {
                     self.key_by_notification_id
                         .remove(previous.notification_id.as_str());
@@ -2125,12 +2195,14 @@ mod tests {
     #[test]
     fn notification_merge_deduplicates_and_orders() {
         let mut state = NotificationRuntimeState::default();
-        assert!(merge_notifications_and_collect_updates(
-            &mut state,
-            vec![notification("n1", 1, false), notification("n2", 2, false)]
-        )
-        .notifications_for_ui
-        .is_some());
+        assert!(
+            merge_notifications_and_collect_updates(
+                &mut state,
+                vec![notification("n1", 1, false), notification("n2", 2, false)]
+            )
+            .notifications_for_ui
+            .is_some()
+        );
         assert!(
             merge_notifications_and_collect_updates(&mut state, vec![notification("n1", 1, false)])
                 .notifications_for_ui
@@ -2159,12 +2231,8 @@ mod tests {
 
     #[test]
     fn host_options_default_to_compatible_keyring_name() {
-        let options = QuadrantHostOptions::new(
-            PathBuf::from("C:/quadrant"),
-            "client",
-            "secret",
-            "api-key",
-        );
+        let options =
+            QuadrantHostOptions::new(PathBuf::from("C:/quadrant"), "client", "secret", "api-key");
         assert_eq!(options.keyring_service_name, KEYRING_SERVICE);
     }
 

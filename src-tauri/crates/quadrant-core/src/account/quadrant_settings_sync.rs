@@ -104,7 +104,10 @@ pub async fn submit_quadrant_settings(
     }
 
     let response = reqwest::Client::new()
-        .post(format!("{}/quadrant/settings_sync/submit", backend_base_url()))
+        .post(format!(
+            "{}/quadrant/settings_sync/submit",
+            backend_base_url()
+        ))
         .header("User-Agent", user_agent)
         .bearer_auth(token)
         .json(&json!({

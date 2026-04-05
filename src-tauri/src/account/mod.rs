@@ -14,11 +14,15 @@ pub fn set_secret(key: String, value: String, app: AppHandle) -> Result<(), taur
 }
 
 pub fn get_account_token() -> Result<String, anyhow::Error> {
-    Err(anyhow::anyhow!("account token access moved to quadrant-host"))
+    Err(anyhow::anyhow!(
+        "account token access moved to quadrant-host"
+    ))
 }
 
 pub fn get_refresh_token() -> Result<String, anyhow::Error> {
-    Err(anyhow::anyhow!("refresh token access moved to quadrant-host"))
+    Err(anyhow::anyhow!(
+        "refresh token access moved to quadrant-host"
+    ))
 }
 
 #[tauri::command]

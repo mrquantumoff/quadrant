@@ -10,8 +10,7 @@ pub async fn share_modpack(
     modpack_name: String,
     app: AppHandle,
 ) -> Result<QuadrantShareSubmissionResponse, tauri::Error> {
-    app
-        .state::<QuadrantHost>()
+    app.state::<QuadrantHost>()
         .share_modpack(modpack_name)
         .await
         .map_err(tauri::Error::from)
@@ -22,8 +21,7 @@ pub async fn share_modpack_raw(
     mod_config: crate::modpacks::general::InstalledModpack,
     app: AppHandle,
 ) -> Result<QuadrantShareSubmissionResponse, tauri::Error> {
-    app
-        .state::<QuadrantHost>()
+    app.state::<QuadrantHost>()
         .share_modpack_raw(mod_config)
         .await
         .map_err(tauri::Error::from)
