@@ -1,14 +1,17 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Quadrant",
-  "version": "26.4.1-preview.0",
+  "version": "26.4.1-preview.1",
   "identifier": "dev.mrquantumoff.mcmodpackmanager",
   "build": {
     "beforeDevCommand": "bun dev",
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "bun run build",
     "frontendDist": "../dist",
-    "features": ["proprietary", "updater"]
+    "features": [
+      "proprietary",
+      "updater"
+    ]
   },
   "app": {
     "windows": [
@@ -39,7 +42,11 @@
   "plugins": {
     "deep-link": {
       "desktop": {
-        "schemes": ["quadrantnext", "curseforge", "modrinth"]
+        "schemes": [
+          "quadrantnext",
+          "curseforge",
+          "modrinth"
+        ]
       }
     },
     "cli": {
@@ -67,7 +74,12 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "appimage", "deb", "rpm"],
+    "targets": [
+      "nsis",
+      "appimage",
+      "deb",
+      "rpm"
+    ],
     "linux": {
       "appimage": {
         "bundleMediaFramework": false
@@ -111,11 +123,17 @@
     "longDescription": "This is a powerful tool to manage your Minecraft: Java Edition mods. With this app you can easily install mods, resourcepacks, shaders. You can also share you modpacks with your friends, and you can back up your modpacks to the cloud!",
     "fileAssociations": [
       {
-        "ext": ["modpackconfig.json", "modpackConfig", "quadrantModpack.json"],
+        "ext": [
+          "modpackconfig.json",
+          "modpackConfig",
+          "quadrantModpack.json"
+        ],
         "description": "Quadrant Modpack Config File"
       }
     ],
-    "resources": ["../public"],
+    "resources": [
+      "../public"
+    ],
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper",
@@ -123,7 +141,11 @@
       },
       "allowDowngrades": true,
       "nsis": {
-        "languages": ["Ukrainian", "English", "Turkish"]
+        "languages": [
+          "Ukrainian",
+          "English",
+          "Turkish"
+        ]
       }
     },
     "publisher": "MrQuantumOFF (Demir Yerli)",

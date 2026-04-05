@@ -4406,7 +4406,7 @@ checksum = "b5a041e753da8b807c9255f28de81879c78c876392ff2469cde94799b2896b9d"
 
 [[package]]
 name = "quadrant-core"
-version = "26.4.1-preview.0"
+version = "26.4.1-preview.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4433,7 +4433,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant-host"
-version = "26.4.1-preview.0"
+version = "26.4.1-preview.1"
 dependencies = [
  "anyhow",
  "colog",
@@ -4452,7 +4452,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant-napi"
-version = "26.4.1-preview.0"
+version = "26.4.1-preview.1"
 dependencies = [
  "napi",
  "napi-build",
@@ -4464,7 +4464,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant_next"
-version = "26.4.1-preview.0"
+version = "26.4.1-preview.1"
 dependencies = [
  "anyhow",
  "chrono",
