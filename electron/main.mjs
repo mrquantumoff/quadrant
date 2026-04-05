@@ -1,4 +1,8 @@
-/** @format */
+/**
+ * eslint-disable no-undef
+ *
+ * @format
+ */
 
 import {
 	app,
