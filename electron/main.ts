@@ -14,6 +14,7 @@ import electronUpdater from "electron-updater";
 import {
 	createQuadrantClient,
 	type QuadrantClient,
+	type QuadrantEventEnvelope,
 } from "@quadrant/quadrant-node";
 import fs from "node:fs";
 import fsPromises from "node:fs/promises";
@@ -324,7 +325,7 @@ async function createQuadrantHostClient(): Promise<QuadrantClient> {
 		userAgent: `mrquantumoff/quadrant/${quadrantAppVersion} (mrquantumoff.dev) (QUADRANT NEXT/Electron v${process.versions.electron})`,
 	});
 
-	quadrantClient.on("event", (event) => {
+	quadrantClient.on("event", (event: QuadrantEventEnvelope) => {
 		broadcast("quadrant:backend-event", event);
 	});
 
@@ -337,7 +338,7 @@ async function createQuadrantHostClient(): Promise<QuadrantClient> {
 
 	quadrantClient
 		.invoke("get_versions")
-		.catch((error) =>
+		.catch((error: unknown) =>
 			console.warn("Failed to warm Minecraft versions cache", error),
 		);
 

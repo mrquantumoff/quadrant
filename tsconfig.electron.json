@@ -13,5 +13,5 @@
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "include": ["electron/**/*.ts"]
+  "include": ["electron/**/*.ts", "electron/**/*.d.ts"]
 }
