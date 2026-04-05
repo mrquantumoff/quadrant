@@ -55,6 +55,18 @@ option {
   user-select: none; /* Standard syntax */
 }
 
+[data-tauri-drag-region] {
+  -webkit-app-region: drag;
+}
+
 button {
+  -webkit-app-region: no-drag;
   @apply cursor-pointer transition-shadow duration-150 ease-linear;
+}
+
+input,
+select,
+textarea,
+a {
+  -webkit-app-region: no-drag;
 }

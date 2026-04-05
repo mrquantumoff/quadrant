@@ -2,9 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { getMinecraftFolder, getModpacks } from "../../../tools";
 import { LocalModpack } from "../../../intefaces";
 import ModpackView from "../../shared/Pages/ModpackView";
-import { watch, type UnwatchFn } from "@tauri-apps/plugin-fs";
-import * as path from "@tauri-apps/api/path";
 import { motion } from "motion/react";
+import { joinPath, watch } from "../../../desktop";
 
 export default function CurrentModpackPage() {
   const [currentModpack, setCurrentModpack] = useState<LocalModpack>();
@@ -31,7 +30,7 @@ export default function CurrentModpackPage() {
         setCurrentModpack(newModpack);
       }
 
-      const mcFolder = await path.join(await getMinecraftFolder(false), "mods");
+      const mcFolder = await joinPath(await getMinecraftFolder(false), "mods");
 
       const unwatchMods = await watch(
         mcFolder,
@@ -48,7 +47,7 @@ export default function CurrentModpackPage() {
       return unwatchMods;
     };
 
-    let unwatch: UnwatchFn | undefined;
+    let unwatch: (() => void | Promise<void>) | undefined;
     effect()
       .then((result) => {
         if (result) {

@@ -2,9 +2,7 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Capability for the main window",
-  "windows": [
-    "main"
-  ],
+  "windows": ["main"],
   "permissions": [
     "core:default",
     "opener:default",
@@ -49,6 +47,7 @@
     "core:window:allow-set-focus",
     "dialog:default",
     "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text",
     "notification:default",
     "core:window:allow-start-dragging",
     "core:window:allow-hide",
@@ -59,9 +58,7 @@
     "oauth:allow-cancel",
     {
       "identifier": "http:default",
-      "allow": [
-        "https://api.mrquantumoff.dev/api/v3/**"
-      ]
+      "allow": ["https://api.mrquantumoff.dev/api/v3/**"]
     }
   ]
 }

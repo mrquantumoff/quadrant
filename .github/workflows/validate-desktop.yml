@@ -1,0 +1,52 @@
+name: Validate Desktop
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+      - release
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    env:
+      # quadrant-core still uses compile-time env!() for these desktop-only
+      # credentials, so CI must provide placeholder values for every Rust build.
+      QUADRANT_API_KEY: dev
+      QUADRANT_OAUTH2_CLIENT_ID: dev
+      QUADRANT_OAUTH2_CLIENT_SECRET: dev
+      ETERNAL_API_TOKEN: dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux desktop dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev libarchive-tools rpm
+
+      - name: Install frontend dependencies
+        run: bun install
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Build shared renderer
+        run: bun run build
+
+      - name: Build native addon
+        run: bun run build:napi
+
+      - name: Build Electron shell
+        run: node scripts/build-electron.mjs
+
+      - name: Build Tauri shell
+        run: bun tauri build --no-bundle

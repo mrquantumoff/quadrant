@@ -25,12 +25,11 @@ import {
   installMod,
   openIn,
 } from "../../../tools";
-import { LazyStore, load } from "@tauri-apps/plugin-store";
 import { Field, Fieldset, Label, Select } from "@headlessui/react";
 import Mod from "../../shared/Mod";
 import LoaderOptions from "../../shared/LoaderOption";
-import { listen } from "@tauri-apps/api/event";
 import LinearProgress from "../../core/LinearProgress";
+import { createDesktopStore, listen } from "../../../desktop";
 
 export interface IModInstallPageProps {
   mod: IMod;
@@ -57,7 +56,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   const [clipIcons, setClipIcons] = useState(true);
   const [modInstallProgress, setModInstallProgress] = useState<number>(0);
   const [modDownloadProgress, setModDownloadProgress] = useState<number>(0);
-  const config = new LazyStore("config.json");
+  const config = createDesktopStore("config.json");
   useEffect(() => {
     const effect = async () => {
       setVersions(await getVersions());
@@ -242,8 +241,8 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 onChange={async (e) => {
                   e.preventDefault();
                   setVersion(e.target.value);
-                  const config = await load("config.json");
                   await config.set("lastUsedVersion", e.target.value);
+                  await config.save();
                 }}
                 value={version}
               >
@@ -276,8 +275,8 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 onChange={async (e) => {
                   e.preventDefault();
                   setLoader(e.target.value);
-                  const config = await load("config.json");
                   await config.set("lastUsedAPI", e.target.value);
+                  await config.save();
                 }}
                 value={loader}
                 autoComplete="off"
@@ -306,11 +305,10 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                   setModpack(e.target.value);
                   setLoader(modpack.modLoader.toString());
                   setVersion(modpack.version);
-                  const config = await load("config.json");
-
                   await config.set("lastUsedVersion", modpack.version);
                   await config.set("lastUsedAPI", modpack.modLoader.toString());
                   await config.set("lastUsedModpack", modpack.name);
+                  await config.save();
                 }}
               >
                 {modpacks.map((modpack) => (

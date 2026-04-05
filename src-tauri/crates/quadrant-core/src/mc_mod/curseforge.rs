@@ -141,9 +141,7 @@ pub async fn get_mod_curseforge(args: GetModArgs) -> Result<Mod> {
         .collect();
     let logo = res_data["logo"]["url"]
         .as_str()
-        .unwrap_or(
-            "https://raw.githubusercontent.com/mrquantumoff/quadrant/next/public/logonobg.png",
-        )
+        .unwrap_or("https://raw.githubusercontent.com/quadrantmc/quadrant/next/public/logonobg.png")
         .to_string();
     Ok(Mod {
         id: args.id,

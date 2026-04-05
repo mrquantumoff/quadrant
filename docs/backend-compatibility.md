@@ -3,6 +3,7 @@
 This document freezes the backend-facing surface while the Rust backend is extracted out of Tauri.
 
 ## Tauri Commands That Must Stay Stable
+
 - `get_modpacks`
 - `frontend_apply_modpack`
 - `delete_mod`
@@ -51,6 +52,7 @@ This document freezes the backend-facing surface while the Rust backend is extra
 - `remove_telemetry`
 
 ## Tauri Event Names That Must Stay Stable
+
 - `modDownloadProgress`
 - `modInstallProgress`
 - `modpackDownloadProgress`
@@ -63,12 +65,14 @@ This document freezes the backend-facing surface while the Rust backend is extra
 - `disableRightClick`
 
 ## Config And Storage Files That Must Stay Stable
+
 - `config.json`
 - `updateConfig.json`
 - keyring service: `dev.mrquantumoff.mcmodpackmanager`
 - keyring keys: `accountToken`, `refreshToken`
 
 ## Filesystem Layout That Must Stay Stable
+
 - Minecraft root from `config.json::mcFolder`
 - modpacks directory: `<mcFolder>/modpacks`
 - active mods symlink or directory: `<mcFolder>/mods`
@@ -76,10 +80,12 @@ This document freezes the backend-facing surface while the Rust backend is extra
 - sync metadata: `<mcFolder>/modpacks/<name>/quadrantSync.json`
 
 ## Sync Metadata Shape
+
 - `quadrantSync.json` must continue to accept legacy `{ "last_synced": <seconds> }`
 - current writers may also persist `{ "last_synced": <seconds>, "modpack_id": "<id>|null" }`
 
 ## Notifications Transport Notes
+
 - live modpack sync is carried by `/api/v3/account/notifications/get` and `/api/v3/account/notifications/ws`
 - Quadrant opts into those events with `modpack_sync=true`
 - `/account/info/get` remains a profile endpoint and is not the live modpack sync transport

@@ -200,7 +200,11 @@ export interface QuadrantBackendClient {
 
   getModpacks(hideFree: boolean): Promise<LocalModpack[]>;
   applyModpack(name: string): Promise<void>;
-  createModpack(name: string, version: string, modLoader: ModLoader): Promise<void>;
+  createModpack(
+    name: string,
+    version: string,
+    modLoader: ModLoader,
+  ): Promise<void>;
   updateModpack(source: string, patch: Partial<LocalModpack>): Promise<void>;
   deleteModpack(name: string): Promise<void>;
   registerMod(mod: InstalledMod, modpack: string): Promise<void>;
@@ -215,7 +219,10 @@ export interface QuadrantBackendClient {
 
   getAccountInfo(): Promise<AccountInfo>;
   oauth2Login(code: string, redirectUri: string): Promise<void>;
-  getSyncedModpacks(showOwners: boolean, modpackId?: string): Promise<SyncedModpack[]>;
+  getSyncedModpacks(
+    showOwners: boolean,
+    modpackId?: string,
+  ): Promise<SyncedModpack[]>;
   syncModpack(modpack: LocalModpack, overwrite: boolean): Promise<void>;
   shareModpack(name: string): Promise<void>;
 
@@ -271,7 +278,10 @@ Example event envelope:
 
 ```ts
 type BackendEventEnvelope =
-  | { type: "modDownloadProgress"; payload: { modId: string; progress: number } }
+  | {
+      type: "modDownloadProgress";
+      payload: { modId: string; progress: number };
+    }
   | { type: "modInstallProgress"; payload: { modId: string; progress: number } }
   | { type: "modpackDownloadProgress"; payload: number }
   | { type: "quadrantExportProgress"; payload: number }

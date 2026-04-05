@@ -10,7 +10,6 @@ import {
   ModSource,
   ModType,
 } from "../../../intefaces";
-import { LazyStore } from "@tauri-apps/plugin-store";
 import { getModpacks, getVersions, searchMods } from "../../../tools";
 import Mod from "../../shared/Mod";
 import Button from "../../core/Button";
@@ -36,6 +35,7 @@ import {
   Select,
 } from "@headlessui/react";
 import LoaderOptions from "../../shared/LoaderOption";
+import { createDesktopStore } from "../../../desktop";
 
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,11 +49,8 @@ export default function SearchPage() {
   const [version, setVersion] = useState<string>("");
   const [modpack, setModpack] = useState<string>("");
   const [loader, setLoader] = useState<string>(ModLoader.Unknown);
-  const configRef = useRef<LazyStore | null>(null);
-  if (configRef.current === null) {
-    configRef.current = new LazyStore("config.json");
-  }
-  const configStore = configRef.current!;
+  const configRef = useRef(createDesktopStore("config.json"));
+  const configStore = configRef.current;
   const search = async (forceSearch: boolean = false) => {
     if (searchQuery.trim() === "" && !forceSearch) {
       return;

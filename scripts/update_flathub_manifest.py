@@ -62,11 +62,11 @@ def main() -> int:
     )
     amd64_url = (
         f"https://github.com/{args.release_repo}/releases/download/{args.tag}/"
-        f"Quadrant_{args.version}_amd64.deb"
+        f"Quadrant-{args.version}-linux-x64-electron.AppImage"
     )
     arm64_url = (
         f"https://github.com/{args.release_repo}/releases/download/{args.tag}/"
-        f"Quadrant_{args.version}_arm64.deb"
+        f"Quadrant-{args.version}-linux-arm64-electron.AppImage"
     )
 
     metainfo_pattern = re.compile(
@@ -78,14 +78,14 @@ def main() -> int:
     amd64_pattern = re.compile(
         r"(?m)^(\s*-\s+type:\s+file\r?\n"
         r"\s*url:\s+)https://github\.com/[^/\r\n]+/[^/\r\n]+/releases/download/"
-        r"[^/\r\n]+/Quadrant_[^/\r\n]+_amd64\.deb"
+        r"[^/\r\n]+/(?:Quadrant_[^/\r\n]+_amd64\.deb|Quadrant-[^/\r\n]+-linux-x64-electron\.AppImage)"
         r"(\r?\n\s*sha256:\s+)[0-9a-f]{64}"
         r"(\r?\n\s*only-arches:\s*\[x86_64\]\r?\n)"
     )
     arm64_pattern = re.compile(
         r"(?m)^(\s*-\s+type:\s+file\r?\n"
         r"\s*url:\s+)https://github\.com/[^/\r\n]+/[^/\r\n]+/releases/download/"
-        r"[^/\r\n]+/Quadrant_[^/\r\n]+_arm64\.deb"
+        r"[^/\r\n]+/(?:Quadrant_[^/\r\n]+_arm64\.deb|Quadrant-[^/\r\n]+-linux-arm64-electron\.AppImage)"
         r"(\r?\n\s*sha256:\s+)[0-9a-f]{64}"
         r"(\r?\n\s*only-arches:\s*\[aarch64\]\r?\n)"
     )

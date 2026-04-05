@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 
 use crate::{
     Result,
-    account::{QNT_BASE_URL, get_account_token},
+    account::{backend_base_url, get_account_token},
     ports::{SecretStore, SettingsStore},
 };
 
@@ -40,7 +40,7 @@ pub async fn get_quadrant_settings(
     log::debug!("Pulling settings from cloud");
     let token = get_account_token(secret_store)?;
     let json = reqwest::Client::new()
-        .get(format!("{}/quadrant/settings_sync/get", QNT_BASE_URL))
+        .get(format!("{}/quadrant/settings_sync/get", backend_base_url()))
         .header("User-Agent", user_agent)
         .bearer_auth(token)
         .send()
@@ -104,7 +104,10 @@ pub async fn submit_quadrant_settings(
     }
 
     let response = reqwest::Client::new()
-        .post(format!("{}/quadrant/settings_sync/submit", QNT_BASE_URL))
+        .post(format!(
+            "{}/quadrant/settings_sync/submit",
+            backend_base_url()
+        ))
         .header("User-Agent", user_agent)
         .bearer_auth(token)
         .json(&json!({

@@ -1,6 +1,4 @@
 {
-    "rust-analyzer.cargo.cfgs": [
-        "debug_assertions"
-    ],
-    "typescript.tsdk": "node_modules\\typescript\\lib"
+  "rust-analyzer.cargo.cfgs": ["debug_assertions"],
+  "typescript.tsdk": "node_modules\\typescript\\lib"
 }

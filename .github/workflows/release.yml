@@ -37,7 +37,6 @@ jobs:
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
 
-
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
 
@@ -71,12 +70,74 @@ jobs:
           releaseDraft: false
           prerelease: ${{ !endsWith(github.ref_name, 'stable') }}
           args: ${{ matrix.args }}
-          tauriScript: 'bun tauri'
+          tauriScript: "bun tauri"
           tagName: ${{github.ref_name}}
+
+  publish-electron:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: "blacksmith-4vcpu-windows-2025"
+            os: "windows"
+            arch: "x64"
+          - platform: "blacksmith-4vcpu-ubuntu-2404"
+            os: "linux"
+            arch: "x64"
+          - platform: "windows-11-arm"
+            os: "windows"
+            arch: "arm64"
+          - platform: "blacksmith-4vcpu-ubuntu-2404-arm"
+            os: "linux"
+            arch: "arm64"
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: install dependencies (ubuntu only)
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libsecret-1-dev libarchive-tools rpm
+
+      - name: install frontend dependencies (bun)
+        run: bun install
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Package Electron app
+        env:
+          ETERNAL_API_TOKEN: ${{ secrets.ETERNAL_API_TOKEN }}
+          QUADRANT_API_KEY: ${{ secrets.QUADRANT_API_KEY }}
+          QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
+          QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
+          QUADRANT_API_BASE_URL: ${{ vars.QUADRANT_API_BASE_URL }}
+        run: bun run package:electron -- --arch=${{ matrix.arch }}
+
+      - name: Upload Electron assets to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          mapfile -d '' files < <(find dist-electron -maxdepth 1 -type f -print0)
+          gh release upload "$TAG_NAME" "${files[@]}" --clobber
 
   sync_flathub:
     name: Sync Flathub
-    needs: publish-tauri
+    needs:
+      - publish-tauri
+      - publish-electron
     if: endsWith(github.ref_name, '-stable') || endsWith(github.ref_name, '-flatpak')
     uses: ./.github/workflows/flatpak.yml
     secrets: inherit

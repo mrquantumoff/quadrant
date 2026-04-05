@@ -6,15 +6,18 @@ import { AccountInfo } from "../../../intefaces";
 import { clearAccountToken, getAccountInfo, openIn } from "../../../tools";
 import Button from "../../core/Button";
 import CircularProgress from "../../core/CircularProgress";
-import { listen } from "@tauri-apps/api/event";
 import { useTranslation } from "react-i18next";
-import { LazyStore } from "@tauri-apps/plugin-store";
 import { MdOpenInBrowser, MdOutlineAccountCircle } from "react-icons/md";
 import { ContentContext } from "../../../intefaces";
 import FirstRegisterStep from "./RegisterPages/Step1";
-import { start } from "@fabianlars/tauri-plugin-oauth";
-import { cancel, onUrl as onOAuth } from "@fabianlars/tauri-plugin-oauth";
-import { invoke } from "@tauri-apps/api/core";
+import {
+  cancelOAuthServer,
+  createDesktopStore,
+  invoke,
+  listen,
+  onOAuthUrl,
+  startOAuthServer,
+} from "../../../desktop";
 
 export default function AccountPage() {
   const { t } = useTranslation();
@@ -37,7 +40,7 @@ export default function AccountPage() {
     }
   };
 
-  const config = new LazyStore("config.json");
+  const config = createDesktopStore("config.json");
   const context = useContext(ContentContext);
 
   const showLoginFailureWarning = () => {
@@ -153,7 +156,7 @@ export default function AccountPage() {
               await config.set("oauthState", randomString);
 
               try {
-                const port = await start({
+                const port = await startOAuthServer({
                   response:
                     "<html><body><h1>" +
                     t("returnToTheApp") +
@@ -179,7 +182,7 @@ export default function AccountPage() {
                 authUrl.searchParams.set("state", randomString);
                 openIn(authUrl.toString());
 
-                unlistenOAuth = await onOAuth(async (rawUrl) => {
+                unlistenOAuth = await onOAuthUrl(async (rawUrl) => {
                   try {
                     const url = new URL(rawUrl);
                     const oAuthState = await config.get<string>("oauthState");
@@ -205,7 +208,7 @@ export default function AccountPage() {
                     setAccountInfo(null);
                     showLoginFailureWarning();
                   } finally {
-                    await cancel(port);
+                    await cancelOAuthServer(port);
                     unlistenOAuth?.();
                   }
                 });

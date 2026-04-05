@@ -1,13 +1,13 @@
 //! Account identity, login, refresh, and notification APIs.
 
-use std::{collections::HashMap, env};
+use std::collections::HashMap;
 
 use reqwest::StatusCode;
 use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::{
     Result,
-    account::{QNT_BASE_URL, get_account_token, get_refresh_token, set_secret},
+    account::{backend_base_url, get_account_token, get_refresh_token, set_secret},
     ports::SecretStore,
 };
 
@@ -18,10 +18,6 @@ const DEFAULT_NOTIFICATION_HISTORY_SINCE: &str = "1970-01-01T00:00:00Z";
 const EMPTY_NOTIFICATION_HISTORY_BODY: &str = "Notification history request returned an empty body";
 const EMPTY_ACCOUNT_INFO_BODY: &str = "Account info request returned an empty body";
 const EMPTY_OAUTH_BODY: &str = "OAuth2 token endpoint returned an empty body";
-
-fn backend_base_url() -> String {
-    env::var("QUADRANT_API_BASE_URL").unwrap_or_else(|_| QNT_BASE_URL.to_string())
-}
 
 /// Account profile returned by the Quadrant backend.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -143,10 +139,12 @@ fn notification_cursor_from_last(
     notifications: &[Notification],
     fallback: NotificationCursor,
 ) -> NotificationCursor {
-    notifications.last().map_or(fallback, |last| NotificationCursor {
-        created_at: Some(last.created_at.clone()),
-        notification_id: Some(last.notification_id.clone()),
-    })
+    notifications
+        .last()
+        .map_or(fallback, |last| NotificationCursor {
+            created_at: Some(last.created_at.clone()),
+            notification_id: Some(last.notification_id.clone()),
+        })
 }
 
 /// Paginated notification history response.
@@ -346,6 +344,30 @@ pub async fn get_notification_history_page(
     limit: Option<usize>,
     include_modpack_sync: bool,
 ) -> Result<NotificationHistoryResponse> {
+    get_notification_history_page_with_refresh(
+        secret_store,
+        user_agent,
+        cursor,
+        read,
+        limit,
+        include_modpack_sync,
+        env!("QUADRANT_OAUTH2_CLIENT_ID"),
+        env!("QUADRANT_OAUTH2_CLIENT_SECRET"),
+    )
+    .await
+}
+
+/// Fetches a single page of notification history and refreshes the token on demand.
+pub async fn get_notification_history_page_with_refresh(
+    secret_store: &impl SecretStore,
+    user_agent: &str,
+    cursor: Option<&NotificationCursor>,
+    read: Option<bool>,
+    limit: Option<usize>,
+    include_modpack_sync: bool,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<NotificationHistoryResponse> {
     let token = get_account_token(secret_store)?;
     let query = notification_history_query(cursor, read, limit, include_modpack_sync);
 
@@ -359,13 +381,7 @@ pub async fn get_notification_history_page(
 
     if response.status() == StatusCode::UNAUTHORIZED {
         log::info!("Notification history request unauthorized, attempting token refresh");
-        try_refresh_token(
-            secret_store,
-            env!("QUADRANT_OAUTH2_CLIENT_ID"),
-            env!("QUADRANT_OAUTH2_CLIENT_SECRET"),
-            user_agent,
-        )
-        .await?;
+        try_refresh_token(secret_store, client_id, client_secret, user_agent).await?;
         let new_token = get_account_token(secret_store)?;
         let retry = reqwest::Client::new()
             .get(format!("{}/account/notifications/get", backend_base_url()))
@@ -388,17 +404,41 @@ pub async fn get_notification_history_all_since(
     read: Option<bool>,
     include_modpack_sync: bool,
 ) -> Result<(Vec<Notification>, NotificationCursor)> {
+    get_notification_history_all_since_with_refresh(
+        secret_store,
+        user_agent,
+        cursor,
+        read,
+        include_modpack_sync,
+        env!("QUADRANT_OAUTH2_CLIENT_ID"),
+        env!("QUADRANT_OAUTH2_CLIENT_SECRET"),
+    )
+    .await
+}
+
+/// Fetches all notification history pages from the provided cursor onward.
+pub async fn get_notification_history_all_since_with_refresh(
+    secret_store: &impl SecretStore,
+    user_agent: &str,
+    cursor: Option<&NotificationCursor>,
+    read: Option<bool>,
+    include_modpack_sync: bool,
+    client_id: &str,
+    client_secret: &str,
+) -> Result<(Vec<Notification>, NotificationCursor)> {
     let mut page_cursor = cursor.cloned().unwrap_or_default();
     let mut notifications = Vec::new();
 
     loop {
-        let page = get_notification_history_page(
+        let page = get_notification_history_page_with_refresh(
             secret_store,
             user_agent,
             Some(&page_cursor),
             read,
             Some(DEFAULT_NOTIFICATION_HISTORY_LIMIT),
             include_modpack_sync,
+            client_id,
+            client_secret,
         )
         .await?;
 
@@ -419,11 +459,21 @@ pub async fn get_notification_history_all_since(
 async fn parse_notification_history_response(
     response: reqwest::Response,
 ) -> Result<NotificationHistoryResponse> {
-    parse_json_response(response, "Notification history request failed", EMPTY_NOTIFICATION_HISTORY_BODY).await
+    parse_json_response(
+        response,
+        "Notification history request failed",
+        EMPTY_NOTIFICATION_HISTORY_BODY,
+    )
+    .await
 }
 
 async fn parse_account_info_response(response: reqwest::Response) -> Result<AccountInfo> {
-    parse_json_response(response, "Account info request failed", EMPTY_ACCOUNT_INFO_BODY).await
+    parse_json_response(
+        response,
+        "Account info request failed",
+        EMPTY_ACCOUNT_INFO_BODY,
+    )
+    .await
 }
 
 async fn parse_oauth_token_response(

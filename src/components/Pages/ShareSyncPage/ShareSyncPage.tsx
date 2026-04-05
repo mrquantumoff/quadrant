@@ -8,9 +8,9 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { getAccountInfo } from "../../../tools";
 import { motion } from "motion/react";
 import { InstalledModpack } from "../../../intefaces";
-import { listen } from "@tauri-apps/api/event";
 import { ContentContext } from "../../../intefaces";
 import { MdCheck } from "react-icons/md";
+import { listen } from "../../../desktop";
 
 export interface IShareSyncContext {
   changeTab: (index: number) => void;

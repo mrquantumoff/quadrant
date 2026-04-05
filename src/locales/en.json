@@ -40,7 +40,7 @@
   "mod": "Mod from {{source}}",
   "resourcepack": "Resource pack from {{source}}",
   "shaderpack": "Shaders from {{source}}",
-  "currentVersion": "Installed version is {{version}}, built on Tauri {{tauriVersion}}",
+  "currentVersion": "Installed version is {{version}}, running on {{runtimeName}} {{runtimeVersion}}",
   "latestVersion": "Latest version is {{version}}",
   "openLatestRelease": "Open the latest release",
   "openInTheWeb": "Open in the web",
