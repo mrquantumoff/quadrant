@@ -67,8 +67,7 @@
       "AppImage",
       "deb",
       "rpm",
-      "pacman",
-      ""
+      "pacman"
     ],
     "category": "Utility"
   },
