@@ -59,7 +59,13 @@
       "en-US",
       "uk-UA",
       "tr-TR"
-    ]
+    ],
+    "capabilities": [
+      "internetClient",
+      "broadFileSystemAccess",
+      "unvirtualizedResources"
+    ],
+    "addAutoLaunchExtension": true,
   },
   "linux": {
     "icon": "src-tauri/icons",
@@ -78,7 +84,9 @@
     ]
   },
   "nsis": {
-    "allowToChangeInstallationDirectory": true,
-    "oneClick": true
+    "oneClick": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "license": "./LICENSE"
   }
 }
