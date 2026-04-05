@@ -136,7 +136,7 @@ jobs:
         if: matrix.os == 'linux'
         run: |
           sudo apt update
-          sudo apt install -y xdg-utils libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev pkg-config libsecret-1-dev libarchive-tools rpm 
+          sudo apt install -y xdg-utils libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev pkg-config libsecret-1-dev libarchive-tools rpm fakeroot 
 
       - name: install frontend dependencies (bun)
         run: bun install

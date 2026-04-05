@@ -449,6 +449,7 @@ function showMainWindow(): void {
 	if (!mainWindow) {
 		return;
 	}
+	mainWindow.setEnabled(true);
 	mainWindow.show();
 	mainWindow.focus();
 	if (mainWindow.isMinimized()) {

@@ -48,6 +48,7 @@
       <url type="details">https://blog.mrquantumoff.dev</url>
       <description>
         <p>Add Electron support as an alternative runtime</p>
+        <p>QoL updates</p>
         <p>Dependency updates</p>
       </description>
     </release>
