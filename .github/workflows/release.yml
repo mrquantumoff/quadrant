@@ -106,7 +106,7 @@ jobs:
         if: matrix.os == 'linux'
         run: |
           sudo apt update
-          sudo apt install -y libsecret-1-dev libarchive-tools rpm
+          sudo apt install -y xdg-utils libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev pkg-config libsecret-1-dev libarchive-tools rpm 
 
       - name: install frontend dependencies (bun)
         run: bun install
@@ -135,9 +135,7 @@ jobs:
 
   sync_flathub:
     name: Sync Flathub
-    needs:
-      - publish-tauri
-      - publish-electron
+    needs: publish-electron
     if: endsWith(github.ref_name, '-stable') || endsWith(github.ref_name, '-flatpak')
     uses: ./.github/workflows/flatpak.yml
     secrets: inherit
