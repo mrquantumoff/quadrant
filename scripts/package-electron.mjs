@@ -33,6 +33,12 @@ function normalizeArch(arch) {
   }
 }
 
+function hasPublishFlag(args) {
+  return args.some(
+    (arg) => arg === "--publish" || arg.startsWith("--publish="),
+  );
+}
+
 function run(command, args) {
   runCommand(command, args, {
     cwd: rootDir,
@@ -43,6 +49,7 @@ function run(command, args) {
 
 const targetArch = normalizeArch(getArgValue("--arch"));
 const electronBuilderArchFlag = `--${targetArch}`;
+const publishArgs = hasPublishFlag(extraArgs) ? [] : ["--publish", "never"];
 
 run("node", ["scripts/build-electron.mjs", ...extraArgs]);
 run("bunx", [
@@ -50,4 +57,5 @@ run("bunx", [
   "--config",
   "electron-builder.json",
   electronBuilderArchFlag,
+  ...publishArgs,
 ]);
