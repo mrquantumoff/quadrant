@@ -1,10 +1,12 @@
 import path from "node:path";
-import { runCommand } from "./command-utils.mjs";
+import { fileURLToPath } from "node:url";
+import { runCommand } from "./command-utils.ts";
 
-const rootDir = path.resolve(import.meta.dirname, "..");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.resolve(scriptDir, "..");
 const extraArgs = process.argv.slice(2);
 
-function getArgValue(flag) {
+function getArgValue(flag: string): string | undefined {
   const exactMatch = extraArgs.find((arg) => arg.startsWith(`${flag}=`));
   if (exactMatch) {
     return exactMatch.slice(flag.length + 1);
@@ -18,7 +20,7 @@ function getArgValue(flag) {
   return undefined;
 }
 
-function normalizeArch(arch) {
+function normalizeArch(arch: string | undefined): string {
   if (!arch) {
     return process.arch;
   }
@@ -33,13 +35,13 @@ function normalizeArch(arch) {
   }
 }
 
-function hasPublishFlag(args) {
+function hasPublishFlag(args: string[]): boolean {
   return args.some(
     (arg) => arg === "--publish" || arg.startsWith("--publish="),
   );
 }
 
-function run(command, args) {
+function run(command: string, args: string[]): void {
   runCommand(command, args, {
     cwd: rootDir,
     stdio: "inherit",
@@ -51,7 +53,7 @@ const targetArch = normalizeArch(getArgValue("--arch"));
 const electronBuilderArchFlag = `--${targetArch}`;
 const publishArgs = hasPublishFlag(extraArgs) ? [] : ["--publish", "never"];
 
-run("node", ["scripts/build-electron.mjs", ...extraArgs]);
+run("bun", ["scripts/build-electron.ts", ...extraArgs]);
 run("bunx", [
   "electron-builder",
   "--config",

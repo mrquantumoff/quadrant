@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-electron
+dist-electron-shell
 dist-ssr
 *.local
 
@@ -41,6 +42,7 @@ target/
 AppxContent
 AppxBundles
 electron/runtime-config.generated.json
+dist-electron-shell/runtime-config.generated.json
 packages/quadrant-node/index.js
 packages/quadrant-node/index.d.ts
 packages/quadrant-node/native/

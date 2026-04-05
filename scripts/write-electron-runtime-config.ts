@@ -1,14 +1,16 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const rootDir = path.resolve(import.meta.dirname, "..");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.resolve(scriptDir, "..");
 const outputPath = path.join(
   rootDir,
-  "electron",
+  "dist-electron-shell",
   "runtime-config.generated.json",
 );
 
-function normalizeOptionalConfigValue(value) {
+function normalizeOptionalConfigValue(value: unknown): string | null {
   if (typeof value !== "string") {
     return null;
   }
@@ -17,7 +19,7 @@ function normalizeOptionalConfigValue(value) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function normalizeRequiredConfigValue(value) {
+function normalizeRequiredConfigValue(value: unknown): string {
   if (typeof value !== "string") {
     return "";
   }

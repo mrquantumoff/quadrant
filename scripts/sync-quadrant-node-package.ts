@@ -2,15 +2,16 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const rootDir = path.resolve(import.meta.dirname, "..");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.resolve(scriptDir, "..");
 const sourceDir = path.join(rootDir, "scripts", "quadrant-node");
 const targetDir = path.join(rootDir, "packages", "quadrant-node");
 
-function readUtf8(filePath) {
+function readUtf8(filePath: string): string {
   return readFileSync(filePath, "utf8");
 }
 
-function writeIfChanged(filePath, contents) {
+function writeIfChanged(filePath: string, contents: string): boolean {
   try {
     if (readUtf8(filePath) === contents) {
       return false;
@@ -23,7 +24,10 @@ function writeIfChanged(filePath, contents) {
   return true;
 }
 
-export function syncQuadrantNodePackage() {
+export function syncQuadrantNodePackage(): {
+  indexJs: boolean;
+  indexTypes: boolean;
+} {
   mkdirSync(targetDir, { recursive: true });
 
   return {

@@ -1,15 +1,101 @@
-import { contextBridge, ipcRenderer } from "electron";
+import electron from "electron";
 import { randomUUID } from "node:crypto";
 
-function listen(channel, listener) {
-  const wrapped = (_event, payload) => listener(payload);
+const { contextBridge, ipcRenderer } = electron;
+
+type UnlistenFn = () => void | Promise<void>;
+
+interface DesktopWatchOptions {
+  delayMs?: number;
+}
+
+interface DesktopDialogOptions {
+  mode?: "open" | "save";
+  multiple?: boolean;
+  directory?: boolean;
+  recursive?: boolean;
+  title?: string;
+  defaultPath?: string;
+}
+
+interface DesktopWindowProgressState {
+  progress: number;
+  status?: "none" | "normal" | "error" | "paused" | "indeterminate";
+}
+
+interface DesktopOAuthStartOptions {
+  response?: string;
+  ports?: number[];
+}
+
+interface DesktopBackendEventEnvelope<T = unknown> {
+  event: string;
+  payload: T;
+}
+
+interface DesktopStoreChangeEvent {
+  storeName: string;
+  key: string;
+  value: unknown;
+}
+
+interface FsWatchEventPayload {
+  watchId: string;
+}
+
+interface ElectronBridge {
+  invoke<T>(command: string, payload?: unknown): Promise<T>;
+  addBackendEventListener(
+    listener: (event: DesktopBackendEventEnvelope) => void,
+  ): UnlistenFn;
+  storeGet<T>(storeName: string, key: string): Promise<T | undefined>;
+  storeSet(storeName: string, key: string, value: unknown): Promise<void>;
+  storeSave(storeName: string): Promise<void>;
+  addStoreChangeListener(
+    listener: (event: DesktopStoreChangeEvent) => void,
+  ): UnlistenFn;
+  watchPath(
+    targetPath: string,
+    options: DesktopWatchOptions | undefined,
+    listener: () => void,
+  ): Promise<UnlistenFn>;
+  joinPath(...segments: string[]): Promise<string>;
+  openDialog(options: DesktopDialogOptions): Promise<string | string[] | null>;
+  openExternal(url: string): Promise<void>;
+  openPath(targetPath: string): Promise<void>;
+  readClipboardText(): Promise<string>;
+  writeClipboardText(text: string): Promise<void>;
+  platform(): Promise<string>;
+  getAppVersion(): Promise<string>;
+  getRuntimeVersion(): Promise<string>;
+  requestCheckForUpdates(): Promise<void>;
+  installUpdate(): Promise<void>;
+  isAutoupdateEnabled(): Promise<boolean>;
+  windowMinimize(): Promise<void>;
+  windowHide(): Promise<void>;
+  windowSetEnabled(enabled: boolean): Promise<void>;
+  windowSetFocus(): Promise<void>;
+  windowUnminimize(): Promise<void>;
+  windowSetProgressBar(state: DesktopWindowProgressState): Promise<void>;
+  addOpenUrlListener(listener: (urls: string[]) => void): UnlistenFn;
+  startOAuthServer(options: DesktopOAuthStartOptions): Promise<number>;
+  cancelOAuthServer(port: number): Promise<void>;
+  addOAuthUrlListener(listener: (url: string) => void): UnlistenFn;
+}
+
+function listen<T>(
+  channel: string,
+  listener: (payload: T) => void,
+): UnlistenFn {
+  const wrapped = (_event: Electron.IpcRendererEvent, payload: T) =>
+    listener(payload);
   ipcRenderer.on(channel, wrapped);
   return () => {
     ipcRenderer.removeListener(channel, wrapped);
   };
 }
 
-const api = {
+const api: ElectronBridge = {
   invoke(command, payload) {
     return ipcRenderer.invoke("quadrant:invoke", { command, payload });
   },
@@ -30,11 +116,14 @@ const api = {
   },
   async watchPath(targetPath, options, listener) {
     const watchId = randomUUID();
-    const stopListening = listen("quadrant:fs-watch:event", (payload) => {
-      if (payload.watchId === watchId) {
-        listener();
-      }
-    });
+    const stopListening = listen<FsWatchEventPayload>(
+      "quadrant:fs-watch:event",
+      (payload) => {
+        if (payload.watchId === watchId) {
+          listener();
+        }
+      },
+    );
     await ipcRenderer.invoke("quadrant:fs-watch:start", {
       watchId,
       targetPath,

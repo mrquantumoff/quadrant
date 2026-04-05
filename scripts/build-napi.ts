@@ -1,15 +1,17 @@
 import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { resolveCargoCommand, runCommand } from "./command-utils.mjs";
-import { syncQuadrantNodePackage } from "./sync-quadrant-node-package.mjs";
+import { fileURLToPath } from "node:url";
+import { resolveCargoCommand, runCommand } from "./command-utils.ts";
+import { syncQuadrantNodePackage } from "./sync-quadrant-node-package.ts";
 
-const rootDir = path.resolve(import.meta.dirname, "..");
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const rootDir = path.resolve(scriptDir, "..");
 const srcTauriDir = path.join(rootDir, "src-tauri");
 const args = process.argv.slice(2);
 const release = args.includes("--release");
 const profile = release ? "release" : "debug";
 
-function getArgValue(flag) {
+function getArgValue(flag: string): string | undefined {
   const exactMatch = args.find((arg) => arg.startsWith(`${flag}=`));
   if (exactMatch) {
     return exactMatch.slice(flag.length + 1);
@@ -23,7 +25,7 @@ function getArgValue(flag) {
   return undefined;
 }
 
-function normalizePlatform(platform) {
+function normalizePlatform(platform: string | undefined): string {
   if (!platform) {
     return process.platform;
   }
@@ -39,7 +41,7 @@ function normalizePlatform(platform) {
   }
 }
 
-function normalizeArch(arch) {
+function normalizeArch(arch: string | undefined): string {
   if (!arch) {
     return process.arch;
   }
@@ -54,7 +56,7 @@ function normalizeArch(arch) {
   }
 }
 
-function getRustTargetTriple(platform, arch) {
+function getRustTargetTriple(platform: string, arch: string): string {
   const key = `${platform}-${arch}`;
   switch (key) {
     case "win32-x64":
@@ -76,7 +78,7 @@ function getRustTargetTriple(platform, arch) {
   }
 }
 
-function findNativeBinary(directory) {
+function findNativeBinary(directory: string): string | null {
   const entries = readdirSync(directory, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(directory, entry.name);
@@ -152,11 +154,12 @@ try {
   cpSync(builtNode, path.join(nativeDir, "index.node"));
 } catch (error) {
   if (
-    error &&
+    error instanceof Error &&
+    "code" in error &&
     (error.code === "EIO" || error.code === "EPERM" || error.code === "EBUSY")
   ) {
     throw new Error(
-      `Built Quadrant N-API successfully, but could not update packages/quadrant-node/native/index.node because it is locked. Close Electron or any process using the addon, then rerun \`node scripts/build-napi.mjs\`. Original error: ${error.message}`,
+      `Built Quadrant N-API successfully, but could not update packages/quadrant-node/native/index.node because it is locked. Close Electron or any process using the addon, then rerun \`bun scripts/build-napi.ts\`. Original error: ${error.message}`,
     );
   }
   throw error;
