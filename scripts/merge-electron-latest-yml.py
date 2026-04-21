@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import argparse
 import copy
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+ARCH_ALIASES = {
+    "x64": ("x64", "x86_64", "amd64"),
+    "arm64": ("arm64", "aarch64", "arm"),
+}
 
 
 def load_metadata(path: Path) -> dict[str, Any]:
@@ -36,6 +42,58 @@ def extract_files(metadata: dict[str, Any]) -> list[dict[str, Any]]:
     return [file_info]
 
 
+def normalize_arch(arch: str) -> str:
+    normalized = arch.strip().lower()
+    for canonical, aliases in ARCH_ALIASES.items():
+        if normalized == canonical or normalized in aliases:
+            return canonical
+    raise ValueError(
+        f"unsupported architecture {arch!r}; "
+        f"expected one of {', '.join(ARCH_ALIASES)}",
+    )
+
+
+def tokenize_artifact_name(value: str) -> set[str]:
+    return {token for token in re.split(r"[^a-z0-9_]+", value.lower()) if token}
+
+
+def file_matches_arch(file_info: dict[str, Any], arch: str) -> bool:
+    url = file_info.get("url")
+    if not isinstance(url, str):
+        return False
+
+    tokens = tokenize_artifact_name(url)
+    aliases = ARCH_ALIASES[normalize_arch(arch)]
+    return any(alias in tokens for alias in aliases)
+
+
+def find_file_for_arch(
+    files: list[dict[str, Any]],
+    arch: str,
+) -> dict[str, Any] | None:
+    return next(
+        (file_info for file_info in files if file_matches_arch(file_info, arch)),
+        None,
+    )
+
+
+def validate_required_arches(
+    files: list[dict[str, Any]],
+    required_arches: list[str],
+) -> None:
+    missing = [
+        arch
+        for arch in [normalize_arch(value) for value in required_arches]
+        if find_file_for_arch(files, arch) is None
+    ]
+    if missing:
+        urls = [file_info.get("url") for file_info in files]
+        raise ValueError(
+            f"merged metadata is missing update files for: {', '.join(missing)}. "
+            f"Found files: {urls!r}",
+        )
+
+
 def merge_files(base: dict[str, Any], extra: dict[str, Any]) -> list[dict[str, Any]]:
     merged: dict[str, dict[str, Any]] = {}
 
@@ -50,6 +108,27 @@ def merge_files(base: dict[str, Any], extra: dict[str, Any]) -> list[dict[str, A
             merged[url] = file_info
 
     return list(merged.values())
+
+
+def apply_legacy_top_level_file_fields(
+    merged: dict[str, Any],
+    files: list[dict[str, Any]],
+) -> None:
+    # electron-updater 2.15+ reads `files`, but keep old path/sha512 fields coherent.
+    canonical_file = find_file_for_arch(files, "x64") or files[0]
+    url = canonical_file.get("url")
+    sha512 = canonical_file.get("sha512")
+    if isinstance(url, str) and url:
+        merged["path"] = url
+    if isinstance(sha512, str) and sha512:
+        merged["sha512"] = sha512
+
+    for key in ("size", "blockMapSize"):
+        value = canonical_file.get(key)
+        if value is not None:
+            merged[key] = value
+        elif key in merged:
+            del merged[key]
 
 
 def merge_packages(base: dict[str, Any], extra: dict[str, Any]) -> dict[str, Any] | None:
@@ -90,9 +169,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Merge two electron-builder update metadata files into one Windows latest.yml",
     )
-    parser.add_argument("--base", required=True, help="The canonical metadata file to keep as top-level path/sha512, usually x64 latest.yml")
+    parser.add_argument("--base", required=True, help="The primary metadata file, usually x64 latest.yml")
     parser.add_argument("--extra", required=True, help="The secondary metadata file to merge in, usually arm64 latest.yml")
     parser.add_argument("--output", required=True, help="Path to the merged YAML file")
+    parser.add_argument(
+        "--require-arch",
+        action="append",
+        default=None,
+        help="Require an update artifact for this architecture in the merged metadata. Can be repeated.",
+    )
     args = parser.parse_args()
 
     base_path = Path(args.base)
@@ -110,7 +195,10 @@ def main() -> None:
         )
 
     merged = copy.deepcopy(base)
-    merged["files"] = merge_files(base, extra)
+    files = merge_files(base, extra)
+    validate_required_arches(files, args.require_arch or ["x64", "arm64"])
+    merged["files"] = files
+    apply_legacy_top_level_file_fields(merged, files)
 
     packages = merge_packages(base, extra)
     if packages is not None:

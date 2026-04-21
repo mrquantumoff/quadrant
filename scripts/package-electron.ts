@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCommand } from "./command-utils.ts";
+import { normalizeElectronArch } from "./electron-arch.ts";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, "..");
@@ -20,21 +21,6 @@ function getArgValue(flag: string): string | undefined {
   return undefined;
 }
 
-function normalizeArch(arch: string | undefined): string {
-  if (!arch) {
-    return process.arch;
-  }
-
-  switch (arch) {
-    case "aarch64":
-      return "arm64";
-    case "amd64":
-      return "x64";
-    default:
-      return arch;
-  }
-}
-
 function hasPublishFlag(args: string[]): boolean {
   return args.some(
     (arg) => arg === "--publish" || arg.startsWith("--publish="),
@@ -49,7 +35,7 @@ function run(command: string, args: string[]): void {
   });
 }
 
-const targetArch = normalizeArch(getArgValue("--arch"));
+const targetArch = normalizeElectronArch(getArgValue("--arch"));
 const electronBuilderArchFlag = `--${targetArch}`;
 const publishArgs = hasPublishFlag(extraArgs) ? [] : ["--publish", "never"];
 

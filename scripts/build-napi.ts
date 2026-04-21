@@ -2,6 +2,7 @@ import { cpSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveCargoCommand, runCommand } from "./command-utils.ts";
+import { normalizeElectronArch, type ElectronArch } from "./electron-arch.ts";
 import { syncQuadrantNodePackage } from "./sync-quadrant-node-package.ts";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -41,22 +42,7 @@ function normalizePlatform(platform: string | undefined): string {
   }
 }
 
-function normalizeArch(arch: string | undefined): string {
-  if (!arch) {
-    return process.arch;
-  }
-
-  switch (arch) {
-    case "aarch64":
-      return "arm64";
-    case "amd64":
-      return "x64";
-    default:
-      return arch;
-  }
-}
-
-function getRustTargetTriple(platform: string, arch: string): string {
+function getRustTargetTriple(platform: string, arch: ElectronArch): string {
   const key = `${platform}-${arch}`;
   switch (key) {
     case "win32-x64":
@@ -106,7 +92,7 @@ function findNativeBinary(directory: string): string | null {
 const targetPlatform = normalizePlatform(
   getArgValue("--platform") ?? getArgValue("--os"),
 );
-const targetArch = normalizeArch(getArgValue("--arch"));
+const targetArch = normalizeElectronArch(getArgValue("--arch"));
 const rustTarget =
   getArgValue("--target") ?? getRustTargetTriple(targetPlatform, targetArch);
 const cargoCommand = resolveCargoCommand();

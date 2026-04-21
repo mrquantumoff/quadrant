@@ -199,6 +199,9 @@ jobs:
           name: electron-windows-arm64-latest-yml
           path: artifacts/windows-arm64
 
+      - name: Install Python YAML dependency
+        run: python3 -m pip install --user PyYAML
+
       - name: Merge Windows Electron update metadata
         run: |
           python3 scripts/merge-electron-latest-yml.py \
