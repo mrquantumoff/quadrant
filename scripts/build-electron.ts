@@ -17,6 +17,6 @@ function run(command: string, args: string[]): void {
 }
 
 run("bun", ["run", "build"]);
+run("bun", ["scripts/build-napi.ts", "--release", ...extraArgs]);
 run("bun", ["run", "build:electron-shell"]);
 run("bun", ["scripts/write-electron-runtime-config.ts"]);
-run("bun", ["scripts/build-napi.ts", "--release", ...extraArgs]);
