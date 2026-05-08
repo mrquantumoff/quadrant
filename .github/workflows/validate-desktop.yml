@@ -46,7 +46,7 @@ jobs:
         run: bun run build:napi
 
       - name: Build Electron shell
-        run: node scripts/build-electron.mjs
+        run: bun run build:electron
 
       - name: Build Tauri shell
         run: bun tauri build --no-bundle
