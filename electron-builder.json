@@ -65,7 +65,7 @@
       "broadFileSystemAccess",
       "unvirtualizedResources"
     ],
-    "addAutoLaunchExtension": true,
+    "addAutoLaunchExtension": true
   },
   "linux": {
     "icon": "src-tauri/icons",

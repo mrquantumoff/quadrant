@@ -30,16 +30,16 @@ modules:
     buildsystem: simple
     sources:
       - type: file
-        url: https://github.com/quadrantmc/quadrant/raw/v26.4.0-stable/dev.mrquantumoff.mcmodpackmanager.metainfo.xml
-        sha256: b9b0cead668d8da6e5a151d66b59493eb54848a28d2fc5cee5616255ca0d2fe1
+        url: https://github.com/quadrantmc/quadrant/raw/v26.5.0-stable/dev.mrquantumoff.mcmodpackmanager.metainfo.xml
+        sha256: 0000000000000000000000000000000000000000000000000000000000000000
       # The release workflow replaces these placeholder hashes when Electron
       # AppImages are available for a stable tag.
       - type: file
-        url: https://github.com/quadrantmc/quadrant/releases/download/v26.4.0-stable/Quadrant-26.4.0-stable-linux-x64-electron.AppImage
+        url: https://github.com/quadrantmc/quadrant/releases/download/v26.5.0-stable/Quadrant-26.5.0-stable-linux-x64-electron.AppImage
         sha256: 0000000000000000000000000000000000000000000000000000000000000000
         only-arches: [x86_64]
       - type: file
-        url: https://github.com/quadrantmc/quadrant/releases/download/v26.4.0-stable/Quadrant-26.4.0-stable-linux-arm64-electron.AppImage
+        url: https://github.com/quadrantmc/quadrant/releases/download/v26.5.0-stable/Quadrant-26.5.0-stable-linux-arm64-electron.AppImage
         sha256: 0000000000000000000000000000000000000000000000000000000000000000
         only-arches: [aarch64]
 
