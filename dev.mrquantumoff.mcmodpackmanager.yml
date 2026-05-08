@@ -35,7 +35,7 @@ modules:
       # The release workflow replaces these placeholder hashes when Electron
       # AppImages are available for a stable tag.
       - type: file
-        url: https://github.com/quadrantmc/quadrant/releases/download/v26.5.0-stable/Quadrant-26.5.0-stable-linux-x64-electron.AppImage
+        url: https://github.com/quadrantmc/quadrant/releases/download/v26.5.0-stable/Quadrant-26.5.0-stable-linux-x86_64-electron.AppImage
         sha256: 0000000000000000000000000000000000000000000000000000000000000000
         only-arches: [x86_64]
       - type: file
@@ -74,6 +74,43 @@ modules:
           exit 1
         fi
 
+        find_electron_binary() {
+          for candidate in "$@"; do
+            [ -f "$candidate" ] || continue
+            [ -x "$candidate" ] || continue
+
+            case "$(basename "$candidate")" in
+              AppRun|chrome-sandbox|chrome_crashpad_handler|*.so)
+                continue
+                ;;
+            esac
+
+            if file "$candidate" | grep -q 'ELF'; then
+              printf '%s\n' "$candidate"
+              return 0
+            fi
+          done
+
+          return 1
+        }
+
+        app_exec_source="$(
+          find_electron_binary \
+            "squashfs-root/${exec_name}" \
+            squashfs-root/quadrant-next \
+            squashfs-root/Quadrant \
+            "squashfs-root/usr/bin/${exec_name}" \
+            squashfs-root/* \
+            squashfs-root/usr/bin/* || true
+        )"
+
+        if [ -z "$app_exec_source" ]; then
+          echo "Could not find the Electron ELF binary in the extracted AppImage." >&2
+          exit 1
+        fi
+
+        app_exec_path="/app/lib/quadrant/${app_exec_source#squashfs-root/}"
+
         install -dm755 /app/lib/quadrant /app/bin
         cp -a squashfs-root/. /app/lib/quadrant/
 
@@ -86,9 +123,10 @@ modules:
         #!/bin/sh
         set -eu
         export TMPDIR="\${XDG_RUNTIME_DIR}/app/\${FLATPAK_ID}"
-        APP_EXEC="/app/lib/quadrant/usr/bin/${exec_name}"
+        APP_EXEC="${app_exec_path}"
         if [ ! -x "\$APP_EXEC" ]; then
-          APP_EXEC="/app/lib/quadrant/${exec_name}"
+          echo "Quadrant executable missing: \$APP_EXEC" >&2
+          exit 1
         fi
         exec zypak-wrapper "\$APP_EXEC" --ozone-platform-hint=auto "\$@"
         EOF
