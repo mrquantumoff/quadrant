@@ -11,7 +11,7 @@ curseforge = ["quadrant-core/curseforge"]
 anyhow = { workspace = true }
 colog = { workspace = true }
 futures = { workspace = true }
-keyring = { workspace = true }
+keyring-core = { workspace = true }
 log = { workspace = true }
 quadrant-core = { path = "../quadrant-core" }
 serde = { workspace = true }
@@ -23,3 +23,12 @@ uuid = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-native-keyring-store = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+apple-native-keyring-store = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+dbus-secret-service-keyring-store = { workspace = true }

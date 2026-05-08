@@ -13,12 +13,17 @@ members = [
 ]
 
 [workspace.package]
-version = "26.4.1-preview.3"
+version = "26.5.0-stable"
 
 [workspace.dependencies]
 anyhow = "1.0.102"
+apple-native-keyring-store = { version = "1.0.0", features = ["keychain"] }
 chrono = { version = "0.4.44", features = ["serde"] }
 colog = "1.4.0"
+dbus-secret-service-keyring-store = { version = "1.0.0", features = [
+    "crypto-rust",
+    "vendored",
+] }
 dirs = "6.0.0"
 futures = "0.3.32"
 hex = "0.4.3"
@@ -27,23 +32,19 @@ http-cache-reqwest = { version = "1.0.0-alpha.6", default-features = false, feat
     "url-standard",
 ] }
 httpmock = "0.8.3"
-keyring = { version = "3.6.3", features = [
-    "apple-native",
-    "windows-native",
-    "sync-secret-service",
-] }
+keyring-core = { version = "1.0.0" }
 log = "0.4.29"
 moka = { version = "0.12.15", features = ["future"] }
-napi = { version = "3", default-features = false, features = [
+napi = { version = "3.8.6", default-features = false, features = [
     "napi8",
     "tokio_rt",
     "serde-json",
 ] }
-napi-build = "2"
-napi-derive = "3"
+napi-build = "2.3.1"
+napi-derive = "3.5.5"
 once_cell = "1.21.4"
 open = "5.3.4"
-reqwest = { version = "0.13.2", features = [
+reqwest = { version = "0.13.3", features = [
     "json",
     "rustls",
     "cookies",
@@ -56,25 +57,25 @@ rss = "2.0.12"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 sha1 = "0.11.0"
-tauri = { version = "2.10.3", features = ["tray-icon", "config-json5"] }
-tauri-build = { version = "2.5.6", features = [] }
+tauri = { version = "2.11.1", features = ["tray-icon", "config-json5"] }
+tauri-build = { version = "2.6.1", features = [] }
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-cli = "2.4.1"
 tauri-plugin-clipboard-manager = "2.3.2"
-tauri-plugin-deep-link = "2.4.7"
+tauri-plugin-deep-link = "2.4.9"
 tauri-plugin-dialog = "2.7.0"
-tauri-plugin-fs = { version = "2.5.0", features = ["watch"] }
-tauri-plugin-http = "2.5.8"
+tauri-plugin-fs = { version = "2.5.1", features = ["watch"] }
+tauri-plugin-http = "2.5.9"
 tauri-plugin-notification = "2.3.3"
 tauri-plugin-oauth = "2"
-tauri-plugin-opener = "2.5.3"
+tauri-plugin-opener = "2.5.4"
 tauri-plugin-os = "2.3.2"
-tauri-plugin-persisted-scope = "2.3.6"
-tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+tauri-plugin-persisted-scope = "2.3.7"
+tauri-plugin-single-instance = { version = "2.4.2", features = ["deep-link"] }
 tauri-plugin-store = "2.4.2"
 tauri-plugin-updater = "2.10.1"
 tempfile = "3.27.0"
-tokio = { version = "1.52.1", features = ["full"] }
+tokio = { version = "1.52.2", features = ["full"] }
 tokio-tungstenite = { version = "0.29.0", features = [
     "rustls-tls-webpki-roots",
     "connect",
@@ -82,7 +83,8 @@ tokio-tungstenite = { version = "0.29.0", features = [
 url = { version = "2.5.8", features = ["serde", "std"] }
 urlencoding = "2.1.3"
 uuid = { version = "1.23.1", features = ["v7"] }
-zip = "8.5.1"
+windows-native-keyring-store = "1.0.0"
+zip = "8.6.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -136,7 +138,7 @@ hex = { workspace = true }
 colog = { workspace = true }
 tauri-plugin-deep-link = { workspace = true }
 tauri-plugin-dialog = { workspace = true }
-keyring = { workspace = true }
+keyring-core = { workspace = true }
 tauri-plugin-clipboard-manager = { workspace = true }
 tauri-plugin-notification = { workspace = true }
 tauri-plugin-persisted-scope = { workspace = true }
@@ -154,6 +156,15 @@ tauri-plugin-single-instance = { workspace = true }
 tauri-plugin-autostart = { workspace = true }
 tauri-plugin-cli = { workspace = true }
 tauri-plugin-updater = { workspace = true }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-native-keyring-store = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+apple-native-keyring-store = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+dbus-secret-service-keyring-store = { workspace = true }
 
 [profile.dev]
 opt-level = 0
