@@ -131,6 +131,7 @@ pub async fn run() {
             });
             app.manage(host.clone());
             log::info!("Initializing app...\nInitializing config...");
+            host.init_config()?;
             let mut autoupdate = true;
 
             log::info!("Initializing deep links and autostart...");
