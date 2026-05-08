@@ -6,7 +6,7 @@ import { getModpacks, getSyncedModpacks } from "../../../tools";
 
 import SyncedModpackComponent from "./SyncedModpack/SyncedModpack";
 import { motion } from "motion/react";
-import { listen } from "@tauri-apps/api/event";
+import { listen } from "../../../desktop";
 
 export default function SyncPage() {
   const [modpacks, setModpacks] = useState<SyncedModpack[]>([]);

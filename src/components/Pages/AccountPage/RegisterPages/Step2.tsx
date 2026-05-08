@@ -5,7 +5,7 @@ import { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Button from "../../../core/Button";
 import { ContentContext } from "../../../../intefaces";
-import { fetch } from "@tauri-apps/plugin-http";
+import { desktopFetch } from "../../../../desktop";
 
 interface SecondRegisterStepProps {
   email: string;
@@ -49,7 +49,7 @@ export default function SecondRegisterStep({ email }: SecondRegisterStepProps) {
       login: username,
       name: name,
     };
-    const request = await fetch(
+    const request = await desktopFetch(
       "https://api.mrquantumoff.dev/api/v3/account/registration/confirm",
       {
         body: JSON.stringify(body),

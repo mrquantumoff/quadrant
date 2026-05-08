@@ -1,0 +1,126 @@
+/**
+ * eslint-disable @typescript-eslint/no-empty-object-type
+ *
+ * @format
+ */
+
+import type { AccountNotification, Article, ModProgress } from "../intefaces";
+
+export const HOST_COMMANDS = [
+  "get_modpacks",
+  "frontend_apply_modpack",
+  "delete_mod",
+  "update_modpack",
+  "create_modpack",
+  "delete_modpack",
+  "register_mod",
+  "install_modpack",
+  "export_modpack_to",
+  "set_modpack_sync_date",
+  "get_news",
+  "get_minecraft_folder",
+  "get_modpacks_folder",
+  "init_config",
+  "search_mods",
+  "get_versions",
+  "get_user_url",
+  "install_mod",
+  "install_remote_file",
+  "identify_modpack",
+  "check_mod_updates",
+  "get_mod_modrinth",
+  "get_mod_owners_modrinth",
+  "get_mod_deps_modrinth",
+  "set_secret",
+  "clear_account_token",
+  "get_account_info",
+  "oauth2_login",
+  "oauth2_client_id",
+  "read_notification",
+  "get_synced_modpacks",
+  "kick_member",
+  "invite_member",
+  "delete_synced_modpack",
+  "sync_modpack",
+  "answer_invite",
+  "share_modpack",
+  "share_modpack_raw",
+  "get_quadrant_share_modpack",
+  "get_quadrant_settings",
+  "submit_quadrant_settings",
+  "send_telemetry",
+  "remove_telemetry",
+  "get_mod_curseforge",
+  "get_mod_owners_curseforge",
+  "get_mod_deps_curseforge",
+] as const;
+
+export type DesktopCommand = (typeof HOST_COMMANDS)[number];
+
+export const ProgressBarStatus = {
+  None: "none",
+  Normal: "normal",
+  Error: "error",
+  Paused: "paused",
+  Indeterminate: "indeterminate",
+} as const;
+
+export type ProgressBarStatusValue =
+  (typeof ProgressBarStatus)[keyof typeof ProgressBarStatus];
+
+export type UpdateDownloadProgressPayload = number;
+
+export interface QuadrantShareSubmissionPayload {
+  code?: string | number;
+  uses_left?: number;
+}
+
+export interface DesktopEventMap {
+  modDownloadProgress: ModProgress;
+  modInstallProgress: ModProgress;
+  modpackDownloadProgress: number;
+  quadrantExportProgress: number;
+  quadrantShareSubmission: QuadrantShareSubmissionPayload;
+  refreshNotifications: AccountNotification[];
+  recheckAccountToken: null;
+  refreshSyncedModpacks: string | null;
+  updateDownloadProgress: UpdateDownloadProgressPayload;
+}
+
+export type DesktopEventName = keyof DesktopEventMap;
+
+export interface DesktopDialogOptions {
+  mode?: "open" | "save";
+  multiple?: boolean;
+  directory?: boolean;
+  recursive?: boolean;
+  title?: string;
+  defaultPath?: string;
+}
+
+export interface DesktopWatchOptions {
+  delayMs?: number;
+}
+
+export interface DesktopOAuthStartOptions {
+  response?: string;
+  ports?: number[];
+}
+
+export interface DesktopWindowProgressState {
+  progress: number;
+  status?: ProgressBarStatusValue;
+}
+
+export interface DesktopStoreChangeEvent {
+  storeName: string;
+  key: string;
+  value: unknown;
+}
+
+export interface DesktopBackendEventEnvelope<T = unknown> {
+  event: string;
+  payload: T;
+}
+
+export type DesktopNewsArticle = Article;

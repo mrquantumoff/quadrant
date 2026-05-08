@@ -1,4 +1,5 @@
-use config::init_config;
+use quadrant_host::{QuadrantHost, QuadrantHostOptions};
+use std::path::PathBuf;
 use tauri::{
     Emitter, Manager,
     menu::{Menu, MenuItem},
@@ -14,8 +15,6 @@ use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_store::StoreExt;
 #[cfg(feature = "updater")]
 use tauri_plugin_updater::UpdaterExt;
-#[cfg(feature = "quadrant_id")]
-use uuid::Uuid;
 
 #[allow(dead_code)] // This is used in the Quadrant ID feature
 pub(crate) const QNT_BASE_URL: &str = "https://api.usequadrant.dev/api/v3";
@@ -35,27 +34,36 @@ pub struct AppState {
     pub is_update_enabled: bool,
     pub update: Option<tauri_plugin_updater::Update>,
     pub update_bytes: Vec<u8>,
-    #[cfg(feature = "quadrant_id")]
-    pub notification_connection_id: String,
-    #[cfg(feature = "quadrant_id")]
-    pub notification_state: account::id::NotificationRuntimeState,
+}
+
+fn build_quadrant_host(app: &tauri::AppHandle) -> Result<QuadrantHost, anyhow::Error> {
+    let data_dir = app
+        .path()
+        .app_data_dir()
+        .ok()
+        .or_else(|| quadrant_core::config::get_config_dir().ok().flatten())
+        .unwrap_or_else(|| PathBuf::from("."));
+    let mut options = QuadrantHostOptions::new(
+        data_dir,
+        env!("QUADRANT_OAUTH2_CLIENT_ID"),
+        env!("QUADRANT_OAUTH2_CLIENT_SECRET"),
+        env!("QUADRANT_API_KEY"),
+    );
+    options.api_base_url = std::env::var("QUADRANT_API_BASE_URL").ok();
+    options.app_version = app.package_info().version.to_string();
+    options.os_name = tauri_plugin_os::platform().to_string().to_uppercase();
+    QuadrantHost::new(options)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[allow(deprecated)]
 pub async fn run() {
-    colog::init();
-
     log::info!("Initializing Tauri...");
     let mut builder = tauri::Builder::default().manage(Mutex::new(AppState {
-        is_update_enabled: false,
         updated_modpacks: vec![],
+        is_update_enabled: false,
         update: None,
         update_bytes: vec![],
-        #[cfg(feature = "quadrant_id")]
-        notification_connection_id: Uuid::now_v7().to_string(),
-        #[cfg(feature = "quadrant_id")]
-        notification_state: account::id::NotificationRuntimeState::default(),
     }));
 
     #[cfg(desktop)]
@@ -105,8 +113,25 @@ pub async fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
-            init_config(app.handle().clone())?;
+            let host = build_quadrant_host(&app.handle().clone())?;
+            let mut host_events = host.subscribe_events();
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                loop {
+                    match host_events.recv().await {
+                        Ok(event) => {
+                            let _ = app_handle.emit(&event.event, event.payload.clone());
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Lagged(skipped)) => {
+                            log::warn!("Dropped {skipped} host events while forwarding to Tauri");
+                        }
+                        Err(tokio::sync::broadcast::error::RecvError::Closed) => break,
+                    }
+                }
+            });
+            app.manage(host.clone());
             log::info!("Initializing app...\nInitializing config...");
+            host.init_config()?;
             let mut autoupdate = true;
 
             log::info!("Initializing deep links and autostart...");
@@ -207,18 +232,21 @@ pub async fn run() {
             }
             #[cfg(feature = "telemetry")]
             {
-                let handle = app.handle().clone();
                 log::info!("Initializing telemetry...");
+                let host = host.clone();
                 tauri::async_runtime::spawn(async move {
-                    other::telemetry::send_telemetry(handle.clone().to_owned()).await;
+                    let _ = host.send_telemetry().await;
                 });
             }
             #[cfg(feature = "quadrant_id")]
             {
                 log::info!("Starting Quadrant notification and sync workers...");
-                let app_handle = app.handle().clone();
-                account::id::start_notification_worker(app_handle.clone());
-                account::id::start_settings_sync_worker(app_handle);
+                let worker_host = host.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(error) = worker_host.start_background_workers().await {
+                        log::error!("Failed to start Quadrant host workers: {error}");
+                    }
+                });
             }
             log::info!("Initializing tray...");
             let tray = app.tray_by_id("main");
@@ -266,8 +294,9 @@ pub async fn run() {
             }
 
             log::info!("Updating Minecraft versions...");
+            let version_host = host.clone();
             let _task = tokio::task::spawn(async move {
-                let _res = mc_mod::get_versions().await;
+                let _res = version_host.get_versions().await;
                 match _res {
                     Ok(_) => {}
                     Err(e) => {
@@ -285,10 +314,12 @@ pub async fn run() {
             modpacks::manage_modpack::update_modpack,
             modpacks::manage_modpack::create_modpack,
             modpacks::manage_modpack::delete_modpack,
+            modpacks::manage_modpack::get_modpacks_folder,
             modpacks::manage_modpack::open_modpacks_folder,
             modpacks::manage_modpack::register_mod,
             modpacks::general::install_modpack,
             modpacks::general::export_modpack,
+            modpacks::general::export_modpack_to,
             mc_mod::modrinth::get_mod_modrinth,
             mc_mod::search_mods,
             mc_mod::get_versions,
@@ -347,6 +378,10 @@ pub async fn run() {
             account::quadrant_sync::answer_invite,
             #[cfg(feature = "quadrant_id")]
             account::quadrant_share::get_quadrant_share_modpack,
+            #[cfg(feature = "quadrant_id")]
+            account::quadrant_settings_sync::get_quadrant_settings,
+            #[cfg(feature = "quadrant_id")]
+            account::quadrant_settings_sync::submit_quadrant_settings,
         ]);
 
     builder

@@ -1,0 +1,92 @@
+{
+  "$schema": "https://github.com/electron-userland/electron-builder/raw/refs/heads/master/packages/app-builder-lib/scheme.json",
+  "appId": "dev.mrquantumoff.mcmodpackmanager",
+  "productName": "Quadrant",
+  "directories": {
+    "output": "dist-electron"
+  },
+  "files": [
+    "dist/**/*",
+    "dist-electron-shell/**/*",
+    "packages/quadrant-node/**/*",
+    "public/tray.png",
+    "package.json"
+  ],
+  "extraMetadata": {
+    "main": "dist-electron-shell/main.js"
+  },
+  "asar": true,
+  "asarUnpack": [
+    "packages/quadrant-node/native/**/*.node"
+  ],
+  "npmRebuild": true,
+  "buildDependenciesFromSource": false,
+  "protocols": [
+    {
+      "name": "Quadrant",
+      "schemes": [
+        "quadrantnext",
+        "curseforge",
+        "modrinth"
+      ]
+    }
+  ],
+  "publish": [
+    {
+      "provider": "github",
+      "owner": "quadrantmc",
+      "repo": "quadrant"
+    }
+  ],
+  "artifactName": "Quadrant-${version}-${os}-${arch}-electron.${ext}",
+  "win": {
+    "icon": "src-tauri/icons/icon.ico",
+    "target": [
+      "nsis",
+      "zip",
+      "portable",
+      "msi",
+      "appx"
+    ]
+  },
+  "appx": {
+    "identityName": "58734MrQuantumOFFDemirYer.MinecraftModpackManagerR",
+    "publisher": "CN=010914FC-8843-4963-A3FE-E3E06E6D9F53",
+    "publisherDisplayName": "MrQuantumOFF (Demir Yerli)",
+    "displayName": "QuadrantMC",
+    "applicationId": "quadrant",
+    "languages": [
+      "en-US",
+      "uk-UA",
+      "tr-TR"
+    ],
+    "capabilities": [
+      "internetClient",
+      "broadFileSystemAccess",
+      "unvirtualizedResources"
+    ],
+    "addAutoLaunchExtension": true
+  },
+  "linux": {
+    "icon": "src-tauri/icons",
+    "target": [
+      "AppImage",
+      "deb",
+      "rpm",
+      "pacman"
+    ],
+    "category": "Utility"
+  },
+  "rpm": {
+    "fpm": [
+      "--rpm-summary",
+      "Manage your Minecraft mods and modpacks with ease"
+    ]
+  },
+  "nsis": {
+    "oneClick": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "license": "./LICENSE"
+  }
+}

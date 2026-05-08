@@ -32,8 +32,6 @@ import {
   Select,
 } from "@headlessui/react";
 import "./Apply.css";
-import { watch } from "@tauri-apps/plugin-fs";
-import * as path from "@tauri-apps/api/path";
 import {
   MdArchive,
   MdCheck,
@@ -48,8 +46,8 @@ import {
 } from "react-icons/md";
 import LoaderOptions from "../../shared/LoaderOption";
 import { ContentContext } from "../../../intefaces";
-import { listen } from "@tauri-apps/api/event";
 import ModpackView from "../../shared/Pages/ModpackView";
+import { joinPath, listen, watch } from "../../../desktop";
 export default function ApplyPage() {
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
 
@@ -104,7 +102,7 @@ export default function ApplyPage() {
       });
 
       const unwatch = await watch(
-        await path.join(await getMinecraftFolder(false)),
+        await joinPath(await getMinecraftFolder(false)),
         async () => {
           if (!isUnmounted) {
             await updateModpacks();

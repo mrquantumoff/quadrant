@@ -214,7 +214,7 @@ pub struct IdentifiedMod {
 /// Returns the default Quadrant user agent used for upstream requests.
 pub fn get_user_agent() -> String {
     format!(
-        "mrquantumoff/quadrant/v{} (mrquantumoff.dev) (QUADRANT NEXT)",
+        "mrquantumoff/quadrant/v{} (mrquantumoff.dev) (QUADRANT NEXT/TAURI)",
         env!("CARGO_PKG_VERSION")
     )
 }

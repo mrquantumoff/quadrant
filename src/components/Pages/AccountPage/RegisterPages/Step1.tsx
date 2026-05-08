@@ -2,9 +2,9 @@ import { Field, Input, Label } from "@headlessui/react";
 import { useTranslation } from "react-i18next";
 import Button from "../../../core/Button";
 import { useContext, useState } from "react";
-import { fetch } from "@tauri-apps/plugin-http";
 import { ContentContext } from "../../../../intefaces";
 import SecondRegisterStep from "./Step2";
+import { desktopFetch } from "../../../../desktop";
 
 export default function FirstRegisterStep() {
   const { t } = useTranslation();
@@ -21,7 +21,7 @@ export default function FirstRegisterStep() {
     }
     const url =
       "https://api.mrquantumoff.dev/api/v3/account/registration/request";
-    const response = await fetch(url, {
+    const response = await desktopFetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

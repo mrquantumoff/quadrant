@@ -181,7 +181,9 @@ pub fn update_modpack(
     version: Option<String>,
     mod_loader: Option<ModLoader>,
 ) -> Result<LocalModpack> {
-    log::info!("Updating modpack \"{modpack_source}\" (name={name:?}, version={version:?}, mod_loader={mod_loader:?})");
+    log::info!(
+        "Updating modpack \"{modpack_source}\" (name={name:?}, version={version:?}, mod_loader={mod_loader:?})"
+    );
     let mut modpack = existing_modpacks
         .iter()
         .find(|modpack| modpack.name == modpack_source)
@@ -337,7 +339,11 @@ pub async fn install_modpack(
     settings: &impl SettingsStore,
     event_sink: &impl EventSink,
 ) -> Result<()> {
-    log::info!("Installing modpack \"{}\" ({} mod(s))", mod_config.name, mod_config.mods.len());
+    log::info!(
+        "Installing modpack \"{}\" ({} mod(s))",
+        mod_config.name,
+        mod_config.mods.len()
+    );
     let modpack_folder = modpack_path(mc_folder, &mod_config.name);
     if !modpack_folder.exists() {
         std::fs::create_dir_all(&modpack_folder)?;
@@ -405,7 +411,10 @@ pub fn export_modpack_to(
     destination: &Path,
     event_sink: &impl EventSink,
 ) -> Result<()> {
-    log::info!("Exporting modpack \"{modpack}\" to {}", destination.display());
+    log::info!(
+        "Exporting modpack \"{modpack}\" to {}",
+        destination.display()
+    );
     let modpack_folder = modpack_path(mc_folder, modpack);
     let destination = std::fs::File::create(destination)?;
     let mut zip = zip::ZipWriter::new(destination);

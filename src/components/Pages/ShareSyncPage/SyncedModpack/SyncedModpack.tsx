@@ -46,7 +46,7 @@ import {
 } from "../../../../tools";
 import { ContentContext } from "../../../../intefaces";
 import { ShareSyncContext } from "../ShareSyncPage";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../../../desktop";
 
 export default function SyncedModpackComponent({
   modpack,

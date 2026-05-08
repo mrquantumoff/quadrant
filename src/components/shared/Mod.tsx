@@ -24,10 +24,9 @@ import {
 } from "../../tools";
 import { useContext, useEffect, useRef, useState } from "react";
 import ModInstallPage from "../Pages/ModInstallPage/ModInstallPage";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { LazyStore } from "@tauri-apps/plugin-store";
 import Button from "../core/Button";
 import "./Mod.css";
+import { createDesktopStore, listen } from "../../desktop";
 
 export interface IModProps {
   mod: IMod;
@@ -58,12 +57,10 @@ export default function Mod(props: IModProps) {
 
   const context = useContext(ContentContext);
   const installRequestedRef = useRef(false);
+  const installInFlightRef = useRef(false);
 
-  const configRef = useRef<LazyStore | null>(null);
-  if (configRef.current === null) {
-    configRef.current = new LazyStore("config.json");
-  }
-  const config = configRef.current!;
+  const configRef = useRef(createDesktopStore("config.json"));
+  const config = configRef.current;
   const modpackViewContext = useContext(ModpackViewContext);
   const modId = mod.id;
   const isAutoinstallable = mod.autoinstallable;
@@ -87,8 +84,8 @@ export default function Mod(props: IModProps) {
 
   useEffect(() => {
     let isUnmounted = false;
-    let unlistenProgress: UnlistenFn | null = null;
-    let unlistenInstallProgress: UnlistenFn | null = null;
+    let unlistenProgress: (() => void | Promise<void>) | null = null;
+    let unlistenInstallProgress: (() => void | Promise<void>) | null = null;
 
     const effect = async () => {
       try {
@@ -149,11 +146,12 @@ export default function Mod(props: IModProps) {
         unlistenInstallProgress();
       }
     };
-  }, [isAutoinstallable, modId]);
+  }, [config, isAutoinstallable, modId]);
 
   useEffect(() => {
     if (isAutoinstallable && progress === 100 && installRequestedRef.current) {
       installRequestedRef.current = false;
+      installInFlightRef.current = false;
       context.setSnackbar({
         message: t("downloadSuccess"),
         className: "bg-emerald-700 text-white",
@@ -242,20 +240,32 @@ export default function Mod(props: IModProps) {
                 <Button
                   animate
                   onClick={async () => {
-                    if (!clickableDownload) {
+                    if (!clickableDownload || installInFlightRef.current) {
                       return;
                     }
+                    installInFlightRef.current = true;
                     setClickableDownload(false);
                     installRequestedRef.current = true;
-                    await deleteMod(props.modpack!, mod.id);
+                    try {
+                      await deleteMod(props.modpack!, mod.id);
 
-                    await installRemoteFile(
-                      mod.newVersion!,
-                      mod.modType,
-                      props.modpack,
-                      mod.source,
-                      mod.id,
-                    );
+                      await installRemoteFile(
+                        mod.newVersion!,
+                        mod.modType,
+                        props.modpack,
+                        mod.source,
+                        mod.id,
+                      );
+                    } catch (e: any) {
+                      installRequestedRef.current = false;
+                      installInFlightRef.current = false;
+                      setClickableDownload(true);
+                      context.setSnackbar({
+                        message: t(e),
+                        className: "bg-red-700 text-white",
+                        timeout: 3000,
+                      });
+                    }
                   }}
                   className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-700 hover:bg-emerald-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 >
@@ -266,14 +276,16 @@ export default function Mod(props: IModProps) {
                 <Button
                   animate
                   onClick={async () => {
-                    if (progress !== -1) {
+                    if (progress !== -1 || installInFlightRef.current) {
                       return;
                     }
                     console.log("Autoinstallable: " + mod.autoinstallable);
                     if (mod.autoinstallable) {
+                      installInFlightRef.current = true;
+                      setClickableDownload(false);
                       installRequestedRef.current = true;
                       // Get last used api, modpack, and loader
-                      const config = new LazyStore("config.json");
+                      const config = createDesktopStore("config.json");
                       const lastUsedAPI =
                         await config.get<string>("lastUsedAPI");
                       const lastUsedModpack =
@@ -291,6 +303,8 @@ export default function Mod(props: IModProps) {
                         );
                       } catch (e: any) {
                         installRequestedRef.current = false;
+                        installInFlightRef.current = false;
+                        setClickableDownload(true);
                         context.setSnackbar({
                           message: t(e),
                           className: "bg-red-700 text-white",

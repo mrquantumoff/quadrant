@@ -1,7 +1,10 @@
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    sync::OnceLock,
+};
 
 use anyhow::anyhow;
-use keyring::{Entry, Error as KeyringError};
+use keyring_core::{Entry, Error as KeyringError, set_default_store};
 use quadrant_core::{
     Result,
     events::BackendEvent,
@@ -15,6 +18,8 @@ use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 
 use crate::AppState;
+
+static KEYRING_STORE_INIT: OnceLock<std::result::Result<(), String>> = OnceLock::new();
 
 #[derive(Clone)]
 pub struct TauriSettingsStore {
@@ -99,21 +104,59 @@ pub struct TauriSecretStore;
 
 impl SecretStore for TauriSecretStore {
     fn get_secret(&self, key: &str) -> Result<Option<String>> {
+        ensure_keyring_store()?;
         let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", key)?;
         map_keyring_secret_result(entry.get_password())
     }
 
     fn set_secret(&self, key: &str, value: &str) -> Result<()> {
+        ensure_keyring_store()?;
         let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", key)?;
         entry.set_password(value)?;
         Ok(())
     }
 
     fn delete_secret(&self, key: &str) -> Result<()> {
+        ensure_keyring_store()?;
         let entry = Entry::new("dev.mrquantumoff.mcmodpackmanager", key)?;
-        entry.delete_credential()?;
-        Ok(())
+        match entry.delete_credential() {
+            Ok(()) | Err(KeyringError::NoEntry) => Ok(()),
+            Err(error) => Err(error.into()),
+        }
     }
+}
+
+fn ensure_keyring_store() -> Result<()> {
+    match KEYRING_STORE_INIT.get_or_init(|| init_keyring_store().map_err(|error| error.to_string()))
+    {
+        Ok(()) => Ok(()),
+        Err(error) => Err(anyhow!("failed to initialize keyring store: {error}").into()),
+    }
+}
+
+fn init_keyring_store() -> std::result::Result<(), KeyringError> {
+    #[cfg(target_os = "windows")]
+    {
+        set_default_store(windows_native_keyring_store::Store::new()?);
+        return Ok(());
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        set_default_store(apple_native_keyring_store::keychain::Store::new()?);
+        return Ok(());
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        set_default_store(dbus_secret_service_keyring_store::Store::new()?);
+        return Ok(());
+    }
+
+    #[allow(unreachable_code)]
+    Err(KeyringError::NotSupportedByStore(
+        "no production keyring store is configured for this platform".to_string(),
+    ))
 }
 
 fn map_keyring_secret_result(
@@ -236,7 +279,7 @@ pub fn mc_folder(app: &AppHandle) -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::map_keyring_secret_result;
-    use keyring::Error as KeyringError;
+    use keyring_core::Error as KeyringError;
 
     #[test]
     fn missing_secret_maps_to_none() {

@@ -9,8 +9,6 @@ import {
   PopoverButton,
   PopoverPanel,
 } from "@headlessui/react";
-import { listen } from "@tauri-apps/api/event";
-import { LazyStore } from "@tauri-apps/plugin-store";
 import {
   MdCheck,
   MdClear,
@@ -32,6 +30,7 @@ import {
   openIn,
   readNotification,
 } from "../../tools";
+import { createDesktopStore, listen } from "../../desktop";
 
 type NotificationsProps = {
   snackBarHistory: SnackbarHistoryItem[];
@@ -69,7 +68,7 @@ function Notifications({
   setSnackbarHistory,
 }: NotificationsProps) {
   const { t } = useTranslation();
-  const config = new LazyStore("config.json");
+  const config = createDesktopStore("config.json");
   const [notifications, setNotifications] = useState<AccountNotification[]>([]);
   const [areNotificationsHighlighted, setAreNotificationsHighlighted] =
     useState("bg-slate-700 hover:bg-slate-600");

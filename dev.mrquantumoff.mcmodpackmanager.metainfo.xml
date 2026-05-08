@@ -44,6 +44,15 @@
 
   <releases>
 
+    <release date="2026-05-08" version="26.5.0">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>Add Electron support as an alternative runtime</p>
+        <p>QoL updates</p>
+        <p>Dependency updates</p>
+      </description>
+    </release>
+
     <release date="2026-03-28" version="26.4.0">
       <url type="details">https://blog.mrquantumoff.dev</url>
       <description>

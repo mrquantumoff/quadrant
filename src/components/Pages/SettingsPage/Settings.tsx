@@ -2,7 +2,6 @@
 
 import { useTranslation } from "react-i18next";
 import Button from "../../core/Button";
-import { LazyStore } from "@tauri-apps/plugin-store";
 import {
   getMinecraftFolder,
   openIn,
@@ -10,17 +9,27 @@ import {
 } from "../../../tools";
 import { Field, Label, Select, Switch } from "@headlessui/react";
 import quadrantLocale from "../../../i18n";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import "./SettingsPage.css";
-import { open } from "@tauri-apps/plugin-dialog";
-import { getTauriVersion, getVersion } from "@tauri-apps/api/app";
-import { invoke } from "@tauri-apps/api/core";
 import { motion } from "motion/react";
+import {
+  createDesktopStore,
+  getAppVersion,
+  getRuntimeName,
+  getRuntimeVersion,
+  invoke,
+  isAutoupdateEnabled,
+  openDialog,
+} from "../../../desktop";
+import { ContentContext } from "../../../intefaces";
 
 export default function SettingsPage() {
   const { t } = useTranslation();
-  const box = new LazyStore("config.json");
-  const updateChannelBox = new LazyStore("updateConfig.json");
+  const boxRef = useRef(createDesktopStore("config.json"));
+  const updateChannelBoxRef = useRef(createDesktopStore("updateConfig.json"));
+  const box = boxRef.current;
+  const updateChannelBox = updateChannelBoxRef.current;
+  const contentContext = useContext(ContentContext);
 
   const [currentLocale, setCurrentLocale] = useState("en");
   const [updateChannel, setUpdateChannel] = useState("stable");
@@ -39,9 +48,27 @@ export default function SettingsPage() {
   const [syncSettings, setSyncSettings] = useState(false);
   const [mcFolder, setMcFolder] = useState("");
   const [currentVersion, setCurrentVersion] = useState("");
-  const [currentTauriVersion, setCurrentTauriVersion] = useState("");
+  const [currentRuntimeName, setCurrentRuntimeName] = useState("");
+  const [currentRuntimeVersion, setCurrentRuntimeVersion] = useState("");
   const [extendedNavigation, setExtendedNavigation] = useState(false);
   const [showUpdateSettings, setShowUpdateSettings] = useState(true);
+
+  const applyCollectDataPreference = async (enabled: boolean) => {
+    setCollectData(enabled);
+    await box.set("collectUserData", enabled);
+    await box.save();
+
+    try {
+      await invoke(enabled ? "send_telemetry" : "remove_telemetry");
+    } catch (error) {
+      console.error(error);
+      contentContext.setSnackbar({
+        message: t(typeof error === "string" ? error : "unknown"),
+        className: "bg-red-700 rounded-4xl",
+        timeout: 5000,
+      });
+    }
+  };
 
   useEffect(() => {
     const initializeValues = async () => {
@@ -71,16 +98,17 @@ export default function SettingsPage() {
       console.log("Minecraft folder: " + (await getMinecraftFolder(false)));
       setMcFolder(await getMinecraftFolder(false));
       setSyncSettings((await box.get("syncSettings")) || false);
-      setCurrentVersion(await getVersion());
-      setCurrentTauriVersion(await getTauriVersion());
+      setCurrentVersion(await getAppVersion());
+      setCurrentRuntimeName(await getRuntimeName());
+      setCurrentRuntimeVersion(await getRuntimeVersion());
       setExtendedNavigation(
         (await box.get<boolean>("extendedNavigation")) ?? false,
       );
-      setShowUpdateSettings(await invoke("is_autoupdate_enabled"));
+      setShowUpdateSettings(await isAutoupdateEnabled());
     };
 
     initializeValues();
-  }, []);
+  }, [box, updateChannelBox]);
 
   return (
     <motion.div
@@ -96,7 +124,8 @@ export default function SettingsPage() {
         <p className="font-extrabold my-2 bg-slate-900 rounded-4xl p-4">
           {t("currentVersion", {
             version: currentVersion,
-            tauriVersion: currentTauriVersion,
+            runtimeName: currentRuntimeName,
+            runtimeVersion: currentRuntimeVersion,
           })}
         </p>
       </div>
@@ -155,6 +184,7 @@ export default function SettingsPage() {
               console.log("New Minecraft folder: " + newFolder);
               setMcFolder(newFolder);
               await box.set("mcFolder", newFolder);
+              await box.save();
             }}
           >
             {t("resetMinecraftFolder")}
@@ -162,18 +192,19 @@ export default function SettingsPage() {
           <Button
             className="bg-slate-800 hover:bg-slate-900 w-full ml-4"
             onClick={async () => {
-              const newFolder = await open({
+              const newFolder = await openDialog({
                 multiple: false,
                 directory: true,
                 recursive: true,
                 title: t("overrideMinecraftFolder"),
               });
-              if (newFolder === null) {
+              if (typeof newFolder !== "string" || newFolder.length === 0) {
                 return;
               }
               console.log("New Minecraft folder: " + newFolder);
               setMcFolder(newFolder);
               await box.set("mcFolder", newFolder);
+              await box.save();
             }}
           >
             {t("overrideMinecraftFolder")}
@@ -187,17 +218,7 @@ export default function SettingsPage() {
           }
           checked={collectData}
           onChange={async () => {
-            if (collectData) {
-              await invoke("remove_telemetry");
-              setCollectData(false);
-              await box.set("collectUserData", false);
-              await box.save();
-            } else {
-              await invoke("send_telemetry");
-              setCollectData(true);
-              await box.set("collectUserData", true);
-              await box.save();
-            }
+            await applyCollectDataPreference(!collectData);
           }}
         >
           <span
@@ -210,9 +231,7 @@ export default function SettingsPage() {
       <Button
         className="bg-slate-800 hover:bg-slate-700 w-fit my-4"
         onClick={async () => {
-          await invoke("send_telemetry");
-          setCollectData(true);
-          await box.set("collectUserData", true);
+          await applyCollectDataPreference(true);
         }}
       >
         {t("collectData")}
@@ -239,7 +258,7 @@ export default function SettingsPage() {
       <Button
         className="bg-slate-800 hover:text-slate-50 hover:bg-red-700 w-fit my-4"
         onClick={async () => {
-          await invoke("remove_telemetry");
+          await applyCollectDataPreference(false);
         }}
       >
         {t("deleteYourUsageData")}
