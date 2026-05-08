@@ -192,7 +192,7 @@ jobs:
           set -euo pipefail
 
           metainfo_url="https://github.com/${RELEASE_REPO}/raw/${TAG}/${METAINFO_PATH}"
-          amd64_url="https://github.com/${RELEASE_REPO}/releases/download/${TAG}/Quadrant-${VERSION}-linux-x64-electron.AppImage"
+          amd64_url="https://github.com/${RELEASE_REPO}/releases/download/${TAG}/Quadrant-${VERSION}-linux-x86_64-electron.AppImage"
           arm64_url="https://github.com/${RELEASE_REPO}/releases/download/${TAG}/Quadrant-${VERSION}-linux-arm64-electron.AppImage"
           pr_head="${FLATHUB_HEAD_OWNER}:${FLATHUB_BRANCH}"
 
