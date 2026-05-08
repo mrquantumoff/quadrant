@@ -1,398 +1,402 @@
+/** @format */
+
 import {
-  AccountInfo,
-  Article,
-  GetModArgs,
-  GlobalSearchModsArgs,
-  IdentifiedMod,
-  IMod,
-  InstalledModpack,
-  LocalMod,
-  LocalModpack,
-  MinecraftVersion,
-  ModLoader,
-  ModSource,
-  ModType,
-  SyncedModpack,
-  UniversalModFile,
+	AccountInfo,
+	Article,
+	GetModArgs,
+	GlobalSearchModsArgs,
+	IdentifiedMod,
+	IMod,
+	InstalledModpack,
+	LocalMod,
+	LocalModpack,
+	MinecraftVersion,
+	ModLoader,
+	ModSource,
+	ModType,
+	SyncedModpack,
+	UniversalModFile,
 } from "./intefaces";
 import {
-  createDesktopStore,
-  invoke,
-  openDialog,
-  openExternal,
-  openPath,
-  platform,
-  requestCheckForUpdates as requestDesktopCheckForUpdates,
-  writeClipboardText,
+	createDesktopStore,
+	invoke,
+	openDialog,
+	openExternal,
+	openPath,
+	platform,
+	requestCheckForUpdates as requestDesktopCheckForUpdates,
+	writeClipboardText,
 } from "./desktop";
 
 const configStore = createDesktopStore("config.json");
 
 export async function applyModpack(name: string): Promise<void> {
-  try {
-    await invoke("frontend_apply_modpack", { name });
-  } catch (e) {
-    console.error(e);
-    const os = await platform();
-    if (os === "windows") {
-      await openIn(
-        "https://github.com/quadrantmc/quadrant/wiki/Fixing-Windows-issues",
-      );
-    }
-  }
-  return;
+	try {
+		await invoke("frontend_apply_modpack", { name });
+	} catch (e) {
+		console.error(e);
+		const os = await platform();
+		if (os === "windows") {
+			await openIn(
+				"https://git.mrquantumoff.dev/quadrant/quadrant/wiki/Fixing-Windows-issues",
+			);
+		}
+	}
+	return;
 }
 
 export async function getModpacks(
-  hideFree = true,
-  searchQuery: string | undefined = undefined,
+	hideFree = true,
+	searchQuery: string | undefined = undefined,
 ): Promise<LocalModpack[]> {
-  const res = await invoke<[LocalModpack]>("get_modpacks", { hideFree });
-  res.sort((a, b) => b.lastSynced - a.lastSynced);
-  const hasApplied = res.filter((modpack) => modpack.isApplied).length > 0;
-  if (hasApplied) {
-    res.sort((a, b) =>
-      a.isApplied === b.isApplied ? 0 : a.isApplied ? -1 : 1,
-    );
-  }
-  if (searchQuery) {
-    const filtered = res.filter((modpack) => {
-      if (
-        modpack.name.toLowerCase().includes(searchQuery) ||
-        modpack.version.toLowerCase().includes(searchQuery) ||
-        modpack.modLoader.toLowerCase().includes(searchQuery)
-      ) {
-        return modpack;
-      }
-    });
-    return filtered;
-  }
+	const res = await invoke<[LocalModpack]>("get_modpacks", { hideFree });
+	res.sort((a, b) => b.lastSynced - a.lastSynced);
+	const hasApplied = res.filter((modpack) => modpack.isApplied).length > 0;
+	if (hasApplied) {
+		res.sort((a, b) =>
+			a.isApplied === b.isApplied ? 0
+			: a.isApplied ? -1
+			: 1,
+		);
+	}
+	if (searchQuery) {
+		const filtered = res.filter((modpack) => {
+			if (
+				modpack.name.toLowerCase().includes(searchQuery) ||
+				modpack.version.toLowerCase().includes(searchQuery) ||
+				modpack.modLoader.toLowerCase().includes(searchQuery)
+			) {
+				return modpack;
+			}
+		});
+		return filtered;
+	}
 
-  return res;
+	return res;
 }
 
 export async function searchMods(args: GlobalSearchModsArgs): Promise<IMod[]> {
-  const res = await invoke<IMod[]>("search_mods", { args });
-  res.sort((a, b) => b.downloadCount - a.downloadCount);
+	const res = await invoke<IMod[]>("search_mods", { args });
+	res.sort((a, b) => b.downloadCount - a.downloadCount);
 
-  return res;
+	return res;
 }
 
 export async function getMod(
-  args: GetModArgs,
-  source: ModSource,
+	args: GetModArgs,
+	source: ModSource,
 ): Promise<IMod> {
-  if (source === ModSource.CurseForge) {
-    const mod = await invoke<IMod>("get_mod_curseforge", { args: args });
-    return mod;
-  } else if (source === ModSource.Modrinth) {
-    const mod = await invoke<IMod>("get_mod_modrinth", { args: args });
-    return mod;
-  } else {
-    throw Error("Can't get an unknown mod");
-  }
+	if (source === ModSource.CurseForge) {
+		const mod = await invoke<IMod>("get_mod_curseforge", { args: args });
+		return mod;
+	} else if (source === ModSource.Modrinth) {
+		const mod = await invoke<IMod>("get_mod_modrinth", { args: args });
+		return mod;
+	} else {
+		throw Error("Can't get an unknown mod");
+	}
 }
 
 export async function getVersions(): Promise<MinecraftVersion[]> {
-  const res = await invoke<MinecraftVersion[]>("get_versions");
-  return res;
+	const res = await invoke<MinecraftVersion[]>("get_versions");
+	return res;
 }
 
 export async function getUserURL(
-  username: string,
-  source: ModSource,
+	username: string,
+	source: ModSource,
 ): Promise<string> {
-  const res = await invoke<string>("get_user_url", {
-    username: username,
-    source: source,
-  });
-  return res;
+	const res = await invoke<string>("get_user_url", {
+		username: username,
+		source: source,
+	});
+	return res;
 }
 
 export async function getMinecraftFolder(
-  onlyRealFolder: boolean = false,
+	onlyRealFolder: boolean = false,
 ): Promise<string> {
-  if (!onlyRealFolder) {
-    const mcFolder = await configStore.get<string>("mcFolder");
-    if (mcFolder !== undefined) {
-      return mcFolder;
-    }
-  }
-  return await invoke<string>("get_minecraft_folder");
+	if (!onlyRealFolder) {
+		const mcFolder = await configStore.get<string>("mcFolder");
+		if (mcFolder !== undefined) {
+			return mcFolder;
+		}
+	}
+	return await invoke<string>("get_minecraft_folder");
 }
 
 export async function initConfig() {
-  return await invoke("init_config");
+	return await invoke("init_config");
 }
 
 export async function deleteMod(modpackName: string, modId: string) {
-  console.log("Removing mod from: " + modpackName + "\nMod: " + modId);
-  await invoke("delete_mod", { modpackName: modpackName, modId: modId });
-  return;
+	console.log("Removing mod from: " + modpackName + "\nMod: " + modId);
+	await invoke("delete_mod", { modpackName: modpackName, modId: modId });
+	return;
 }
 
 export async function getModOwners(
-  source: ModSource,
-  modId: string,
+	source: ModSource,
+	modId: string,
 ): Promise<string[]> {
-  if (source === ModSource.CurseForge) {
-    const owners = await invoke<string[]>("get_mod_owners_curseforge", {
-      id: modId,
-    });
-    return owners;
-  } else if (ModSource.Modrinth) {
-    const owners = await invoke<string[]>("get_mod_owners_modrinth", {
-      id: modId,
-    });
-    return owners;
-  }
-  return [];
+	if (source === ModSource.CurseForge) {
+		const owners = await invoke<string[]>("get_mod_owners_curseforge", {
+			id: modId,
+		});
+		return owners;
+	} else if (ModSource.Modrinth) {
+		const owners = await invoke<string[]>("get_mod_owners_modrinth", {
+			id: modId,
+		});
+		return owners;
+	}
+	return [];
 }
 
 export async function getModDependencies(
-  source: ModSource,
-  modId: string,
+	source: ModSource,
+	modId: string,
 ): Promise<IMod[]> {
-  if (source === ModSource.CurseForge) {
-    const deps = await invoke<IMod[]>("get_mod_deps_curseforge", {
-      id: modId,
-    });
-    return deps;
-  } else if (ModSource.Modrinth) {
-    const deps = await invoke<IMod[]>("get_mod_deps_modrinth", {
-      id: modId,
-    });
-    return deps;
-  }
-  return [];
+	if (source === ModSource.CurseForge) {
+		const deps = await invoke<IMod[]>("get_mod_deps_curseforge", {
+			id: modId,
+		});
+		return deps;
+	} else if (ModSource.Modrinth) {
+		const deps = await invoke<IMod[]>("get_mod_deps_modrinth", {
+			id: modId,
+		});
+		return deps;
+	}
+	return [];
 }
 
 export async function updateModpack(
-  originalModpack: string,
-  newDetails: LocalModpack,
+	originalModpack: string,
+	newDetails: LocalModpack,
 ) {
-  await invoke("update_modpack", {
-    modpackSource: originalModpack,
-    name: newDetails.name,
-    version: newDetails.version,
-    modLoader: newDetails.modLoader,
-  });
+	await invoke("update_modpack", {
+		modpackSource: originalModpack,
+		name: newDetails.name,
+		version: newDetails.version,
+		modLoader: newDetails.modLoader,
+	});
 }
 
 export async function createModpack(
-  name: string,
-  version: string,
-  modLoader: ModLoader,
+	name: string,
+	version: string,
+	modLoader: ModLoader,
 ) {
-  await invoke("create_modpack", {
-    name: name,
-    version: version,
-    modLoader: modLoader,
-  });
+	await invoke("create_modpack", {
+		name: name,
+		version: version,
+		modLoader: modLoader,
+	});
 }
 
 export async function deleteModpack(name: string) {
-  await invoke("delete_modpack", {
-    name: name,
-  });
+	await invoke("delete_modpack", {
+		name: name,
+	});
 }
 
 export function shuffle(array: any[]) {
-  let currentIndex = array.length;
+	let currentIndex = array.length;
 
-  // While there remain elements to shuffle...
-  while (currentIndex != 0) {
-    // Pick a remaining element...
-    const randomIndex = Math.floor(Math.random() * currentIndex);
-    currentIndex--;
+	// While there remain elements to shuffle...
+	while (currentIndex != 0) {
+		// Pick a remaining element...
+		const randomIndex = Math.floor(Math.random() * currentIndex);
+		currentIndex--;
 
-    // And swap it with the current element.
-    [array[currentIndex], array[randomIndex]] = [
-      array[randomIndex],
-      array[currentIndex],
-    ];
-  }
+		// And swap it with the current element.
+		[array[currentIndex], array[randomIndex]] = [
+			array[randomIndex],
+			array[currentIndex],
+		];
+	}
 }
 
 export async function openIn(url: string) {
-  console.log("Opening link: " + url);
-  await openExternal(url);
+	console.log("Opening link: " + url);
+	await openExternal(url);
 }
 
 export async function installMod(
-  id: string,
-  minecraft_version: string,
-  loader: ModLoader,
-  source: ModSource,
-  modType: ModType,
-  modpack: string,
-  fileId?: string,
+	id: string,
+	minecraft_version: string,
+	loader: ModLoader,
+	source: ModSource,
+	modType: ModType,
+	modpack: string,
+	fileId?: string,
 ) {
-  await invoke("install_mod", {
-    id: id,
-    minecraftVersion: minecraft_version,
-    modLoader: loader,
-    source: source,
-    modpack: modpack,
-    modType: modType,
-    fileId: fileId,
-  });
+	await invoke("install_mod", {
+		id: id,
+		minecraftVersion: minecraft_version,
+		modLoader: loader,
+		source: source,
+		modpack: modpack,
+		modType: modType,
+		fileId: fileId,
+	});
 }
 
 export async function openModpacksFolder() {
-  const modpacksFolder = await invoke<string>("get_modpacks_folder");
-  await openPath(modpacksFolder);
+	const modpacksFolder = await invoke<string>("get_modpacks_folder");
+	await openPath(modpacksFolder);
 }
 
 export async function getAccountInfo(): Promise<AccountInfo> {
-  return await invoke<AccountInfo>("get_account_info");
+	return await invoke<AccountInfo>("get_account_info");
 }
 
 export async function clearAccountToken() {
-  return await invoke("clear_account_token");
+	return await invoke("clear_account_token");
 }
 
 export async function getModUpdate(
-  mod: IMod,
-  mcVersion: string,
-  loader: ModLoader,
-  modpackName: string,
+	mod: IMod,
+	mcVersion: string,
+	loader: ModLoader,
+	modpackName: string,
 ): Promise<IMod | null> {
-  const res = await invoke<IMod | null>("check_mod_updates", {
-    modToUpdate: mod,
-    minecraftVersion: mcVersion,
-    modLoader: loader,
-    modpackName: modpackName,
-  });
-  return res;
+	const res = await invoke<IMod | null>("check_mod_updates", {
+		modToUpdate: mod,
+		minecraftVersion: mcVersion,
+		modLoader: loader,
+		modpackName: modpackName,
+	});
+	return res;
 }
 
 export async function installRemoteFile(
-  file: UniversalModFile,
-  modType: ModType,
-  modpack: string | undefined,
-  source: ModSource,
-  id: string,
+	file: UniversalModFile,
+	modType: ModType,
+	modpack: string | undefined,
+	source: ModSource,
+	id: string,
 ) {
-  await invoke("install_remote_file", {
-    file: file,
-    modType: modType,
-    modpack: modpack,
-    source: source,
-    id: id,
-  });
+	await invoke("install_remote_file", {
+		file: file,
+		modType: modType,
+		modpack: modpack,
+		source: source,
+		id: id,
+	});
 }
 
 export async function shareModpack(modpack: string) {
-  const response = await invoke<{ code: string | number }>("share_modpack", {
-    modpackName: modpack,
-  });
-  await writeClipboardText(String(response.code));
+	const response = await invoke<{ code: string | number }>("share_modpack", {
+		modpackName: modpack,
+	});
+	await writeClipboardText(String(response.code));
 }
 
 export async function shareModpackRaw(modpack: InstalledModpack) {
-  const response = await invoke<{ code: string | number }>(
-    "share_modpack_raw",
-    {
-      modConfig: modpack,
-    },
-  );
-  await writeClipboardText(String(response.code));
+	const response = await invoke<{ code: string | number }>(
+		"share_modpack_raw",
+		{
+			modConfig: modpack,
+		},
+	);
+	await writeClipboardText(String(response.code));
 }
 
 export async function getQuadrantShareModpack(code: string) {
-  const res = await invoke<InstalledModpack>("get_quadrant_share_modpack", {
-    code: code,
-  });
-  return res;
+	const res = await invoke<InstalledModpack>("get_quadrant_share_modpack", {
+		code: code,
+	});
+	return res;
 }
 
 export async function installModpack(modpack: InstalledModpack) {
-  await invoke("install_modpack", { modConfig: modpack });
-  return;
+	await invoke("install_modpack", { modConfig: modpack });
+	return;
 }
 
 export async function getSyncedModpacks(
-  showOwners: boolean,
-  modpackId?: string,
+	showOwners: boolean,
+	modpackId?: string,
 ) {
-  const res = await invoke<SyncedModpack[]>("get_synced_modpacks", {
-    showOwners,
-    modpackId,
-  });
-  return res;
+	const res = await invoke<SyncedModpack[]>("get_synced_modpacks", {
+		showOwners,
+		modpackId,
+	});
+	return res;
 }
 
 export async function kickMember(modpackId: string, username: string) {
-  await invoke("kick_member", { modpackId: modpackId, username: username });
+	await invoke("kick_member", { modpackId: modpackId, username: username });
 }
 export async function inviteMember(
-  modpackId: string,
-  username: string,
-  admin: boolean,
+	modpackId: string,
+	username: string,
+	admin: boolean,
 ) {
-  await invoke("invite_member", {
-    modpackId: modpackId,
-    username: username,
-    admin: admin,
-  });
+	await invoke("invite_member", {
+		modpackId: modpackId,
+		username: username,
+		admin: admin,
+	});
 }
 export async function syncModpack(modpack: LocalModpack, overwrite: boolean) {
-  await invoke("sync_modpack", {
-    modpack: modpack,
-    overwrite: overwrite,
-  });
+	await invoke("sync_modpack", {
+		modpack: modpack,
+		overwrite: overwrite,
+	});
 }
 
 export async function readNotification(notificationId: string) {
-  await invoke("read_notification", {
-    notificationId: notificationId,
-  });
+	await invoke("read_notification", {
+		notificationId: notificationId,
+	});
 }
 
 export async function answerInvite(
-  modpackId: string,
-  notificationId: string,
-  answer: boolean,
+	modpackId: string,
+	notificationId: string,
+	answer: boolean,
 ) {
-  await invoke("answer_invite", {
-    modpackId: modpackId,
-    notificationId: notificationId,
-    answer: answer,
-  });
+	await invoke("answer_invite", {
+		modpackId: modpackId,
+		notificationId: notificationId,
+		answer: answer,
+	});
 }
 
 export const requestCheckForUpdates = async () => {
-  await requestDesktopCheckForUpdates();
+	await requestDesktopCheckForUpdates();
 };
 
 export const getNews = async () => {
-  const res = await invoke<Article[]>("get_news");
-  return res;
+	const res = await invoke<Article[]>("get_news");
+	return res;
 };
 
 export const exportModpack = async (name: string) => {
-  const destination = await openDialog({
-    mode: "save",
-    multiple: false,
-    title: "Export Modpack",
-    defaultPath: `${name}.quadrantExport.zip`,
-  });
-  if (typeof destination !== "string" || destination.length === 0) {
-    return;
-  }
-  await invoke("export_modpack_to", {
-    modpack: name,
-    destination,
-  });
+	const destination = await openDialog({
+		mode: "save",
+		multiple: false,
+		title: "Export Modpack",
+		defaultPath: `${name}.quadrantExport.zip`,
+	});
+	if (typeof destination !== "string" || destination.length === 0) {
+		return;
+	}
+	await invoke("export_modpack_to", {
+		modpack: name,
+		destination,
+	});
 };
 
 export const identifyUnknownMods = async (
-  modpack: string,
+	modpack: string,
 ): Promise<IdentifiedMod[]> => {
-  return await invoke("identify_modpack", { modpack: modpack });
+	return await invoke("identify_modpack", { modpack: modpack });
 };
 
 export const registerMod = async (mod: LocalMod, modpack: string) => {
-  await invoke("register_mod", { mod: mod, modpack: modpack });
+	await invoke("register_mod", { mod: mod, modpack: modpack });
 };

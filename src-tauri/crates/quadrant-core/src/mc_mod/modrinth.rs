@@ -80,7 +80,7 @@ pub async fn search_mods_modrinth(
                 .as_str()
                 .filter(|value| !value.trim().is_empty())
                 .unwrap_or(
-                    "https://raw.githubusercontent.com/quadrantmc/quadrant/next/public/logonobg.png",
+                    "https://git.mrquantumoff.dev/quadrant/quadrant/raw/branch/next/public/logoNoBg.png",
                 )
                 .to_string();
             let slug = mod_data["slug"].as_str().unwrap_or_default().to_string();

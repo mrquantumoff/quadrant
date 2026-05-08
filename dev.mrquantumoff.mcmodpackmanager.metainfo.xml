@@ -16,8 +16,8 @@
     </p>
   </description>
   <url type="homepage">https://usequadrant.dev</url>
-  <url type="vcs-browser">https://github.com/quadrantmc/quadrant</url>
-  <url type="bugtracker">https://github.com/quadrantmc/quadrant/issues</url>
+  <url type="vcs-browser">https://git.mrquantumoff.dev/quadrant/quadrant.git</url>
+  <url type="bugtracker">https://git.mrquantumoff.dev/quadrant/quadrant/issues</url>
   <categories>
     <category>Game</category>
     <category>Utility</category>
@@ -1156,17 +1156,17 @@
   <screenshots>
     <screenshot type="default">
       <image>
-        https://github.com/quadrantmc/quadrant/raw/next/Screenshots/1.png
+        https://git.mrquantumoff.dev/quadrant/quadrant.git
       </image>
     </screenshot>
     <screenshot type="default">
       <image>
-        https://github.com/quadrantmc/quadrant/raw/next/Screenshots/2.png
+        https://git.mrquantumoff.dev/quadrant/quadrant.git
       </image>
     </screenshot>
     <screenshot type="default">
       <image>
-        https://github.com/quadrantmc/quadrant/raw/next/Screenshots/3.png
+        https://git.mrquantumoff.dev/quadrant/quadrant.git
       </image>
     </screenshot>
   </screenshots>
