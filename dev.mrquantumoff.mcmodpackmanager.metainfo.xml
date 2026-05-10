@@ -44,6 +44,13 @@
 
   <releases>
 
+    <release date="2026-05-10" version="26.5.1">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>Update some metadata</p>
+      </description>
+    </release>
+
     <release date="2026-05-08" version="26.5.0">
       <url type="details">https://blog.mrquantumoff.dev</url>
       <description>
