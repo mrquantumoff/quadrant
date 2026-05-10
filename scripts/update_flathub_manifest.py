@@ -25,6 +25,25 @@ def validate_sha(name: str, value: str) -> None:
         raise ValueError(f"{name} must be a lowercase SHA-256 hex digest")
 
 
+def normalize_release_repo(value: str) -> str:
+    repo = value.rstrip("/").removesuffix(".git")
+    for prefix in (
+        "https://github.com/",
+        "http://github.com/",
+        "git@github.com:",
+    ):
+        if repo.startswith(prefix):
+            repo = repo[len(prefix) :]
+            break
+
+    repo = repo.rstrip("/")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo):
+        raise ValueError(
+            "--release-repo must be a GitHub owner/repo or github.com URL"
+        )
+    return repo
+
+
 def replace_unique(
     text: str,
     pattern: re.Pattern[str],
@@ -52,20 +71,22 @@ def main() -> int:
     ):
         validate_sha(name, value)
 
+    release_repo = normalize_release_repo(args.release_repo)
+
     manifest_path = Path(args.manifest_path)
     with manifest_path.open("r", encoding="utf-8", newline="") as handle:
         manifest = handle.read()
 
     metainfo_url = (
-        f"https://github.com/{args.release_repo}/raw/{args.tag}/"
+        f"https://github.com/{release_repo}/raw/{args.tag}/"
         "dev.mrquantumoff.mcmodpackmanager.metainfo.xml"
     )
     amd64_url = (
-        f"https://github.com/{args.release_repo}/releases/download/{args.tag}/"
+        f"https://github.com/{release_repo}/releases/download/{args.tag}/"
         f"Quadrant-{args.version}-linux-x86_64-electron.AppImage"
     )
     arm64_url = (
-        f"https://github.com/{args.release_repo}/releases/download/{args.tag}/"
+        f"https://github.com/{release_repo}/releases/download/{args.tag}/"
         f"Quadrant-{args.version}-linux-arm64-electron.AppImage"
     )
 

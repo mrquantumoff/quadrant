@@ -10,10 +10,10 @@ on:
         required: true
         type: string
       release_repo:
-        description: Repository that owns the release assets
+        description: GitHub owner/repo that owns the release assets
         required: false
         type: string
-        default: https://git.mrquantumoff.dev/quadrant/quadrant
+        default: quadrantmc/quadrant
     secrets:
       FLATHUB_GH_TOKEN:
         required: true
@@ -24,10 +24,10 @@ on:
         required: true
         type: string
       release_repo:
-        description: Repository that owns the release assets
+        description: GitHub owner/repo that owns the release assets
         required: false
         type: string
-        default: https://git.mrquantumoff.dev/quadrant/quadrant
+        default: quadrantmc/quadrant
 
 jobs:
   open_flathub_pr:
@@ -61,6 +61,34 @@ jobs:
           fi
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Normalize release repository
+        id: release_repo
+        run: |
+          set -euo pipefail
+
+          repo="${RELEASE_REPO%/}"
+          repo="${repo%.git}"
+          case "$repo" in
+            https://github.com/*)
+              repo="${repo#https://github.com/}"
+              ;;
+            http://github.com/*)
+              repo="${repo#http://github.com/}"
+              ;;
+            git@github.com:*)
+              repo="${repo#git@github.com:}"
+              ;;
+          esac
+          repo="${repo%/}"
+
+          if ! printf '%s' "$repo" | grep -Eq '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'; then
+            echo "release_repo must be a GitHub owner/repo or github.com URL, got: $RELEASE_REPO" >&2
+            exit 1
+          fi
+
+          echo "RELEASE_REPO=$repo" >> "$GITHUB_ENV"
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
 
       - name: Download stable release assets
         env:
