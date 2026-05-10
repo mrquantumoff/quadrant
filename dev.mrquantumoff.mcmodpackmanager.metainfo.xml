@@ -1163,17 +1163,22 @@
   <screenshots>
     <screenshot type="default">
       <image>
-        https://git.mrquantumoff.dev/quadrant/quadrant.git
+      https://git.mrquantumoff.dev/quadrant/quadrant/raw/branch/next/Screenshots/1.png
       </image>
     </screenshot>
     <screenshot type="default">
       <image>
-        https://git.mrquantumoff.dev/quadrant/quadrant.git
+      https://git.mrquantumoff.dev/quadrant/quadrant/raw/branch/next/Screenshots/2.png
       </image>
     </screenshot>
     <screenshot type="default">
       <image>
-        https://git.mrquantumoff.dev/quadrant/quadrant.git
+      https://git.mrquantumoff.dev/quadrant/quadrant/raw/branch/next/Screenshots/3.png
+      </image>
+    </screenshot>
+    <screenshot type="default">
+      <image>
+      https://git.mrquantumoff.dev/quadrant/quadrant/raw/branch/next/Screenshots/4.png
       </image>
     </screenshot>
   </screenshots>
