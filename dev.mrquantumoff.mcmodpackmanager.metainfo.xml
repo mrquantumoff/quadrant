@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <component type="desktop-application">
   <id>dev.mrquantumoff.mcmodpackmanager</id>
   <metadata_license>MIT</metadata_license>
@@ -16,8 +16,12 @@
     </p>
   </description>
   <url type="homepage">https://usequadrant.dev</url>
-  <url type="vcs-browser">https://git.mrquantumoff.dev/quadrant/quadrant.git</url>
-  <url type="bugtracker">https://git.mrquantumoff.dev/quadrant/quadrant/issues</url>
+  <url
+        type="vcs-browser"
+    >https://git.mrquantumoff.dev/quadrant/quadrant.git</url>
+  <url
+        type="bugtracker"
+    >https://git.mrquantumoff.dev/quadrant/quadrant/issues</url>
   <categories>
     <category>Game</category>
     <category>Utility</category>
@@ -43,6 +47,13 @@
   </branding>
 
   <releases>
+
+    <release date="2026-05-11" version="26.5.2">
+      <url type="details">https://blog.mrquantumoff.dev</url>
+      <description>
+        <p>Update some metadata</p>
+      </description>
+    </release>
 
     <release date="2026-05-10" version="26.5.1">
       <url type="details">https://blog.mrquantumoff.dev</url>
@@ -223,7 +234,8 @@
     <release date="2025-01-27" version="25.2.2">
       <url type="details">https://blog.mrquantumoff.dev</url>
       <description>
-        <p>QoL optimizations, bug fixes, ability to log in without OAuth (useful for Linux users)</p>
+        <p
+                >QoL optimizations, bug fixes, ability to log in without OAuth (useful for Linux users)</p>
       </description>
     </release>
 
@@ -364,7 +376,8 @@
     <release date="2024-12-01" version="24.12.0">
       <url type="details">https://blog.mrquantumoff.dev/quadrants-v24-12/</url>
       <description>
-        <p>Introducing Quadrant Settings Sync, a new way to sync your settings across your devices
+        <p
+                >Introducing Quadrant Settings Sync, a new way to sync your settings across your devices
           with Quadrant ID</p>
         <p>Added some new animations</p>
         <p>Dependency updates, bug fixes, QoL improvements</p>
@@ -396,7 +409,8 @@
 
     <release date="2024-09-04" version="24.9.0">
       <description>
-        <p>Now when a modpack is not up to date, the button says "Update", instead of "Download"</p>
+        <p
+                >Now when a modpack is not up to date, the button says "Update", instead of "Download"</p>
         <p>Dependency updates</p>
       </description>
     </release>
@@ -419,9 +433,12 @@
         <p>Small design changes</p>
         <p>Added sorting by name and source in search</p>
         <p>Added filtering your search by the currently applied modpack.</p>
-        <p>Added automatically installing mods, when filters are on (experimental)</p>
-        <p>Avoid losing your old mods folder after applying your first modpack</p>
-        <p>As a part of the experimental features, you can now install mods without opening thee
+        <p
+                >Added automatically installing mods, when filters are on (experimental)</p>
+        <p
+                >Avoid losing your old mods folder after applying your first modpack</p>
+        <p
+                >As a part of the experimental features, you can now install mods without opening thee
           install mod page, when you have a filter on.</p>
         <p>QoL improvements</p>
         <p>Bug fixes</p>
@@ -457,7 +474,8 @@
 
     <release date="2024-07-04" version="24.7.0">
       <description>
-        <p>Quadrant Sync has been revamped. You will have to manually migrate data from old Quadrant
+        <p
+                >Quadrant Sync has been revamped. You will have to manually migrate data from old Quadrant
           Sync.</p>
         <p>The app has moved to MrQuantumOFF API v3</p>
       </description>
@@ -513,27 +531,31 @@
 
     <release date="2024-05-24" version="24.6.1">
       <description>
-        <p>Added the ability to automatically sync modpacks with Quadrant Sync</p>
+        <p
+                >Added the ability to automatically sync modpacks with Quadrant Sync</p>
         <p>Fixed a few bugs, multiple QoL improvements</p>
       </description>
     </release>
 
     <release date="2024-05-24" version="24.6.0">
       <description>
-        <p>Added the ability to automatically sync modpacks with Quadrant Sync</p>
+        <p
+                >Added the ability to automatically sync modpacks with Quadrant Sync</p>
         <p>Fixed a few bugs, multiple QoL improvements</p>
       </description>
     </release>
 
     <release date="2024-05-17" version="24.5.6">
       <description>
-        <p>Fixed a few bugs, added the ability to share modpacks that are on Quadrant Sync</p>
+        <p
+                >Fixed a few bugs, added the ability to share modpacks that are on Quadrant Sync</p>
       </description>
     </release>
 
     <release date="2024-05-13" version="24.5.5">
       <description>
-        <p>Fixed a few bugs, optimised some processes (Importing and getting modpacks from Quadrant
+        <p
+                >Fixed a few bugs, optimised some processes (Importing and getting modpacks from Quadrant
           Sync is now MUCH faster!)</p>
       </description>
     </release>
@@ -711,7 +733,8 @@
 
     <release date="2023-09-16" version="23.09.0">
       <description>
-        <p>Starting with the 23.09 release of Quadrant, the project now uses a new versioning
+        <p
+                >Starting with the 23.09 release of Quadrant, the project now uses a new versioning
           system, YY.MM.REVISION</p>
         <p>Dependency updates</p>
       </description>
@@ -720,7 +743,8 @@
 
     <release date="2023-09-01" version="12.0.0">
       <description>
-        <p>Featuring Quadrant Share, an easy way to share a modpack with friends</p>
+        <p
+                >Featuring Quadrant Share, an easy way to share a modpack with friends</p>
       </description>
     </release>
 
@@ -744,7 +768,8 @@
 
     <release date="2023-07-11" version="10.1.0">
       <description>
-        <p>Add an option to export and import modpacks using a string of text from the clipboard</p>
+        <p
+                >Add an option to export and import modpacks using a string of text from the clipboard</p>
       </description>
     </release>
 
@@ -786,7 +811,8 @@
 
     <release date="2023-06-10" version="8.4.0">
       <description>
-        <p>Add support for news related to MC Modpack Manager from my RSS feed, add options to
+        <p
+                >Add support for news related to MC Modpack Manager from my RSS feed, add options to
           disable modrinth/curseforge</p>
       </description>
     </release>
@@ -860,7 +886,8 @@
 
     <release date="2023-04-20" version="7.19.0">
       <description>
-        <p>Some small quality of life updates, also I had to release a new release on 4/20</p>
+        <p
+                >Some small quality of life updates, also I had to release a new release on 4/20</p>
       </description>
     </release>
 
@@ -1091,9 +1118,9 @@
       </description>
     </release>
 
-    <release date="2023-01-26" version="5.0.2"></release>
+    <release date="2023-01-26" version="5.0.2" />
 
-    <release date="2023-01-26" version="5.0.1"></release>
+    <release date="2023-01-26" version="5.0.1" />
 
     <release date="2023-01-24" version="5.0.0">
       <description>
@@ -1103,11 +1130,11 @@
       </description>
     </release>
 
-    <release date="2023-01-21" version="4.3.1"></release>
+    <release date="2023-01-21" version="4.3.1" />
 
-    <release date="2023-01-08" version="4.3.0"></release>
+    <release date="2023-01-08" version="4.3.0" />
 
-    <release date="2023-01-05" version="4.2.0"></release>
+    <release date="2023-01-05" version="4.2.0" />
 
     <release date="2023-01-02" version="4.1.0">
       <description>
@@ -1124,7 +1151,7 @@
       </description>
     </release>
 
-    <release date="2022-12-11" version="3.0.1"></release>
+    <release date="2022-12-11" version="3.0.1" />
 
     <release date="2022-12-06" version="3.0.0">
       <description>
@@ -1134,23 +1161,23 @@
     </release>
 
 
-    <release date="2022-11-27" version="2.7.1"></release>
+    <release date="2022-11-27" version="2.7.1" />
 
-    <release date="2022-11-26" version="2.7.0"></release>
+    <release date="2022-11-26" version="2.7.0" />
 
-    <release date="2022-11-25" version="2.6.1"></release>
+    <release date="2022-11-25" version="2.6.1" />
 
-    <release date="2022-11-10" version="2.6.0"></release>
+    <release date="2022-11-10" version="2.6.0" />
 
-    <release date="2022-10-21" version="2.5.2"></release>
+    <release date="2022-10-21" version="2.5.2" />
 
-    <release date="2022-10-21" version="2.5.1"></release>
+    <release date="2022-10-21" version="2.5.1" />
 
-    <release date="2022-10-21" version="2.5.0"></release>
+    <release date="2022-10-21" version="2.5.0" />
 
-    <release date="2022-10-05" version="2.4.3"></release>
+    <release date="2022-10-05" version="2.4.3" />
 
-    <release date="2022-10-05" version="2.4.2"></release>
+    <release date="2022-10-05" version="2.4.2" />
 
     <release date="2022-10-04" version="2.4.1">
       <description>
@@ -1191,5 +1218,7 @@
     </binary>
   </provides>
   <content_rating type="oars-1.1" />
-  <launchable type="desktop-id">dev.mrquantumoff.mcmodpackmanager.desktop</launchable>
+  <launchable
+        type="desktop-id"
+    >dev.mrquantumoff.mcmodpackmanager.desktop</launchable>
 </component>

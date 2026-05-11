@@ -183,8 +183,23 @@ export default function AccountPage() {
                 openIn(authUrl.toString());
 
                 unlistenOAuth = await onOAuthUrl(async (rawUrl) => {
+                  let url: URL;
                   try {
-                    const url = new URL(rawUrl);
+                    url = new URL(rawUrl);
+                  } catch {
+                    return;
+                  }
+                  // The local OAuth callback server surfaces every request it
+                  // receives, including incidental ones like /favicon.ico.
+                  // Ignore anything that isn't the actual OAuth redirect so a
+                  // successful login isn't reported as a failure.
+                  if (
+                    !url.searchParams.has("code") &&
+                    !url.searchParams.has("error")
+                  ) {
+                    return;
+                  }
+                  try {
                     const oAuthState = await config.get<string>("oauthState");
 
                     const providedState = url.searchParams.get("state");

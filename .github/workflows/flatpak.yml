@@ -43,6 +43,7 @@ jobs:
       FLATHUB_BRANCH: ci/flathub-${{ inputs.tag }}
       MANIFEST_PATH: dev.mrquantumoff.mcmodpackmanager.yml
       METAINFO_PATH: dev.mrquantumoff.mcmodpackmanager.metainfo.xml
+      ICON_PATH: src-tauri/icons/quadrant_next.png
       GH_TOKEN: ${{ secrets.FLATHUB_GH_TOKEN }}
     steps:
       - uses: actions/checkout@v6
@@ -112,10 +113,12 @@ jobs:
           set -euo pipefail
 
           metainfo_sha="$(sha256sum "$METAINFO_PATH" | awk '{print $1}')"
+          icon_sha="$(sha256sum "$ICON_PATH" | awk '{print $1}')"
           amd64_sha="$(sha256sum "downloads/Quadrant-${VERSION}-linux-x86_64-electron.AppImage" | awk '{print $1}')"
           arm64_sha="$(sha256sum "downloads/Quadrant-${VERSION}-linux-arm64-electron.AppImage" | awk '{print $1}')"
 
           echo "metainfo_sha=$metainfo_sha" >> "$GITHUB_OUTPUT"
+          echo "icon_sha=$icon_sha" >> "$GITHUB_OUTPUT"
           echo "amd64_sha=$amd64_sha" >> "$GITHUB_OUTPUT"
           echo "arm64_sha=$arm64_sha" >> "$GITHUB_OUTPUT"
 
@@ -186,6 +189,7 @@ jobs:
             --version "$VERSION" \
             --release-repo "$RELEASE_REPO" \
             --metainfo-sha "${{ steps.hashes.outputs.metainfo_sha }}" \
+            --icon-sha "${{ steps.hashes.outputs.icon_sha }}" \
             --amd64-sha "${{ steps.hashes.outputs.amd64_sha }}" \
             --arm64-sha "${{ steps.hashes.outputs.arm64_sha }}" \
             --manifest-path "$MANIFEST_PATH"
@@ -220,6 +224,7 @@ jobs:
           set -euo pipefail
 
           metainfo_url="https://github.com/${RELEASE_REPO}/raw/${TAG}/${METAINFO_PATH}"
+          icon_url="https://github.com/${RELEASE_REPO}/raw/${TAG}/${ICON_PATH}"
           amd64_url="https://github.com/${RELEASE_REPO}/releases/download/${TAG}/Quadrant-${VERSION}-linux-x86_64-electron.AppImage"
           arm64_url="https://github.com/${RELEASE_REPO}/releases/download/${TAG}/Quadrant-${VERSION}-linux-arm64-electron.AppImage"
           pr_head="${FLATHUB_HEAD_OWNER}:${FLATHUB_BRANCH}"
@@ -230,6 +235,8 @@ jobs:
             printf '%s\n' "- Tag: \`${TAG}\`"
             printf '%s\n' "- Metainfo URL: \`${metainfo_url}\`"
             printf '%s\n' "- Metainfo SHA256: \`${{ steps.hashes.outputs.metainfo_sha }}\`"
+            printf '%s\n' "- Icon URL: \`${icon_url}\`"
+            printf '%s\n' "- Icon SHA256: \`${{ steps.hashes.outputs.icon_sha }}\`"
             printf '%s\n' "- amd64 URL: \`${amd64_url}\`"
             printf '%s\n' "- amd64 SHA256: \`${{ steps.hashes.outputs.amd64_sha }}\`"
             printf '%s\n' "- arm64 URL: \`${arm64_url}\`"
