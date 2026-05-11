@@ -32,6 +32,10 @@ modules:
       - type: file
         url: https://github.com/quadrantmc/quadrant/raw/v26.5.0-stable/dev.mrquantumoff.mcmodpackmanager.metainfo.xml
         sha256: 0000000000000000000000000000000000000000000000000000000000000000
+      - type: file
+        url: https://github.com/quadrantmc/quadrant/raw/v26.5.0-stable/src-tauri/icons/quadrant_next.png
+        dest-filename: dev.mrquantumoff.mcmodpackmanager.png
+        sha256: 0000000000000000000000000000000000000000000000000000000000000000
       # The release workflow replaces these placeholder hashes when Electron
       # AppImages are available for a stable tag.
       - type: file
@@ -141,20 +145,15 @@ modules:
         install -Dm644 "$desktop_file" /app/share/applications/dev.mrquantumoff.mcmodpackmanager.desktop
       - |
         set -eu
-        icons="$(find /app/lib/quadrant \( -path '*/icons/hicolor/*/apps/*.png' -o -path '*/icons/hicolor/*/apps/*.svg' \) | sort)"
-        if [ -n "$icons" ]; then
-          printf '%s\n' "$icons" | while IFS= read -r icon; do
-            size="$(basename "$(dirname "$(dirname "$icon")")")"
-            ext="${icon##*.}"
-            install -Dm644 "$icon" "/app/share/icons/hicolor/${size}/apps/dev.mrquantumoff.mcmodpackmanager.${ext}"
-          done
-        else
-          fallback_icon="$(find /app/lib/quadrant -maxdepth 1 -type f \( -name '*.png' -o -name '*.svg' \) | head -n 1)"
-          if [ -z "$fallback_icon" ]; then
-            echo "Could not find an icon in the extracted AppImage." >&2
-            exit 1
-          fi
-          ext="${fallback_icon##*.}"
-          install -Dm644 "$fallback_icon" "/app/share/icons/hicolor/512x512/apps/dev.mrquantumoff.mcmodpackmanager.${ext}"
-        fi
+        # The AppImage does not ship a reliable hicolor icon set, so install the
+        # canonical 512x512 application icon that ships in the repository.
+        install -Dm644 dev.mrquantumoff.mcmodpackmanager.png \
+          /app/share/icons/hicolor/512x512/apps/dev.mrquantumoff.mcmodpackmanager.png
+        # Also pick up any additional sizes the AppImage happens to provide.
+        find /app/lib/quadrant \( -path '*/icons/hicolor/*/apps/*.png' -o -path '*/icons/hicolor/*/apps/*.svg' \) | sort | while IFS= read -r icon; do
+          [ -n "$icon" ] || continue
+          size="$(basename "$(dirname "$(dirname "$icon")")")"
+          ext="${icon##*.}"
+          install -Dm644 "$icon" "/app/share/icons/hicolor/${size}/apps/dev.mrquantumoff.mcmodpackmanager.${ext}"
+        done
       - install -Dm644 dev.mrquantumoff.mcmodpackmanager.metainfo.xml /app/share/metainfo/dev.mrquantumoff.mcmodpackmanager.metainfo.xml
