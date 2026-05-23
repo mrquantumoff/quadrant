@@ -16,19 +16,7 @@ import { I18nextProvider, useTranslation } from "react-i18next";
 import ApplyPage from "./components/Pages/ApplyPage/Apply";
 import SettingsPage from "./components/Pages/SettingsPage/Settings";
 import quadrantLocale from "./i18n";
-import {
-  MdAccountCircle,
-  MdArchive,
-  MdCheck,
-  MdClear,
-  MdClose,
-  MdDescription,
-  MdInstallDesktop,
-  MdMinimize,
-  MdSearch,
-  MdSettings,
-  MdSync,
-} from "react-icons/md";
+import * as md from "react-icons/md";
 import CurrentModpackPage from "./components/Pages/CurrentModpackPage/CurrentModpackPage";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import SearchPage from "./components/Pages/SearchPage/SearchPage";
@@ -63,7 +51,7 @@ function App() {
       content: <ApplyPage />,
       title: t("apply"),
       name: "apply",
-      icon: <MdCheck className="duration-0 w-8 h-8" />,
+      icon: <md.MdCheck className="duration-0 w-8 h-8" />,
       style: " hover:bg-emerald-400 data-[selected=true]:bg-emerald-900 ",
       main: true,
     },
@@ -71,7 +59,7 @@ function App() {
       content: <CurrentModpackPage />,
       title: t("currentModpack"),
       name: "currentModpack",
-      icon: <MdDescription className="duration-0 w-8 h-8" />,
+      icon: <md.MdDescription className="duration-0 w-8 h-8" />,
       style: " hover:bg-blue-400 data-[selected=true]:bg-blue-900 ",
       main: true,
     },
@@ -79,7 +67,7 @@ function App() {
       content: <SearchPage />,
       title: t("search"),
       name: "search",
-      icon: <MdSearch className="duration-0 w-8 h-8" />,
+      icon: <md.MdSearch className="duration-0 w-8 h-8" />,
       style: " hover:bg-sky-400 data-[selected=true]:bg-sky-900 ",
       main: true,
     },
@@ -87,7 +75,7 @@ function App() {
       content: <ShareSyncPage />,
       title: t("importMods"),
       name: "shareSync",
-      icon: <MdSync className="duration-0 w-8 h-8" />,
+      icon: <md.MdSync className="duration-0 w-8 h-8" />,
       style: " hover:bg-cyan-400 data-[selected=true]:bg-cyan-900 ",
       main: true,
     },
@@ -95,7 +83,7 @@ function App() {
       content: <AccountPage />,
       title: t("account"),
       name: "account",
-      icon: <MdAccountCircle className="duration-0 w-8 h-8" />,
+      icon: <md.MdAccountCircle className="duration-0 w-8 h-8" />,
       style: " hover:bg-orange-400 data-[selected=true]:bg-orange-900 ",
       main: true,
     },
@@ -103,7 +91,7 @@ function App() {
       content: <SettingsPage />,
       title: t("settings"),
       name: "settings",
-      icon: <MdSettings className="duration-0 w-8 h-8" />,
+      icon: <md.MdSettings className="duration-0 w-8 h-8" />,
       style: " hover:bg-gray-700 data-[selected=true]:bg-black/25 ",
       main: true,
     },
@@ -181,7 +169,7 @@ function App() {
               message: (
                 <span className="flex">
                   <span>{t("export")}</span>
-                  <MdArchive className="w-6 h-6 mx-2" /> {progress}%
+                  <md.MdArchive className="w-6 h-6 mx-2" /> {progress}%
                 </span>
               ),
               timeout: 15000,
@@ -191,7 +179,7 @@ function App() {
               message: (
                 <span className="flex">
                   <span>{t("export")}</span>
-                  <MdArchive className="w-6 h-6 mx-2" /> {progress}%
+                  <md.MdArchive className="w-6 h-6 mx-2" /> {progress}%
                 </span>
               ),
               className: "bg-gray-700 rounded-4xl",
@@ -536,7 +524,7 @@ function App() {
               contextFunctions.changeContent({
                 content: <ShareSyncPage sharedCode={code} />,
                 name: randomString,
-                icon: <MdSync className="duration-0 w-8 h-8" />,
+                icon: <md.MdSync className="duration-0 w-8 h-8" />,
                 title: t("importMods"),
                 style: "",
                 main: false,
@@ -827,7 +815,7 @@ function App() {
                         {updateDownloadProgress === 1 ? (
                           <div className="flex align-middle justify-center items-center place-content-center">
                             <p>{t("appUpdate")}</p>{" "}
-                            <MdInstallDesktop className="ml-2 w-6" />
+                            <md.MdInstallDesktop className="ml-2 w-6" />
                           </div>
                         ) : (
                           (updateDownloadProgress * 100).toFixed(0) + "%"
@@ -847,7 +835,7 @@ function App() {
                           await currentWindow.minimize();
                         }}
                       >
-                        <MdMinimize />
+                        <md.MdMinimize />
                       </Button>
                       <Button
                         fullRound
@@ -857,7 +845,7 @@ function App() {
                           await currentWindow.setEnabled(false);
                         }}
                       >
-                        <MdClose />
+                        <md.MdClose />
                       </Button>
                     </div>
                   </div>
@@ -906,7 +894,7 @@ function App() {
                           setSnackbarEnabled(false);
                         }}
                       >
-                        <MdClear className="w-4 h-4" />
+                        <md.MdClear className="w-4 h-4" />
                       </Button>
                     </div>
                   </motion.div>
