@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ContentContext,
-  IContentContext,
+  type IContentContext,
   ModLoader,
   ModSource,
   ModType,
-  Page,
-  SnackbarHistoryItem,
-  SnackbarState,
+  type Page,
+  type SnackbarHistoryItem,
+  type SnackbarState,
 } from "./intefaces";
 import "./App.css";
 import { I18nextProvider, useTranslation } from "react-i18next";
@@ -407,29 +407,142 @@ function App() {
           } else if (actionType === "quadrantnext:") {
             const actions = url!.pathname.split("/");
             console.log(actions);
-            if (!actions.includes("login") && url!.host !== "login") {
-              console.log("Not login");
+            if (actions.includes("login") || url!.host === "login") {
+              const oAuthState = await config.get<string>("oauthState");
+
+              const providedState = url!.searchParams.get("state");
+              console.log("State: " + oAuthState);
+              console.log("Provided state: " + providedState);
+              if (providedState !== oAuthState) {
+                return;
+              }
+              const code = url!.searchParams.get("code");
+              console.log("Code: " + code);
+              if (code === null) {
+                return;
+              }
+              const redirectUri = gottenUrl.split("#")[0].split("?")[0];
+              await invoke("oauth2_login", {
+                code: code,
+                redirectUri: redirectUri,
+              });
               return;
             }
 
-            const oAuthState = await config.get<string>("oauthState");
+            if (url!.host === "modrinth") {
+              const modId = url!.searchParams.get("modId") ?? "";
+              const fileId = url!.searchParams.get("fileId") ?? undefined;
+              if (!modId) {
+                contextFunctions.setSnackbar({
+                  message: t("unsupportedDownload"),
+                  className: "bg-red-500 text-white",
+                  timeout: 5000,
+                });
+                return;
+              }
+              const mod = await getMod(
+                {
+                  deletable: false,
+                  id: modId,
+                  downloadable: true,
+                  showPreviousVersion: false,
+                  versionTarget: "",
+                  modpack: "",
+                  modLoader: ModLoader.Unknown,
+                  selectable: false,
+                  selectUrl: null,
+                },
+                ModSource.Modrinth,
+              );
+              if (mod.modType === ModType.Unknown) {
+                contextFunctions.setSnackbar({
+                  message: t("unsupportedDownload"),
+                  className: "bg-red-500 text-white",
+                  timeout: 5000,
+                });
+                return;
+              }
+              const randomString = Math.random().toString(36).substring(2, 10);
 
-            const providedState = url!.searchParams.get("state");
-            console.log("State: " + oAuthState);
-            console.log("Provided state: " + providedState);
-            if (providedState !== oAuthState) {
+              contextFunctions.changeContent({
+                content: <ModInstallPage mod={mod} fileId={fileId} />,
+                name: randomString,
+                icon: <></>,
+                title: mod.name,
+                style: "",
+                main: false,
+              });
               return;
             }
-            const code = url!.searchParams.get("code");
-            console.log("Code: " + code);
-            if (code === null) {
+
+            if (url!.host === "curseforge") {
+              const modId = url!.searchParams.get("modId") ?? "";
+              const fileId = url!.searchParams.get("fileId") ?? undefined;
+              if (!modId) {
+                contextFunctions.setSnackbar({
+                  message: t("unsupportedDownload"),
+                  className: "bg-red-500 text-white",
+                  timeout: 5000,
+                });
+                return;
+              }
+              const mod = await getMod(
+                {
+                  deletable: false,
+                  id: modId,
+                  downloadable: true,
+                  showPreviousVersion: false,
+                  versionTarget: "",
+                  modpack: "",
+                  modLoader: ModLoader.Unknown,
+                  selectable: false,
+                  selectUrl: null,
+                },
+                ModSource.CurseForge,
+              );
+              if (mod.modType === ModType.Unknown) {
+                contextFunctions.setSnackbar({
+                  message: t("unsupportedDownload"),
+                  className: "bg-red-500 text-white",
+                  timeout: 5000,
+                });
+                return;
+              }
+              const randomString = Math.random().toString(36).substring(2, 10);
+
+              contextFunctions.changeContent({
+                content: <ModInstallPage mod={mod} fileId={fileId} />,
+                name: randomString,
+                icon: <></>,
+                title: mod.name,
+                style: "",
+                main: false,
+              });
               return;
             }
-            const redirectUri = gottenUrl.split("#")[0].split("?")[0];
-            await invoke("oauth2_login", {
-              code: code,
-              redirectUri: redirectUri,
-            });
+
+            if (url!.host === "modpack") {
+              const code = url!.searchParams.get("code") ?? "";
+              if (!code || code.trim().length !== 7) {
+                contextFunctions.setSnackbar({
+                  message: t("unsupportedDownload"),
+                  className: "bg-red-500 text-white",
+                  timeout: 5000,
+                });
+                return;
+              }
+              const randomString = Math.random().toString(36).substring(2, 10);
+
+              contextFunctions.changeContent({
+                content: <ShareSyncPage sharedCode={code} />,
+                name: randomString,
+                icon: <MdSync className="duration-0 w-8 h-8" />,
+                title: t("importMods"),
+                style: "",
+                main: false,
+              });
+              return;
+            }
           }
         }
       });
