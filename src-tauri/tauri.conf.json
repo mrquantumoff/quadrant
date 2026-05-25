@@ -52,6 +52,10 @@
         {
           "name": "noupdater",
           "description": "Prevent the app from automatically updating (aimed at flatpak builds)"
+        },
+        {
+          "name": "api-url",
+          "description": "Override the Quadrant API base URL"
         }
       ]
     },

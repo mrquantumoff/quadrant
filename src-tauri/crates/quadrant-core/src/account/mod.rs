@@ -9,14 +9,21 @@ pub mod quadrant_settings_sync;
 pub mod quadrant_share;
 pub mod quadrant_sync;
 
-/// Base URL for the Quadrant backend API.
-pub const QNT_BASE_URL: &str = "https://api.usequadrant.dev/api/v3";
+/// Returns the default backend base URL.
+/// The compile-time default can be overridden by setting the `QUADRANT_API_BASE_URL`
+/// environment variable at build time. Runtime overrides (via env var or CLI) take
+/// precedence over this default.
+fn qnt_base_url() -> &'static str {
+    option_env!("QUADRANT_API_BASE_URL").unwrap_or("https://api.usequadrant.dev/api/v3")
+}
 /// Stable keyring service name used by the current app.
 pub const KEYRING_SERVICE: &str = "dev.mrquantumoff.mcmodpackmanager";
 
-/// Resolves the backend base URL, preferring an explicit runtime override.
+/// Resolves the backend base URL.
+/// Precedence: CLI arg > `QUADRANT_API_BASE_URL` env var at runtime >
+/// `QUADRANT_API_BASE_URL` env var at compile time > hardcoded default.
 pub fn backend_base_url() -> String {
-    env::var("QUADRANT_API_BASE_URL").unwrap_or_else(|_| QNT_BASE_URL.to_string())
+    env::var("QUADRANT_API_BASE_URL").unwrap_or_else(|_| qnt_base_url().to_string())
 }
 
 /// Persists a named secret in the host secret store.

@@ -3,18 +3,13 @@
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::env;
 
 use crate::{
     Result,
-    account::{QNT_BASE_URL, get_account_token},
+    account::{backend_base_url, get_account_token},
     models::{LocalModpack, ModLoader},
     ports::SecretStore,
 };
-
-fn backend_base_url() -> String {
-    env::var("QUADRANT_API_BASE_URL").unwrap_or_else(|_| QNT_BASE_URL.to_string())
-}
 
 /// Owner information for a synced modpack.
 #[derive(Serialize, Deserialize, Debug, Clone)]

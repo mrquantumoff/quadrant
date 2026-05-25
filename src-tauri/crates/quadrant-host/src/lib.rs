@@ -1485,13 +1485,13 @@ impl QuadrantHost {
         cursor: &NotificationCursor,
         connection_id: &str,
     ) -> Result<Url> {
-        let mut url = Url::parse(
-            self.inner
-                .options
-                .api_base_url
-                .as_deref()
-                .unwrap_or(quadrant_core::account::QNT_BASE_URL),
-        )?;
+        let base = self
+            .inner
+            .options
+            .api_base_url
+            .clone()
+            .unwrap_or_else(quadrant_core::account::backend_base_url);
+        let mut url = Url::parse(&base)?;
         match url.scheme() {
             "https" => url
                 .set_scheme("wss")

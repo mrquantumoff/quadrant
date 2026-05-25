@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import SharePage from "./SharePage";
 import SyncPage from "./SyncPage";
 import { createContext, useContext, useEffect, useState } from "react";
-import { getAccountInfo } from "../../../tools";
+import { getAccountInfo, getQuadrantShareModpack } from "../../../tools";
 import { motion } from "motion/react";
 import { InstalledModpack } from "../../../intefaces";
 import { ContentContext } from "../../../intefaces";
@@ -19,6 +19,10 @@ export interface IShareSyncContext {
   setModpackId: (modpackId: string | null) => void;
 }
 
+export interface ShareSyncPageProps {
+  sharedCode?: string;
+}
+
 export const ShareSyncContext = createContext<IShareSyncContext>({
   changeTab: () => {},
   setModpack: () => {},
@@ -26,7 +30,7 @@ export const ShareSyncContext = createContext<IShareSyncContext>({
   setModpackId: () => {},
 });
 
-export default function ShareSyncPage() {
+export default function ShareSyncPage({ sharedCode }: ShareSyncPageProps) {
   const { t } = useTranslation();
 
   const [syncActive, setSyncActive] = useState(false);
@@ -34,11 +38,32 @@ export default function ShareSyncPage() {
   const [preselectedModpack, setPreselectedModpack] = useState<
     InstalledModpack | undefined
   >();
+  const [codeResolved, setCodeResolved] = useState(false);
 
   const [modpackSync, setModpackSync] = useState<number | null>(null);
   const [modpackId, setModpackId] = useState<string | null>(null);
 
   const contentContext = useContext(ContentContext);
+
+  useEffect(() => {
+    if (!sharedCode || codeResolved) {
+      return;
+    }
+    setCodeResolved(true);
+    getQuadrantShareModpack(sharedCode)
+      .then((modpack) => {
+        setPreselectedModpack(modpack);
+        setSelectedTab(0);
+      })
+      .catch((e) => {
+        console.error("Failed to resolve shared code:", e);
+        contentContext.setSnackbar({
+          message: t("unsupportedDownload"),
+          className: "bg-red-500 text-white",
+          timeout: 5000,
+        });
+      });
+  }, [sharedCode, codeResolved, contentContext, t]);
 
   useEffect(() => {
     let isUnmounted = false;
