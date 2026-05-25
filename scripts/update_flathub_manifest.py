@@ -13,7 +13,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tag", required=True)
     parser.add_argument("--version", required=True)
     parser.add_argument("--metainfo-sha", required=True)
-    parser.add_argument("--icon-sha", required=True)
     parser.add_argument("--amd64-sha", required=True)
     parser.add_argument("--arm64-sha", required=True)
     parser.add_argument("--manifest-path", required=True)
@@ -67,7 +66,6 @@ def main() -> int:
 
     for name, value in (
         ("--metainfo-sha", args.metainfo_sha),
-        ("--icon-sha", args.icon_sha),
         ("--amd64-sha", args.amd64_sha),
         ("--arm64-sha", args.arm64_sha),
     ):
@@ -83,10 +81,6 @@ def main() -> int:
         f"https://github.com/{release_repo}/raw/{args.tag}/"
         "dev.mrquantumoff.mcmodpackmanager.metainfo.xml"
     )
-    icon_url = (
-        f"https://github.com/{release_repo}/raw/{args.tag}/"
-        "src-tauri/icons/quadrant_next.png"
-    )
     amd64_url = (
         f"https://github.com/{release_repo}/releases/download/{args.tag}/"
         f"Quadrant-{args.version}-linux-x86_64-electron.AppImage"
@@ -101,13 +95,6 @@ def main() -> int:
         r"\s*url:\s+)https://github\.com/[^/\r\n]+/[^/\r\n]+/raw/[^/\r\n]+/"
         r"dev\.mrquantumoff\.mcmodpackmanager\.metainfo\.xml"
         r"(\r?\n\s*sha256:\s+)[0-9a-f]{64}(\r?\n)"
-    )
-    icon_pattern = re.compile(
-        r"(?m)^(\s*-\s+type:\s+file\r?\n"
-        r"\s*url:\s+)https://github\.com/[^/\r\n]+/[^/\r\n]+/raw/[^/\r\n]+/"
-        r"src-tauri/icons/quadrant_next\.png"
-        r"(\r?\n\s*dest-filename:\s+dev\.mrquantumoff\.mcmodpackmanager\.png"
-        r"\r?\n\s*sha256:\s+)[0-9a-f]{64}(\r?\n)"
     )
     amd64_pattern = re.compile(
         r"(?m)^(\s*-\s+type:\s+file\r?\n"
@@ -129,12 +116,6 @@ def main() -> int:
         metainfo_pattern,
         rf"\g<1>{metainfo_url}\g<2>{args.metainfo_sha}\g<3>",
         "metainfo source",
-    )
-    updated = replace_unique(
-        updated,
-        icon_pattern,
-        rf"\g<1>{icon_url}\g<2>{args.icon_sha}\g<3>",
-        "icon source",
     )
     updated = replace_unique(
         updated,
