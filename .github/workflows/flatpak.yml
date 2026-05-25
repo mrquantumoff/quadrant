@@ -49,6 +49,12 @@ jobs:
         with:
           ref: ${{ env.TAG }}
 
+      - name: Checkout default branch for update scripts
+        uses: actions/checkout@v6
+        with:
+          ref: next
+          path: .scripts-next
+
       - name: Derive release version
         id: release_version
         run: |
@@ -181,7 +187,7 @@ jobs:
             git checkout -B "$FLATHUB_BRANCH" upstream/master
           fi
 
-          python3 "$GITHUB_WORKSPACE/scripts/update_flathub_manifest.py" \
+          python3 "$GITHUB_WORKSPACE/.scripts-next/scripts/update_flathub_manifest.py" \
             --tag "$TAG" \
             --version "$VERSION" \
             --release-repo "$RELEASE_REPO" \
