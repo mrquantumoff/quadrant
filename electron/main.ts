@@ -97,6 +97,10 @@ app.setPath("userData", path.join(app.getPath("appData"), appId));
 const argv = process.argv.slice(1);
 const isAutostart = argv.includes("--autostart");
 const updaterDisabledByCli = argv.includes("--noupdater");
+const apiUrlFromCli = (() => {
+	const idx = argv.indexOf("--api-url");
+	return idx !== -1 && idx + 1 < argv.length ? argv[idx + 1] : null;
+})();
 const devServerUrl = process.env.QUADRANT_ELECTRON_DEV_SERVER_URL;
 
 let mainWindow: BrowserWindowType | null = null;
@@ -316,7 +320,7 @@ async function createQuadrantHostClient(): Promise<QuadrantClient> {
 
 	quadrantClient = createQuadrantClient({
 		dataDir: app.getPath("userData"),
-		apiBaseUrl: runtimeConfig.apiBaseUrl,
+		apiBaseUrl: apiUrlFromCli ?? runtimeConfig.apiBaseUrl,
 		oauthClientId: runtimeConfig.oauthClientId,
 		oauthClientSecret: runtimeConfig.oauthClientSecret,
 		quadrantApiKey: runtimeConfig.quadrantApiKey,

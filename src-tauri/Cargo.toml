@@ -33,17 +33,17 @@ http-cache-reqwest = { version = "1.0.0-alpha.6", default-features = false, feat
 ] }
 httpmock = "0.8.3"
 keyring-core = { version = "1.0.0" }
-log = "0.4.29"
+log = "0.4.30"
 moka = { version = "0.12.15", features = ["future"] }
-napi = { version = "3.8.6", default-features = false, features = [
+napi = { version = "3.9.0", default-features = false, features = [
     "napi8",
     "tokio_rt",
     "serde-json",
 ] }
-napi-build = "2.3.1"
-napi-derive = "3.5.5"
+napi-build = "2.3.2"
+napi-derive = "3.5.6"
 once_cell = "1.21.4"
-open = "5.3.4"
+open = "5.3.5"
 reqwest = { version = "0.13.3", features = [
     "json",
     "rustls",
@@ -52,13 +52,13 @@ reqwest = { version = "0.13.3", features = [
     "form",
     "stream",
 ] }
-reqwest-middleware = "0.5.1"
+reqwest-middleware = "0.5.2"
 rss = "2.0.13"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.149"
+serde_json = "1.0.150"
 sha1 = "0.11.0"
-tauri = { version = "2.11.1", features = ["tray-icon", "config-json5"] }
-tauri-build = { version = "2.6.1", features = [] }
+tauri = { version = "2.11.2", features = ["tray-icon", "config-json5"] }
+tauri-build = { version = "2.6.2", features = [] }
 tauri-plugin-autostart = "2.5.1"
 tauri-plugin-cli = "2.4.1"
 tauri-plugin-clipboard-manager = "2.3.2"
@@ -83,7 +83,7 @@ tokio-tungstenite = { version = "0.29.0", features = [
 url = { version = "2.5.8", features = ["serde", "std"] }
 urlencoding = "2.1.3"
 uuid = { version = "1.23.1", features = ["v7"] }
-windows-native-keyring-store = "1.0.0"
+windows-native-keyring-store = "1.1.0"
 zip = "8.6.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

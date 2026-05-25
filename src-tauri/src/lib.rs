@@ -16,8 +16,6 @@ use tauri_plugin_store::StoreExt;
 #[cfg(feature = "updater")]
 use tauri_plugin_updater::UpdaterExt;
 
-#[allow(dead_code)] // This is used in the Quadrant ID feature
-pub(crate) const QNT_BASE_URL: &str = "https://api.usequadrant.dev/api/v3";
 
 #[cfg(feature = "quadrant_id")]
 pub mod account;
@@ -36,7 +34,7 @@ pub struct AppState {
     pub update_bytes: Vec<u8>,
 }
 
-fn build_quadrant_host(app: &tauri::AppHandle) -> Result<QuadrantHost, anyhow::Error> {
+fn build_quadrant_host(app: &tauri::AppHandle, api_base_url: Option<String>) -> Result<QuadrantHost, anyhow::Error> {
     let data_dir = app
         .path()
         .app_data_dir()
@@ -49,7 +47,8 @@ fn build_quadrant_host(app: &tauri::AppHandle) -> Result<QuadrantHost, anyhow::E
         env!("QUADRANT_OAUTH2_CLIENT_SECRET"),
         env!("QUADRANT_API_KEY"),
     );
-    options.api_base_url = std::env::var("QUADRANT_API_BASE_URL").ok();
+    options.api_base_url = api_base_url
+        .or_else(|| std::env::var("QUADRANT_API_BASE_URL").ok());
     options.app_version = app.package_info().version.to_string();
     options.os_name = tauri_plugin_os::platform().to_string().to_uppercase();
     QuadrantHost::new(options)
@@ -113,7 +112,12 @@ pub async fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
-            let host = build_quadrant_host(&app.handle().clone())?;
+            let matches = app.cli().matches().ok();
+            let api_base_url = matches
+                .as_ref()
+                .and_then(|m| m.args.get("api-url"))
+                .and_then(|a| a.value.as_str().map(String::from));
+            let host = build_quadrant_host(&app.handle().clone(), api_base_url)?;
             let mut host_events = host.subscribe_events();
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -171,35 +175,30 @@ pub async fn run() {
                 log::info!("Disabling right click...");
             }
 
-            match app.cli().matches() {
-                Ok(matches) => {
-                    log::info!("Matches: {:?}", matches);
-                    let autostart = matches.args.get_key_value("autostart");
-                    if autostart.is_some() {
-                        let autostart = autostart.unwrap();
-                        if autostart.1.value == true {
-                            log::info!("Autostarting");
-                            for window in app.webview_windows() {
-                                match window.1.hide() {
-                                    Ok(_) => {}
-                                    Err(e) => {
-                                        log::error!("Failed to hide window: {}", e);
-                                    }
+            if let Some(ref matches) = matches {
+                log::info!("Matches: {:?}", matches);
+                let autostart = matches.args.get_key_value("autostart");
+                if autostart.is_some() {
+                    let autostart = autostart.unwrap();
+                    if autostart.1.value == true {
+                        log::info!("Autostarting");
+                        for window in app.webview_windows() {
+                            match window.1.hide() {
+                                Ok(_) => {}
+                                Err(e) => {
+                                    log::error!("Failed to hide window: {}", e);
                                 }
                             }
                         }
                     }
-                    let autoupdater_disabled = matches.args.get_key_value("noupdater");
-                    if autoupdater_disabled.is_some() {
-                        let autoupdater_disabled = autoupdater_disabled.unwrap();
-
-                        let value = autoupdater_disabled.1.value == true;
-
-                        autoupdate = !value;
-                    }
                 }
-                Err(_) => {
-                    log::error!("No matches");
+                let autoupdater_disabled = matches.args.get_key_value("noupdater");
+                if autoupdater_disabled.is_some() {
+                    let autoupdater_disabled = autoupdater_disabled.unwrap();
+
+                    let value = autoupdater_disabled.1.value == true;
+
+                    autoupdate = !value;
                 }
             }
             let handle = app.handle().clone();

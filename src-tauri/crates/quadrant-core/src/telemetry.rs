@@ -4,7 +4,7 @@ use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Result, account::QNT_BASE_URL, mc_mod::http::provider_http_client, ports::SettingsStore,
+    Result,     account::backend_base_url, mc_mod::http::provider_http_client, ports::SettingsStore,
 };
 
 /// Telemetry payload submitted to the Quadrant backend.
@@ -103,7 +103,7 @@ pub async fn send_telemetry(
     log::info!("Sending telemetry for version {version} on {os}");
     let info = get_telemetry_info(settings_store, version, os).await?;
     provider_http_client()
-        .post(format!("{}/quadrant/usage/submit", QNT_BASE_URL))
+        .post(format!("{}/quadrant/usage/submit", backend_base_url()))
         .json(&info)
         .header("Authorization", api_key)
         .header("User-Agent", user_agent)
@@ -124,7 +124,7 @@ pub async fn remove_telemetry(
     let hardware_id = settings_store.get_string("hardwareId")?.unwrap_or_default();
 
     provider_http_client()
-        .delete(format!("{}/quadrant/usage/delete", QNT_BASE_URL))
+        .delete(format!("{}/quadrant/usage/delete", backend_base_url()))
         .header("Authorization", api_key)
         .header("User-Agent", user_agent)
         .query(&[("hardware_id", hardware_id)])
