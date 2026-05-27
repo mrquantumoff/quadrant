@@ -366,6 +366,57 @@ pub fn get_user_url(username: String, source: ModSource) -> String {
     format!("{}/{}", base_url, username)
 }
 
+/// Fetches full mod metadata from the upstream provider to enrich an `InstalledMod`
+/// that only has basic fields populated.
+pub async fn enrich_installed_mod(mod_: InstalledMod) -> Result<InstalledMod> {
+    if !mod_.name.is_empty() || mod_.source == ModSource::Online {
+        return Ok(mod_);
+    }
+    let args = GetModArgs {
+        id: mod_.id.clone(),
+        downloadable: false,
+        show_previous_version: false,
+        deletable: false,
+        version_target: String::new(),
+        mod_loader: ModLoader::Unknown,
+        modpack: String::new(),
+        selectable: false,
+        select_url: None,
+    };
+    let details = match mod_.source {
+        ModSource::Modrinth => modrinth::get_mod_modrinth(args).await,
+        ModSource::CurseForge => {
+            #[cfg(feature = "curseforge")]
+            {
+                curseforge::get_mod_curseforge(args).await
+            }
+            #[cfg(not(feature = "curseforge"))]
+            {
+                return Ok(mod_);
+            }
+        }
+        ModSource::Online => return Ok(mod_),
+    }?;
+    let mod_type_str = match details.mod_type {
+        ModType::Mod => "Mod",
+        ModType::ResourcePack => "ResourcePack",
+        ModType::ShaderPack => "ShaderPack",
+        ModType::Unknown => "Unknown",
+    };
+    Ok(InstalledMod {
+        name: details.name,
+        download_count: details.download_count,
+        version: details.version,
+        mod_type: mod_type_str.to_string(),
+        slug: details.slug,
+        thumbnail_urls: details.thumbnail_urls,
+        description: details.description,
+        license: details.license,
+        mod_icon_url: details.mod_icon_url,
+        ..mod_
+    })
+}
+
 /// Downloads and installs a provider-backed mod into the requested target.
 ///
 /// Progress is emitted through [`BackendEvent::ModDownloadProgress`] and
@@ -423,15 +474,46 @@ pub async fn install_mod(
         progress: 50,
     }))?;
 
+    let mod_to_install = enrich_installed_mod(InstalledMod {
+        id: id.clone(),
+        source: source.clone(),
+        download_url: download_path.1.clone(),
+        name: String::new(),
+        download_count: 0,
+        version: String::new(),
+        mod_type: String::new(),
+        slug: String::new(),
+        thumbnail_urls: Vec::new(),
+        description: String::new(),
+        license: String::new(),
+        mod_icon_url: String::new(),
+    })
+    .await
+    .unwrap_or_else(|e| {
+        log::warn!("Failed to enrich mod {id} on install: {}", e);
+        InstalledMod {
+            id: id.clone(),
+            source,
+            download_url: download_path.1.clone(),
+            name: String::new(),
+            download_count: 0,
+            version: String::new(),
+            mod_type: String::new(),
+            slug: String::new(),
+            thumbnail_urls: Vec::new(),
+            description: String::new(),
+            license: String::new(),
+            mod_icon_url: String::new(),
+        }
+    });
+
     let updated_modpack = install_local_file(
         mc_folder,
         existing_modpacks,
         download_path.0,
-        download_path.1,
+        mod_to_install,
         mod_type,
         modpack,
-        id.clone(),
-        source,
     )?;
 
     event_sink.publish(BackendEvent::ModInstallProgress(ModProgressPayload {
@@ -500,17 +582,12 @@ pub fn install_local_file(
     mc_folder: &Path,
     existing_modpacks: &[LocalModpack],
     file: PathBuf,
-    download_url: String,
+    local_mod: InstalledMod,
     mod_type: ModType,
     modpack: Option<String>,
-    id: String,
-    source: ModSource,
 ) -> Result<Option<LocalModpack>> {
-    let local_mod = InstalledMod {
-        id: id.clone(),
-        source: source.clone(),
-        download_url,
-    };
+    let id = local_mod.id.clone();
+    let source = local_mod.source.clone();
 
     let (target_path, updated_modpack) = match mod_type {
         ModType::Mod => {
@@ -526,7 +603,7 @@ pub fn install_local_file(
             modpack.mods.push(local_mod.clone());
 
             std::fs::write(
-                crate::models::modpack_path(mc_folder, &modpack_name).join("modConfig.json"),
+                crate::models::modpack_path(mc_folder, &modpack_name).join("modConfigV2.json"),
                 serde_json::to_string_pretty(&InstalledModpack::from(modpack.clone()))?,
             )?;
 
@@ -571,15 +648,45 @@ pub async fn install_remote_file(
     id: String,
 ) -> Result<Option<LocalModpack>> {
     let downloaded_file = get_file(file, id.clone(), event_sink).await?;
+    let mod_to_install = enrich_installed_mod(InstalledMod {
+        id: id.clone(),
+        source: source.clone(),
+        download_url: downloaded_file.1.clone(),
+        name: String::new(),
+        download_count: 0,
+        version: String::new(),
+        mod_type: String::new(),
+        slug: String::new(),
+        thumbnail_urls: Vec::new(),
+        description: String::new(),
+        license: String::new(),
+        mod_icon_url: String::new(),
+    })
+    .await
+    .unwrap_or_else(|e| {
+        log::warn!("Failed to enrich mod {id} on remote install: {}", e);
+        InstalledMod {
+            id: id.clone(),
+            source,
+            download_url: downloaded_file.1.clone(),
+            name: String::new(),
+            download_count: 0,
+            version: String::new(),
+            mod_type: String::new(),
+            slug: String::new(),
+            thumbnail_urls: Vec::new(),
+            description: String::new(),
+            license: String::new(),
+            mod_icon_url: String::new(),
+        }
+    });
     install_local_file(
         mc_folder,
         existing_modpacks,
         downloaded_file.0,
-        downloaded_file.1,
+        mod_to_install,
         mod_type,
         modpack,
-        id,
-        source,
     )
 }
 
