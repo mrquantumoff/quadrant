@@ -391,6 +391,8 @@ impl QuadrantHost {
         let update_store = JsonFileStore::new(options.data_dir.join(&options.update_store_name))?;
         ensure_default_app_config(&config_store)?;
 
+        quadrant_core::models::set_quadrant_version(options.app_version.clone());
+
         if let Some(mc_folder) = &options.mc_folder {
             config_store.set_string("mcFolder", mc_folder.to_string_lossy().to_string())?;
         }
@@ -480,7 +482,7 @@ impl QuadrantHost {
     }
 
     pub async fn get_modpacks(&self, hide_free: bool) -> Result<Vec<LocalModpack>> {
-        get_modpacks(&self.get_minecraft_folder()?, hide_free)
+        get_modpacks(&self.get_minecraft_folder()?, hide_free).await
     }
 
     pub fn frontend_apply_modpack(&self, name: String) -> Result<()> {
@@ -545,6 +547,7 @@ impl QuadrantHost {
             mod_,
             &modpack,
         )
+        .await
     }
 
     pub async fn install_modpack(&self, mod_config: InstalledModpack) -> Result<()> {
@@ -1568,7 +1571,7 @@ impl QuadrantHost {
         &self,
         synced_modpack: &SyncedModpack,
     ) -> Result<Option<LocalModpack>> {
-        let modpacks = get_modpacks(&self.get_minecraft_folder()?, true)?;
+        let modpacks = get_modpacks(&self.get_minecraft_folder()?, true).await?;
 
         if let Some(local_modpack) = modpacks
             .iter()
@@ -1624,6 +1627,8 @@ impl QuadrantHost {
 
         let install_result = self
             .install_modpack(InstalledModpack {
+                mod_config_version: String::new(),
+                quadrant_version: String::new(),
                 mod_loader: synced_modpack.mod_loader,
                 name: synced_modpack.name.clone(),
                 version: synced_modpack.minecraft_version.clone(),

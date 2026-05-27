@@ -414,7 +414,7 @@ pub async fn identify_modpack_curseforge(
 ) -> Result<Vec<IdentifiedMod>> {
     log::info!("Identifying CurseForge mods in modpack \"{modpack}\"");
     let modpack_folder = mc_folder.join("modpacks").join(&modpack);
-    let existing_modpack: Vec<LocalModpack> = get_modpacks(mc_folder, false)?
+    let existing_modpack: Vec<LocalModpack> = get_modpacks(mc_folder, false).await?
         .into_iter()
         .filter(|existing| existing.name == modpack)
         .collect();
@@ -499,11 +499,11 @@ pub async fn identify_modpack_curseforge(
             .map(|hash_info| hash_info.2.clone())
             .unwrap();
         mods.push(IdentifiedMod {
-            installed_mod: InstalledMod {
-                download_url: file.download_url,
-                id: file.mod_id.to_string(),
-                source: ModSource::CurseForge,
-            },
+            installed_mod: InstalledMod::minimal(
+                file.mod_id.to_string(),
+                ModSource::CurseForge,
+                file.download_url,
+            ),
             file_name: original_file,
         });
     }
@@ -543,8 +543,10 @@ mod tests {
         let modpack_dir = mc_folder.join("modpacks").join(name);
         std::fs::create_dir_all(&modpack_dir).unwrap();
         std::fs::write(
-            modpack_dir.join("modConfig.json"),
+            modpack_dir.join("modConfigV2.json"),
             serde_json::to_vec(&InstalledModpack {
+                mod_config_version: String::new(),
+                quadrant_version: String::new(),
                 name: name.to_string(),
                 version: "1.20.1".to_string(),
                 mod_loader: ModLoader::Forge,

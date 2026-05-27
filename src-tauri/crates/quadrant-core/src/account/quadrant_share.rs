@@ -211,14 +211,16 @@ mod tests {
 
     fn installed_modpack() -> InstalledModpack {
         InstalledModpack {
+            mod_config_version: String::new(),
+            quadrant_version: String::new(),
             name: "Test Pack".to_string(),
             version: "1.20.1".to_string(),
             mod_loader: ModLoader::Fabric,
-            mods: vec![InstalledMod {
-                id: "mod-1".to_string(),
-                source: ModSource::Modrinth,
-                download_url: "https://example.com/mod.jar".to_string(),
-            }],
+            mods: vec![InstalledMod::minimal(
+                "mod-1".to_string(),
+                ModSource::Modrinth,
+                "https://example.com/mod.jar".to_string(),
+            )],
         }
     }
 

@@ -20,6 +20,7 @@ export const HOST_COMMANDS = [
   "get_news",
   "get_minecraft_folder",
   "get_modpacks_folder",
+  "open_modpacks_folder",
   "init_config",
   "search_mods",
   "get_versions",

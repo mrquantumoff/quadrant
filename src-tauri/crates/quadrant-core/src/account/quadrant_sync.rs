@@ -217,11 +217,11 @@ mod tests {
             name: "Better Create".to_string(),
             version: "1.20.1".to_string(),
             mod_loader: ModLoader::Fabric,
-            mods: vec![InstalledMod {
-                id: "abc".to_string(),
-                source: ModSource::Modrinth,
-                download_url: "https://example.com/mod.jar".to_string(),
-            }],
+            mods: vec![InstalledMod::minimal(
+                "abc".to_string(),
+                ModSource::Modrinth,
+                "https://example.com/mod.jar".to_string(),
+            )],
             unknown_mods: false,
             is_applied: false,
             last_synced: 0,

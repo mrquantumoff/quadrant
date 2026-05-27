@@ -59,6 +59,7 @@ pub async fn open_modpacks_folder(app: AppHandle) -> Result<(), tauri::Error> {
         .state::<QuadrantHost>()
         .get_modpacks_folder()
         .map_err(tauri::Error::from)?;
+    std::fs::create_dir_all(&modpacks_path).map_err(tauri::Error::from)?;
     TauriShell::new(app)
         .open_path(&modpacks_path)
         .map_err(tauri::Error::from)

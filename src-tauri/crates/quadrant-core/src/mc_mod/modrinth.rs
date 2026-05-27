@@ -331,7 +331,7 @@ pub async fn identify_modpack_modrinth(
 ) -> Result<Vec<IdentifiedMod>> {
     log::info!("Identifying Modrinth mods in modpack \"{modpack}\"");
     let modpack_folder = mc_folder.join("modpacks").join(&modpack);
-    let existing_modpack: Vec<LocalModpack> = get_modpacks(mc_folder, false)?
+    let existing_modpack: Vec<LocalModpack> = get_modpacks(mc_folder, false).await?
         .into_iter()
         .filter(|existing| existing.name == modpack)
         .collect();
@@ -387,11 +387,11 @@ pub async fn identify_modpack_modrinth(
             None => continue,
         };
         mods.push(IdentifiedMod {
-            installed_mod: InstalledMod {
-                download_url: file.url.clone(),
-                id: identifier.project_id,
-                source: ModSource::Modrinth,
-            },
+            installed_mod: InstalledMod::minimal(
+                identifier.project_id,
+                ModSource::Modrinth,
+                file.url.clone(),
+            ),
             file_name: original_file_name,
         });
     }
@@ -428,8 +428,10 @@ mod tests {
         let modpack_dir = mc_folder.join("modpacks").join(name);
         std::fs::create_dir_all(&modpack_dir).unwrap();
         std::fs::write(
-            modpack_dir.join("modConfig.json"),
+            modpack_dir.join("modConfigV2.json"),
             serde_json::to_vec(&InstalledModpack {
+                mod_config_version: String::new(),
+                quadrant_version: String::new(),
                 name: name.to_string(),
                 version: "1.20.1".to_string(),
                 mod_loader: ModLoader::Fabric,

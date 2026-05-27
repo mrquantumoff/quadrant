@@ -36,13 +36,36 @@ export default function SharePage({
   const [progress, setProgress] = useState(1);
   const modpackInstallRequestedRef = useRef(false);
 
+  const extractCode = (input: string): string | null => {
+    const trimmed = input.trim();
+    if (/^\d{7}$/.test(trimmed)) {
+      return trimmed;
+    }
+    try {
+      const url = new URL(trimmed);
+      if (
+        url.hostname === "usequadrant.dev" ||
+        url.hostname === "www.usequadrant.dev"
+      ) {
+        const match = url.pathname.match(/^\/modpack\/(\d{7})\/?$/);
+        if (match) {
+          return match[1];
+        }
+      }
+    } catch {
+      // not a URL
+    }
+    return null;
+  };
+
   const getModpack = async () => {
-    if (code.trim().length !== 7) {
+    const extracted = extractCode(code);
+    if (!extracted) {
       console.log("Code is not valid");
       return;
     }
 
-    const newModpack = await getQuadrantShareModpack(code);
+    const newModpack = await getQuadrantShareModpack(extracted);
     console.log("New modpack: " + newModpack);
     setModpack(newModpack);
   };
@@ -178,15 +201,15 @@ export default function SharePage({
                   value={code}
                   onChange={(e) => {
                     e.preventDefault();
-                    // Make sure the code is a number
-                    if (isNaN(Number(e.target.value))) {
+                    const val = e.target.value;
+                    // Allow raw 7-digit codes or full URLs
+                    if (val.length <= 7 && !isNaN(Number(val))) {
+                      setCode(val);
                       return;
                     }
-                    if (e.target.value.length > 7) {
-                      // 7 is the max length of the code
-                      return;
+                    if (extractCode(val)) {
+                      setCode(val);
                     }
-                    setCode(e.target.value);
                   }}
                   autoComplete="off"
                   type="text"
@@ -236,10 +259,8 @@ export default function SharePage({
                   className="mt-2 w-full ml-1 bg-sky-500 hover:bg-sky-700 "
                   onClick={async () => {
                     const clipboardText = await readClipboardText();
-                    if (clipboardText.trim().length > 7) {
-                      return;
-                    }
-                    if (!isNaN(Number(clipboardText.trim()))) {
+                    const extracted = extractCode(clipboardText);
+                    if (extracted) {
                       setCode(clipboardText);
                     }
                   }}

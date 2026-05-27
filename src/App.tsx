@@ -44,6 +44,38 @@ interface PageWithScroll {
   page: Page;
 }
 
+function getQuadrantPathParts(url: URL): string[] {
+  return url.pathname.split("/").filter((part) => part.trim().length > 0);
+}
+
+function getQuadrantAction(url: URL): string {
+  const pathAction = getQuadrantPathParts(url)[0];
+  return (url.host || pathAction || "").toLowerCase();
+}
+
+function getQuadrantPathValue(url: URL): string | undefined {
+  const pathParts = getQuadrantPathParts(url);
+  return url.host ? pathParts[0] : pathParts[1];
+}
+
+function getQuadrantModId(url: URL): string {
+  return (
+    url.searchParams.get("modId") ??
+    url.searchParams.get("addonId") ??
+    getQuadrantPathValue(url) ??
+    ""
+  ).trim();
+}
+
+function getQuadrantCode(url: URL): string {
+  return (
+    url.searchParams.get("code") ??
+    url.searchParams.get("sharedCode") ??
+    getQuadrantPathValue(url) ??
+    ""
+  ).trim();
+}
+
 function App() {
   const { t } = useTranslation();
   const pages: Page[] = [
@@ -110,6 +142,11 @@ function App() {
   );
 
   const contentRef = useRef<HTMLDivElement | null>(null);
+  const currentContentRef = useRef<Page>(content);
+
+  useEffect(() => {
+    currentContentRef.current = content;
+  }, [content]);
 
   useEffect(() => {
     let isUnmounted = false;
@@ -394,8 +431,9 @@ function App() {
             return;
           } else if (actionType === "quadrantnext:") {
             const actions = url!.pathname.split("/");
-            console.log(actions);
-            if (actions.includes("login") || url!.host === "login") {
+            const quadrantAction = getQuadrantAction(url);
+            console.log("Action: " + quadrantAction);
+            if (actions.includes("login") || quadrantAction === "login") {
               const oAuthState = await config.get<string>("oauthState");
 
               const providedState = url!.searchParams.get("state");
@@ -417,8 +455,8 @@ function App() {
               return;
             }
 
-            if (url!.host === "modrinth") {
-              const modId = url!.searchParams.get("modId") ?? "";
+            if (quadrantAction === "modrinth") {
+              const modId = getQuadrantModId(url);
               const fileId = url!.searchParams.get("fileId") ?? undefined;
               if (!modId) {
                 contextFunctions.setSnackbar({
@@ -463,8 +501,8 @@ function App() {
               return;
             }
 
-            if (url!.host === "curseforge") {
-              const modId = url!.searchParams.get("modId") ?? "";
+            if (quadrantAction === "curseforge") {
+              const modId = getQuadrantModId(url);
               const fileId = url!.searchParams.get("fileId") ?? undefined;
               if (!modId) {
                 contextFunctions.setSnackbar({
@@ -509,9 +547,9 @@ function App() {
               return;
             }
 
-            if (url!.host === "modpack") {
-              const code = url!.searchParams.get("code") ?? "";
-              if (!code || code.trim().length !== 7) {
+            if (quadrantAction === "modpack") {
+              const code = getQuadrantCode(url);
+              if (!code) {
                 contextFunctions.setSnackbar({
                   message: t("unsupportedDownload"),
                   className: "bg-red-500 text-white",
@@ -530,6 +568,28 @@ function App() {
                 main: false,
               });
               return;
+            }
+          } else if (actionType === "https:") {
+            const host = url!.host.toLowerCase();
+            if (host === "usequadrant.dev" || host === "www.usequadrant.dev") {
+              const pathParts = getQuadrantPathParts(url!);
+              if (pathParts[0] === "modpack") {
+                const code = pathParts[1] ?? "";
+                if (code && /^\d{7}$/.test(code)) {
+                  const randomString = Math.random()
+                    .toString(36)
+                    .substring(2, 10);
+                  contextFunctions.changeContent({
+                    content: <ShareSyncPage sharedCode={code} />,
+                    name: randomString,
+                    icon: <md.MdSync className="duration-0 w-8 h-8" />,
+                    title: t("importMods"),
+                    style: "",
+                    main: false,
+                  });
+                  return;
+                }
+              }
             }
           }
         }
@@ -600,25 +660,40 @@ function App() {
       }, 50);
     },
     changeContent: (component) => {
-      const newHistory = [...contentHistory];
+      const scrollPositionX = contentRef.current?.scrollLeft ?? 0;
+      const scrollPositionY = contentRef.current?.scrollTop ?? 0;
       console.log(component);
-      newHistory.push({
-        page: component,
-        scrollPositionX: 0,
-        scrollPositionY: 0,
+      setContentHistory((previousHistory) => {
+        const newHistory =
+          previousHistory.length > 0
+            ? [...previousHistory]
+            : [
+                {
+                  page: currentContentRef.current,
+                  scrollPositionX,
+                  scrollPositionY,
+                },
+              ];
+        const previousEntryIndex = newHistory.length - 1;
+        newHistory[previousEntryIndex] = {
+          ...newHistory[previousEntryIndex],
+          scrollPositionX,
+          scrollPositionY,
+        };
+        newHistory.push({
+          page: component,
+          scrollPositionX: 0,
+          scrollPositionY: 0,
+        });
+        console.log(newHistory);
+        return newHistory;
       });
-      newHistory[newHistory.length - 2].scrollPositionX =
-        contentRef.current?.scrollLeft ?? 0;
-      newHistory[newHistory.length - 2].scrollPositionY =
-        contentRef.current?.scrollTop ?? 0;
-
-      setContentHistory(newHistory);
       contentRef.current?.scrollTo({
         top: 0,
         left: 0,
         behavior: "instant",
       });
-      console.log(newHistory);
+      currentContentRef.current = component;
       updateContentWithTransition(() => {
         setContent(component);
       });

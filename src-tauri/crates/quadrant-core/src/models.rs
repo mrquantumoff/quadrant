@@ -4,6 +4,24 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize, de::Error as DeError};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+
+static QUADRANT_VERSION: OnceLock<String> = OnceLock::new();
+
+pub fn set_quadrant_version(version: String) {
+    let _ = QUADRANT_VERSION.set(version);
+}
+
+pub fn quadrant_version() -> String {
+    QUADRANT_VERSION
+        .get()
+        .cloned()
+        .unwrap_or_else(|| env!("CARGO_PKG_VERSION").to_string())
+}
+
+fn default_mod_config_version() -> String {
+    "1".to_string()
+}
 
 /// Source provider for a mod or downloadable file.
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq)]
@@ -16,16 +34,64 @@ pub enum ModSource {
     Online,
 }
 
-/// Minimal persisted representation of an installed mod entry.
+/// Persisted representation of an installed mod entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstalledMod {
+    /// Human-readable mod name.
+    #[serde(default)]
+    pub name: String,
     /// Provider-specific mod identifier.
     pub id: String,
+    /// Aggregate download count from the upstream provider.
+    #[serde(default)]
+    pub download_count: i64,
+    /// Mod version label (e.g. "1.2.3").
+    #[serde(default)]
+    pub version: String,
+    /// Broad content type ("Mod", "ResourcePack", "ShaderPack", "Unknown").
+    #[serde(default)]
+    pub mod_type: String,
     /// Source provider of the mod.
     pub source: ModSource,
+    /// Provider slug used to build URLs.
+    #[serde(default)]
+    pub slug: String,
+    /// Preview image URLs exposed by the provider.
+    #[serde(default)]
+    pub thumbnail_urls: Vec<String>,
+    /// Human-readable description.
+    #[serde(default)]
+    pub description: String,
+    /// License label, if known.
+    #[serde(default)]
+    pub license: String,
+    /// Primary icon URL.
+    #[serde(default)]
+    pub mod_icon_url: String,
     /// URL of the installed file that was selected for this mod.
     pub download_url: String,
+}
+
+impl InstalledMod {
+    /// Creates an `InstalledMod` with only the required fields populated;
+    /// all optional fields default to empty/zero values.
+    pub fn minimal(id: String, source: ModSource, download_url: String) -> Self {
+        Self {
+            id,
+            source,
+            download_url,
+            name: String::new(),
+            download_count: 0,
+            version: String::new(),
+            mod_type: String::new(),
+            slug: String::new(),
+            thumbnail_urls: Vec::new(),
+            description: String::new(),
+            license: String::new(),
+            mod_icon_url: String::new(),
+        }
+    }
 }
 
 /// Supported mod loader families used throughout Quadrant.
@@ -90,6 +156,12 @@ impl std::fmt::Display for ModLoader {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct InstalledModpack {
+    /// Schema version of the mod config file.
+    #[serde(default = "default_mod_config_version")]
+    pub mod_config_version: String,
+    /// Quadrant version under which this file was last saved.
+    #[serde(default)]
+    pub quadrant_version: String,
     /// Human-readable modpack name.
     pub name: String,
     /// Minecraft version the modpack targets.
@@ -126,6 +198,8 @@ pub struct LocalModpack {
 impl From<LocalModpack> for InstalledModpack {
     fn from(modpack: LocalModpack) -> Self {
         Self {
+            mod_config_version: "2".to_string(),
+            quadrant_version: quadrant_version(),
             name: modpack.name,
             version: modpack.version,
             mod_loader: modpack.mod_loader,
