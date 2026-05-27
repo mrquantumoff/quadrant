@@ -3,8 +3,8 @@ name: Release
 on:
   push:
     tags:
-      - "v*-stable"
-      - "v*-preview"
+      - "v*-stable*"
+      - "v*-preview*"
       - "v*-standalone"
 
 # This workflow will trigger on each push to the `release` branch to create or update a GitHub release, build your app, and upload the artifacts to the release.
