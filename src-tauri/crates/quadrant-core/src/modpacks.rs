@@ -134,20 +134,23 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
         }
 
         if needs_rewrite {
-            if let Err(e) = std::fs::write(
+            match std::fs::write(
                 &modpack_config_v2,
                 serde_json::to_string_pretty(&modpack)?,
             ) {
-                log::error!(
-                    "Failed to write modConfigV2.json for modpack \"{}\": {}",
-                    name,
-                    e
-                );
+                Ok(()) => {
+                    if has_v1 && !has_v2 {
+                        let _ = std::fs::remove_file(&modpack_config_v1);
+                    }
+                }
+                Err(e) => {
+                    log::error!(
+                        "Failed to write modConfigV2.json for modpack \"{}\": {}",
+                        name,
+                        e
+                    );
+                }
             }
-        }
-
-        if has_v1 && !has_v2 {
-            let _ = std::fs::remove_file(&modpack_config_v1);
         }
 
         let v2_file_count = if modpack_config_v2.exists() { 1 } else { 0 };
@@ -647,20 +650,11 @@ mod tests {
         register_mod(
             &mc_folder,
             &listed,
-            InstalledMod {
-                id: "mod-1".to_string(),
-                source: ModSource::Modrinth,
-                download_url: "https://example.invalid/mod.jar".to_string(),
-                name: String::new(),
-                download_count: 0,
-                version: String::new(),
-                mod_type: String::new(),
-                slug: String::new(),
-                thumbnail_urls: Vec::new(),
-                description: String::new(),
-                license: String::new(),
-                mod_icon_url: String::new(),
-            },
+            InstalledMod::minimal(
+                "mod-1".to_string(),
+                ModSource::Modrinth,
+                "https://example.invalid/mod.jar".to_string(),
+            ),
             "alpha",
         )
         .await

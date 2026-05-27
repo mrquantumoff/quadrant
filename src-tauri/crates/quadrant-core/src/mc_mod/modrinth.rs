@@ -387,20 +387,11 @@ pub async fn identify_modpack_modrinth(
             None => continue,
         };
         mods.push(IdentifiedMod {
-            installed_mod: InstalledMod {
-                download_url: file.url.clone(),
-                id: identifier.project_id,
-                source: ModSource::Modrinth,
-                name: String::new(),
-                download_count: 0,
-                version: String::new(),
-                mod_type: String::new(),
-                slug: String::new(),
-                thumbnail_urls: Vec::new(),
-                description: String::new(),
-                license: String::new(),
-                mod_icon_url: String::new(),
-            },
+            installed_mod: InstalledMod::minimal(
+                identifier.project_id,
+                ModSource::Modrinth,
+                file.url.clone(),
+            ),
             file_name: original_file_name,
         });
     }

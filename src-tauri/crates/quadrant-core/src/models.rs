@@ -73,6 +73,27 @@ pub struct InstalledMod {
     pub download_url: String,
 }
 
+impl InstalledMod {
+    /// Creates an `InstalledMod` with only the required fields populated;
+    /// all optional fields default to empty/zero values.
+    pub fn minimal(id: String, source: ModSource, download_url: String) -> Self {
+        Self {
+            id,
+            source,
+            download_url,
+            name: String::new(),
+            download_count: 0,
+            version: String::new(),
+            mod_type: String::new(),
+            slug: String::new(),
+            thumbnail_urls: Vec::new(),
+            description: String::new(),
+            license: String::new(),
+            mod_icon_url: String::new(),
+        }
+    }
+}
+
 /// Supported mod loader families used throughout Quadrant.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ModLoader {

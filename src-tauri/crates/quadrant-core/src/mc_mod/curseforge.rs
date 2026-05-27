@@ -499,20 +499,11 @@ pub async fn identify_modpack_curseforge(
             .map(|hash_info| hash_info.2.clone())
             .unwrap();
         mods.push(IdentifiedMod {
-            installed_mod: InstalledMod {
-                download_url: file.download_url,
-                id: file.mod_id.to_string(),
-                source: ModSource::CurseForge,
-                name: String::new(),
-                download_count: 0,
-                version: String::new(),
-                mod_type: String::new(),
-                slug: String::new(),
-                thumbnail_urls: Vec::new(),
-                description: String::new(),
-                license: String::new(),
-                mod_icon_url: String::new(),
-            },
+            installed_mod: InstalledMod::minimal(
+                file.mod_id.to_string(),
+                ModSource::CurseForge,
+                file.download_url,
+            ),
             file_name: original_file,
         });
     }

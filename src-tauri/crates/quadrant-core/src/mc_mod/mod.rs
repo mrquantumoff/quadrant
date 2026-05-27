@@ -369,7 +369,7 @@ pub fn get_user_url(username: String, source: ModSource) -> String {
 /// Fetches full mod metadata from the upstream provider to enrich an `InstalledMod`
 /// that only has basic fields populated.
 pub async fn enrich_installed_mod(mod_: InstalledMod) -> Result<InstalledMod> {
-    if !mod_.name.is_empty() || mod_.source == ModSource::Online {
+    if !mod_.name.is_empty() {
         return Ok(mod_);
     }
     let args = GetModArgs {
@@ -474,37 +474,19 @@ pub async fn install_mod(
         progress: 50,
     }))?;
 
-    let mod_to_install = enrich_installed_mod(InstalledMod {
-        id: id.clone(),
-        source: source.clone(),
-        download_url: download_path.1.clone(),
-        name: String::new(),
-        download_count: 0,
-        version: String::new(),
-        mod_type: String::new(),
-        slug: String::new(),
-        thumbnail_urls: Vec::new(),
-        description: String::new(),
-        license: String::new(),
-        mod_icon_url: String::new(),
-    })
+    let mod_to_install = enrich_installed_mod(InstalledMod::minimal(
+        id.clone(),
+        source.clone(),
+        download_path.1.clone(),
+    ))
     .await
     .unwrap_or_else(|e| {
         log::warn!("Failed to enrich mod {id} on install: {}", e);
-        InstalledMod {
-            id: id.clone(),
+        InstalledMod::minimal(
+            id.clone(),
             source,
-            download_url: download_path.1.clone(),
-            name: String::new(),
-            download_count: 0,
-            version: String::new(),
-            mod_type: String::new(),
-            slug: String::new(),
-            thumbnail_urls: Vec::new(),
-            description: String::new(),
-            license: String::new(),
-            mod_icon_url: String::new(),
-        }
+            download_path.1.clone(),
+        )
     });
 
     let updated_modpack = install_local_file(
@@ -648,37 +630,19 @@ pub async fn install_remote_file(
     id: String,
 ) -> Result<Option<LocalModpack>> {
     let downloaded_file = get_file(file, id.clone(), event_sink).await?;
-    let mod_to_install = enrich_installed_mod(InstalledMod {
-        id: id.clone(),
-        source: source.clone(),
-        download_url: downloaded_file.1.clone(),
-        name: String::new(),
-        download_count: 0,
-        version: String::new(),
-        mod_type: String::new(),
-        slug: String::new(),
-        thumbnail_urls: Vec::new(),
-        description: String::new(),
-        license: String::new(),
-        mod_icon_url: String::new(),
-    })
+    let mod_to_install = enrich_installed_mod(InstalledMod::minimal(
+        id.clone(),
+        source.clone(),
+        downloaded_file.1.clone(),
+    ))
     .await
     .unwrap_or_else(|e| {
         log::warn!("Failed to enrich mod {id} on remote install: {}", e);
-        InstalledMod {
-            id: id.clone(),
+        InstalledMod::minimal(
+            id.clone(),
             source,
-            download_url: downloaded_file.1.clone(),
-            name: String::new(),
-            download_count: 0,
-            version: String::new(),
-            mod_type: String::new(),
-            slug: String::new(),
-            thumbnail_urls: Vec::new(),
-            description: String::new(),
-            license: String::new(),
-            mod_icon_url: String::new(),
-        }
+            downloaded_file.1.clone(),
+        )
     });
     install_local_file(
         mc_folder,
