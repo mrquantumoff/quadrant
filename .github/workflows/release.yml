@@ -218,7 +218,7 @@ jobs:
     name: Sync Flathub
     needs: publish-electron-windows-metadata
     if: endsWith(github.ref_name, '-stable') || endsWith(github.ref_name, '-flatpak')
-    uses: ./.github/workflows/flatpak.yml@next
+    uses: ./.github/workflows/flatpak.yml
     secrets: inherit
     with:
       tag: ${{ github.ref_name }}
