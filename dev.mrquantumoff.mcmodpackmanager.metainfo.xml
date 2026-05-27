@@ -48,12 +48,20 @@
 
   <releases>
 
+    <release date="2026-05-27" version="26.6.2">
+      <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
+      <description>
+        <p>Add a way to share your modpacks without needing to send a full .zip file or them having to download Quadrant. You can now click the share button and then just share the link with your friends.</p>
+      </description>
+    </release>
+
     <release date="2026-05-27" version="26.6.1">
       <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
       <description>
         <p>Add a way to share your modpacks without needing to send a full .zip file or them having to download Quadrant. You can now click the share button and then just share the link with your friends.</p>
       </description>
     </release>
+
 
     <release date="2026-05-25" version="26.6.0">
       <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
