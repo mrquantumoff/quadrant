@@ -7,9 +7,8 @@ import { clearAccountToken, getAccountInfo, openIn } from "../../../tools";
 import Button from "../../core/Button";
 import CircularProgress from "../../core/CircularProgress";
 import { useTranslation } from "react-i18next";
-import { MdOpenInBrowser, MdOutlineAccountCircle } from "react-icons/md";
+import { MdOpenInBrowser } from "react-icons/md";
 import { ContentContext } from "../../../intefaces";
-import FirstRegisterStep from "./RegisterPages/Step1";
 import {
   cancelOAuthServer,
   createDesktopStore,
@@ -81,7 +80,7 @@ export default function AccountPage() {
   if (accountInfo === undefined) {
     return (
       <div className="flex flex-1 h-full w-full items-center justify-center">
-        <div className="flex w-[75%] max-w-4xl flex-col items-center justify-center rounded-[2rem] bg-slate-800 px-6 py-10 text-center shadow-2xl">
+        <div className="flex w-[75%] max-w-4xl flex-col items-center justify-center rounded-4xl bg-slate-800 px-6 py-10 text-center shadow-2xl">
           <CircularProgress />
           <h1 className="mt-6 text-4xl font-extrabold">
             {t("loadingAccount")}
@@ -237,16 +236,7 @@ export default function AccountPage() {
             {t("signInWithOAuth")}
           </Button>
           <Button
-            onClick={async () => {
-              context.changeContent({
-                content: <FirstRegisterStep />,
-                icon: <MdOutlineAccountCircle />,
-                title: t("register"),
-                main: false,
-                name: t("register"),
-                style: "",
-              });
-            }}
+            onClick={() => openIn("https://mrquantumoff.dev/account/register")}
             className="bg-blue-500 hover:bg-blue-800 w-full mx-2"
           >
             {t("dontHaveAccount")}
