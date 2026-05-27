@@ -22,7 +22,6 @@ import {
 	invoke,
 	openDialog,
 	openExternal,
-	openPath,
 	platform,
 	requestCheckForUpdates as requestDesktopCheckForUpdates,
 	writeClipboardText,
@@ -244,8 +243,7 @@ export async function installMod(
 }
 
 export async function openModpacksFolder() {
-	const modpacksFolder = await invoke<string>("get_modpacks_folder");
-	await openPath(modpacksFolder);
+	await invoke("open_modpacks_folder");
 }
 
 export async function getAccountInfo(): Promise<AccountInfo> {
@@ -291,7 +289,9 @@ export async function shareModpack(modpack: string) {
 	const response = await invoke<{ code: string | number }>("share_modpack", {
 		modpackName: modpack,
 	});
-	await writeClipboardText(String(response.code));
+	await writeClipboardText(
+		`https://usequadrant.dev/modpack/${String(response.code)}`,
+	);
 }
 
 export async function shareModpackRaw(modpack: InstalledModpack) {
@@ -301,7 +301,9 @@ export async function shareModpackRaw(modpack: InstalledModpack) {
 			modConfig: modpack,
 		},
 	);
-	await writeClipboardText(String(response.code));
+	await writeClipboardText(
+		`https://usequadrant.dev/modpack/${String(response.code)}`,
+	);
 }
 
 export async function getQuadrantShareModpack(code: string) {

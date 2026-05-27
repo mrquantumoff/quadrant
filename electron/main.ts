@@ -310,6 +310,20 @@ function queueDeepLinks(urls: string[]): void {
 	}
 }
 
+async function openModpacksFolder(): Promise<void> {
+	const client = await createQuadrantHostClient();
+	const modpacksFolder = await client.invoke("get_modpacks_folder", null);
+	if (typeof modpacksFolder !== "string") {
+		throw new Error("The modpacks folder path is invalid");
+	}
+
+	await fsPromises.mkdir(modpacksFolder, { recursive: true });
+	const errorMessage = await shell.openPath(modpacksFolder);
+	if (errorMessage) {
+		throw new Error(errorMessage);
+	}
+}
+
 async function createQuadrantHostClient(): Promise<QuadrantClient> {
 	if (quadrantClient) {
 		return quadrantClient;
@@ -575,6 +589,11 @@ app.on("before-quit", async () => {
 ipcMain.handle(
 	"quadrant:invoke",
 	async (_event, payload: { command: string; payload?: unknown }) => {
+		if (payload.command === "open_modpacks_folder") {
+			await openModpacksFolder();
+			return null;
+		}
+
 		const client = await createQuadrantHostClient();
 		return client.invoke(payload.command, payload.payload ?? null);
 	},
