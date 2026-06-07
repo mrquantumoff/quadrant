@@ -30,7 +30,7 @@ jobs:
       - name: Install Linux desktop dependencies
         run: |
           sudo apt update
-          sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev libarchive-tools rpm
+          sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
 
       - name: Install frontend dependencies
         run: bun install
@@ -41,12 +41,6 @@ jobs:
 
       - name: Build shared renderer
         run: bun run build
-
-      - name: Build native addon
-        run: bun run build:napi
-
-      - name: Build Electron shell
-        run: bun run build:electron
 
       - name: Build Tauri shell
         run: bun tauri build --no-bundle

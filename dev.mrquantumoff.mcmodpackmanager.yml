@@ -1,15 +1,13 @@
 # @format
 
 # Example Flatpak Manifest
-# This repacks the published Electron AppImage into a Flatpak-friendly layout
-# and launches it through the Electron BaseApp + zypak wrapper.
+# This repacks the published Tauri Debian package into a Flatpak-friendly
+# layout.
 app-id: dev.mrquantumoff.mcmodpackmanager
 runtime: org.freedesktop.Platform
 runtime-version: "25.08"
 sdk: org.freedesktop.Sdk
-base: org.electronjs.Electron2.BaseApp
-base-version: "25.08"
-command: run_quadrant
+command: quadrant-next
 
 finish-args:
   - --share=ipc
@@ -18,7 +16,6 @@ finish-args:
   - --share=network
   - --device=dri
   - --filesystem=home
-  - --env=ELECTRON_TRASH=gio
   - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
   - --talk-name=org.freedesktop.secrets
   - --talk-name=org.freedesktop.Notifications
@@ -32,129 +29,51 @@ modules:
       - type: file
         url: https://github.com/quadrantmc/quadrant/raw/v26.5.0-stable/dev.mrquantumoff.mcmodpackmanager.metainfo.xml
         sha256: 0000000000000000000000000000000000000000000000000000000000000000
-      # The release workflow replaces these placeholder hashes when Electron
-      # AppImages are available for a stable tag.
+      # The release workflow replaces these placeholder hashes when Tauri
+      # Debian packages are available for a stable tag.
       - type: file
-        url: https://github.com/quadrantmc/quadrant/releases/download/v26.5.0-stable/Quadrant-26.5.0-stable-linux-x86_64-electron.AppImage
+        url: https://github.com/quadrantmc/quadrant/releases/download/v26.5.0-stable/Quadrant_26.5.0-stable_amd64.deb
         sha256: 0000000000000000000000000000000000000000000000000000000000000000
         only-arches: [x86_64]
       - type: file
-        url: https://github.com/quadrantmc/quadrant/releases/download/v26.5.0-stable/Quadrant-26.5.0-stable-linux-arm64-electron.AppImage
+        url: https://github.com/quadrantmc/quadrant/releases/download/v26.5.0-stable/Quadrant_26.5.0-stable_arm64.deb
         sha256: 0000000000000000000000000000000000000000000000000000000000000000
         only-arches: [aarch64]
 
     build-commands:
       - |
         set -eu
-        appimage="$(echo Quadrant-*-linux-*-electron.AppImage)"
-        chmod +x "$appimage"
-        ./"$appimage" --appimage-extract
+        deb="$(echo Quadrant_*.deb)"
+        bsdtar -xf "$deb"
+        data_archive="$(echo data.tar.*)"
+        bsdtar -xf "$data_archive"
       - |
         set -eu
-        desktop_file="$(find squashfs-root -name '*.desktop' | head -n 1)"
+        install -dm755 /app
+        cp -a usr/. /app/
+      - |
+        set -eu
+        desktop_file="$(find /app/share/applications -name '*.desktop' | head -n 1)"
         if [ -z "$desktop_file" ]; then
-          echo "Could not find a desktop file in the extracted AppImage." >&2
+          echo "Could not find a desktop file in the extracted Debian package." >&2
           exit 1
         fi
 
-        exec_name=""
-        for candidate in squashfs-root/usr/bin/*; do
-          if [ -f "$candidate" ] && [ -x "$candidate" ]; then
-            exec_name="$(basename "$candidate")"
-            break
-          fi
-        done
-
-        if [ -z "$exec_name" ]; then
-          exec_name="$(sed -n 's/^Exec=\([^[:space:]]*\).*/\1/p' "$desktop_file" | head -n 1)"
-        fi
-
-        if [ -z "$exec_name" ]; then
-          echo "Could not determine the Electron executable name." >&2
-          exit 1
-        fi
-
-        find_electron_binary() {
-          for candidate in "$@"; do
-            [ -f "$candidate" ] || continue
-            [ -x "$candidate" ] || continue
-
-            case "$(basename "$candidate")" in
-              AppRun|chrome-sandbox|chrome_crashpad_handler|*.so)
-                continue
-                ;;
-            esac
-
-            if file "$candidate" | grep -q 'ELF'; then
-              printf '%s\n' "$candidate"
-              return 0
-            fi
-          done
-
-          return 1
-        }
-
-        app_exec_source="$(
-          find_electron_binary \
-            "squashfs-root/${exec_name}" \
-            squashfs-root/quadrant-next \
-            squashfs-root/Quadrant \
-            "squashfs-root/usr/bin/${exec_name}" \
-            squashfs-root/* \
-            squashfs-root/usr/bin/* || true
-        )"
-
-        if [ -z "$app_exec_source" ]; then
-          echo "Could not find the Electron ELF binary in the extracted AppImage." >&2
-          exit 1
-        fi
-
-        app_exec_path="/app/lib/quadrant/${app_exec_source#squashfs-root/}"
-
-        install -dm755 /app/lib/quadrant /app/bin
-        cp -a squashfs-root/. /app/lib/quadrant/
-
-        asar_file="$(find /app/lib/quadrant -path '*/resources/app.asar' | head -n 1)"
-        if [ -n "$asar_file" ]; then
-          patch-desktop-filename "$asar_file"
-        fi
-
-        cat > /app/bin/run_quadrant <<EOF
-        #!/bin/sh
-        set -eu
-        export TMPDIR="\${XDG_RUNTIME_DIR}/app/\${FLATPAK_ID}"
-        APP_EXEC="${app_exec_path}"
-        if [ ! -x "\$APP_EXEC" ]; then
-          echo "Quadrant executable missing: \$APP_EXEC" >&2
-          exit 1
-        fi
-        exec zypak-wrapper "\$APP_EXEC" --ozone-platform-hint=auto "\$@"
-        EOF
-        chmod 0755 /app/bin/run_quadrant
-      - |
-        set -eu
-        desktop_file="$(find /app/lib/quadrant -name '*.desktop' | head -n 1)"
         desktop-file-edit \
-          --set-key=Exec --set-value="run_quadrant %u" \
+          --set-key=Exec --set-value="quadrant-next %u" \
           --set-key=Icon --set-value=dev.mrquantumoff.mcmodpackmanager \
           "$desktop_file"
         install -Dm644 "$desktop_file" /app/share/applications/dev.mrquantumoff.mcmodpackmanager.desktop
       - |
         set -eu
-        icons="$(find /app/lib/quadrant \( -path '*/icons/hicolor/*/apps/*.png' -o -path '*/icons/hicolor/*/apps/*.svg' \) | sort)"
-        if [ -n "$icons" ]; then
-          printf '%s\n' "$icons" | while IFS= read -r icon; do
-            size="$(basename "$(dirname "$(dirname "$icon")")")"
-            ext="${icon##*.}"
-            install -Dm644 "$icon" "/app/share/icons/hicolor/${size}/apps/dev.mrquantumoff.mcmodpackmanager.${ext}"
-          done
-        else
-          fallback_icon="$(find /app/lib/quadrant -maxdepth 1 -type f \( -name '*.png' -o -name '*.svg' \) | head -n 1)"
-          if [ -z "$fallback_icon" ]; then
-            echo "Could not find an icon in the extracted AppImage." >&2
-            exit 1
-          fi
-          ext="${fallback_icon##*.}"
-          install -Dm644 "$fallback_icon" "/app/share/icons/hicolor/512x512/apps/dev.mrquantumoff.mcmodpackmanager.${ext}"
+        icons="$(find /app/share/icons/hicolor \( -path '*/apps/*.png' -o -path '*/apps/*.svg' \) | sort)"
+        if [ -z "$icons" ]; then
+          echo "Could not find app icons in the extracted Debian package." >&2
+          exit 1
         fi
+        printf '%s\n' "$icons" | while IFS= read -r icon; do
+          size="$(basename "$(dirname "$(dirname "$icon")")")"
+          ext="${icon##*.}"
+          install -Dm644 "$icon" "/app/share/icons/hicolor/${size}/apps/dev.mrquantumoff.mcmodpackmanager.${ext}"
+        done
       - install -Dm644 dev.mrquantumoff.mcmodpackmanager.metainfo.xml /app/share/metainfo/dev.mrquantumoff.mcmodpackmanager.metainfo.xml

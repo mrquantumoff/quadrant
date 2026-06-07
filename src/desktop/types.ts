@@ -113,12 +113,6 @@ export interface DesktopWindowProgressState {
   status?: ProgressBarStatusValue;
 }
 
-export interface DesktopStoreChangeEvent {
-  storeName: string;
-  key: string;
-  value: unknown;
-}
-
 export interface DesktopBackendEventEnvelope<T = unknown> {
   event: string;
   payload: T;

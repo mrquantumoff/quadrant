@@ -12,7 +12,7 @@ async function withRuntime<T>(
   callback: (runtime: RuntimeAdapter) => Promise<T>,
 ): Promise<T> {
   // Runtime detection is lazy so browser-based tooling and tests do not have
-  // to eagerly load Tauri or Electron modules.
+  // to eagerly load Tauri modules.
   const runtime = await getRuntimeAdapter();
   return callback(runtime);
 }

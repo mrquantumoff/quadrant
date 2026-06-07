@@ -52,7 +52,6 @@ Structure:
 
 Examples:
 
-- Electron plus local Rust service
 - browser UI plus local HTTP or IPC service
 - mobile or web shell plus background Rust process
 
