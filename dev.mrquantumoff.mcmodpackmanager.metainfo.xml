@@ -48,6 +48,13 @@
 
   <releases>
 
+    <release date="2026-06-27" version="26.7.0">
+      <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
+      <description>
+        <p>Add new mod loaders from Modrinth</p>
+      </description>
+    </release>
+
     <release date="2026-05-27" version="26.6.2">
       <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
       <description>
