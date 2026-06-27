@@ -33,7 +33,7 @@ export default function ModpackView(modpack: LocalModpack) {
     downloadCount: 0,
     id: "-",
     modIconUrl:
-      "https://git.mrquantumoff.dev/quadrant/quadrant/raw/branch/next/public/logo.svg",
+      "https://github.com/QuadrantMC/quadrant/raw/next/public/logo.svg",
     downloadable: false,
     name: "-",
     source: ModSource.Online,

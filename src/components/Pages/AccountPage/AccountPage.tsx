@@ -248,7 +248,7 @@ export default function AccountPage() {
           className="bg-slate-700 hover:bg-slate-800 w-full h-full flex flex-row items-center justify-center text-lg"
           onClick={async () => {
             openIn(
-              "https://git.mrquantumoff.dev/quadrant/quadrant/src/branch/next/PRIVACY_POLICY.md",
+              "https://github.com/QuadrantMC/quadrant/blob/next/PRIVACY_POLICY.md",
             );
           }}
         >

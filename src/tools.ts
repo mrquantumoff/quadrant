@@ -37,7 +37,7 @@ export async function applyModpack(name: string): Promise<void> {
 		const os = await platform();
 		if (os === "windows") {
 			await openIn(
-				"https://git.mrquantumoff.dev/quadrant/quadrant/wiki/Fixing-Windows-issues",
+				"https://github.com/QuadrantMC/quadrant/wiki/Fixing-Windows-issues",
 			);
 		}
 	}

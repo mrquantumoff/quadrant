@@ -27,16 +27,16 @@ modules:
     buildsystem: simple
     sources:
       - type: file
-        url: https://github.com/quadrantmc/quadrant/raw/v26.5.0-stable/dev.mrquantumoff.mcmodpackmanager.metainfo.xml
+        url: https://github.com/QuadrantMC/quadrant/raw/v26.5.0-stable/dev.mrquantumoff.mcmodpackmanager.metainfo.xml
         sha256: 0000000000000000000000000000000000000000000000000000000000000000
       # The release workflow replaces these placeholder hashes when Tauri
       # Debian packages are available for a stable tag.
       - type: file
-        url: https://github.com/quadrantmc/quadrant/releases/download/v26.5.0-stable/Quadrant_26.5.0-stable_amd64.deb
+        url: https://github.com/QuadrantMC/quadrant/releases/download/v26.5.0-stable/Quadrant_26.5.0-stable_amd64.deb
         sha256: 0000000000000000000000000000000000000000000000000000000000000000
         only-arches: [x86_64]
       - type: file
-        url: https://github.com/quadrantmc/quadrant/releases/download/v26.5.0-stable/Quadrant_26.5.0-stable_arm64.deb
+        url: https://github.com/QuadrantMC/quadrant/releases/download/v26.5.0-stable/Quadrant_26.5.0-stable_arm64.deb
         sha256: 0000000000000000000000000000000000000000000000000000000000000000
         only-arches: [aarch64]
 

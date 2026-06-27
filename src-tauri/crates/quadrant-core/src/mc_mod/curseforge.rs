@@ -142,7 +142,7 @@ pub async fn get_mod_curseforge(args: GetModArgs) -> Result<Mod> {
     let logo = res_data["logo"]["url"]
         .as_str()
         .unwrap_or(
-            "https://git.mrquantumoff.dev/quadrant/quadrant/raw/branch/next/public/logoNoBg.png",
+            "https://github.com/QuadrantMC/quadrant/raw/next/public/logoNoBg.png",
         )
         .to_string();
     Ok(Mod {

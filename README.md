@@ -26,7 +26,7 @@ Quadrant is a Tauri desktop app with a React renderer and Rust backend logic.
 
 #### OR
 
-[Grab the latest build manually (Linux/Windows on x86_64/aarch64)](https://github.com/quadrantmc/quadrant/releases/latest)
+[Grab the latest build manually (Linux/Windows on x86_64/aarch64)](https://github.com/QuadrantMC/quadrant/releases/latest)
 
 ### Working features
 
