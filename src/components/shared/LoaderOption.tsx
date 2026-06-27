@@ -1,60 +1,40 @@
+/** @format */
+
 import { ModLoader } from "../../intefaces";
+import {
+  getModLoaderOptions,
+  ModLoaderProvider,
+} from "../../modLoaders";
 
 export interface ILoaderOptionsProps {
   loader: ModLoader | string;
+  providers?: ModLoaderProvider[];
 }
 
-export default function LoaderOptions({ loader }: ILoaderOptionsProps) {
+export default function LoaderOptions({
+  loader,
+  providers,
+}: ILoaderOptionsProps) {
   return (
     <>
       <option
         value={ModLoader.Unknown}
-        // defaultChecked={ModLoader.Forge == loader}
+        defaultChecked={ModLoader.Unknown === loader}
         className="rounded-2xl font-semibold"
         key={ModLoader.Unknown}
       >
         -
       </option>
-      <option
-        value={ModLoader.Forge}
-        // defaultChecked={ModLoader.Forge == loader}
-        className="rounded-2xl font-semibold"
-        key={ModLoader.Forge}
-      >
-        Forge
-      </option>
-      <option
-        value={ModLoader.Fabric}
-        defaultChecked={ModLoader.Fabric == loader}
-        className="rounded-2xl font-semibold"
-        key={ModLoader.Fabric}
-      >
-        Fabric
-      </option>
-      <option
-        value={ModLoader.NeoForge}
-        defaultChecked={ModLoader.NeoForge == loader}
-        className="rounded-2xl font-semibold"
-        key={ModLoader.NeoForge}
-      >
-        NeoForge
-      </option>
-      <option
-        value={ModLoader.Quilt}
-        defaultChecked={ModLoader.Quilt == loader}
-        className="rounded-2xl font-semibold"
-        key={ModLoader.Quilt}
-      >
-        Quilt
-      </option>
-      <option
-        value={ModLoader.Rift}
-        defaultChecked={ModLoader.Rift == loader}
-        className="rounded-2xl font-semibold"
-        key={ModLoader.Rift}
-      >
-        Rift
-      </option>
+      {getModLoaderOptions(providers).map((option) => (
+        <option
+          value={option.value}
+          defaultChecked={option.value === loader}
+          className="rounded-2xl font-semibold"
+          key={option.value}
+        >
+          {option.label}
+        </option>
+      ))}
     </>
   );
 }

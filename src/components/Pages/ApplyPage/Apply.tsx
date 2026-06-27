@@ -47,7 +47,11 @@ import {
 import LoaderOptions from "../../shared/LoaderOption";
 import { ContentContext } from "../../../intefaces";
 import ModpackView from "../../shared/Pages/ModpackView";
-import { joinPath, listen, watch } from "../../../desktop";
+import { createDesktopStore, joinPath, listen, watch } from "../../../desktop";
+import {
+  loaderProvidersFromSettings,
+  ModLoaderProvider,
+} from "../../../modLoaders";
 export default function ApplyPage() {
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
 
@@ -76,6 +80,9 @@ export default function ApplyPage() {
   const [originalModpackName, setOriginalModpackName] = useState("free");
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [loaderProviders, setLoaderProviders] = useState<ModLoaderProvider[]>(
+    loaderProvidersFromSettings(true, true),
+  );
   const context = useContext(ContentContext);
 
   // Get the modpacks for the first time and listen for changes to the Minecraft folder from the backend
@@ -84,12 +91,26 @@ export default function ApplyPage() {
     const cleanupFns: Array<() => void> = [];
 
     const effect = async () => {
-      const versions = await getVersions();
+      const configStore = createDesktopStore("config.json");
+      const [
+        versions,
+        availableModpacks,
+        curseForgeEnabled,
+        modrinthEnabled,
+      ] = await Promise.all([
+        getVersions(),
+        getModpacks(),
+        configStore.get<boolean>("curseforge"),
+        configStore.get<boolean>("modrinth"),
+      ]);
       if (isUnmounted) {
         return;
       }
-      setModpacks(await getModpacks());
+      setModpacks(availableModpacks);
       setVersions(versions);
+      setLoaderProviders(
+        loaderProvidersFromSettings(curseForgeEnabled, modrinthEnabled),
+      );
 
       setDefaultModpack({
         name: "",
@@ -538,32 +559,14 @@ export default function ApplyPage() {
                         const modpack: LocalModpack = JSON.parse(
                           JSON.stringify(modpackToUpdate),
                         );
-                        const loaderString = newValue.target.value;
-                        let loader = ModLoader.Unknown;
-                        if (loaderString.toLowerCase().includes("fabric")) {
-                          loader = ModLoader.Fabric;
-                        } else if (
-                          loaderString.toLowerCase().includes("neoforge")
-                        ) {
-                          loader = ModLoader.NeoForge;
-                        } else if (
-                          loaderString.toLowerCase().includes("forge")
-                        ) {
-                          loader = ModLoader.Forge;
-                        } else if (
-                          loaderString.toLowerCase().includes("rift")
-                        ) {
-                          loader = ModLoader.Rift;
-                        } else if (
-                          loaderString.toLowerCase().includes("quilt")
-                        ) {
-                          loader = ModLoader.Quilt;
-                        }
-                        modpack.modLoader = loader;
+                        modpack.modLoader = newValue.target.value as ModLoader;
                         setModpackToUpdate(modpack);
                       }}
                     >
-                      <LoaderOptions loader={modpackToUpdate.modLoader} />
+                      <LoaderOptions
+                        loader={modpackToUpdate.modLoader}
+                        providers={loaderProviders}
+                      />
                     </Select>
                   </Field>
                   <Field>

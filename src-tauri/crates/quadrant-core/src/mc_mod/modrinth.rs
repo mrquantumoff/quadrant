@@ -41,12 +41,12 @@ pub async fn search_mods_modrinth(
     if args.filter_on {
         let last_used_version = settings.get_string("lastUsedVersion")?.unwrap_or_default();
         facets = format!("{},[\"versions:{}\"]", facets, last_used_version);
-        let last_used_api = settings
-            .get_string("lastUsedAPI")?
-            .unwrap_or_default()
-            .to_lowercase();
         if mod_type == ModType::Mod {
-            facets = format!("{},[\"categories:{}\"]", facets, last_used_api);
+            let last_used_loader =
+                ModLoader::from(settings.get_string("lastUsedAPI")?.unwrap_or_default());
+            if let Some(loader_slug) = last_used_loader.modrinth_slug() {
+                facets = format!("{},[\"categories:{}\"]", facets, loader_slug);
+            }
         }
     }
 
@@ -288,10 +288,9 @@ pub async fn get_latest_mod_version_modrinth(
 ) -> Result<Option<ModrinthFile>> {
     let mut query = vec![("game_versions", format!("[\"{}\"]", minecraft_version))];
     if mod_type == ModType::Mod {
-        query.push((
-            "loaders",
-            format!("[\"{}\"]", mod_loader.to_string().to_lowercase()),
-        ));
+        if let Some(loader_slug) = mod_loader.modrinth_slug() {
+            query.push(("loaders", format!("[\"{}\"]", loader_slug)));
+        }
     }
     let url = reqwest::Url::parse_with_params(
         format!("{}/v2/project/{}/version", modrinth_api_base(), id).as_str(),
@@ -331,7 +330,8 @@ pub async fn identify_modpack_modrinth(
 ) -> Result<Vec<IdentifiedMod>> {
     log::info!("Identifying Modrinth mods in modpack \"{modpack}\"");
     let modpack_folder = mc_folder.join("modpacks").join(&modpack);
-    let existing_modpack: Vec<LocalModpack> = get_modpacks(mc_folder, false).await?
+    let existing_modpack: Vec<LocalModpack> = get_modpacks(mc_folder, false)
+        .await?
         .into_iter()
         .filter(|existing| existing.name == modpack)
         .collect();
