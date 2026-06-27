@@ -30,6 +30,7 @@ import Mod from "../../shared/Mod";
 import LoaderOptions from "../../shared/LoaderOption";
 import LinearProgress from "../../core/LinearProgress";
 import { createDesktopStore, listen } from "../../../desktop";
+import { loaderProvidersForSource } from "../../../modLoaders";
 
 export interface IModInstallPageProps {
   mod: IMod;
@@ -105,6 +106,8 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       : mod.source === ModSource.Modrinth
         ? "Modrinth"
         : "?";
+  // Install flow targets one provider, so hide loaders that provider cannot resolve.
+  const loaderProviders = loaderProvidersForSource(mod.source);
 
   return (
     <motion.div
@@ -281,7 +284,10 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 value={loader}
                 autoComplete="off"
               >
-                <LoaderOptions loader={loader} />
+                <LoaderOptions
+                  loader={loader}
+                  providers={loaderProviders}
+                />
               </Select>
             </Field>
           ) : (
