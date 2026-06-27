@@ -4,12 +4,9 @@
 
 > An easy way to manage your modpacks, written in React and Rust.
 
-## Desktop Runtimes
+## Desktop Runtime
 
-Quadrant supports two desktop runtimes, they share the frontend and backend logic, but differ in technicalities:
-
-- `Tauri`: the original Quadrant experience.
-- `Electron`: the Node/Electron shell in `electron/`, backed by the Quadrant N-API bindings, should work better on Linux, because it replaces WebKit with CEF.
+Quadrant is a Tauri desktop app with a React renderer and Rust backend logic.
 
 ### Installation guide:
 

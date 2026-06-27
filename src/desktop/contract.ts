@@ -3,7 +3,6 @@ import type {
   DesktopCommand,
   DesktopDialogOptions,
   DesktopOAuthStartOptions,
-  DesktopStoreChangeEvent,
   DesktopWatchOptions,
   DesktopWindowProgressState,
 } from "./types";
@@ -31,8 +30,8 @@ export interface DesktopWindowAdapter {
 }
 
 export interface RuntimeAdapter {
-  // Every desktop shell implements this contract so the renderer can stay
-  // runtime-neutral and feature code never has to import Tauri/Electron APIs.
+  // Every desktop host implements this contract so the renderer can stay
+  // runtime-neutral and feature code never has to import Tauri APIs directly.
   createStore(name: string): DesktopStoreAdapter;
   invoke<T>(command: DesktopCommand, payload?: unknown): Promise<T>;
   listen<T = unknown>(
@@ -64,46 +63,4 @@ export interface RuntimeAdapter {
   onOAuthUrl(listener: (url: string) => void): Promise<UnlistenFn>;
   fetch(input: string, init?: RequestInit): Promise<Response>;
   isProductionBuild(): boolean;
-}
-
-export interface ElectronBridge {
-  // This is the preload-exposed surface. It intentionally mirrors the shared
-  // runtime contract closely so the renderer can switch shells without forks.
-  invoke<T>(command: DesktopCommand, payload?: unknown): Promise<T>;
-  addBackendEventListener(
-    listener: (event: DesktopBackendEventEnvelope) => void,
-  ): UnlistenFn;
-  storeGet<T>(storeName: string, key: string): Promise<T | undefined>;
-  storeSet(storeName: string, key: string, value: unknown): Promise<void>;
-  storeSave(storeName: string): Promise<void>;
-  addStoreChangeListener(
-    listener: (event: DesktopStoreChangeEvent) => void,
-  ): UnlistenFn;
-  watchPath(
-    targetPath: string,
-    options: DesktopWatchOptions | undefined,
-    listener: () => void,
-  ): Promise<UnlistenFn>;
-  joinPath(...segments: string[]): Promise<string>;
-  openDialog(options: DesktopDialogOptions): Promise<string | string[] | null>;
-  openExternal(url: string): Promise<void>;
-  openPath(targetPath: string): Promise<void>;
-  readClipboardText(): Promise<string>;
-  writeClipboardText(text: string): Promise<void>;
-  platform(): Promise<string>;
-  getAppVersion(): Promise<string>;
-  getRuntimeVersion(): Promise<string>;
-  requestCheckForUpdates(): Promise<void>;
-  installUpdate(): Promise<void>;
-  isAutoupdateEnabled(): Promise<boolean>;
-  windowMinimize(): Promise<void>;
-  windowHide(): Promise<void>;
-  windowSetEnabled(enabled: boolean): Promise<void>;
-  windowSetFocus(): Promise<void>;
-  windowUnminimize(): Promise<void>;
-  windowSetProgressBar(state: DesktopWindowProgressState): Promise<void>;
-  addOpenUrlListener(listener: (urls: string[]) => void): UnlistenFn;
-  startOAuthServer(options: DesktopOAuthStartOptions): Promise<number>;
-  cancelOAuthServer(port: number): Promise<void>;
-  addOAuthUrlListener(listener: (url: string) => void): UnlistenFn;
 }

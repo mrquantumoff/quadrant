@@ -63,6 +63,14 @@ export default defineConfig([
       },
     },
   },
+  {
+    files: ["src-tauri/crates/quadrant-napi/index.js"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
 
   // CSS
   {

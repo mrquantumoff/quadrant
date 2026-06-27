@@ -59,7 +59,6 @@ Best when the frontend is not written in Rust.
 
 Examples:
 
-- Electron plus local Rust service
 - browser UI plus local HTTP/IPC server
 - multiple frontends sharing one backend process
 

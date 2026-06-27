@@ -81,7 +81,7 @@
     <release date="2026-05-08" version="26.5.0">
       <url type="details">https://blog.mrquantumoff.dev</url>
       <description>
-        <p>Add Electron support as an alternative runtime</p>
+        <p>Improve desktop runtime integration and packaging</p>
         <p>QoL updates</p>
         <p>Dependency updates</p>
       </description>

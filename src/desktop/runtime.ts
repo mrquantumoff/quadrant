@@ -4,12 +4,6 @@ import { browserRuntime } from "./browser";
 let runtimePromise: Promise<RuntimeAdapter> | undefined;
 
 function resolveRuntime(): Promise<RuntimeAdapter> {
-  // Electron is checked first because its preload bridge is explicit and
-  // should win whenever the renderer is hosted inside the Electron shell.
-  if (window.quadrantElectron) {
-    return import("./electron").then((module) => module.electronRuntime);
-  }
-
   // Tauri injects globals into the webview, which makes it safe to lazy-load
   // the Tauri adapter only when we know we are inside that shell.
   if ("__TAURI_INTERNALS__" in window || "__TAURI__" in window) {
