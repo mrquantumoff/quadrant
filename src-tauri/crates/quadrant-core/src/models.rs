@@ -103,6 +103,22 @@ pub enum ModLoader {
     Fabric,
     #[serde(rename = "NeoForge")]
     NeoForge,
+    #[serde(rename = "Babric")]
+    Babric,
+    #[serde(rename = "BTA (Babric)")]
+    BtaBabric,
+    #[serde(rename = "Java Agent")]
+    JavaAgent,
+    #[serde(rename = "Legacy Fabric")]
+    LegacyFabric,
+    #[serde(rename = "LiteLoader")]
+    LiteLoader,
+    #[serde(rename = "Risugami's ModLoader")]
+    RisugamisModLoader,
+    #[serde(rename = "NilLoader")]
+    NilLoader,
+    #[serde(rename = "Ornithe")]
+    Ornithe,
     #[serde(rename = "Quilt")]
     Quilt,
     #[serde(rename = "Rift")]
@@ -113,10 +129,20 @@ pub enum ModLoader {
 
 impl From<String> for ModLoader {
     fn from(value: String) -> Self {
-        match value.to_lowercase().as_str() {
+        match value.trim().to_lowercase().as_str() {
             "forge" => Self::Forge,
             "fabric" => Self::Fabric,
             "neoforge" => Self::NeoForge,
+            "babric" => Self::Babric,
+            "bta (babric)" | "bta-babric" | "bta babric" => Self::BtaBabric,
+            "java agent" | "java-agent" => Self::JavaAgent,
+            "legacy fabric" | "legacy-fabric" => Self::LegacyFabric,
+            "liteloader" | "lite loader" | "lite-loader" => Self::LiteLoader,
+            "risugami's modloader" | "risugamis modloader" | "risugami modloader" | "modloader" => {
+                Self::RisugamisModLoader
+            }
+            "nilloader" | "nil loader" | "nil-loader" => Self::NilLoader,
+            "ornithe" => Self::Ornithe,
             "quilt" => Self::Quilt,
             "rift" => Self::Rift,
             _ => Self::Unknown,
@@ -125,16 +151,50 @@ impl From<String> for ModLoader {
 }
 
 impl ModLoader {
-    /// Returns the CurseForge mod loader identifier used by provider queries.
-    pub fn to_curseforge_id(&self) -> i64 {
+    /// Returns the Modrinth loader/category slug used by provider queries.
+    /// Display labels intentionally differ from API slugs for hyphenated loaders.
+    pub fn modrinth_slug(&self) -> Option<&'static str> {
         match self {
-            Self::Forge => 1,
-            Self::Fabric => 4,
-            Self::NeoForge => 6,
-            Self::Rift => 999,
-            Self::Quilt => 5,
-            Self::Unknown => 0,
+            Self::Forge => Some("forge"),
+            Self::Fabric => Some("fabric"),
+            Self::NeoForge => Some("neoforge"),
+            Self::Babric => Some("babric"),
+            Self::BtaBabric => Some("bta-babric"),
+            Self::JavaAgent => Some("java-agent"),
+            Self::LegacyFabric => Some("legacy-fabric"),
+            Self::LiteLoader => Some("liteloader"),
+            Self::RisugamisModLoader => Some("modloader"),
+            Self::NilLoader => Some("nilloader"),
+            Self::Ornithe => Some("ornithe"),
+            Self::Quilt => Some("quilt"),
+            Self::Rift => Some("rift"),
+            Self::Unknown => None,
         }
+    }
+
+    /// Returns the CurseForge mod loader identifier used by provider queries.
+    pub fn curseforge_id(&self) -> Option<i64> {
+        match self {
+            Self::Forge => Some(1),
+            Self::LiteLoader => Some(3),
+            Self::Fabric => Some(4),
+            Self::Quilt => Some(5),
+            Self::NeoForge => Some(6),
+            Self::Babric
+            | Self::BtaBabric
+            | Self::JavaAgent
+            | Self::LegacyFabric
+            | Self::RisugamisModLoader
+            | Self::NilLoader
+            | Self::Ornithe
+            | Self::Rift
+            | Self::Unknown => None,
+        }
+    }
+
+    /// Returns the CurseForge mod loader identifier used by legacy call sites.
+    pub fn to_curseforge_id(&self) -> i64 {
+        self.curseforge_id().unwrap_or(0)
     }
 }
 
@@ -144,6 +204,14 @@ impl std::fmt::Display for ModLoader {
             Self::Forge => "Forge",
             Self::Fabric => "Fabric",
             Self::NeoForge => "NeoForge",
+            Self::Babric => "Babric",
+            Self::BtaBabric => "BTA (Babric)",
+            Self::JavaAgent => "Java Agent",
+            Self::LegacyFabric => "Legacy Fabric",
+            Self::LiteLoader => "LiteLoader",
+            Self::RisugamisModLoader => "Risugami's ModLoader",
+            Self::NilLoader => "NilLoader",
+            Self::Ornithe => "Ornithe",
             Self::Quilt => "Quilt",
             Self::Rift => "Rift",
             Self::Unknown => "Unknown",

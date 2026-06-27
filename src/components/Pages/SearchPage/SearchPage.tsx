@@ -36,6 +36,11 @@ import {
 } from "@headlessui/react";
 import LoaderOptions from "../../shared/LoaderOption";
 import { createDesktopStore } from "../../../desktop";
+import {
+  loaderProvidersFromSettings,
+  loaderSupportsProvider,
+  ModLoaderProvider,
+} from "../../../modLoaders";
 
 export default function SearchPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,6 +54,9 @@ export default function SearchPage() {
   const [version, setVersion] = useState<string>("");
   const [modpack, setModpack] = useState<string>("");
   const [loader, setLoader] = useState<string>(ModLoader.Unknown);
+  const [loaderProviders, setLoaderProviders] = useState<ModLoaderProvider[]>(
+    loaderProvidersFromSettings(true, true),
+  );
   const configRef = useRef(createDesktopStore("config.json"));
   const configStore = configRef.current;
   const search = async (forceSearch: boolean = false) => {
@@ -66,12 +74,17 @@ export default function SearchPage() {
       configStore.get<boolean>("curseforge"),
       configStore.get<boolean>("modrinth"),
     ]);
+    setLoaderProviders(loaderProvidersFromSettings(curseforge, modrinth));
 
     console.log("Filter: " + filter);
 
     const requests: Promise<IMod[]>[] = [];
 
-    if (curseforge) {
+    // Filtered searches only query providers that can satisfy the selected loader.
+    if (
+      curseforge &&
+      (!filter || loaderSupportsProvider(loader, ModSource.CurseForge))
+    ) {
       const curseforgeArgs = {
         filterOn: filter,
         query: query,
@@ -90,7 +103,10 @@ export default function SearchPage() {
       );
     }
 
-    if (modrinth) {
+    if (
+      modrinth &&
+      (!filter || loaderSupportsProvider(loader, ModSource.Modrinth))
+    ) {
       const modrinthArgs = {
         filterOn: filter,
         query: query,
@@ -146,13 +162,23 @@ export default function SearchPage() {
     setAllResults(newMods);
   };
   const effect = async () => {
-    const [availableVersions, availableModpacks] = await Promise.all([
+    const [
+      availableVersions,
+      availableModpacks,
+      curseForgeEnabled,
+      modrinthEnabled,
+    ] = await Promise.all([
       getVersions(),
       getModpacks(),
+      configStore.get<boolean>("curseforge"),
+      configStore.get<boolean>("modrinth"),
     ]);
 
     setVersions(availableVersions);
     setModpacks(availableModpacks);
+    setLoaderProviders(
+      loaderProvidersFromSettings(curseForgeEnabled, modrinthEnabled),
+    );
 
     const [lastVersion, lastLoader, lastUsedModpack] = await Promise.all([
       configStore.get<string>("lastUsedVersion"),
@@ -334,7 +360,10 @@ export default function SearchPage() {
                                   value={loader}
                                   autoComplete="off"
                                 >
-                                  <LoaderOptions loader={loader} />
+                                  <LoaderOptions
+                                    loader={loader}
+                                    providers={loaderProviders}
+                                  />
                                 </Select>
                               </Field>
                               <Field>

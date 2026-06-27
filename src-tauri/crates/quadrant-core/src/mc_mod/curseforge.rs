@@ -263,11 +263,12 @@ pub async fn search_mods_curseforge(
     if args.filter_on && mod_type == ModType::Mod {
         let mod_loader_type =
             ModLoader::from(settings.get_string("lastUsedAPI")?.unwrap_or_default());
-        raw_uri = format!(
-            "{}&modLoaderType={}",
-            raw_uri,
-            mod_loader_type.to_curseforge_id()
-        );
+        if mod_loader_type != ModLoader::Unknown {
+            let Some(curseforge_id) = mod_loader_type.curseforge_id() else {
+                return Ok(Vec::new());
+            };
+            raw_uri = format!("{}&modLoaderType={}", raw_uri, curseforge_id);
+        }
     }
 
     let response_json: serde_json::Value = provider_cached_client()
@@ -341,11 +342,15 @@ pub async fn get_latest_mod_version_curseforge(
 ) -> Result<Option<ModFile>> {
     let mut url = format!("{}/v1/mods/{}/files", curseforge_api_base(), id);
     let mut query = vec![("gameVersion", minecraft_version)];
-    if mod_type == ModType::Mod {
-        query.push(("modLoaderType", mod_loader.to_curseforge_id().to_string()));
-    }
     if let Some(file_id) = file_id.clone() {
+        // Explicit file installs do not use modLoaderType, so preserve them even if
+        // the last selected UI loader is Modrinth-only.
         url = format!("{}/{}", url, file_id);
+    } else if mod_type == ModType::Mod && mod_loader != ModLoader::Unknown {
+        let Some(curseforge_id) = mod_loader.curseforge_id() else {
+            return Ok(None);
+        };
+        query.push(("modLoaderType", curseforge_id.to_string()));
     }
 
     let response = if file_id.is_some() {
@@ -414,7 +419,8 @@ pub async fn identify_modpack_curseforge(
 ) -> Result<Vec<IdentifiedMod>> {
     log::info!("Identifying CurseForge mods in modpack \"{modpack}\"");
     let modpack_folder = mc_folder.join("modpacks").join(&modpack);
-    let existing_modpack: Vec<LocalModpack> = get_modpacks(mc_folder, false).await?
+    let existing_modpack: Vec<LocalModpack> = get_modpacks(mc_folder, false)
+        .await?
         .into_iter()
         .filter(|existing| existing.name == modpack)
         .collect();
