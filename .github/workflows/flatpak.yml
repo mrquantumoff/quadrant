@@ -10,7 +10,7 @@ on:
         required: true
         type: string
       release_repo:
-        description: GitHub owner/repo that owns the release assets
+        description: Repository that owns the release assets
         required: false
         type: string
         default: quadrantmc/quadrant
@@ -24,7 +24,7 @@ on:
         required: true
         type: string
       release_repo:
-        description: GitHub owner/repo that owns the release assets
+        description: Repository that owns the release assets
         required: false
         type: string
         default: quadrantmc/quadrant
@@ -49,12 +49,6 @@ jobs:
         with:
           ref: ${{ env.TAG }}
 
-      - name: Checkout default branch for update scripts
-        uses: actions/checkout@v6
-        with:
-          ref: next
-          path: .scripts-next
-
       - name: Derive release version
         id: release_version
         run: |
@@ -67,34 +61,6 @@ jobs:
           fi
 
           echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      - name: Normalize release repository
-        id: release_repo
-        run: |
-          set -euo pipefail
-
-          repo="${RELEASE_REPO%/}"
-          repo="${repo%.git}"
-          case "$repo" in
-            https://github.com/*)
-              repo="${repo#https://github.com/}"
-              ;;
-            http://github.com/*)
-              repo="${repo#http://github.com/}"
-              ;;
-            git@github.com:*)
-              repo="${repo#git@github.com:}"
-              ;;
-          esac
-          repo="${repo%/}"
-
-          if ! printf '%s' "$repo" | grep -Eq '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'; then
-            echo "release_repo must be a GitHub owner/repo or github.com URL, got: $RELEASE_REPO" >&2
-            exit 1
-          fi
-
-          echo "RELEASE_REPO=$repo" >> "$GITHUB_ENV"
-          echo "repo=$repo" >> "$GITHUB_OUTPUT"
 
       - name: Download stable release assets
         env:
@@ -187,9 +153,7 @@ jobs:
             git checkout -B "$FLATHUB_BRANCH" upstream/master
           fi
 
-          cp "$GITHUB_WORKSPACE/$MANIFEST_PATH" "$MANIFEST_PATH"
-
-          python3 "$GITHUB_WORKSPACE/.scripts-next/scripts/update_flathub_manifest.py" \
+          python3 "$GITHUB_WORKSPACE/scripts/update_flathub_manifest.py" \
             --tag "$TAG" \
             --version "$VERSION" \
             --release-repo "$RELEASE_REPO" \
