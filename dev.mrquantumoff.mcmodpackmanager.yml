@@ -2,11 +2,12 @@
 
 # Example Flatpak Manifest
 # This repacks the published Tauri Debian package into a Flatpak-friendly
-# layout.
+# layout. Tauri uses WebKitGTK on Linux, so the Flatpak must use the GNOME
+# runtime instead of the lower-level freedesktop runtime.
 app-id: dev.mrquantumoff.mcmodpackmanager
-runtime: org.freedesktop.Platform
-runtime-version: "25.08"
-sdk: org.freedesktop.Sdk
+runtime: org.gnome.Platform
+runtime-version: "50"
+sdk: org.gnome.Sdk
 command: quadrant-next
 
 finish-args:

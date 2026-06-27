@@ -187,6 +187,8 @@ jobs:
             git checkout -B "$FLATHUB_BRANCH" upstream/master
           fi
 
+          cp "$GITHUB_WORKSPACE/$MANIFEST_PATH" "$MANIFEST_PATH"
+
           python3 "$GITHUB_WORKSPACE/.scripts-next/scripts/update_flathub_manifest.py" \
             --tag "$TAG" \
             --version "$VERSION" \
