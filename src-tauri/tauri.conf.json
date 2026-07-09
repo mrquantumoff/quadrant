@@ -71,7 +71,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "appimage", "deb", "rpm"],
+    "targets": ["nsis", "appimage", "deb", "rpm", "dmg", "app"],
     "linux": {
       "appimage": {
         "bundleMediaFramework": false
@@ -102,6 +102,7 @@
       }
     },
     "icon": [
+      "icons/logo.svg",
       "icons/quadrant_next.png",
       "icons/32x32.png",
       "icons/128x128.png",

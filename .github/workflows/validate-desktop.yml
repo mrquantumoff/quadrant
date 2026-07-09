@@ -44,3 +44,34 @@ jobs:
 
       - name: Build Tauri shell
         run: bun tauri build --no-bundle
+
+  validate-macos:
+    runs-on: macos-latest
+    env:
+      QUADRANT_API_KEY: dev
+      QUADRANT_OAUTH2_CLIENT_ID: dev
+      QUADRANT_OAUTH2_CLIENT_SECRET: dev
+      ETERNAL_API_TOKEN: dev
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Install frontend dependencies
+        run: bun install
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Build shared renderer
+        run: bun run build
+
+      - name: Build Apple-Silicon Tauri shell
+        run: bun tauri build --no-bundle --target aarch64-apple-darwin

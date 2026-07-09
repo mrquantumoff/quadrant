@@ -124,6 +124,10 @@ export async function getMinecraftFolder(
 	return await invoke<string>("get_minecraft_folder");
 }
 
+export async function getDefaultMinecraftFolder(): Promise<string> {
+	return await invoke<string>("get_default_minecraft_folder");
+}
+
 export async function initConfig() {
 	return await invoke("init_config");
 }

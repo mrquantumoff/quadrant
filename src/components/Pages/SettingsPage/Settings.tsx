@@ -3,6 +3,7 @@
 import { useTranslation } from "react-i18next";
 import Button from "../../core/Button";
 import {
+  getDefaultMinecraftFolder,
   getMinecraftFolder,
   openIn,
   requestCheckForUpdates,
@@ -180,7 +181,7 @@ export default function SettingsPage() {
           <Button
             className="bg-slate-800 w-full hover:bg-slate-900 mr-4"
             onClick={async () => {
-              const newFolder = await getMinecraftFolder(true);
+              const newFolder = await getDefaultMinecraftFolder();
               console.log("New Minecraft folder: " + newFolder);
               setMcFolder(newFolder);
               await box.set("mcFolder", newFolder);

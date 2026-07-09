@@ -22,11 +22,11 @@ Quadrant is a Tauri desktop app with a React renderer and Rust backend logic.
         <img width="200" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
 </a>
 
-##### The app is also packaged unofficially on [AUR](https://aur.archlinux.org/packages/quadrant-bin), but only Flathub, MS Store and Windows setup-based distributions are considered officialy supported, use other distribution methods at your risk.
+##### The app is also packaged unofficially on [AUR](https://aur.archlinux.org/packages/quadrant-bin), but only Flathub, MS Store, Windows setup-based distributions, and ad-hoc-signed Apple-Silicon macOS DMGs are officially supported. macOS users must approve the app in Privacy & Security before first launch. Use other distribution methods at your risk.
 
 #### OR
 
-[Grab the latest build manually (Linux/Windows on x86_64/aarch64)](https://github.com/QuadrantMC/quadrant/releases/latest)
+[Grab the latest build manually (Linux/Windows on x86_64/aarch64, or macOS on Apple Silicon)](https://github.com/QuadrantMC/quadrant/releases/latest)
 
 ### Working features
 

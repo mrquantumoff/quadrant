@@ -9,7 +9,7 @@
 ### The data that the Quadrant app uses.
 
 - This app modifies your minecraft folder
-- By default this app collects data on Windows. However, on GNU+Linux data is not being collected by default. You can let or prohibit the app to collect analytics and diagnostics from your PC by going to the settings and explicitly enabling or disabling optional data collection. Meanwhile my [website](https://mrquantumoff.dev) and my [API](https://api.usequadrant.dev) are proprietary, I can 100% guarantee that your personal info (e.g your hardware id or when did your device sent the diagnostics/analytics report) will not be sold to third parties.
+- By default this app collects data on Windows, macOS, and GNU+Linux. You can allow or prohibit the app from collecting analytics and diagnostics from your PC by changing the optional data collection setting. Meanwhile my [website](https://mrquantumoff.dev) and my [API](https://api.usequadrant.dev) are proprietary, I can 100% guarantee that your personal info (e.g. your hardware ID or when your device sends the diagnostics/analytics report) will not be sold to third parties.
 - Why does the app need "hardwareId" and "date" fields? In order to not duplicate the same machine 100 times across the database and in order to remove super old data in the future.
 
 ```rust

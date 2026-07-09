@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ## Quick start
-- **Package manager**: `bun@1.3.13` — never use npm, yarn, or pnpm. `bun install` in root.
+- **Package manager**: `bun` — never use npm, yarn, or pnpm. `bun install` in root.
 - All TS/JSX files start with `/** @format */`; keep this header when creating new files.
 
 ## Commands

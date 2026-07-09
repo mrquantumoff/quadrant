@@ -63,11 +63,15 @@ pub struct UpdateConfig {
     pub channel: String,
 }
 
-/// Resolves the base config directory used to derive the Minecraft folder.
+/// Resolves the base directory used to derive the Minecraft folder.
 pub fn get_config_dir() -> Result<Option<PathBuf>> {
-    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    #[cfg(target_os = "windows")]
     {
         Ok(dirs::config_dir())
+    }
+    #[cfg(target_os = "macos")]
+    {
+        Ok(dirs::data_dir())
     }
     #[cfg(target_os = "linux")]
     {
@@ -82,6 +86,9 @@ pub fn get_mc_folder() -> Result<Option<PathBuf>> {
         path = Some(PathBuf::from(".minecraft"));
     }
     let mut path = path.expect("mc folder path should always resolve");
+    #[cfg(target_os = "macos")]
+    path.push("minecraft");
+    #[cfg(not(target_os = "macos"))]
     path.push(".minecraft");
     Ok(Some(path))
 }
@@ -117,7 +124,11 @@ pub fn default_app_config() -> AppConfig {
             .flatten()
             .and_then(|path| path.to_str().map(ToOwned::to_owned))
             .unwrap_or_else(|| ".minecraft".to_string()),
-        collect_user_data: cfg!(any(target_os = "macos", target_os = "windows")),
+        collect_user_data: cfg!(any(
+            target_os = "macos",
+            target_os = "windows",
+            target_os = "linux"
+        )),
     }
 }
 
@@ -250,18 +261,23 @@ mod tests {
         );
         assert_eq!(store.get_i64("cacheKeepAlive").unwrap(), Some(30));
         assert!(store.get_string("hardwareId").unwrap().is_some());
-        assert!(
-            store
-                .get_string("mcFolder")
-                .unwrap()
-                .unwrap()
-                .ends_with(".minecraft")
-        );
+        let mc_folder = store.get_string("mcFolder").unwrap().unwrap();
+        #[cfg(target_os = "macos")]
+        assert!(mc_folder.ends_with("/Library/Application Support/minecraft"));
+        #[cfg(not(target_os = "macos"))]
+        assert!(mc_folder.ends_with(".minecraft"));
     }
 
     #[test]
     fn mc_folder_resolves_to_minecraft_path() {
         let mc_folder = get_mc_folder().unwrap().unwrap();
+        #[cfg(target_os = "macos")]
+        assert!(
+            mc_folder
+                .to_string_lossy()
+                .ends_with("/Library/Application Support/minecraft")
+        );
+        #[cfg(not(target_os = "macos"))]
         assert!(mc_folder.to_string_lossy().ends_with(".minecraft"));
     }
 }
