@@ -1,0 +1,2 @@
+/* design-sync shim: neutralizes `@import "tailwindcss"` in component CSS.
+   Real utilities are delivered via the compiled global stylesheet (cfg.cssEntry). */

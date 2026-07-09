@@ -1,0 +1,30 @@
+{
+  "projectId": "ff456d7a-1ec1-478b-b934-dd85a6b89139",
+  "shape": "package",
+  "pkg": "quadrant-next",
+  "globalName": "Quadrant",
+  "srcDir": "src",
+  "tsconfig": ".design-sync/tsconfig.sync.json",
+  "cssEntry": ".design-sync/quadrant-compiled.css",
+  "readmeHeader": ".design-sync/conventions.md",
+  "entry": ".design-sync/ds-entry.tsx",
+  "componentSrcMap": {
+    "Button": "src/components/core/Button.tsx",
+    "CircularProgress": "src/components/core/CircularProgress.tsx",
+    "LinearProgress": "src/components/core/LinearProgress.tsx",
+    "Mod": "src/components/shared/Mod.tsx",
+    "Notifications": "src/components/shared/Notifications.tsx",
+    "LoaderOption": "src/components/shared/LoaderOption.tsx",
+    "ModpackView": "src/components/shared/Pages/ModpackView.tsx",
+    "AccountPage": "src/components/Pages/AccountPage/AccountPage.tsx",
+    "ApplyPage": "src/components/Pages/ApplyPage/Apply.tsx",
+    "CurrentModpackPage": "src/components/Pages/CurrentModpackPage/CurrentModpackPage.tsx",
+    "ModInstallPage": "src/components/Pages/ModInstallPage/ModInstallPage.tsx",
+    "SearchPage": "src/components/Pages/SearchPage/SearchPage.tsx",
+    "SettingsPage": "src/components/Pages/SettingsPage/Settings.tsx",
+    "SharePage": "src/components/Pages/ShareSyncPage/SharePage.tsx",
+    "ShareSyncPage": "src/components/Pages/ShareSyncPage/ShareSyncPage.tsx",
+    "SyncPage": "src/components/Pages/ShareSyncPage/SyncPage.tsx",
+    "SyncedModpack": "src/components/Pages/ShareSyncPage/SyncedModpack/SyncedModpack.tsx"
+  }
+}

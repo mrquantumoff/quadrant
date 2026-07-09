@@ -39,3 +39,10 @@ src-tauri/versoview
 target/
 AppxContent
 AppxBundles
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+.design-sync/quadrant-compiled.css
+.design-sync/Inter-Font.ttf
