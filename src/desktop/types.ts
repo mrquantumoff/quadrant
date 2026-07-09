@@ -19,6 +19,7 @@ export const HOST_COMMANDS = [
   "set_modpack_sync_date",
   "get_news",
   "get_minecraft_folder",
+  "get_default_minecraft_folder",
   "get_modpacks_folder",
   "open_modpacks_folder",
   "init_config",

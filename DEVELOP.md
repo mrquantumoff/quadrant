@@ -8,3 +8,4 @@ You can develop the Quadrant Next client by:
 - Tauri development is available through `bun run dev:tauri`.
 - To build the shared renderer only, run `bun run build`.
 - To build the Tauri app without any of the proprietary features, run `bun tauri dev -- -- --no-default-features`.
+- To create an Apple-Silicon macOS DMG for local development without an Apple Developer certificate, run `bun run tauri:macos:adhoc:build`. This uses ad-hoc signing; it cannot be notarized and users must approve it in macOS Privacy & Security.

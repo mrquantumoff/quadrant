@@ -54,6 +54,8 @@ jobs:
             args: ""
           - platform: "windows-11-arm"
             args: ""
+          - platform: "macos-latest"
+            args: "--target aarch64-apple-darwin"
 
     runs-on: ${{ matrix.platform }}
     outputs:
@@ -67,6 +69,8 @@ jobs:
 
       - name: install Rust stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ contains(matrix.platform, 'macos') && 'aarch64-apple-darwin' || '' }}
 
       - name: install dependencies (ubuntu only)
         if: contains(matrix.platform, 'ubuntu')
@@ -91,6 +95,7 @@ jobs:
           QUADRANT_API_KEY: ${{ secrets.QUADRANT_API_KEY }}
           QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
           QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
+          APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && '-' || '' }}
           NO_STRIP: ${{ contains(matrix.platform, 'ubuntu') && 'true' }}
         with:
           releaseName: "Quadrant v__VERSION__"

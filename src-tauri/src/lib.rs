@@ -10,12 +10,12 @@ use tokio::sync::Mutex;
 
 #[cfg(feature = "updater")]
 use tauri::Url;
+#[cfg(any(target_os = "windows", target_os = "linux"))]
 use tauri_plugin_deep_link::DeepLinkExt;
 #[cfg(feature = "updater")]
 use tauri_plugin_store::StoreExt;
 #[cfg(feature = "updater")]
 use tauri_plugin_updater::UpdaterExt;
-
 
 #[cfg(feature = "quadrant_id")]
 pub mod account;
@@ -34,7 +34,10 @@ pub struct AppState {
     pub update_bytes: Vec<u8>,
 }
 
-fn build_quadrant_host(app: &tauri::AppHandle, api_base_url: Option<String>) -> Result<QuadrantHost, anyhow::Error> {
+fn build_quadrant_host(
+    app: &tauri::AppHandle,
+    api_base_url: Option<String>,
+) -> Result<QuadrantHost, anyhow::Error> {
     let data_dir = app
         .path()
         .app_data_dir()
@@ -47,8 +50,7 @@ fn build_quadrant_host(app: &tauri::AppHandle, api_base_url: Option<String>) -> 
         env!("QUADRANT_OAUTH2_CLIENT_SECRET"),
         env!("QUADRANT_API_KEY"),
     );
-    options.api_base_url = api_base_url
-        .or_else(|| std::env::var("QUADRANT_API_BASE_URL").ok());
+    options.api_base_url = api_base_url.or_else(|| std::env::var("QUADRANT_API_BASE_URL").ok());
     options.app_version = app.package_info().version.to_string();
     options.os_name = tauri_plugin_os::platform().to_string().to_uppercase();
     QuadrantHost::new(options)
@@ -139,7 +141,7 @@ pub async fn run() {
             let mut autoupdate = true;
 
             log::info!("Initializing deep links and autostart...");
-            #[cfg(desktop)]
+            #[cfg(any(target_os = "windows", target_os = "linux"))]
             {
                 match app.deep_link().register_all() {
                     Ok(_) => {}
@@ -147,7 +149,10 @@ pub async fn run() {
                         log::error!("Failed to register deep links: {}", e);
                     }
                 }
+            }
 
+            #[cfg(desktop)]
+            {
                 use tauri_plugin_autostart::MacosLauncher;
                 use tauri_plugin_autostart::ManagerExt;
 
@@ -279,6 +284,7 @@ pub async fn run() {
                     }
                     "show" => {
                         if let Some(window) = app.get_webview_window("main") {
+                            window.set_enabled(true).unwrap();
                             if window.is_visible().unwrap() {
                                 window.hide().unwrap();
                             } else {
@@ -331,6 +337,7 @@ pub async fn run() {
             mc_mod::identify_modpack,
             config::init_config,
             config::get_minecraft_folder,
+            config::get_default_minecraft_folder,
             other::open_link,
             modpacks::general::set_modpack_sync_date,
             request_check_for_updates,
