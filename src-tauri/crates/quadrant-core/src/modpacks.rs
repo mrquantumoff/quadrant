@@ -32,11 +32,16 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
     for entry in std::fs::read_dir(modpacks_folder)? {
         let entry = entry?;
         let path = entry.path();
-        let file_amount = std::fs::read_dir(&path)?.count();
 
+        // Skip non-directory entries before trying to read them as folders.
+        // macOS drops `.DS_Store` files into directories, and calling
+        // `read_dir` on a file errors out — which previously failed the whole
+        // modpack listing on macOS.
         if !path.is_dir() {
             continue;
         }
+
+        let file_amount = std::fs::read_dir(&path)?.count();
 
         let mut extra_files = 0;
         let modpack_config_v2 = path.join("modConfigV2.json");

@@ -917,7 +917,14 @@ function App() {
                         className="bg-slate-700 hover:bg-slate-600 ml-2"
                         onClick={async () => {
                           await currentWindow.hide();
-                          await currentWindow.setEnabled(false);
+                          // `setEnabled(false)` maps to the Windows-only
+                          // EnableWindow API; it keeps the hidden window from
+                          // being reactivated from the taskbar. On macOS it
+                          // only greys the window out and prevents it from
+                          // hiding into the tray, so limit it to Windows.
+                          if ((await platform()) === "windows") {
+                            await currentWindow.setEnabled(false);
+                          }
                         }}
                       >
                         <md.MdClose />

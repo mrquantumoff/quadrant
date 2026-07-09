@@ -35,6 +35,52 @@ import type {
   ProgressBarStatusValue,
 } from "./types";
 
+// Work around an upstream Tauri bug that surfaces on macOS (WKWebView). The
+// event plugin injects `__TAURI_EVENT_PLUGIN_INTERNALS__.unregisterListener`,
+// which dereferences `listeners[eventId].handlerId` with no null check (see
+// `unlisten_js_script` in tauri's `event/mod.rs`). When a listener entry is
+// already gone — a double unlisten, or a teardown that races the async
+// listener-registration eval — this throws
+// "undefined is not an object (evaluating 'listeners[eventId].handlerId')".
+// Because `_unlisten` calls it synchronously inside an async function, the
+// throw becomes an unhandled promise rejection instead of a catchable error,
+// so callers cannot guard it themselves. Patch the internal to be null-safe.
+function patchEventUnlisten(): void {
+  const internals = (
+    window as unknown as {
+      __TAURI_EVENT_PLUGIN_INTERNALS__?: {
+        unregisterListener?: (event: string, eventId: number) => void;
+        __quadrantPatched?: boolean;
+      };
+    }
+  ).__TAURI_EVENT_PLUGIN_INTERNALS__;
+
+  if (!internals || internals.__quadrantPatched) {
+    return;
+  }
+
+  const original = internals.unregisterListener;
+  if (typeof original !== "function") {
+    return;
+  }
+
+  internals.unregisterListener = (event: string, eventId: number) => {
+    try {
+      return original(event, eventId);
+    } catch (error) {
+      // The listener entry was already torn down; nothing left to unregister.
+      console.warn("Ignored stale Tauri event unlisten", {
+        event,
+        eventId,
+        error,
+      });
+    }
+  };
+  internals.__quadrantPatched = true;
+}
+
+patchEventUnlisten();
+
 function mapProgressStatus(
   status: ProgressBarStatusValue | undefined,
 ): TauriProgressBarStatus | undefined {
