@@ -279,7 +279,7 @@ export default function SearchPage() {
           >
             <Input
               placeholder={t("searchForMods")}
-              className="w-full input h-16 self-center mr-4 text-center"
+              className="w-full input h-11 self-center mr-4 text-center"
               onChange={(event) => {
                 const query = event.target.value;
                 setSearchQuery(query);
@@ -486,7 +486,7 @@ export default function SearchPage() {
               </div>
             ) : mods.length !== 0 ? (
               <div className="bg-slate-800 items-center align-middle justify-center rounded-4xl mr-4 ml-2 mb-12 ">
-                <div className="grid grid-cols-3 mb-0 2xl:grid-cols-4 gap-6 p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 mb-0 gap-4 p-4">
                   {mods.map((mod, index) => {
                     return (
                       <Mod
