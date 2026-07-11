@@ -59,7 +59,7 @@ export default function ShareSyncPage({ sharedCode }: ShareSyncPageProps) {
         console.error("Failed to resolve shared code:", e);
         contentContext.setSnackbar({
           message: t("unsupportedDownload"),
-          className: "bg-red-500 text-white",
+          className: "bg-red-700",
           timeout: 5000,
         });
       });
@@ -90,7 +90,7 @@ export default function ShareSyncPage({ sharedCode }: ShareSyncPageProps) {
                   {t("copiedToClipboard", { amount: usesLeft })}
                 </span>
               ),
-              className: "bg-emerald-700 rounded-4xl",
+              className: "bg-emerald-600 rounded-4xl",
               timeout: 5000,
             });
           },
@@ -161,14 +161,14 @@ export default function ShareSyncPage({ sharedCode }: ShareSyncPageProps) {
                   }}
                   whileHover={{ scale: 1.1, y: -5 }}
                   whileTap={{ scale: 0.9 }}
-                  className="flex flex-col w-max hover:bg-cyan-300 bg-slate-800 p-4 rounded-4xl mx-4 text-center data-selected:bg-cyan-300 data-selected:text-slate-900 hover:text-slate-900 data-selected:shadow-cyan-300 ease-linear duration-300"
+                  className="flex flex-col w-max hover:bg-blue-700 bg-slate-800 p-4 rounded-4xl mx-4 text-center data-selected:bg-blue-600 ease-linear duration-300"
                 >
                   {t("importMods")}
                 </MotionTab>
                 <MotionTab
                   whileHover={{ scale: 1.1, y: -5 }}
                   whileTap={{ scale: 0.9 }}
-                  className="flex flex-col w-max hover:bg-sky-300 bg-slate-800 p-4 rounded-4xl mx-4 text-center data-selected:bg-sky-300 data-selected:text-slate-900 hover:text-slate-900 ease-linear duration-300"
+                  className="flex flex-col w-max hover:bg-blue-700 bg-slate-800 p-4 rounded-4xl mx-4 text-center data-selected:bg-blue-600 ease-linear duration-300"
                 >
                   {t("Quadrant Sync")}
                 </MotionTab>

@@ -115,7 +115,7 @@ export default function SyncedModpackComponent({
     >
       <div className="mx-4">
         <h1 className="font-extrabold text-4xl">{modpack.name}</h1>
-        <h2 className="text-2xl text-slate-300 ">
+        <h2 className="text-2xl text-slate-400 ">
           {modpack.mod_loader} {modpack.minecraft_version} |{" "}
           {t("modCount", { amount: JSON.parse(modpack.mods).length })}
         </h2>
@@ -125,7 +125,7 @@ export default function SyncedModpackComponent({
         </div>
         <div className="flex items-center py-4 px-2 bg-slate-700 rounded-4xl my-4 h-16">
           <Button
-            className="flex items-center self-center bg-emerald-700 hover:bg-emerald-800"
+            className="flex items-center self-center bg-emerald-600 hover:bg-emerald-700"
             onClick={async () => {
               shareSyncContext.changeTab(0);
               shareSyncContext.setModpack(modConfigObject);
@@ -137,7 +137,7 @@ export default function SyncedModpackComponent({
             <MdDownload className="w-6 h-6 mx-2" />
           </Button>
           <Button
-            className="flex items-center self-center bg-blue-600 hover:bg-blue-800 ml-2 justify-center"
+            className="flex items-center self-center bg-blue-600 hover:bg-blue-700 ml-2 justify-center"
             onClick={async () => {
               try {
                 await shareModpackRaw(modConfigObject);
@@ -191,7 +191,7 @@ export default function SyncedModpackComponent({
                             owner.username !== accountInfo?.login;
                           const kickButton = isOwner ? (
                             <Button
-                              className="bg-red-700 hover:bg-red-800 text-white px-4 mr-4"
+                              className="bg-slate-700 hover:bg-red-700 px-4 mr-4"
                               onClick={async () => {
                                 await kickMember(
                                   modpack.modpack_id,
@@ -224,7 +224,7 @@ export default function SyncedModpackComponent({
                         })}
                         <div className="flex w-full items-center justify-center">
                           <Button
-                            className="bg-red-700 flex items-center justify-center  hover:bg-red-800 w-full mr-2 "
+                            className="bg-slate-800 flex items-center justify-center  hover:bg-red-700 w-full mr-2 "
                             onClick={async () => {
                               try {
                                 await invoke("delete_synced_modpack", {
@@ -237,8 +237,7 @@ export default function SyncedModpackComponent({
                                       <MdDelete className="w-6 h-6 mx-2" />
                                     </span>
                                   ),
-                                  className:
-                                    "bg-emerald-700 text-white font-bold",
+                                  className: "bg-emerald-600 font-bold",
                                   timeout: 5000,
                                 });
                                 syncContext.refreshSyncedModpacks();
@@ -256,7 +255,7 @@ export default function SyncedModpackComponent({
                             <MdDelete className="w-6 h-6 mx-2" />
                           </Button>
                           <Button
-                            className="bg-emerald-700 flex items-center justify-center hover:bg-emerald-800 w-full "
+                            className="bg-emerald-600 flex items-center justify-center hover:bg-emerald-700 w-full "
                             onClick={async () => {
                               setOpenInviteDialog(true);
                             }}
@@ -317,7 +316,7 @@ export default function SyncedModpackComponent({
                           </Field>
                           <div className="flex">
                             <Button
-                              className="bg-emerald-700 hover:bg-emerald-800 w-full "
+                              className="bg-emerald-600 hover:bg-emerald-700 w-full "
                               onClick={async () => {
                                 try {
                                   await inviteMember(
@@ -332,15 +331,13 @@ export default function SyncedModpackComponent({
                                         <MdCheck className="w-6 h-6 mx-2" />
                                       </span>
                                     ),
-                                    className:
-                                      "bg-emerald-700 text-white font-bold",
+                                    className: "bg-emerald-600 font-bold",
                                     timeout: 5000,
                                   });
                                   setOpenInviteDialog(false);
                                 } catch (e: any) {
                                   contentContext.setSnackbar({
-                                    className:
-                                      "bg-red-700 text-white font-bold",
+                                    className: "bg-red-700 font-bold",
                                     message: t(e),
                                     timeout: 5000,
                                   });
@@ -351,7 +348,7 @@ export default function SyncedModpackComponent({
                               {t("invite")}
                             </Button>
                             <Button
-                              className="ml-2 bg-slate-600 w-full hover:bg-slate-700"
+                              className="ml-2 bg-slate-700 w-full hover:bg-slate-600"
                               onClick={async () => {
                                 setOpenInviteDialog(false);
                                 setUserToInvite("");

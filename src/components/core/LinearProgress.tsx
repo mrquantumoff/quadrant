@@ -12,15 +12,15 @@ export default function LinearProgress({
     <>
       <div
         className={
-          className + " bg-slate-200 rounded-full dark:bg-slate-700 w-full "
+          className + " bg-slate-700 rounded-full w-full "
         }
       >
         <div
           className={
             " w-[" +
             percentage +
-            "%]  text-xs font-medium text-sky-100 text-center p-0.5 leading-none rounded-full " +
-            (percentage === 0 ? "bg-slate-800" : "bg-blue-800")
+            "%]  text-xs font-medium text-slate-50 text-center p-0.5 leading-none rounded-full " +
+            (percentage === 0 ? "bg-slate-800" : "bg-blue-600")
           }
         >
           {percentage}%

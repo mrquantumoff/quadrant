@@ -207,11 +207,11 @@ function Notifications({
 
   useEffect(() => {
     if (visibleNotifications.filter((n) => !n.read).length > 0) {
-      setAreNotificationsHighlighted("bg-red-600 hover:bg-red-500 ");
+      setAreNotificationsHighlighted("bg-red-700 hover:bg-red-600 ");
     } else if (news.filter((n) => n.new).length > 0) {
-      setAreNotificationsHighlighted("bg-indigo-700 hover:bg-indigo-600 ");
+      setAreNotificationsHighlighted("bg-blue-600 hover:bg-blue-700 ");
     } else {
-      setAreNotificationsHighlighted("bg-slate-700 hover:bg-slate-800 ");
+      setAreNotificationsHighlighted("bg-slate-700 hover:bg-slate-600 ");
     }
   }, [news, visibleNotifications]);
 
@@ -319,7 +319,7 @@ function Notifications({
                       let action: React.ReactElement | null = (
                         <>
                           <Button
-                            className="w-full bg-emerald-600 hover:bg-emerald-800 transition-colors ease-linear flex items-center justify-center"
+                            className="w-full bg-emerald-600 hover:bg-emerald-700 transition-colors ease-linear flex items-center justify-center"
                             onClick={async () => {
                               await readNotification(
                                 notification.notification_id,
@@ -350,7 +350,7 @@ function Notifications({
                           <>
                             <div className="w-full flex">
                               <Button
-                                className="bg-emerald-600 hover:bg-emerald-800 w-full flex items-center justify-center mr-2"
+                                className="bg-emerald-600 hover:bg-emerald-700 w-full flex items-center justify-center mr-2"
                                 onClick={async () => {
                                   await answerInvite(
                                     inviteId,
@@ -363,7 +363,7 @@ function Notifications({
                                 <MdCheck className="w-4 h-4 mx-2" />
                               </Button>
                               <Button
-                                className="bg-red-700 hover:bg-red-800 w-full flex items-center justify-center"
+                                className="bg-slate-800 hover:bg-red-700 w-full flex items-center justify-center"
                                 onClick={async () => {
                                   await answerInvite(
                                     inviteId,
@@ -418,7 +418,7 @@ function Notifications({
                               onClick={async () => {
                                 await openIn(article.link);
                               }}
-                              className="bg-blue-700 hover:bg-blue-800 transition-colors w-full flex items-center justify-center"
+                              className="bg-blue-600 hover:bg-blue-700 transition-colors w-full flex items-center justify-center"
                             >
                               {t("read")}
                               <MdOpenInBrowser className="w-4 h-4 mx-2" />

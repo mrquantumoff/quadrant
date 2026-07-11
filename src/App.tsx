@@ -124,7 +124,7 @@ function App() {
       title: t("settings"),
       name: "settings",
       icon: <md.MdSettings className="duration-0 w-8 h-8" />,
-      style: " hover:bg-gray-700 data-[selected=true]:bg-black/25 ",
+      style: " hover:bg-slate-400 data-[selected=true]:bg-slate-900 ",
       main: true,
     },
   ];
@@ -202,7 +202,7 @@ function App() {
               status: ProgressBarStatus.None,
             });
             contextFunctions.setSnackbar({
-              className: "bg-emerald-700 rounded-4xl",
+              className: "bg-emerald-600 rounded-4xl",
               message: (
                 <span className="flex">
                   <span>{t("export")}</span>
@@ -219,7 +219,7 @@ function App() {
                   <md.MdArchive className="w-6 h-6 mx-2" /> {progress}%
                 </span>
               ),
-              className: "bg-gray-700 rounded-4xl",
+              className: "bg-slate-700 rounded-4xl",
               timeout: 500000,
             });
           }
@@ -327,7 +327,7 @@ function App() {
               console.log("CurseForge action is not install");
               contextFunctions.setSnackbar({
                 message: t("unsupportedDownload"),
-                className: "bg-red-500 text-white",
+                className: "bg-red-700",
                 timeout: 5000,
               });
               return;
@@ -352,7 +352,7 @@ function App() {
             if (mod.modType === ModType.Unknown) {
               contextFunctions.setSnackbar({
                 message: t("unsupportedDownload"),
-                className: "bg-red-500 text-white",
+                className: "bg-red-700",
                 timeout: 5000,
               });
               return;
@@ -404,7 +404,7 @@ function App() {
               if (mod.modType === ModType.Unknown) {
                 contextFunctions.setSnackbar({
                   message: t("unsupportedDownload"),
-                  className: "bg-red-500 text-white",
+                  className: "bg-red-700",
                   timeout: 5000,
                 });
                 return;
@@ -425,7 +425,7 @@ function App() {
             console.log("Modrinth action is not supported");
             contextFunctions.setSnackbar({
               message: t("unsupportedDownload"),
-              className: "bg-red-500 text-white",
+              className: "bg-red-700",
               timeout: 5000,
             });
             return;
@@ -461,7 +461,7 @@ function App() {
               if (!modId) {
                 contextFunctions.setSnackbar({
                   message: t("unsupportedDownload"),
-                  className: "bg-red-500 text-white",
+                  className: "bg-red-700",
                   timeout: 5000,
                 });
                 return;
@@ -483,7 +483,7 @@ function App() {
               if (mod.modType === ModType.Unknown) {
                 contextFunctions.setSnackbar({
                   message: t("unsupportedDownload"),
-                  className: "bg-red-500 text-white",
+                  className: "bg-red-700",
                   timeout: 5000,
                 });
                 return;
@@ -507,7 +507,7 @@ function App() {
               if (!modId) {
                 contextFunctions.setSnackbar({
                   message: t("unsupportedDownload"),
-                  className: "bg-red-500 text-white",
+                  className: "bg-red-700",
                   timeout: 5000,
                 });
                 return;
@@ -529,7 +529,7 @@ function App() {
               if (mod.modType === ModType.Unknown) {
                 contextFunctions.setSnackbar({
                   message: t("unsupportedDownload"),
-                  className: "bg-red-500 text-white",
+                  className: "bg-red-700",
                   timeout: 5000,
                 });
                 return;
@@ -552,7 +552,7 @@ function App() {
               if (!code) {
                 contextFunctions.setSnackbar({
                   message: t("unsupportedDownload"),
-                  className: "bg-red-500 text-white",
+                  className: "bg-red-700",
                   timeout: 5000,
                 });
                 return;
@@ -811,7 +811,7 @@ function App() {
                         className={
                           "text-center items-center justify-center flex flex-col align-center w-full min-w-fit wrap-break-word relative min-h-fit transition-colors duration-200 ease-linear font-extrabold py-4 p-1 my-1 rounded-4xl " +
                           p.style +
-                          (page === p ? "bg-slate-600" : "bg-slate-800")
+                          (page === p ? "bg-slate-700" : "bg-slate-800")
                         }
                         key={i}
                         onClick={async () => {
@@ -878,7 +878,7 @@ function App() {
                         className={
                           (updateDownloadProgress !== 1
                             ? "bg-slate-700 hover:bg-slate-600 "
-                            : "bg-emerald-700 hover:bg-emerald-800") +
+                            : "bg-emerald-600 hover:bg-emerald-700") +
                           " mr-4 rounded-4xl p-2.5 px-6 "
                         }
                         onClick={async () => {

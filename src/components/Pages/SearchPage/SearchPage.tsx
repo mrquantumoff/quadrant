@@ -270,7 +270,7 @@ export default function SearchPage() {
               <Button
                 onClick={search}
                 animate
-                className="flex items-center my-2 justify-center hover:text-sky-950 self-center bg-sky-800 hover:bg-sky-400 h-min"
+                className="flex items-center my-2 justify-center self-center bg-blue-600 hover:bg-blue-700 h-min"
               >
                 <MdSearch className=""></MdSearch>
                 {t("search")}
@@ -283,7 +283,7 @@ export default function SearchPage() {
                         whileHover={{ y: -5, scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         className={
-                          "flex w-full items-center bg-slate-600 my-2 rounded-4xl focus:outline-none hover:bg-slate-700 font-bold p-2 self-start"
+                          "flex w-full items-center bg-slate-800 my-2 rounded-4xl focus:outline-none hover:bg-slate-700 font-bold p-2 self-start"
                         }
                       >
                         <MdFilterAlt />
@@ -420,7 +420,7 @@ export default function SearchPage() {
                                   whileHover={{ y: -5, scale: 1.1 }}
                                   whileTap={{ scale: 0.9 }}
                                   className={
-                                    "p-2 font-extrabold rounded-4xl mx-2 flex flex-1 h-full items-center bg-emerald-600 hover:bg-emerald-800 mt-8"
+                                    "p-2 font-extrabold rounded-4xl mx-2 flex flex-1 h-full items-center bg-emerald-600 hover:bg-emerald-700 mt-8"
                                   }
                                   onClick={() => {
                                     setFilter(true);
@@ -437,7 +437,7 @@ export default function SearchPage() {
                                   whileHover={{ y: -5, scale: 1.1 }}
                                   whileTap={{ scale: 0.9 }}
                                   className={
-                                    "p-2 font-extrabold rounded-4xl mx-2 flex flex-1 h-full items-center bg-slate-600 hover:bg-slate-800 mt-8"
+                                    "p-2 font-extrabold rounded-4xl mx-2 flex flex-1 h-full items-center bg-slate-800 hover:bg-slate-700 mt-8"
                                   }
                                 >
                                   <MdCancel className="w-6 h-6 mr-2 self-center" />
