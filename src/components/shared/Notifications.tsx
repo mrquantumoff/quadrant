@@ -68,7 +68,8 @@ function Notifications({
   setSnackbarHistory,
 }: NotificationsProps) {
   const { t } = useTranslation();
-  const config = createDesktopStore("config.json");
+  const configRef = useRef(createDesktopStore("config.json"));
+  const config = configRef.current;
   const [notifications, setNotifications] = useState<AccountNotification[]>([]);
   const [areNotificationsHighlighted, setAreNotificationsHighlighted] =
     useState("bg-slate-700 hover:bg-slate-600");
@@ -78,7 +79,19 @@ function Notifications({
   const [accountInfo, setAccountInfo] = useState<
     AccountInfo | null | undefined
   >(undefined);
+  const [notificationError, setNotificationError] = useState<string | null>(
+    null,
+  );
   const newsRef = useRef<HTMLDivElement | null>(null);
+  const runNotificationAction = async (action: () => Promise<unknown>) => {
+    setNotificationError(null);
+    try {
+      await action();
+    } catch (error) {
+      console.error("Notification action failed", error);
+      setNotificationError(String(error));
+    }
+  };
 
   useEffect(() => {
     let isUnmounted = false;
@@ -173,7 +186,7 @@ function Notifications({
         }
       }
     };
-  }, []);
+  }, [config]);
 
   const visibleNotifications = notifications.filter((notification) => {
     const detailedMessage = parseNotificationMessage(notification.message);
@@ -304,6 +317,11 @@ function Notifications({
                     })}
                   </div>
                   <div className="border-b-2 border-slate-700">
+                    {notificationError && (
+                      <div className="bg-red-700 rounded-4xl p-2 my-2">
+                        {notificationError}
+                      </div>
+                    )}
                     {visibleNotifications.map((notification) => {
                       const detailedMessage = parseNotificationMessage(
                         notification.message,
@@ -321,8 +339,8 @@ function Notifications({
                           <Button
                             className="w-full bg-emerald-600 hover:bg-emerald-700 transition-colors ease-linear flex items-center justify-center"
                             onClick={async () => {
-                              await readNotification(
-                                notification.notification_id,
+                              await runNotificationAction(() =>
+                                readNotification(notification.notification_id),
                               );
                             }}
                           >
@@ -352,10 +370,12 @@ function Notifications({
                               <Button
                                 className="bg-emerald-600 hover:bg-emerald-700 w-full flex items-center justify-center mr-2"
                                 onClick={async () => {
-                                  await answerInvite(
-                                    inviteId,
-                                    notification.notification_id,
-                                    true,
+                                  await runNotificationAction(() =>
+                                    answerInvite(
+                                      inviteId,
+                                      notification.notification_id,
+                                      true,
+                                    ),
                                   );
                                 }}
                               >
@@ -365,10 +385,12 @@ function Notifications({
                               <Button
                                 className="bg-slate-800 hover:bg-red-700 w-full flex items-center justify-center"
                                 onClick={async () => {
-                                  await answerInvite(
-                                    inviteId,
-                                    notification.notification_id,
-                                    false,
+                                  await runNotificationAction(() =>
+                                    answerInvite(
+                                      inviteId,
+                                      notification.notification_id,
+                                      false,
+                                    ),
                                   );
                                 }}
                               >
@@ -407,12 +429,14 @@ function Notifications({
                           className="bg-slate-900 rounded-4xl my-2  p-4 text-center flex flex-col items-center justify-center"
                         >
                           <h3 className="font-black">{article.title}</h3>
-                          <div
-                            className="font-normal"
-                            dangerouslySetInnerHTML={{
-                              __html: article.summary,
-                            }}
-                          />
+                          <div className="font-normal">
+                            {
+                              new DOMParser().parseFromString(
+                                article.summary,
+                                "text/html",
+                              ).body.textContent
+                            }
+                          </div>
                           <div className="bg-slate-800 w-full flex p-2 rounded-4xl">
                             <Button
                               onClick={async () => {

@@ -3,8 +3,12 @@
 use std::path::PathBuf;
 
 use chrono::prelude::*;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use sha1::{Digest, Sha1};
+use tokio::sync::Mutex;
+
+static CACHE_WRITE_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 /// Cache index entry describing a downloaded file in the shared cache.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -53,7 +57,9 @@ pub async fn init_cache() -> Result<(), anyhow::Error> {
 
         if is_old.num_days() >= 90 {
             log::info!("Removing stale cache entry: {}", index.file_name);
-            std::fs::remove_file(PathBuf::from(&index.file_name))?;
+            if file.exists() {
+                std::fs::remove_file(&file)?;
+            }
             file_conts.retain(|cont| cont.file_hash != index.file_hash);
         }
 
@@ -100,6 +106,7 @@ pub async fn add_cache_index(
     file_bytes: &[u8],
     file_hash: String,
 ) -> Result<PathBuf, anyhow::Error> {
+    let _guard = CACHE_WRITE_LOCK.lock().await;
     let cache_dir = dirs::cache_dir()
         .unwrap_or_default()
         .join("mrquantumoff.dev")
@@ -126,7 +133,17 @@ pub async fn add_cache_index(
         file_conts[index].last_used_date = Utc::now();
     } else {
         log::info!("Adding new cache entry: {file_name} (hash={file_hash})");
-        let new_file = cache_dir.join(file_name);
+        let safe_name = PathBuf::from(file_name)
+            .file_name()
+            .ok_or_else(|| anyhow::anyhow!("Invalid cache file name"))?
+            .to_string_lossy()
+            .to_string();
+        // Content-address the on-disk name so provider files with identical
+        // names cannot overwrite one another in the shared cache.
+        let new_file = cache_dir.join(format!(
+            "{}-{safe_name}",
+            &file_hash[..12.min(file_hash.len())]
+        ));
         std::fs::write(&new_file, file_bytes)?;
         file_conts.push(CacheIndex {
             last_used_date: Utc::now(),

@@ -1,6 +1,6 @@
 /** @format */
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { LocalModpack, MinecraftVersion, ModLoader } from "../../../intefaces";
 import {
   applyModpack,
@@ -80,6 +80,7 @@ export default function ApplyPage() {
   const [originalModpackName, setOriginalModpackName] = useState("free");
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const searchQueryRef = useRef("");
   const [loaderProviders, setLoaderProviders] = useState<ModLoaderProvider[]>(
     loaderProvidersFromSettings(true, true),
   );
@@ -92,17 +93,13 @@ export default function ApplyPage() {
 
     const effect = async () => {
       const configStore = createDesktopStore("config.json");
-      const [
-        versions,
-        availableModpacks,
-        curseForgeEnabled,
-        modrinthEnabled,
-      ] = await Promise.all([
-        getVersions(),
-        getModpacks(),
-        configStore.get<boolean>("curseforge"),
-        configStore.get<boolean>("modrinth"),
-      ]);
+      const [versions, availableModpacks, curseForgeEnabled, modrinthEnabled] =
+        await Promise.all([
+          getVersions(),
+          getModpacks(),
+          configStore.get<boolean>("curseforge"),
+          configStore.get<boolean>("modrinth"),
+        ]);
       if (isUnmounted) {
         return;
       }
@@ -114,7 +111,7 @@ export default function ApplyPage() {
 
       setDefaultModpack({
         name: "",
-        version: versions[0].version,
+        version: versions[0]?.version ?? "",
         modLoader: ModLoader.Unknown,
         isApplied: false,
         lastSynced: 0,
@@ -189,7 +186,7 @@ export default function ApplyPage() {
 
   const updateModpacks = async () => {
     // console.log(searchQuery);
-    const newModpacks = await getModpacks(true, searchQuery);
+    const newModpacks = await getModpacks(true, searchQueryRef.current);
 
     if (newModpacks == modpacks) {
       return;
@@ -211,6 +208,7 @@ export default function ApplyPage() {
           className="p-4 input w-[95.5%] bg-slate-700 h-16 rounded-full self-center mx-16 my-8 text-center"
           onChange={(event) => {
             const query = event.target.value.toLowerCase().trim();
+            searchQueryRef.current = query;
             setSearchQuery(query);
           }}
           autoComplete="off"
@@ -230,16 +228,16 @@ export default function ApplyPage() {
           </Button>
           <Button
             onClick={async () => {
+              const firstVersion = versions[0]?.version;
+              if (!firstVersion) {
+                return;
+              }
               try {
                 await deleteModpack("free");
               } catch {
                 // Ignore missing temporary modpack.
               }
-              await createModpack(
-                "free",
-                versions[0].version,
-                ModLoader.Unknown,
-              );
+              await createModpack("free", firstVersion, ModLoader.Unknown);
               await applyModpack("free");
               await updateModpacks();
             }}

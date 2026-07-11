@@ -1,9 +1,13 @@
 //! Mod provider integration, install flows, and mod identification APIs.
 
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Component, Path, PathBuf},
+    sync::Mutex,
+};
 
 use anyhow::anyhow;
 use futures::StreamExt;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -20,6 +24,8 @@ use curseforge::{
 };
 use http::{provider_cached_client, provider_http_client};
 use modrinth::{download_mod_modrinth, get_latest_mod_version_modrinth, search_mods_modrinth};
+
+static MODPACK_MANIFEST_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 pub mod cache;
 #[cfg(feature = "curseforge")]
@@ -482,11 +488,7 @@ pub async fn install_mod(
     .await
     .unwrap_or_else(|e| {
         log::warn!("Failed to enrich mod {id} on install: {}", e);
-        InstalledMod::minimal(
-            id.clone(),
-            source,
-            download_path.1.clone(),
-        )
+        InstalledMod::minimal(id.clone(), source, download_path.1.clone())
     });
 
     let updated_modpack = install_local_file(
@@ -518,17 +520,22 @@ pub async fn get_file(
             let _ = futures::executor::block_on(init_cache());
             anyhow!(error)
         })?;
-        let file_path = add_cache_index(
-            file.file_name.clone(),
-            cached_file_bytes.as_slice(),
-            file.sha1.clone(),
-        )
-        .await?;
-        event_sink.publish(BackendEvent::ModDownloadProgress(ModProgressPayload {
-            mod_id: id,
-            progress: 100,
-        }))?;
-        return Ok((file_path, file.download_url));
+        if file_hash(&cached_file_bytes).eq_ignore_ascii_case(&file.sha1) {
+            let file_path = add_cache_index(
+                file.file_name.clone(),
+                cached_file_bytes.as_slice(),
+                file.sha1.clone(),
+            )
+            .await?;
+            event_sink.publish(BackendEvent::ModDownloadProgress(ModProgressPayload {
+                mod_id: id,
+                progress: 100,
+            }))?;
+            return Ok((file_path, file.download_url));
+        }
+        log::warn!("Discarding corrupt cache entry for sha1={}", file.sha1);
+        let _ = std::fs::remove_file(cached_file.file_name);
+        init_cache().await?;
     }
 
     log::info!(
@@ -536,33 +543,43 @@ pub async fn get_file(
         file.download_url
     );
     let request = provider_http_client().get(&file.download_url).build()?;
-    let mut body = provider_http_client()
+    let response = provider_http_client()
         .execute(request)
         .await?
-        .bytes_stream();
+        .error_for_status()?;
+    let mut body = response.bytes_stream();
     let mut file_bytes = Vec::new();
-    while let Some(Ok(new_bytes)) = body.next().await {
+    while let Some(next) = body.next().await {
+        let new_bytes = next?;
         file_bytes.append(&mut new_bytes.to_vec());
-        let progress = ((file_bytes.len() as f64 / file.size as f64) * 100_f64).round() as i32;
+        let progress = if file.size == 0 {
+            0
+        } else {
+            ((file_bytes.len() as f64 / file.size as f64) * 100_f64)
+                .round()
+                .clamp(0.0, 99.0) as i32
+        };
         event_sink.publish(BackendEvent::ModDownloadProgress(ModProgressPayload {
             mod_id: id.clone(),
             progress,
         }))?;
     }
+    let hash = file_hash(file_bytes.as_slice());
+    if !file.sha1.is_empty() && !hash.eq_ignore_ascii_case(&file.sha1) {
+        return Err(anyhow!("Downloaded file failed SHA-1 verification"));
+    }
+    let file_path = add_cache_index(file.file_name.clone(), &file_bytes, hash).await?;
     event_sink.publish(BackendEvent::ModDownloadProgress(ModProgressPayload {
         mod_id: id,
         progress: 100,
     }))?;
-
-    let hash = file_hash(file_bytes.as_slice());
-    let file_path = add_cache_index(file.file_name.clone(), &file_bytes, hash).await?;
     Ok((file_path, file.download_url))
 }
 
 /// Installs an already-downloaded file into a modpack or game content folder.
 pub fn install_local_file(
     mc_folder: &Path,
-    existing_modpacks: &[LocalModpack],
+    _existing_modpacks: &[LocalModpack],
     file: PathBuf,
     local_mod: InstalledMod,
     mod_type: ModType,
@@ -570,41 +587,79 @@ pub fn install_local_file(
 ) -> Result<Option<LocalModpack>> {
     let id = local_mod.id.clone();
     let source = local_mod.source.clone();
+    let target_file_name = reqwest::Url::parse(&local_mod.download_url)
+        .ok()
+        .and_then(|url| url.path_segments()?.next_back().map(ToOwned::to_owned))
+        .and_then(|name| {
+            urlencoding::decode(&name)
+                .ok()
+                .map(|name| name.into_owned())
+        })
+        .filter(|name| {
+            let mut components = Path::new(name).components();
+            matches!(components.next(), Some(Component::Normal(_))) && components.next().is_none()
+        })
+        .ok_or_else(|| anyhow!("Invalid download file name"))?;
+    let _manifest_guard = if mod_type == ModType::Mod {
+        Some(
+            MODPACK_MANIFEST_LOCK
+                .lock()
+                .map_err(|_| anyhow!("Modpack manifest lock poisoned"))?,
+        )
+    } else {
+        None
+    };
 
-    let (target_path, updated_modpack) = match mod_type {
+    let (target_path, updated_modpack, manifest_path, old_file_path) = match mod_type {
         ModType::Mod => {
-            let modpack_name = modpack.expect("modpackRequired");
-            let mut modpack = existing_modpacks
+            let modpack_name = modpack.ok_or_else(|| anyhow!("modpackRequired"))?;
+            let manifest_path =
+                crate::models::modpack_path(mc_folder, &modpack_name).join("modConfigV2.json");
+            // Re-read under a process-wide lock so concurrent downloads merge
+            // their entries instead of each writing an old host snapshot.
+            let manifest: InstalledModpack = serde_json::from_reader(
+                std::fs::File::open(&manifest_path).map_err(|_| anyhow!("Modpack not found"))?,
+            )?;
+            let mut modpack = LocalModpack::from((manifest, false, 0));
+            let old_file_path = modpack
+                .mods
                 .iter()
-                .find(|modpack| modpack.name == modpack_name)
-                .cloned()
-                .ok_or_else(|| anyhow!("Modpack not found"))?;
+                .find(|mod_| mod_.id == id)
+                .and_then(|mod_| reqwest::Url::parse(&mod_.download_url).ok())
+                .and_then(|url| url.path_segments()?.next_back().map(ToOwned::to_owned))
+                .and_then(|name| {
+                    urlencoding::decode(&name)
+                        .ok()
+                        .map(|name| name.into_owned())
+                })
+                .filter(|name| {
+                    let mut components = Path::new(name).components();
+                    matches!(components.next(), Some(Component::Normal(_)))
+                        && components.next().is_none()
+                })
+                .map(|name| crate::models::modpack_path(mc_folder, &modpack_name).join(name));
             if modpack.mods.iter().any(|mod_| mod_.id == id) {
                 modpack.mods.retain(|mod_| mod_.id != id);
             }
             modpack.mods.push(local_mod.clone());
 
-            std::fs::write(
-                crate::models::modpack_path(mc_folder, &modpack_name).join("modConfigV2.json"),
-                serde_json::to_string_pretty(&InstalledModpack::from(modpack.clone()))?,
-            )?;
-
             (
-                crate::models::modpack_path(mc_folder, &modpack_name)
-                    .join(file.file_name().unwrap()),
+                crate::models::modpack_path(mc_folder, &modpack_name).join(&target_file_name),
                 Some(modpack),
+                Some(manifest_path),
+                old_file_path,
             )
         }
         ModType::ResourcePack => (
-            mc_folder
-                .join("resourcepacks")
-                .join(file.file_name().unwrap()),
+            mc_folder.join("resourcepacks").join(&target_file_name),
+            None,
+            None,
             None,
         ),
         ModType::ShaderPack => (
-            mc_folder
-                .join("shaderpacks")
-                .join(file.file_name().unwrap()),
+            mc_folder.join("shaderpacks").join(&target_file_name),
+            None,
+            None,
             None,
         ),
         ModType::Unknown => return Err(anyhow!("unsupportedDownload")),
@@ -614,7 +669,20 @@ pub fn install_local_file(
         std::fs::create_dir_all(parent)?;
     }
     log::info!("Installed mod {id} ({mod_type:?}) from {source:?}");
-    std::fs::copy(file, target_path)?;
+    std::fs::copy(file, &target_path)?;
+    if let (Some(manifest_path), Some(updated_modpack)) = (manifest_path, updated_modpack.as_ref())
+    {
+        std::fs::write(
+            manifest_path,
+            serde_json::to_string_pretty(&InstalledModpack::from(updated_modpack.clone()))?,
+        )?;
+    }
+    if let Some(old_file_path) = old_file_path
+        && old_file_path != target_path
+        && old_file_path.is_file()
+    {
+        std::fs::remove_file(old_file_path)?;
+    }
     Ok(updated_modpack)
 }
 
@@ -638,11 +706,7 @@ pub async fn install_remote_file(
     .await
     .unwrap_or_else(|e| {
         log::warn!("Failed to enrich mod {id} on remote install: {}", e);
-        InstalledMod::minimal(
-            id.clone(),
-            source,
-            downloaded_file.1.clone(),
-        )
+        InstalledMod::minimal(id.clone(), source, downloaded_file.1.clone())
     });
     install_local_file(
         mc_folder,

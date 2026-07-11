@@ -4,7 +4,7 @@ use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Result,     account::backend_base_url, mc_mod::http::provider_http_client, ports::SettingsStore,
+    Result, account::backend_base_url, mc_mod::http::provider_http_client, ports::SettingsStore,
 };
 
 /// Telemetry payload submitted to the Quadrant backend.
@@ -95,7 +95,7 @@ pub async fn send_telemetry(
     os: String,
     api_key: &str,
 ) -> Result<()> {
-    if !settings_store.get_bool("collectUserData")?.unwrap_or(true) {
+    if !settings_store.get_bool("collectUserData")?.unwrap_or(false) {
         log::info!("Telemetry skipped: data collection is disabled");
         return Ok(());
     }

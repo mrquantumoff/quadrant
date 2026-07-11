@@ -72,6 +72,9 @@ pub async fn run() {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, argv, _| {
             log::info!("a new app instance was opened with {argv:?} and the deep link event was already triggered");
             let w = app.get_webview_window("main").expect("no main window");
+            if let Err(e) = w.set_enabled(true) {
+                log::error!("Failed to enable window: {e}");
+            }
             match w.show() {
                 Ok(_) => {}
                 Err(e) => {
@@ -156,23 +159,17 @@ pub async fn run() {
                 use tauri_plugin_autostart::MacosLauncher;
                 use tauri_plugin_autostart::ManagerExt;
 
-                app.handle()
-                    .plugin(tauri_plugin_autostart::init(
-                        MacosLauncher::LaunchAgent,
-                        Some(vec!["--autostart"]),
-                    ))
-                    .unwrap();
+                app.handle().plugin(tauri_plugin_autostart::init(
+                    MacosLauncher::LaunchAgent,
+                    Some(vec!["--autostart"]),
+                ))?;
 
                 // Get the autostart manager
                 let autostart_manager = app.autolaunch();
-                // Enable autostart
-                let _ = autostart_manager.enable();
-
-                // Check enable state
-                log::info!(
-                    "registered for autostart? {}",
-                    autostart_manager.is_enabled().unwrap()
-                );
+                match autostart_manager.is_enabled() {
+                    Ok(enabled) => log::info!("registered for autostart? {enabled}"),
+                    Err(error) => log::warn!("Failed to query autostart state: {error}"),
+                }
             }
 
             if cfg!(dev) == false {
@@ -336,6 +333,8 @@ pub async fn run() {
             mc_mod::install_remote_file,
             mc_mod::identify_modpack,
             config::init_config,
+            config::get_config_value,
+            config::set_config_value,
             config::get_minecraft_folder,
             config::get_default_minecraft_folder,
             other::open_link,
@@ -431,7 +430,7 @@ async fn check_update(_app: tauri::AppHandle) -> Result<(), anyhow::Error> {
             let channel = update_config.get("channel").unwrap();
             let channel = channel.as_str().unwrap_or(defualt_channel);
             if channel != "stable" {
-                update_urls.push(Url::parse(&format!("https://api.usequadrant.dev/api/any/quadrant/updates/{}/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}",channel))?);
+                update_urls.push(Url::parse(&format!("https://api.usequadrant.dev/api/any/quadrant/updates/{}/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}?variant={{{{bundle_type}}}}",channel))?);
             }
         }
         // Prefer the preview version if we're updating from a preview version
@@ -466,9 +465,13 @@ async fn check_update(_app: tauri::AppHandle) -> Result<(), anyhow::Error> {
                 .download(
                     |chunk_length, content_length| {
                         downloaded += chunk_length;
-                        let progress = downloaded as f64 / content_length.unwrap() as f64;
-                        app.emit("updateDownloadProgress", progress).unwrap();
-                        log::info!("Downloaded {}%", (progress * 100.0).round() as i32);
+                        if let Some(content_length) = content_length.filter(|length| *length > 0) {
+                            let progress = downloaded as f64 / content_length as f64;
+                            if let Err(error) = app.emit("updateDownloadProgress", progress) {
+                                log::warn!("Failed to emit update progress: {error}");
+                            }
+                            log::info!("Downloaded {}%", (progress * 100.0).round() as i32);
+                        }
                     },
                     || {
                         log::info!("Download finished");

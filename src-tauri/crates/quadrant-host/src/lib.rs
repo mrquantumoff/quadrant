@@ -468,6 +468,14 @@ impl QuadrantHost {
         self.ensure_override_mc_folder()
     }
 
+    pub fn get_config_value(&self, key: &str) -> Result<Option<Value>> {
+        self.inner.config_store.get_value(key)
+    }
+
+    pub fn set_config_value(&self, key: &str, value: Value) -> Result<()> {
+        self.inner.config_store.set_value(key, value)
+    }
+
     pub fn get_minecraft_folder(&self) -> Result<PathBuf> {
         self.inner
             .config_store
@@ -896,7 +904,9 @@ impl QuadrantHost {
         self.inner
             .event_sink
             .emit("quadrantShareSubmission", &response)?;
-        self.send_telemetry().await?;
+        if let Err(error) = self.send_telemetry().await {
+            log::warn!("Share succeeded but follow-up telemetry failed: {error}");
+        }
         Ok(response)
     }
 
@@ -976,6 +986,8 @@ impl QuadrantHost {
             "get_minecraft_folder",
             "get_modpacks_folder",
             "init_config",
+            "get_config_value",
+            "set_config_value",
             "search_mods",
             "get_versions",
             "get_user_url",
@@ -1079,6 +1091,15 @@ impl QuadrantHost {
             "get_modpacks_folder" => to_value(self.get_modpacks_folder()?),
             "init_config" => {
                 self.init_config()?;
+                Ok(Value::Null)
+            }
+            "get_config_value" => {
+                let args: ConfigKeyArgs = from_value(payload)?;
+                Ok(self.get_config_value(&args.key)?.unwrap_or(Value::Null))
+            }
+            "set_config_value" => {
+                let args: SetConfigValueArgs = from_value(payload)?;
+                self.set_config_value(&args.key, args.value)?;
                 Ok(Value::Null)
             }
             "search_mods" => {
@@ -1505,7 +1526,8 @@ impl QuadrantHost {
             "wss" | "ws" => {}
             _ => return Err(anyhow!("unsupported backend scheme")),
         }
-        url.set_path("/api/v3/account/notifications/ws");
+        let base_path = url.path().trim_end_matches('/');
+        url.set_path(&format!("{base_path}/account/notifications/ws"));
         {
             let mut query = url.query_pairs_mut();
             if let Some(created_at) = cursor.created_at.as_deref() {
@@ -1583,9 +1605,11 @@ impl QuadrantHost {
             return Ok(Some(local_modpack));
         }
 
-        Ok(modpacks
-            .into_iter()
-            .find(|modpack| modpack.last_synced != 0 && modpack.name == synced_modpack.name))
+        Ok(modpacks.into_iter().find(|modpack| {
+            modpack.modpack_id.is_none()
+                && modpack.last_synced != 0
+                && modpack.name == synced_modpack.name
+        }))
     }
 
     async fn maybe_backfill_local_modpack_id(
@@ -1599,6 +1623,9 @@ impl QuadrantHost {
 
         if local_modpack.modpack_id.as_deref() == Some(synced_modpack.modpack_id.as_str()) {
             return Ok(Some(local_modpack));
+        }
+        if local_modpack.modpack_id.is_some() {
+            return Ok(None);
         }
 
         let local_sync_time = u64::try_from(local_modpack.last_synced / 1000).unwrap_or_default();
@@ -1621,33 +1648,30 @@ impl QuadrantHost {
             return Ok(());
         }
 
+        let remote_mods = serde_json::from_str(&synced_modpack.mods)?;
         if !self.begin_modpack_update(&local_modpack.name).await {
             return Ok(());
         }
 
-        let install_result = self
-            .install_modpack(InstalledModpack {
+        let result = async {
+            self.install_modpack(InstalledModpack {
                 mod_config_version: String::new(),
                 quadrant_version: String::new(),
                 mod_loader: synced_modpack.mod_loader,
-                name: synced_modpack.name.clone(),
+                name: local_modpack.name.clone(),
                 version: synced_modpack.minecraft_version.clone(),
-                mods: serde_json::from_str(&synced_modpack.mods)?,
+                mods: remote_mods,
             })
-            .await;
-
-        if let Err(error) = install_result {
-            self.finish_modpack_update(&local_modpack.name).await;
-            return Err(error);
+            .await?;
+            self.persist_sync_metadata(
+                &local_modpack.name,
+                synced_modpack.last_synced as u64,
+                Some(synced_modpack.modpack_id.as_str()),
+            )
         }
-
-        self.persist_sync_metadata(
-            &local_modpack.name,
-            synced_modpack.last_synced as u64,
-            Some(synced_modpack.modpack_id.as_str()),
-        )?;
+        .await;
         self.finish_modpack_update(&local_modpack.name).await;
-        Ok(())
+        result
     }
 
     async fn begin_modpack_update(&self, modpack_name: &str) -> bool {
@@ -1984,6 +2008,17 @@ struct HideFreeArgs {
 }
 
 #[derive(Deserialize)]
+struct ConfigKeyArgs {
+    key: String,
+}
+
+#[derive(Deserialize)]
+struct SetConfigValueArgs {
+    key: String,
+    value: Value,
+}
+
+#[derive(Deserialize)]
 struct NameArgs {
     name: String,
 }
@@ -2267,6 +2302,8 @@ mod tests {
         let commands = QuadrantHost::supported_commands();
         assert!(commands.contains(&"get_quadrant_settings"));
         assert!(commands.contains(&"submit_quadrant_settings"));
+        assert!(commands.contains(&"get_config_value"));
+        assert!(commands.contains(&"set_config_value"));
         assert!(!commands.contains(&"open_modpacks_folder"));
         assert!(!commands.contains(&"request_check_for_updates"));
     }
@@ -2276,6 +2313,40 @@ mod tests {
         let options =
             QuadrantHostOptions::new(PathBuf::from("C:/quadrant"), "client", "secret", "api-key");
         assert_eq!(options.keyring_service_name, KEYRING_SERVICE);
+    }
+
+    #[test]
+    fn config_commands_round_trip_through_the_host_store() {
+        let temp_dir = tempdir().unwrap();
+        let host = QuadrantHost::new(QuadrantHostOptions::new(
+            temp_dir.path().to_path_buf(),
+            "client",
+            "secret",
+            "api-key",
+        ))
+        .unwrap();
+
+        host.set_config_value("custom", Value::String("value".to_string()))
+            .unwrap();
+        assert_eq!(
+            host.get_config_value("custom").unwrap(),
+            Some(Value::String("value".to_string()))
+        );
+    }
+
+    #[test]
+    fn notification_websocket_preserves_custom_api_base_path() {
+        let temp_dir = tempdir().unwrap();
+        let mut options =
+            QuadrantHostOptions::new(temp_dir.path().to_path_buf(), "client", "secret", "api-key");
+        options.api_base_url = Some("https://example.test/custom/api".to_string());
+        let host = QuadrantHost::new(options).unwrap();
+
+        let url = host
+            .build_notification_ws_url(&NotificationCursor::default(), "connection")
+            .unwrap();
+        assert_eq!(url.scheme(), "wss");
+        assert_eq!(url.path(), "/custom/api/account/notifications/ws");
     }
 
     #[tokio::test]

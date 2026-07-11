@@ -30,7 +30,21 @@ jobs:
       - name: Install Linux desktop dependencies
         run: |
           sudo apt update
-          sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
+          sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev appstream desktop-file-utils
+
+      - name: Validate Linux metadata
+        run: |
+          appstreamcli validate --no-net dev.mrquantumoff.mcmodpackmanager.metainfo.xml
+          desktop_file="$(mktemp --suffix=.desktop)"
+          trap 'rm -f "$desktop_file"' EXIT
+          sed \
+            -e 's/{{categories}}/Game;/' \
+            -e 's/{{comment}}/Manage Minecraft mods and modpacks/' \
+            -e 's/{{exec}}/quadrant_next/' \
+            -e 's/{{icon}}/dev.mrquantumoff.mcmodpackmanager/' \
+            -e 's/{{name}}/Quadrant/' \
+            Quadrant.desktop > "$desktop_file"
+          desktop-file-validate "$desktop_file"
 
       - name: Install frontend dependencies
         run: bun install

@@ -23,6 +23,8 @@ export const HOST_COMMANDS = [
   "get_modpacks_folder",
   "open_modpacks_folder",
   "init_config",
+  "get_config_value",
+  "set_config_value",
   "search_mods",
   "get_versions",
   "get_user_url",

@@ -247,8 +247,6 @@ export default function Mod(props: IModProps) {
                     setClickableDownload(false);
                     installRequestedRef.current = true;
                     try {
-                      await deleteMod(props.modpack!, mod.id);
-
                       await installRemoteFile(
                         mod.newVersion!,
                         mod.modType,

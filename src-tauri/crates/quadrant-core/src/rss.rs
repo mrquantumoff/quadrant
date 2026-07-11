@@ -18,16 +18,27 @@ pub async fn get_news() -> Result<Vec<Article>> {
 
     let mut articles = Vec::new();
     for item in rss.items {
-        let date = DateTime::parse_from_rfc2822(&item.pub_date.unwrap_or_default())
-            .map_err(|error| anyhow!(error))?
-            .to_utc();
+        let Some(date) = item
+            .pub_date
+            .as_deref()
+            .and_then(|date| DateTime::parse_from_rfc2822(date).ok())
+            .map(|date| date.to_utc())
+        else {
+            log::warn!("Skipping RSS item with an invalid or missing publication date");
+            continue;
+        };
+        let link = item.link.unwrap_or_default();
+        let guid = item
+            .guid
+            .map(|guid| guid.value)
+            .unwrap_or_else(|| link.clone());
         articles.push(Article {
             title: item.title.unwrap_or_default(),
-            link: item.link.unwrap_or_default(),
+            link,
             summary: item.description.unwrap_or_default(),
             new: date > new_qualifier,
             date,
-            guid: item.guid.unwrap_or_default().value,
+            guid,
         });
     }
     log::info!("Fetched {} article(s) from RSS feed", articles.len());

@@ -96,7 +96,6 @@ pub fn get_mc_folder() -> Result<Option<PathBuf>> {
 /// Builds the default application configuration used for first-run bootstrap.
 pub fn default_app_config() -> AppConfig {
     let fourteen_days_ago = Utc::now().checked_sub_days(Days::new(14)).unwrap();
-    let now = Utc::now();
 
     AppConfig {
         clip_icons: true,
@@ -118,7 +117,10 @@ pub fn default_app_config() -> AppConfig {
         dont_show_user_data_recommendation: false,
         cache_keep_alive: 30,
         sync_settings: true,
-        last_settings_updated: now.to_rfc3339(),
+        // A fresh installation has no local user edits. Using the epoch lets
+        // an existing cloud profile win the first synchronization instead of
+        // uploading defaults with a misleadingly fresh timestamp.
+        last_settings_updated: "1970-01-01T00:00:00+00:00".to_string(),
         mc_folder: get_mc_folder()
             .ok()
             .flatten()
@@ -260,6 +262,10 @@ mod tests {
             Some(true)
         );
         assert_eq!(store.get_i64("cacheKeepAlive").unwrap(), Some(30));
+        assert_eq!(
+            store.get_string("lastSettingsUpdated").unwrap().as_deref(),
+            Some("1970-01-01T00:00:00+00:00")
+        );
         assert!(store.get_string("hardwareId").unwrap().is_some());
         let mc_folder = store.get_string("mcFolder").unwrap().unwrap();
         #[cfg(target_os = "macos")]

@@ -42,7 +42,8 @@ impl EventSink for LoggingEvents {
     }
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let args: Vec<_> = env::args().collect();
     if args.len() < 3 {
         eprintln!(
@@ -59,7 +60,7 @@ fn main() -> Result<()> {
 
     match command.as_str() {
         "list" => {
-            for modpack in modpacks::get_modpacks(&mc_folder, false)? {
+            for modpack in modpacks::get_modpacks(&mc_folder, false).await? {
                 println!(
                     "{} {} {}",
                     modpack.name, modpack.version, modpack.mod_loader

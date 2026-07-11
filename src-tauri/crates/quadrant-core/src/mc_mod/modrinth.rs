@@ -50,17 +50,21 @@ pub async fn search_mods_modrinth(
         }
     }
 
-    let raw_uri = format!(
-        "{}/v2/search?query={}&limit=100&facets=[{}]",
-        modrinth_api_base(),
-        args.query,
-        facets
-    );
+    let facets_param = format!("[{facets}]");
+    let raw_uri = reqwest::Url::parse_with_params(
+        format!("{}/v2/search", modrinth_api_base()).as_str(),
+        [
+            ("query", args.query.as_str()),
+            ("limit", "100"),
+            ("facets", facets_param.as_str()),
+        ],
+    )?;
 
     let response_json: serde_json::Value = provider_cached_client()
-        .get(&raw_uri)
+        .get(raw_uri)
         .send()
         .await?
+        .error_for_status()?
         .json()
         .await?;
 
@@ -79,9 +83,7 @@ pub async fn search_mods_modrinth(
             let icon = mod_data["icon_url"]
                 .as_str()
                 .filter(|value| !value.trim().is_empty())
-                .unwrap_or(
-                    "https://github.com/QuadrantMC/quadrant/raw/next/public/logoNoBg.png",
-                )
+                .unwrap_or("https://github.com/QuadrantMC/quadrant/raw/next/public/logoNoBg.png")
                 .to_string();
             let slug = mod_data["slug"].as_str().unwrap_or_default().to_string();
 
@@ -149,7 +151,7 @@ pub async fn get_mod_modrinth(args: GetModArgs) -> Result<Mod> {
         download_count: res_json["downloads"].as_i64().unwrap_or_default(),
         version: res_json["versions"]
             .as_array()
-            .and_then(|versions| versions.first())
+            .and_then(|versions| versions.last())
             .and_then(|version| version.as_str())
             .unwrap_or_default()
             .to_string(),
@@ -166,7 +168,12 @@ pub async fn get_mod_modrinth(args: GetModArgs) -> Result<Mod> {
             .as_str()
             .unwrap_or_default()
             .to_string(),
-        license: res_json["license"].as_str().unwrap_or_default().to_string(),
+        license: res_json["license"]["name"]
+            .as_str()
+            .or_else(|| res_json["license"]["id"].as_str())
+            .or_else(|| res_json["license"].as_str())
+            .unwrap_or_default()
+            .to_string(),
         mod_icon_url: res_json["icon_url"]
             .as_str()
             .unwrap_or_default()
@@ -297,14 +304,23 @@ pub async fn get_latest_mod_version_modrinth(
         query.iter().map(|(key, value)| (*key, value.as_str())),
     )?;
 
-    let response = provider_cached_client().get(url).send().await?;
+    let response = provider_cached_client()
+        .get(url)
+        .send()
+        .await?
+        .error_for_status()?;
 
     let mut res_json: Vec<ModrinthVersion> = serde_json::from_str(&response.text().await?)?;
     res_json.sort_by(|a, b| b.date_published.cmp(&a.date_published));
     if res_json.is_empty() {
         return Err(anyhow::anyhow!("noVersion"));
     }
-    Ok(res_json[0].files.iter().find(|file| file.primary).cloned())
+    Ok(res_json[0]
+        .files
+        .iter()
+        .find(|file| file.primary)
+        .or_else(|| res_json[0].files.first())
+        .cloned())
 }
 
 pub async fn download_mod_modrinth(

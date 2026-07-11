@@ -57,6 +57,8 @@ export default function SearchPage() {
   const [loaderProviders, setLoaderProviders] = useState<ModLoaderProvider[]>(
     loaderProvidersFromSettings(true, true),
   );
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const searchRequestRef = useRef(0);
   const configRef = useRef(createDesktopStore("config.json"));
   const configStore = configRef.current;
   const search = async (forceSearch: boolean = false) => {
@@ -64,102 +66,124 @@ export default function SearchPage() {
       return;
     }
 
+    const requestId = ++searchRequestRef.current;
+    setSearchError(null);
     setMods([]);
     setAllResults([]);
     setPage(1);
 
-    const query = searchQuery.toLowerCase();
+    try {
+      const query = searchQuery.toLowerCase();
 
-    const [curseforge, modrinth] = await Promise.all([
-      configStore.get<boolean>("curseforge"),
-      configStore.get<boolean>("modrinth"),
-    ]);
-    setLoaderProviders(loaderProvidersFromSettings(curseforge, modrinth));
+      const [curseforge, modrinth] = await Promise.all([
+        configStore.get<boolean>("curseforge"),
+        configStore.get<boolean>("modrinth"),
+      ]);
+      setLoaderProviders(loaderProvidersFromSettings(curseforge, modrinth));
 
-    console.log("Filter: " + filter);
+      console.log("Filter: " + filter);
 
-    const requests: Promise<IMod[]>[] = [];
+      const requests: Promise<IMod[]>[] = [];
 
-    // Filtered searches only query providers that can satisfy the selected loader.
-    if (
-      curseforge &&
-      (!filter || loaderSupportsProvider(loader, ModSource.CurseForge))
-    ) {
-      const curseforgeArgs = {
-        filterOn: filter,
-        query: query,
-        source: ModSource.CurseForge,
-      };
-      requests.push(
-        searchMods({ ...curseforgeArgs, modType: ModType.Mod.toString() }),
-        searchMods({
-          ...curseforgeArgs,
-          modType: ModType.ResourcePack.toString(),
-        }),
-        searchMods({
-          ...curseforgeArgs,
-          modType: ModType.ShaderPack.toString(),
-        }),
+      // Filtered searches only query providers that can satisfy the selected loader.
+      if (
+        curseforge &&
+        (!filter || loaderSupportsProvider(loader, ModSource.CurseForge))
+      ) {
+        const curseforgeArgs = {
+          filterOn: filter,
+          query: query,
+          source: ModSource.CurseForge,
+        };
+        requests.push(
+          searchMods({ ...curseforgeArgs, modType: ModType.Mod.toString() }),
+          searchMods({
+            ...curseforgeArgs,
+            modType: ModType.ResourcePack.toString(),
+          }),
+          searchMods({
+            ...curseforgeArgs,
+            modType: ModType.ShaderPack.toString(),
+          }),
+        );
+      }
+
+      if (
+        modrinth &&
+        (!filter || loaderSupportsProvider(loader, ModSource.Modrinth))
+      ) {
+        const modrinthArgs = {
+          filterOn: filter,
+          query: query,
+          source: ModSource.Modrinth,
+        };
+        requests.push(
+          searchMods({ ...modrinthArgs, modType: ModType.Mod.toString() }),
+          searchMods({
+            ...modrinthArgs,
+            modType: ModType.ResourcePack.toString(),
+          }),
+          searchMods({
+            ...modrinthArgs,
+            modType: ModType.ShaderPack.toString(),
+          }),
+        );
+      }
+
+      const settledResults = await Promise.allSettled(requests);
+      if (requestId !== searchRequestRef.current) {
+        return;
+      }
+      const failures = settledResults.filter(
+        (result) => result.status === "rejected",
       );
-    }
-
-    if (
-      modrinth &&
-      (!filter || loaderSupportsProvider(loader, ModSource.Modrinth))
-    ) {
-      const modrinthArgs = {
-        filterOn: filter,
-        query: query,
-        source: ModSource.Modrinth,
-      };
-      requests.push(
-        searchMods({ ...modrinthArgs, modType: ModType.Mod.toString() }),
-        searchMods({
-          ...modrinthArgs,
-          modType: ModType.ResourcePack.toString(),
-        }),
-        searchMods({
-          ...modrinthArgs,
-          modType: ModType.ShaderPack.toString(),
-        }),
+      if (failures.length === settledResults.length && failures.length > 0) {
+        throw failures[0].reason;
+      }
+      failures.forEach((failure) =>
+        console.error("Search provider failed", failure),
       );
+      let newMods = settledResults.flatMap((result) =>
+        result.status === "fulfilled" ? result.value : [],
+      );
+
+      if (newMods.length === 0) {
+        newMods = [
+          {
+            autoinstallable: false,
+            downloadCount: 0,
+            deleteable: false,
+            description: t("-"),
+            downloadable: false,
+            id: "",
+            license: "",
+            modIconUrl: "",
+            modType: ModType.Mod,
+            name: "-",
+            showPreviousVersion: false,
+            slug: "",
+            source: ModSource.Online,
+            thumbnailUrls: [],
+            url: "https://mrquantumoff.dev",
+            version: "",
+            newVersion: null,
+            selectable: false,
+            selectUrl: null,
+            modpack: null,
+          },
+        ];
+      } else {
+        newMods.sort((a, b) => b.downloadCount - a.downloadCount);
+      }
+
+      const firstFifty = newMods.length > 50 ? newMods.slice(0, 50) : newMods;
+      setMods(firstFifty);
+      setAllResults(newMods);
+    } catch (error) {
+      if (requestId === searchRequestRef.current) {
+        setSearchError(String(error));
+      }
     }
-
-    const results = await Promise.all(requests);
-    let newMods = results.flat();
-
-    if (newMods.length === 0) {
-      newMods = [
-        {
-          autoinstallable: false,
-          downloadCount: 0,
-          deleteable: false,
-          description: t("-"),
-          downloadable: false,
-          id: "",
-          license: "",
-          modIconUrl: "",
-          modType: ModType.Mod,
-          name: "-",
-          showPreviousVersion: false,
-          slug: "",
-          source: ModSource.Online,
-          thumbnailUrls: [],
-          url: "https://mrquantumoff.dev",
-          version: "",
-          newVersion: null,
-          selectable: false,
-          selectUrl: null,
-          modpack: null,
-        },
-      ];
-    } else {
-      newMods.sort((a, b) => b.downloadCount - a.downloadCount);
-    }
-
-    const firstFifty = newMods.length > 50 ? newMods.slice(0, 50) : newMods;
-    setMods(firstFifty);
-    setAllResults(newMods);
   };
   const effect = async () => {
     const [
@@ -220,8 +244,8 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
-    search(true);
-  }, [filter]);
+    void search(true);
+  }, [filter, version, loader, modpack]);
 
   const MotionPopoverButton = motion.create(PopoverButton);
 
@@ -249,7 +273,7 @@ export default function SearchPage() {
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              search();
+              await search();
             }}
             className="flex flex-1 items-center justify-center mb-8 h-fit w-[95%] mx-8 my-2 "
           >
@@ -263,7 +287,7 @@ export default function SearchPage() {
               autoComplete="off"
               value={searchQuery}
               onSubmit={async () => {
-                search();
+                await search();
               }}
             ></Input>
             <div className="flex flex-col h-fit">
@@ -318,12 +342,12 @@ export default function SearchPage() {
                                   onChange={async (e) => {
                                     e.preventDefault();
                                     const newVersion = e.target.value;
-                                    setVersion(newVersion);
                                     await configStore.set(
                                       "lastUsedVersion",
                                       newVersion,
                                     );
                                     await configStore.save();
+                                    setVersion(newVersion);
                                   }}
                                 >
                                   {versions.map((versionOption) => {
@@ -349,13 +373,12 @@ export default function SearchPage() {
                                   onChange={async (e) => {
                                     e.preventDefault();
                                     const selectedLoader = e.target.value;
-                                    setLoader(selectedLoader);
-
                                     await configStore.set(
                                       "lastUsedAPI",
                                       selectedLoader,
                                     );
                                     await configStore.save();
+                                    setLoader(selectedLoader);
                                   }}
                                   value={loader}
                                   autoComplete="off"
@@ -457,7 +480,11 @@ export default function SearchPage() {
         </div>
         <div className="h-max flex items-center place-content-center">
           <AnimatePresence>
-            {mods.length !== 0 ? (
+            {searchError ? (
+              <div className="bg-red-700 rounded-4xl p-4 font-bold">
+                {searchError}
+              </div>
+            ) : mods.length !== 0 ? (
               <div className="bg-slate-800 items-center align-middle justify-center rounded-4xl mr-4 ml-2 mb-12 ">
                 <div className="grid grid-cols-3 mb-0 2xl:grid-cols-4 gap-6 p-4">
                   {mods.map((mod, index) => {
