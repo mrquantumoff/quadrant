@@ -891,8 +891,12 @@ impl QuadrantHost {
 
     pub async fn share_modpack_raw(
         &self,
-        mod_config: InstalledModpack,
+        mut mod_config: InstalledModpack,
     ) -> Result<QuadrantShareSubmissionResponse> {
+        // Renderer-built configs (e.g. the Sync tab) omit the manifest metadata,
+        // which serde otherwise defaults to a V1 config.
+        mod_config.mod_config_version = "2".to_string();
+        mod_config.quadrant_version = quadrant_core::models::quadrant_version();
         let response = share_modpack_raw(
             &self.inner.config_store,
             &self.inner.secret_store,
