@@ -155,7 +155,11 @@ export default function AccountPage() {
               setLoginWarning(null);
               await oauthCleanupRef.current?.();
               oauthCleanupRef.current = null;
-              const randomString = Math.random().toString(36).substring(2, 26);
+              const randomBytes = new Uint8Array(24);
+              crypto.getRandomValues(randomBytes);
+              const randomString = Array.from(randomBytes, (b) =>
+                b.toString(16).padStart(2, "0"),
+              ).join("");
 
               await config.set("oauthState", randomString);
 
