@@ -9,18 +9,21 @@ on:
       - "v*-msstore"
 
 jobs:
-  build-msstore:
-    permissions:
-      contents: write
+  # Build each architecture in parallel. msixbuild.ps1 consumes each arch's
+  # executable independently, so the two builds have no interdependency and the
+  # slow Rust compile happens concurrently instead of back-to-back.
+  build:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: "windows-2025-vs2026"
-            args: ""
-          # - platform: "windows-11-arm"
-          #   args: ""
-    runs-on: ${{ matrix.platform }}
+          - arch: x64
+            triple: x86_64-pc-windows-msvc
+            msvcArch: amd64
+          - arch: arm64
+            triple: aarch64-pc-windows-msvc
+            msvcArch: amd64_arm64
+    runs-on: "windows-2025-vs2026"
     steps:
       - uses: actions/checkout@v6
 
@@ -36,10 +39,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
-      - name: Setup MSbuild
-        uses: microsoft/setup-msbuild@v2
-      - name: Install msixbundle-cli
-        run: cargo install msixbundle-cli
+          key: ${{ matrix.arch }}
       - name: Set up Clang
         uses: egor-tensin/setup-clang@v2
         with:
@@ -47,21 +47,75 @@ jobs:
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: amd64_arm64
+          arch: ${{ matrix.msvcArch }}
 
       - name: Build the app
         env:
+          # Thin LTO + parallel codegen build far faster than the shipping
+          # profile's fat LTO / codegen-units=1, at a negligible runtime cost
+          # for this I/O-bound app. Scoped to CI here; Cargo.toml is unchanged,
+          # so the GitHub -stable release keeps the fully optimized profile.
+          CARGO_PROFILE_RELEASE_LTO: thin
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ETERNAL_API_TOKEN: ${{ secrets.ETERNAL_API_TOKEN }}
           QUADRANT_API_KEY: ${{ secrets.QUADRANT_API_KEY }}
           QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
           QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
         run: |
-          rustup target add x86_64-pc-windows-msvc
-          rustup target add aarch64-pc-windows-msvc
-          bun tauri build --config src-tauri/tauri.msstore.conf.json --target x86_64-pc-windows-msvc
-          bun tauri build --config src-tauri/tauri.msstore.conf.json --target aarch64-pc-windows-msvc
-          powershell -NoProfile -ExecutionPolicy Bypass -File .\msixbuild.ps1
+          rustup target add ${{ matrix.triple }}
+          bun tauri build --config src-tauri/tauri.msstore.conf.json --target ${{ matrix.triple }}
+
+      - name: Upload built executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: exe-${{ matrix.arch }}
+          path: src-tauri/target/${{ matrix.triple }}/release/quadrant_next.exe
+          if-no-files-found: error
+
+  # Fan-in: assemble the MSIX bundle from both arch executables and submit it.
+  bundle-and-publish:
+    needs: build
+    permissions:
+      contents: write
+    runs-on: "windows-2025-vs2026"
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup MSbuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Install msixbundle-cli
+        run: cargo install msixbundle-cli
+
+      - name: Download built executables
+        uses: actions/download-artifact@v4
+        with:
+          pattern: exe-*
+          path: artifacts
+
+      - name: Stage executables for bundling
+        shell: pwsh
+        run: |
+          $map = @{
+            "exe-x64"   = "src-tauri/target/x86_64-pc-windows-msvc/release"
+            "exe-arm64" = "src-tauri/target/aarch64-pc-windows-msvc/release"
+          }
+          foreach ($name in $map.Keys) {
+            $src = Join-Path "artifacts/$name" "quadrant_next.exe"
+            if (-not (Test-Path -Path $src -PathType Leaf)) {
+              throw "Missing artifact executable: $src"
+            }
+            $destDir = $map[$name]
+            New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+            Copy-Item -Path $src -Destination (Join-Path $destDir "quadrant_next.exe") -Force
+          }
+
+      - name: Build MSIX bundle
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File .\msixbuild.ps1
 
       - uses: actions/upload-artifact@v4
         with:
