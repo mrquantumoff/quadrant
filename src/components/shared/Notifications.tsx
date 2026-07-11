@@ -191,7 +191,7 @@ function Notifications({
   const visibleNotifications = notifications.filter((notification) => {
     const detailedMessage = parseNotificationMessage(notification.message);
     const messageType =
-      notification.notification_type ?? detailedMessage?.notification_type;
+      detailedMessage?.notification_type ?? notification.notification_type;
 
     if (messageType !== "modpack_sync") {
       return true;
@@ -327,8 +327,8 @@ function Notifications({
                         notification.message,
                       );
                       const messageType =
-                        notification.notification_type ??
-                        detailedMessage?.notification_type;
+                        detailedMessage?.notification_type ??
+                        notification.notification_type;
                       let message =
                         detailedMessage?.simple_message ??
                         notification.message ??
@@ -350,19 +350,25 @@ function Notifications({
                         </>
                       );
 
-                      if (
-                        messageType == "invite_to_sync" &&
-                        detailedMessage?.message &&
-                        detailedMessage?.invite_id
-                      ) {
-                        const inviteId = detailedMessage.invite_id;
-                        const inviter = (
-                          detailedMessage.message as string
-                        ).split(
-                          "You have been invited to collaborate on a modpack by ",
-                        )[1];
+                      const inviteId =
+                        detailedMessage?.invite_id ??
+                        notification.resource_id ??
+                        undefined;
+
+                      if (messageType == "invite_to_sync" && inviteId) {
+                        const inviteMessage =
+                          detailedMessage?.message ??
+                          detailedMessage?.simple_message ??
+                          notification.message;
+                        const inviter = inviteMessage
+                          ? inviteMessage
+                              .split(
+                                "You have been invited to collaborate on a modpack by ",
+                              )[1]
+                              ?.trim()
+                          : undefined;
                         message = t("invited", {
-                          name: inviter,
+                          name: inviter ?? "",
                         });
                         action = (
                           <>
