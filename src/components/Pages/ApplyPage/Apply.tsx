@@ -146,7 +146,7 @@ export default function ApplyPage() {
           context.setSnackbar({
             message: (
               <span className="flex">
-                <MdCheck className="w-6 h-6 mx-2" />
+                <MdCheck className="w-5 h-5 mx-2" />
                 {t("copiedToClipboard", { amount: usesLeft })}
               </span>
             ),
@@ -205,7 +205,7 @@ export default function ApplyPage() {
       >
         <input
           placeholder={t("search")}
-          className="p-4 input w-[95.5%] bg-slate-700 h-16 rounded-full self-center mx-16 my-8 text-center"
+          className="p-2 input w-[95.5%] bg-slate-700 h-11 rounded-full self-center mx-8 my-4 text-center"
           onChange={(event) => {
             const query = event.target.value.toLowerCase().trim();
             searchQueryRef.current = query;
@@ -214,7 +214,7 @@ export default function ApplyPage() {
           autoComplete="off"
           value={searchQuery}
         ></input>
-        <div className="flex flex-row justify-center w-fit self-center bg-slate-700 rounded-4xl my-4 p-2">
+        <div className="flex flex-row flex-wrap justify-center w-fit self-center bg-slate-700 rounded-4xl my-2 p-1.5">
           <Button
             onClick={() => {
               setIsDialogToCreate(true);
@@ -224,7 +224,7 @@ export default function ApplyPage() {
             className="bg-emerald-600 mx-2 flex items-center align-middle w-fit hover:bg-emerald-700 px-4 rounded-4xl "
           >
             {t("createModpack")}
-            <MdCreate className="w-6 h-6 mx-2" />
+            <MdCreate className="w-5 h-5 mx-2" />
           </Button>
           <Button
             onClick={async () => {
@@ -244,7 +244,7 @@ export default function ApplyPage() {
             className="bg-slate-800 flex items-center align-middle mx-2 w-fit hover:bg-red-700 px-4 rounded-4xl "
           >
             {t("clear")}
-            <MdClear className="w-6 h-6 mx-2" />
+            <MdClear className="w-5 h-5 mx-2" />
           </Button>
           <Button
             onClick={async () => {
@@ -253,7 +253,7 @@ export default function ApplyPage() {
             className="bg-slate-800 flex items-center align-middle mx-2 w-fit hover:bg-slate-700 px-4 rounded-4xl "
           >
             {t("openModpacksFolder")}
-            <MdFolder className="w-6 h-6 mx-2" />
+            <MdFolder className="w-5 h-5 mx-2" />
           </Button>
         </div>
         <div className="bg-slate-800 rounded-4xl mx-6 mb-8">
@@ -287,7 +287,7 @@ export default function ApplyPage() {
                   key={index}
                   className="flex flex-col bg-slate-900 hover:bg-slate-950 p-4 rounded-4xl mx-5 my-5 h-max hover:shadow-lg hover:shadow-slate-950 transform-gpu backface-hidden will-change-[transform,opacity]"
                 >
-                  <h1 className="text-4xl font-extrabold max-w-56 w-56">
+                  <h1 className="text-2xl font-extrabold max-w-full w-fit">
                     {modpack.name}
                   </h1>
                   <p className="text-md text-slate-400 ">
@@ -295,7 +295,7 @@ export default function ApplyPage() {
                     {t("modCount", { amount: modpack.mods.length })}{" "}
                     {modpack.lastSynced !== 0 && <span>| {dateString}</span>}
                   </p>
-                  <div className="my-2.5 flex overflow-x-auto flex-wrap h-max flex-row items-center text-lg justify-start text-center w-full">
+                  <div className="my-2 flex overflow-x-auto flex-wrap h-max flex-row items-center text-sm justify-start text-center w-full">
                     <Button
                       onClick={async () => {
                         if (modpack.isApplied) {
@@ -307,7 +307,7 @@ export default function ApplyPage() {
                           context.setSnackbar({
                             message: (
                               <span className="flex">
-                                <MdCheck className="w-6 h-6 mx-2" />
+                                <MdCheck className="w-5 h-5 mx-2" />
                                 {t("setModpackSuccess")}
                               </span>
                             ),
@@ -325,12 +325,12 @@ export default function ApplyPage() {
                       }}
                       className={
                         modpack.isApplied
-                          ? "flex items-center self-center bg-emerald-900 cursor-default w-max px-4 h-16 justify-center m-2"
-                          : "flex items-center self-center bg-emerald-600 hover:bg-emerald-700 px-4 w-max h-16 justify-center m-2"
+                          ? "flex items-center self-center bg-emerald-900 cursor-default w-max px-4 h-10 justify-center m-2"
+                          : "flex items-center self-center bg-emerald-600 hover:bg-emerald-700 px-4 w-max h-10 justify-center m-2"
                       }
                     >
                       {modpack.isApplied ? t("applied") : t("apply")}
-                      <MdCheck className="w-6 h-6 mx-2" />
+                      <MdCheck className="w-5 h-5 mx-2" />
                     </Button>
                     <Button
                       onClick={async () => {
@@ -346,11 +346,11 @@ export default function ApplyPage() {
                         }
                       }}
                       className={
-                        "flex items-center self-center bg-blue-600 hover:bg-blue-700 px-4 m-2 w-max h-16 justify-center"
+                        "flex items-center self-center bg-blue-600 hover:bg-blue-700 px-4 m-2 w-max h-10 justify-center"
                       }
                     >
                       {t("share")}
-                      <MdShare className="w-6 h-6 mx-2" />
+                      <MdShare className="w-5 h-5 mx-2" />
                     </Button>
                     <Button
                       onClick={async () => {
@@ -359,7 +359,7 @@ export default function ApplyPage() {
                           context.setSnackbar({
                             message: (
                               <span className="flex">
-                                <MdCheck className="w-6 h-6 mx-2" />
+                                <MdCheck className="w-5 h-5 mx-2" />
                                 {t("modpackUpdated")}
                               </span>
                             ),
@@ -377,11 +377,11 @@ export default function ApplyPage() {
                         }
                       }}
                       className={
-                        "flex items-center px-4 self-center bg-emerald-600 hover:bg-emerald-700 m-2 w-max h-16 justify-center"
+                        "flex items-center px-4 self-center bg-emerald-600 hover:bg-emerald-700 m-2 w-max h-10 justify-center"
                       }
                     >
                       {t("sync")}
-                      <MdSync className="w-6 h-6 ml-2" />
+                      <MdSync className="w-5 h-5 ml-2" />
                     </Button>
                     <Button
                       onClick={async () => {
@@ -393,11 +393,11 @@ export default function ApplyPage() {
                         setModpackToUpdate(modpack);
                       }}
                       className={
-                        "flex items-center self-center bg-blue-600 hover:bg-blue-700 px-4 m-2 w-max h-16 justify-center"
+                        "flex items-center self-center bg-blue-600 hover:bg-blue-700 px-4 m-2 w-max h-10 justify-center"
                       }
                     >
                       {t("update")}
-                      <MdEdit className="w-6 h-6 mx-2" />
+                      <MdEdit className="w-5 h-5 mx-2" />
                     </Button>
                     <Button
                       onClick={async () => {
@@ -413,11 +413,11 @@ export default function ApplyPage() {
                         }
                       }}
                       className={
-                        "flex items-center self-center px-4 bg-slate-800 hover:bg-slate-700 m-2 w-max h-16 justify-center"
+                        "flex items-center self-center px-4 bg-slate-800 hover:bg-slate-700 m-2 w-max h-10 justify-center"
                       }
                     >
                       {t("export")}
-                      <MdArchive className="w-6 h-6 mx-2" />
+                      <MdArchive className="w-5 h-5 mx-2" />
                     </Button>
                     <Button
                       onClick={async () => {
@@ -425,7 +425,7 @@ export default function ApplyPage() {
                           await deleteModpack(modpack.name);
                           await updateModpacks();
                           context.setSnackbar({
-                            message: <MdDelete className="w-6 h-6 mx-2" />,
+                            message: <MdDelete className="w-5 h-5 mx-2" />,
                             className: "bg-emerald-600 rounded-4xl",
                             timeout: 5000,
                           });
@@ -439,11 +439,11 @@ export default function ApplyPage() {
                         }
                       }}
                       className={
-                        "flex items-center self-center bg-slate-800 hover:bg-red-700 px-4  w-max h-16 m-2 justify-center"
+                        "flex items-center self-center bg-slate-800 hover:bg-red-700 px-4  w-max h-10 m-2 justify-center"
                       }
                     >
                       {t("delete")}
-                      <MdDelete className="w-6 h-6 mx-2" />
+                      <MdDelete className="w-5 h-5 mx-2" />
                     </Button>
                     <Button
                       onClick={async () => {
@@ -470,11 +470,11 @@ export default function ApplyPage() {
                         });
                       }}
                       className={
-                        "flex items-center self-center bg-slate-800 hover:bg-slate-700 px-4 w-max m-2 h-16 justify-center"
+                        "flex items-center self-center bg-slate-800 hover:bg-slate-700 px-4 w-max m-2 h-10 justify-center"
                       }
                     >
                       {t("details")}
-                      <MdInfo className="w-6 h-6 mx-2" />
+                      <MdInfo className="w-5 h-5 mx-2" />
                     </Button>
                   </div>
                 </motion.div>
@@ -496,7 +496,7 @@ export default function ApplyPage() {
               className="fixed inset-0 flex w-screen items-center justify-center p-4"
             >
               <DialogPanel className="max-w-xl space-y-4 rounded-4xl bg-slate-800 p-8">
-                <DialogTitle className="font-black text-2xl">
+                <DialogTitle className="font-black text-xl">
                   {isDialogToCreate ? t("createModpack") : t("update")}
                 </DialogTitle>
                 <Description>

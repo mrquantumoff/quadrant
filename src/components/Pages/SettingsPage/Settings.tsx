@@ -23,6 +23,15 @@ import {
   openDialog,
 } from "../../../desktop";
 import { ContentContext } from "../../../intefaces";
+import { MdAdd, MdRemove } from "react-icons/md";
+import {
+  CLASSIC_UI_SCALE,
+  clampUiScale,
+  COMPACT_UI_SCALE,
+  setUiScale,
+  UI_SCALE_KEY,
+  UI_SCALE_STEP,
+} from "../../../uiScale";
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -51,8 +60,13 @@ export default function SettingsPage() {
   const [currentVersion, setCurrentVersion] = useState("");
   const [currentRuntimeName, setCurrentRuntimeName] = useState("");
   const [currentRuntimeVersion, setCurrentRuntimeVersion] = useState("");
-  const [extendedNavigation, setExtendedNavigation] = useState(false);
   const [showUpdateSettings, setShowUpdateSettings] = useState(true);
+  const [uiScale, setUiScaleState] = useState(COMPACT_UI_SCALE);
+
+  const changeUiScale = async (newScale: number) => {
+    const applied = await setUiScale(newScale);
+    setUiScaleState(applied);
+  };
 
   const applyCollectDataPreference = async (enabled: boolean) => {
     setCollectData(enabled);
@@ -102,13 +116,35 @@ export default function SettingsPage() {
       setCurrentVersion(await getAppVersion());
       setCurrentRuntimeName(await getRuntimeName());
       setCurrentRuntimeVersion(await getRuntimeVersion());
-      setExtendedNavigation(
-        (await box.get<boolean>("extendedNavigation")) ?? false,
-      );
       setShowUpdateSettings(await isAutoupdateEnabled());
+      setUiScaleState(clampUiScale(await box.get<number>(UI_SCALE_KEY)));
     };
 
     initializeValues();
+
+    // Keeps the displayed percentage in sync with the zoom shortcuts.
+    let isUnmounted = false;
+    let uiScaleUnlisten: (() => void) | null = null;
+    const subscribe = async () => {
+      uiScaleUnlisten = await box.onKeyChange<number>(
+        UI_SCALE_KEY,
+        (newValue) => {
+          if (!isUnmounted) {
+            setUiScaleState(clampUiScale(newValue));
+          }
+        },
+      );
+      if (isUnmounted) {
+        uiScaleUnlisten();
+        uiScaleUnlisten = null;
+      }
+    };
+    subscribe().catch(console.error);
+
+    return () => {
+      isUnmounted = true;
+      uiScaleUnlisten?.();
+    };
   }, [box, updateChannelBox]);
 
   return (
@@ -118,7 +154,7 @@ export default function SettingsPage() {
       exit={{ y: 24, opacity: 0 }}
       className="mt-2 mx-8 flex flex-1 flex-col transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
     >
-      <h1 className="font-extrabold text-4xl my-4 bg-slate-800 rounded-4xl w-fit p-4">
+      <h1 className="font-extrabold text-2xl my-4 bg-slate-800 rounded-4xl w-fit p-3">
         {t("someSettingsRequireReload")}
       </h1>
       <div className="flex flex-col items-center align-middle w-full p-4 bg-slate-800 rounded-4xl">
@@ -134,7 +170,7 @@ export default function SettingsPage() {
         <Field className={"flex flex-col font-bold my-4"}>
           <Label>{t("updateChannel")}</Label>
           <Select
-            className="my-4 input w-1/4"
+            className="my-4 input w-full max-w-xs"
             aria-label={t("updateChannel")}
             value={updateChannel}
             onChange={async (e) => {
@@ -157,7 +193,7 @@ export default function SettingsPage() {
       <Field className={"flex flex-col font-bold my-4"}>
         <Label>{t("language")}</Label>
         <Select
-          className="input my-4 w-1/4"
+          className="input my-4 w-full max-w-xs"
           aria-label={t("language")}
           value={currentLocale}
           onChange={async (e) => {
@@ -172,6 +208,54 @@ export default function SettingsPage() {
           <option value="uk">Українська</option>
           <option value="tr">Türkçe</option>
         </Select>
+      </Field>
+      <Field className={"flex flex-col font-bold my-4"}>
+        <Label>{t("uiScale")}</Label>
+        <div className="flex flex-row flex-wrap items-center my-4 gap-2">
+          <Button
+            className="bg-slate-700 hover:bg-slate-600 flex items-center justify-center"
+            onClick={async () => {
+              await changeUiScale(uiScale - UI_SCALE_STEP);
+            }}
+          >
+            <MdRemove className="w-5 h-5" />
+          </Button>
+          <span className="bg-slate-800 rounded-4xl px-4 py-2 w-20 text-center">
+            {uiScale}%
+          </span>
+          <Button
+            className="bg-slate-700 hover:bg-slate-600 flex items-center justify-center"
+            onClick={async () => {
+              await changeUiScale(uiScale + UI_SCALE_STEP);
+            }}
+          >
+            <MdAdd className="w-5 h-5" />
+          </Button>
+          <Button
+            className={
+              (uiScale === COMPACT_UI_SCALE
+                ? "bg-emerald-800 "
+                : "bg-slate-700 hover:bg-slate-600 ") + "px-4"
+            }
+            onClick={async () => {
+              await changeUiScale(COMPACT_UI_SCALE);
+            }}
+          >
+            {t("uiScaleCompact")}
+          </Button>
+          <Button
+            className={
+              (uiScale === CLASSIC_UI_SCALE
+                ? "bg-emerald-800 "
+                : "bg-slate-700 hover:bg-slate-600 ") + "px-4"
+            }
+            onClick={async () => {
+              await changeUiScale(CLASSIC_UI_SCALE);
+            }}
+          >
+            {t("uiScaleClassic")}
+          </Button>
+        </div>
       </Field>
       <div className="flex flex-col items-center align-middle w-full p-4 bg-slate-800 rounded-4xl">
         <p className="font-extrabold my-2 bg-slate-700 rounded-4xl p-4">
@@ -320,25 +404,6 @@ export default function SettingsPage() {
           />
         </Switch>
         <Label className="ml-4">{"Modrinth"}</Label>
-      </Field>
-      <Field className="flex items-center font-bold my-4">
-        <Switch
-          className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
-          }
-          checked={extendedNavigation}
-          onChange={async (newValue) => {
-            setExtendedNavigation(newValue);
-            await box.set("extendedNavigation", newValue);
-            await box.save();
-          }}
-        >
-          <span
-            aria-hidden="true"
-            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
-          />
-        </Switch>
-        <Label className="ml-4">{t("extendedNavigation")}</Label>
       </Field>
       {/* <Field className="flex items-center font-bold my-4">
         <Switch

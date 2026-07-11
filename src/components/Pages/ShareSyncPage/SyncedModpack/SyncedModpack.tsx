@@ -114,16 +114,16 @@ export default function SyncedModpackComponent({
       animate={{ y: 0, opacity: 1 }}
     >
       <div className="mx-4">
-        <h1 className="font-extrabold text-4xl">{modpack.name}</h1>
-        <h2 className="text-2xl text-slate-400 ">
+        <h1 className="font-extrabold text-2xl">{modpack.name}</h1>
+        <h2 className="text-lg text-slate-400 ">
           {modpack.mod_loader} {modpack.minecraft_version} |{" "}
           {t("modCount", { amount: JSON.parse(modpack.mods).length })}
         </h2>
-        <div className="text-bold text-lg">
+        <div className="text-bold text-sm">
           <h3>{t("cloudSyncDate", { date: formattedDate })}</h3>
           <h3>{t("localSyncDate", { date: localFormattedDate })}</h3>
         </div>
-        <div className="flex items-center py-4 px-2 bg-slate-700 rounded-4xl my-4 h-16">
+        <div className="flex items-center py-2 px-2 bg-slate-700 rounded-4xl my-3 h-12">
           <Button
             className="flex items-center self-center bg-emerald-600 hover:bg-emerald-700"
             onClick={async () => {
@@ -161,14 +161,14 @@ export default function SyncedModpackComponent({
               <div className="bg-slate-700 rounded-4xl">
                 <DisclosureButton
                   className={
-                    "w-full text-start  data-open:rounded-b-none p-2 flex flex-1 group h-16 items-center "
+                    "w-full text-start  data-open:rounded-b-none p-2 flex flex-1 group h-12 items-center "
                   }
                 >
                   <span className="text-start ml-2 flex w-full font-bold items-start">
                     {t("details")}
                   </span>
                   <div className="w-full items-end justify-end flex  ">
-                    <MdExpandMore className="h-8 flex w-8 ml-0 group-data-open:rotate-180" />
+                    <MdExpandMore className="h-6 flex w-6 ml-0 group-data-open:rotate-180" />
                   </div>
                 </DisclosureButton>
                 <DisclosurePanel static as={Fragment}>
@@ -210,7 +210,7 @@ export default function SyncedModpackComponent({
                           return (
                             <div
                               key={owner.username}
-                              className="my-4 bg-slate-800 rounded-full p-2 flex items-center justify-center font-bold h-20 "
+                              className="my-3 bg-slate-800 rounded-full p-2 flex items-center justify-center font-bold h-14 "
                             >
                               <p className="flex items-center px-4 justify-start w-full">
                                 {owner.admin
@@ -283,7 +283,7 @@ export default function SyncedModpackComponent({
                             "max-w-xl space-y-4 rounded-4xl bg-slate-800 p-8"
                           }
                         >
-                          <DialogTitle className={"font-black text-2xl"}>
+                          <DialogTitle className={"font-black text-xl"}>
                             {t("invite")}
                           </DialogTitle>
                           <Input
@@ -311,7 +311,7 @@ export default function SyncedModpackComponent({
                                 className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
                               />
                             </Switch>
-                            <Label className={"mx-2 font-black text-xl"}>
+                            <Label className={"mx-2 font-black text-base"}>
                               {t("admin")}
                             </Label>
                           </Field>
