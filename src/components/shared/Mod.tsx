@@ -154,7 +154,7 @@ export default function Mod(props: IModProps) {
       installInFlightRef.current = false;
       context.setSnackbar({
         message: t("downloadSuccess"),
-        className: "bg-emerald-700 text-white",
+        className: "bg-emerald-600",
         timeout: 3000,
       });
     }
@@ -227,7 +227,7 @@ export default function Mod(props: IModProps) {
                   await deleteMod(props.modpack ?? "free", mod.id);
                   setVisible(false);
                 }}
-                className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-red-700 hover:bg-red-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-slate-800 hover:bg-red-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
               >
                 {t("delete")}
                 <MdDelete className="ml-2 w-6 h-6" />
@@ -262,12 +262,12 @@ export default function Mod(props: IModProps) {
                       setClickableDownload(true);
                       context.setSnackbar({
                         message: t(e),
-                        className: "bg-red-700 text-white",
+                        className: "bg-red-700",
                         timeout: 3000,
                       });
                     }
                   }}
-                  className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-700 hover:bg-emerald-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                  className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-600 hover:bg-emerald-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 >
                   {progress === -1 ? t("update") : +progress.toFixed(2) + "%"}
                   <MdFileDownload className="ml-2 w-6 h-6"></MdFileDownload>
@@ -307,7 +307,7 @@ export default function Mod(props: IModProps) {
                         setClickableDownload(true);
                         context.setSnackbar({
                           message: t(e),
-                          className: "bg-red-700 text-white",
+                          className: "bg-red-700",
                           timeout: 3000,
                         });
                       }
@@ -315,7 +315,7 @@ export default function Mod(props: IModProps) {
                     }
                     openModDownload();
                   }}
-                  className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-700 hover:bg-emerald-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                  className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-600 hover:bg-emerald-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 >
                   {progress === -1 ? t("download") : +progress.toFixed(2) + "%"}
                   <MdFileDownload className="ml-2 w-6 h-6"></MdFileDownload>
@@ -327,7 +327,7 @@ export default function Mod(props: IModProps) {
             {mod.selectable && (
               <Button
                 animate
-                className="flex items-center w-full text-lg/none self-center h-full wrap-break-word text-center justify-center bg-blue-700 hover:bg-blue-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                className="flex items-center w-full text-lg/none self-center h-full wrap-break-word text-center justify-center bg-blue-600 hover:bg-blue-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 onClick={async () => {
                   await registerMod(
                     {
@@ -350,7 +350,7 @@ export default function Mod(props: IModProps) {
                   await openIn(mod.url);
                 }}
                 animate
-                className="flex items-center w-full text-lg/none self-center h-full wrap-break-word text-center justify-center bg-blue-700 hover:bg-blue-800 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                className="flex items-center w-full text-lg/none self-center h-full wrap-break-word text-center justify-center bg-blue-600 hover:bg-blue-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
               >
                 {t("openInTheWeb")}
                 <MdOpenInBrowser className="ml-2 w-6 h-6"></MdOpenInBrowser>

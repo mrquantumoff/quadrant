@@ -87,7 +87,7 @@ export default function SharePage({
     } catch (e: any) {
       modpackInstallRequestedRef.current = false;
       context.setSnackbar({
-        className: "bg-red-700 text-white",
+        className: "bg-red-700",
         message: t(e),
         timeout: 5000,
       });
@@ -113,7 +113,7 @@ export default function SharePage({
         if (progress.payload === 1 && modpackInstallRequestedRef.current) {
           modpackInstallRequestedRef.current = false;
           context.setSnackbar({
-            className: "bg-emerald-700 text-white",
+            className: "bg-emerald-600",
             message: t("downloadSuccess"),
             timeout: 5000,
           });
@@ -243,7 +243,7 @@ export default function SharePage({
                 className={
                   "mt-2 w-full mr-1 " +
                   (progress === 1
-                    ? "bg-emerald-700 hover:bg-emerald-800"
+                    ? "bg-emerald-600 hover:bg-emerald-700"
                     : "bg-slate-700 hover:bg-slate-700 cursor-not-allowed")
                 }
                 onClick={
@@ -256,7 +256,7 @@ export default function SharePage({
               </Button>
               {modpack === undefined && (
                 <Button
-                  className="mt-2 w-full ml-1 bg-sky-500 hover:bg-sky-700 "
+                  className="mt-2 w-full ml-1 bg-blue-600 hover:bg-blue-700 "
                   onClick={async () => {
                     const clipboardText = await readClipboardText();
                     const extracted = extractCode(clipboardText);

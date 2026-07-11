@@ -117,11 +117,11 @@ export default function SettingsPage() {
       exit={{ y: 24, opacity: 0 }}
       className="mt-2 mx-8 flex flex-1 flex-col transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
     >
-      <h1 className="font-extrabold text-4xl my-4 bg-yellow-400 text-slate-950 rounded-4xl w-fit p-4">
+      <h1 className="font-extrabold text-4xl my-4 bg-slate-800 rounded-4xl w-fit p-4">
         {t("someSettingsRequireReload")}
       </h1>
-      <div className="flex flex-col items-center align-middle w-full p-4 bg-slate-700 rounded-4xl">
-        <p className="font-extrabold my-2 bg-slate-900 rounded-4xl p-4">
+      <div className="flex flex-col items-center align-middle w-full p-4 bg-slate-800 rounded-4xl">
+        <p className="font-extrabold my-2 bg-slate-700 rounded-4xl p-4">
           {t("currentVersion", {
             version: currentVersion,
             runtimeName: currentRuntimeName,
@@ -172,13 +172,13 @@ export default function SettingsPage() {
           <option value="tr">Türkçe</option>
         </Select>
       </Field>
-      <div className="flex flex-col items-center align-middle w-full p-4 bg-slate-700 rounded-4xl">
-        <p className="font-extrabold my-2 bg-slate-900 rounded-4xl p-4">
+      <div className="flex flex-col items-center align-middle w-full p-4 bg-slate-800 rounded-4xl">
+        <p className="font-extrabold my-2 bg-slate-700 rounded-4xl p-4">
           {mcFolder}
         </p>
         <div className="flex flex-row w-full">
           <Button
-            className="bg-slate-800 w-full hover:bg-slate-900 mr-4"
+            className="bg-slate-700 w-full hover:bg-slate-600 mr-4"
             onClick={async () => {
               const newFolder = await getMinecraftFolder(true);
               console.log("New Minecraft folder: " + newFolder);
@@ -190,7 +190,7 @@ export default function SettingsPage() {
             {t("resetMinecraftFolder")}
           </Button>
           <Button
-            className="bg-slate-800 hover:bg-slate-900 w-full ml-4"
+            className="bg-slate-700 hover:bg-slate-600 w-full ml-4"
             onClick={async () => {
               const newFolder = await openDialog({
                 multiple: false,
@@ -214,7 +214,7 @@ export default function SettingsPage() {
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={
-            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600"
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
           }
           checked={collectData}
           onChange={async () => {
@@ -256,7 +256,7 @@ export default function SettingsPage() {
         {t("viewYourUsageData")}
       </Button>
       <Button
-        className="bg-slate-800 hover:text-slate-50 hover:bg-red-700 w-fit my-4"
+        className="bg-slate-800 hover:bg-red-700 w-fit my-4"
         onClick={async () => {
           await applyCollectDataPreference(false);
         }}

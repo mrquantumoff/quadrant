@@ -270,7 +270,7 @@ export default function ModpackView(modpack: LocalModpack) {
               setShowUpdates(true);
               await checkForUpdates();
             }}
-            className="bg-indigo-600 hover:bg-indigo-800 text-white ml-4 w-fit px-4 flex items-center "
+            className="bg-blue-600 hover:bg-blue-700 ml-4 w-fit px-4 flex items-center "
           >
             {t("update")}
             <MdUpdate className="w-6 ml-2 h-6"></MdUpdate>
@@ -285,7 +285,7 @@ export default function ModpackView(modpack: LocalModpack) {
                 setShowIdentify(true);
                 await getIdentifiedMods();
               }}
-              className="bg-slate-600 px-4 hover:bg-slate-800 text-white mx-2 w-fit flex items-center "
+              className="bg-slate-800 px-4 hover:bg-slate-600 mx-2 w-fit flex items-center "
             >
               {t("identifyUnknownMods")}
               <MdPermIdentity className="w-6 ml-2 h-6"></MdPermIdentity>

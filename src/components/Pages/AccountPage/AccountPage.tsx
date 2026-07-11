@@ -47,7 +47,7 @@ export default function AccountPage() {
     setLoginWarning(warningMessage);
     context.setSnackbar({
       message: warningMessage,
-      className: "bg-red-700 text-white rounded-4xl",
+      className: "bg-red-700 rounded-4xl",
       timeout: 6000,
     });
   };
@@ -85,7 +85,7 @@ export default function AccountPage() {
           <h1 className="mt-6 text-4xl font-extrabold">
             {t("loadingAccount")}
           </h1>
-          <p className="mt-4 max-w-2xl text-lg text-slate-300">
+          <p className="mt-4 max-w-2xl text-lg text-slate-400">
             {t("loadingAccountDetails")}
           </p>
         </div>
@@ -115,7 +115,7 @@ export default function AccountPage() {
         </div>
         <div className="flex flex-row w-[75%] items-center justify-center mt-4">
           <Button
-            className="bg-red-700 hover:bg-red-800 h-min mx-2 w-full"
+            className="bg-slate-800 hover:bg-red-700 h-min mx-2 w-full"
             onClick={async () => {
               await clearAccountToken();
               setLoginWarning(null);
@@ -125,7 +125,7 @@ export default function AccountPage() {
             {t("signout")}
           </Button>
           <Button
-            className="bg-blue-600 hover:bg-blue-800 h-min mx-2 w-full"
+            className="bg-blue-600 hover:bg-blue-700 h-min mx-2 w-full"
             onClick={async () => {
               openIn("https://mrquantumoff.dev/account");
             }}
@@ -231,13 +231,13 @@ export default function AccountPage() {
                 showLoginFailureWarning();
               }
             }}
-            className="bg-sky-500 hover:bg-sky-800 w-full mx-2"
+            className="bg-blue-600 hover:bg-blue-700 w-full mx-2"
           >
             {t("signInWithOAuth")}
           </Button>
           <Button
             onClick={() => openIn("https://mrquantumoff.dev/account/register")}
-            className="bg-blue-500 hover:bg-blue-800 w-full mx-2"
+            className="bg-slate-800 hover:bg-slate-700 w-full mx-2"
           >
             {t("dontHaveAccount")}
           </Button>
@@ -245,7 +245,7 @@ export default function AccountPage() {
       </div>
       <div className="mt-4 w-[47.5vw]">
         <Button
-          className="bg-slate-700 hover:bg-slate-800 w-full h-full flex flex-row items-center justify-center text-lg"
+          className="bg-slate-800 hover:bg-slate-700 w-full h-full flex flex-row items-center justify-center text-lg"
           onClick={async () => {
             openIn(
               "https://github.com/QuadrantMC/quadrant/blob/next/PRIVACY_POLICY.md",

@@ -214,7 +214,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                   onClick={async () => {
                     openIn(owner.url);
                   }}
-                  className="bg-sky-600 hover:bg-sky-800 h-fit"
+                  className="bg-blue-600 hover:bg-blue-700 h-fit"
                 >
                   <p className="flex items-center">
                     <MdOpenInBrowser className="w-6 h-6 mr-2" />
@@ -333,7 +333,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
             <LinearProgress className="my-2" progress={modDownloadProgress} />
             <Button
               className={
-                "self-center flex w-full flex-1 h-full items-center bg-emerald-600 hover:bg-emerald-800 mt-8"
+                "self-center flex w-full flex-1 h-full items-center bg-emerald-600 hover:bg-emerald-700 mt-8"
               }
               onClick={async () => {
                 try {
@@ -350,7 +350,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                   console.error(t(e));
                   context.setSnackbar({
                     message: t(e),
-                    className: "bg-red-500 rounded-4xl",
+                    className: "bg-red-700 rounded-4xl",
                     timeout: 5000,
                   });
                 }
@@ -361,7 +361,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
             </Button>
             <Button
               className={
-                "self-center flex flex-1 h-full items-center bg-sky-600 hover:bg-sky-800 mt-2 w-full"
+                "self-center flex flex-1 h-full items-center bg-blue-600 hover:bg-blue-700 mt-2 w-full"
               }
               onClick={async () => {
                 await openIn(mod.url);
