@@ -189,9 +189,6 @@ mod tests {
         ports::SecretStore,
     };
     use httpmock::{Method::POST, MockServer};
-    use std::sync::Mutex;
-
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     struct MemorySecretStore;
 
@@ -231,7 +228,7 @@ mod tests {
 
     #[tokio::test]
     async fn sync_modpack_sends_quadrant_connection_header_when_present() {
-        let _guard = ENV_LOCK.lock().unwrap();
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
         let server = MockServer::start();
         unsafe {
             std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());

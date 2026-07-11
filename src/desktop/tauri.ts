@@ -101,28 +101,53 @@ function mapProgressStatus(
 
 class TauriStoreAdapter implements DesktopStoreAdapter {
   private readonly store: LazyStore;
+  private readonly isConfig: boolean;
 
   constructor(name: string) {
     this.store = new LazyStore(name);
+    this.isConfig = name === "config.json";
   }
 
   async get<T>(key: string): Promise<T | undefined> {
+    if (this.isConfig) {
+      const value = await tauriInvoke<T | null>("get_config_value", { key });
+      return value ?? undefined;
+    }
     return this.store.get<T>(key);
   }
 
   async set(key: string, value: unknown): Promise<void> {
+    if (this.isConfig) {
+      await tauriInvoke("set_config_value", { key, value });
+      return;
+    }
     await this.store.set(key, value);
   }
 
   async save(): Promise<void> {
+    if (this.isConfig) {
+      return;
+    }
     await this.store.save();
   }
 
   async onChange(listener: (key: string) => void) {
+    if (this.isConfig) {
+      return tauriListen<string>("configChanged", (event) =>
+        listener(event.payload),
+      );
+    }
     return this.store.onChange(listener);
   }
 
   async onKeyChange<T>(key: string, listener: (value: T | null) => void) {
+    if (this.isConfig) {
+      return tauriListen<string>("configChanged", (event) => {
+        if (event.payload === key) {
+          void this.get<T>(key).then((value) => listener(value ?? null));
+        }
+      });
+    }
     return this.store.onKeyChange<T>(key, (value) => listener(value ?? null));
   }
 }

@@ -77,11 +77,7 @@ fn response_preview(body: &str) -> String {
         return "<empty body>".to_string();
     }
 
-    if trimmed.len() > 300 {
-        trimmed[..300].to_string()
-    } else {
-        trimmed.to_string()
-    }
+    trimmed.chars().take(300).collect()
 }
 
 /// Submits a modpack to Quadrant Share using the current settings and account state.
@@ -169,9 +165,6 @@ mod tests {
         MockServer,
     };
     use serde_json::Value;
-    use std::sync::Mutex;
-
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     struct MemorySettingsStore;
 
@@ -226,7 +219,7 @@ mod tests {
 
     #[tokio::test]
     async fn share_modpack_raw_sends_json_and_surfaces_http_body() {
-        let _guard = ENV_LOCK.lock().unwrap();
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
         let server = MockServer::start();
         unsafe {
             std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
@@ -261,7 +254,7 @@ mod tests {
 
     #[tokio::test]
     async fn get_quadrant_share_modpack_surfaces_invalid_success_payload() {
-        let _guard = ENV_LOCK.lock().unwrap();
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
         let server = MockServer::start();
         unsafe {
             std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());

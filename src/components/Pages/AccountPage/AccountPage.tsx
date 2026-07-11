@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /** @format */
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { AccountInfo } from "../../../intefaces";
 import { clearAccountToken, getAccountInfo, openIn } from "../../../tools";
 import Button from "../../core/Button";
@@ -24,6 +23,7 @@ export default function AccountPage() {
     AccountInfo | null | undefined
   >(undefined);
   const [loginWarning, setLoginWarning] = useState<string | null>(null);
+  const oauthCleanupRef = useRef<(() => Promise<void>) | null>(null);
 
   const updateAccountInfo = async (showLoader = true) => {
     if (showLoader) {
@@ -39,7 +39,8 @@ export default function AccountPage() {
     }
   };
 
-  const config = createDesktopStore("config.json");
+  const configRef = useRef(createDesktopStore("config.json"));
+  const config = configRef.current;
   const context = useContext(ContentContext);
 
   const showLoginFailureWarning = () => {
@@ -74,6 +75,8 @@ export default function AccountPage() {
     return () => {
       isUnmounted = true;
       unlistenRecheck?.();
+      void oauthCleanupRef.current?.();
+      oauthCleanupRef.current = null;
     };
   }, []);
 
@@ -150,6 +153,8 @@ export default function AccountPage() {
           <Button
             onClick={async () => {
               setLoginWarning(null);
+              await oauthCleanupRef.current?.();
+              oauthCleanupRef.current = null;
               const randomString = Math.random().toString(36).substring(2, 26);
 
               await config.set("oauthState", randomString);
@@ -163,6 +168,10 @@ export default function AccountPage() {
                   ports: [4000, 4001, 4002, 4003, 4004, 4005],
                 });
                 let unlistenOAuth: (() => void) | null = null;
+                oauthCleanupRef.current = async () => {
+                  unlistenOAuth?.();
+                  await cancelOAuthServer(port);
+                };
 
                 console.log(`OAuth server started on port ${port}`);
 
@@ -222,12 +231,14 @@ export default function AccountPage() {
                     setAccountInfo(null);
                     showLoginFailureWarning();
                   } finally {
-                    await cancelOAuthServer(port);
-                    unlistenOAuth?.();
+                    await oauthCleanupRef.current?.();
+                    oauthCleanupRef.current = null;
                   }
                 });
               } catch (error) {
                 console.error("Error starting OAuth server:", error);
+                await oauthCleanupRef.current?.();
+                oauthCleanupRef.current = null;
                 showLoginFailureWarning();
               }
             }}

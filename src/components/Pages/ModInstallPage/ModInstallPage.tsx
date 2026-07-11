@@ -1,6 +1,6 @@
 /** @format */
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import "./ModInstallPage.css";
 import {
   IMod,
@@ -57,8 +57,13 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   const [clipIcons, setClipIcons] = useState(true);
   const [modInstallProgress, setModInstallProgress] = useState<number>(0);
   const [modDownloadProgress, setModDownloadProgress] = useState<number>(0);
-  const config = createDesktopStore("config.json");
+  const [isInstalling, setIsInstalling] = useState(false);
+  const installInFlightRef = useRef(false);
+  const configRef = useRef(createDesktopStore("config.json"));
+  const config = configRef.current;
   useEffect(() => {
+    let cancelled = false;
+    const unlisteners: Array<() => void | Promise<void>> = [];
     const effect = async () => {
       setVersions(await getVersions());
       setModpacks(await getModpacks());
@@ -78,19 +83,30 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       }
       setDeps(newDeps);
       setOwners(newOwnersList);
+      const listeners = await Promise.all([
+        listen<ModProgress>("modInstallProgress", (event) => {
+          if (!cancelled && event.payload.modId === mod.id) {
+            setModInstallProgress(event.payload.progress);
+          }
+        }),
+        listen<ModProgress>("modDownloadProgress", (event) => {
+          if (!cancelled && event.payload.modId === mod.id) {
+            setModDownloadProgress(event.payload.progress);
+          }
+        }),
+      ]);
+      if (cancelled) {
+        await Promise.all(listeners.map((unlisten) => unlisten()));
+      } else {
+        unlisteners.push(...listeners);
+      }
     };
-    effect();
-    listen<ModProgress>("modInstallProgress", (event) => {
-      if (event.payload.modId === mod.id) {
-        setModInstallProgress(event.payload.progress);
-      }
-    });
-    listen<ModProgress>("modDownloadProgress", (event) => {
-      if (event.payload.modId === mod.id) {
-        setModDownloadProgress(event.payload.progress);
-      }
-    });
-  }, []);
+    effect().catch(console.error);
+    return () => {
+      cancelled = true;
+      unlisteners.forEach((unlisten) => void unlisten());
+    };
+  }, [config, mod.id, mod.source]);
 
   useEffect(() => {
     const effect = async () => {
@@ -284,10 +300,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 value={loader}
                 autoComplete="off"
               >
-                <LoaderOptions
-                  loader={loader}
-                  providers={loaderProviders}
-                />
+                <LoaderOptions loader={loader} providers={loaderProviders} />
               </Select>
             </Field>
           ) : (
@@ -333,9 +346,17 @@ export default function ModInstallPage(props: IModInstallPageProps) {
             <LinearProgress className="my-2" progress={modDownloadProgress} />
             <Button
               className={
-                "self-center flex w-full flex-1 h-full items-center bg-emerald-600 hover:bg-emerald-700 mt-8"
+                "self-center flex w-full flex-1 h-full items-center mt-8 " +
+                (isInstalling
+                  ? "bg-slate-700 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700")
               }
               onClick={async () => {
+                if (installInFlightRef.current) {
+                  return;
+                }
+                installInFlightRef.current = true;
+                setIsInstalling(true);
                 try {
                   await installMod(
                     mod.id,
@@ -353,6 +374,9 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                     className: "bg-red-700 rounded-4xl",
                     timeout: 5000,
                   });
+                } finally {
+                  installInFlightRef.current = false;
+                  setIsInstalling(false);
                 }
               }}
             >

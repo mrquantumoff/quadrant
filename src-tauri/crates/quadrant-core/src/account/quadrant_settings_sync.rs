@@ -17,9 +17,6 @@ pub const SYNCED_KEYS: &[&str] = &[
     "collectUserData",
     "modrinth",
     "curseforge",
-    "curseforgeUsage",
-    "modrinthUsage",
-    "hardwareId",
     "rssFeeds",
     "silentNews",
     "autoQuadrantSync",
@@ -74,8 +71,11 @@ pub async fn get_quadrant_settings(
             .as_object()
             .ok_or_else(|| anyhow!("No valid settings"))?
         {
-            settings_store.set_value(key, value.to_owned())?;
+            if SYNCED_KEYS.contains(&key.as_str()) {
+                settings_store.set_value(key, value.to_owned())?;
+            }
         }
+        settings_store.set_string("lastSettingsUpdated", sync_time.to_rfc3339())?;
         return Ok(());
     }
 
@@ -120,4 +120,16 @@ pub async fn submit_quadrant_settings(
         return Err(anyhow!(response.text().await?));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SYNCED_KEYS;
+
+    #[test]
+    fn machine_identity_and_usage_counters_are_not_cloud_synced() {
+        assert!(!SYNCED_KEYS.contains(&"hardwareId"));
+        assert!(!SYNCED_KEYS.contains(&"curseforgeUsage"));
+        assert!(!SYNCED_KEYS.contains(&"modrinthUsage"));
+    }
 }

@@ -4,7 +4,7 @@
   <metadata_license>MIT</metadata_license>
   <project_license>MPL-2.0</project_license>
   <name>Quadrant for Minecraft</name>
-  <summary>Manage your mods and modpacks with ease.</summary>
+  <summary>Manage your mods and modpacks with ease</summary>
   <description>
     <p>
       This is a powerful tool to manage your Minecraft: Java Edition mods.
@@ -26,8 +26,9 @@
     <category>Game</category>
     <category>Utility</category>
   </categories>
-  <developer_name>qnt / MrQuantumOFF
-    (Demir Yerli)</developer_name>
+  <developer id="dev.mrquantumoff">
+    <name>qnt / MrQuantumOFF (Demir Yerli)</name>
+  </developer>
   <keywords>
     <keyword>minecraft</keyword>
     <keyword>mods</keyword>
@@ -389,13 +390,6 @@
       </description>
     </release>
 
-    <release date="2024-12-10" version="24.12.1">
-      <url type="details">https://blog.mrquantumoff.dev/quadrants-v24-12/</url>
-      <description>
-        <p>Dependency updates, bug fixes</p>
-      </description>
-    </release>
-
     <release date="2024-12-01" version="24.12.0">
       <url type="details">https://blog.mrquantumoff.dev/quadrants-v24-12/</url>
       <description>
@@ -604,9 +598,7 @@
 
     <release date="2024-05-01" version="24.5.1">
       <description>
-        <p>Introducing Quadrant ID, read more detailed changes here:
-          https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and
-          https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
+        <p>Introducing Quadrant ID</p>
         <p>The privacy policy has been updated!</p>
         <p>Dependency updates, bug fixes</p>
       </description>
@@ -614,9 +606,7 @@
 
     <release date="2024-04-22" version="24.5.0-preview3">
       <description>
-        <p>Introducing Quadrant ID, read more detailed changes here:
-          https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and
-          https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
+        <p>Introducing Quadrant ID</p>
         <p>The privacy policy has been updated!</p>
         <p>Dependency updates, bug fixes</p>
       </description>
@@ -624,9 +614,7 @@
 
     <release date="2024-04-20" version="24.5.0-preview2">
       <description>
-        <p>Introducing Quadrant ID, read more detailed changes here:
-          https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and
-          https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
+        <p>Introducing Quadrant ID</p>
         <p>The privacy policy has been updated!</p>
         <p>Dependency updates, bug fixes</p>
       </description>
@@ -634,19 +622,7 @@
 
     <release date="2024-04-20" version="24.5.0-preview">
       <description>
-        <p>Introducing Quadrant ID, read more detailed changes here:
-          https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and
-          https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
-        <p>The privacy policy has been updated!</p>
-        <p>Dependency updates, bug fixes</p>
-      </description>
-    </release>
-
-    <release date="2024-04-20" version="24.5.0-preview">
-      <description>
-        <p>Introducing Quadrant ID, read more detailed changes here:
-          https://mrquantumoff.dev/blog/16a1884d-d0ee-57b2-905a-b495e89e8f7f and
-          https://mrquantumoff.dev/blog/a449acb8-e663-59a7-a220-cb1b86e5fba0</p>
+        <p>Introducing Quadrant ID</p>
         <p>The privacy policy has been updated!</p>
         <p>Dependency updates, bug fixes</p>
       </description>

@@ -10,7 +10,14 @@ import { defineConfig } from "eslint/config";
 
 export default defineConfig([
   {
-    ignores: ["src-tauri/target/**", "**/*.css"],
+    ignores: [
+      ".claude/**",
+      ".ds-sync/**",
+      "dist/**",
+      "ds-bundle/**",
+      "src-tauri/target/**",
+      "**/*.css",
+    ],
   },
 
   // Base JS

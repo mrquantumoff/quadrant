@@ -182,14 +182,15 @@ export default function SyncedModpackComponent({
                         exit={{ opacity: 0, y: -50 }}
                       >
                         {modpack.owners.map((owner) => {
-                          const userIfOwner = {
-                            username: accountInfo?.login,
-                            admin: true,
-                          };
-                          const isOwner =
-                            owner !== userIfOwner &&
+                          const currentUserIsAdmin = modpack.owners.some(
+                            (candidate) =>
+                              candidate.username === accountInfo?.login &&
+                              candidate.admin,
+                          );
+                          const canKick =
+                            currentUserIsAdmin &&
                             owner.username !== accountInfo?.login;
-                          const kickButton = isOwner ? (
+                          const kickButton = canKick ? (
                             <Button
                               className="bg-slate-700 hover:bg-red-700 px-4 mr-4"
                               onClick={async () => {

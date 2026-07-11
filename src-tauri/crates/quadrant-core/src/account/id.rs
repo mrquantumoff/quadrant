@@ -520,12 +520,7 @@ fn response_preview(body: &str) -> String {
     if trimmed.is_empty() {
         return "<empty body>".to_string();
     }
-    let preview = if trimmed.len() > 300 {
-        &trimmed[..300]
-    } else {
-        trimmed
-    };
-    preview.to_string()
+    trimmed.chars().take(300).collect()
 }
 
 /// Marks a notification as read in the Quadrant backend.
@@ -561,9 +556,6 @@ mod tests {
     };
     use crate::{Result, ports::SecretStore};
     use httpmock::{Method::GET, MockServer};
-    use std::sync::Mutex;
-
-    static ENV_LOCK: Mutex<()> = Mutex::new(());
 
     struct MemorySecretStore;
 
@@ -599,7 +591,7 @@ mod tests {
 
     #[tokio::test]
     async fn notification_history_page_uses_cursor_query() {
-        let _guard = ENV_LOCK.lock().unwrap();
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
         let server = MockServer::start();
         unsafe {
             std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
@@ -640,7 +632,7 @@ mod tests {
 
     #[tokio::test]
     async fn notification_history_all_since_follows_pagination() {
-        let _guard = ENV_LOCK.lock().unwrap();
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
         let server = MockServer::start();
         unsafe {
             std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());

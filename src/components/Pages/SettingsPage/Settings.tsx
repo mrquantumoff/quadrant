@@ -135,7 +135,7 @@ export default function SettingsPage() {
           <Label>{t("updateChannel")}</Label>
           <Select
             className="my-4 input w-1/4"
-            aria-label={t("locale")}
+            aria-label={t("updateChannel")}
             value={updateChannel}
             onChange={async (e) => {
               e.preventDefault();

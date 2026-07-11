@@ -27,12 +27,14 @@ function Copy-CommonContent {
     }
 }
 
-function Set-ManifestArchitecture {
+function Set-ManifestIdentity {
     param(
         [Parameter(Mandatory = $true)]
         [string]$ManifestPath,
         [Parameter(Mandatory = $true)]
-        [string]$ProcessorArchitecture
+        [string]$ProcessorArchitecture,
+        [Parameter(Mandatory = $true)]
+        [string]$Version
     )
 
     [xml]$manifest = Get-Content -Path $ManifestPath
@@ -45,6 +47,7 @@ function Set-ManifestArchitecture {
     }
 
     $identity.SetAttribute("ProcessorArchitecture", $ProcessorArchitecture)
+    $identity.SetAttribute("Version", $Version)
     $manifest.Save($ManifestPath)
 }
 
@@ -93,6 +96,8 @@ $bundleOutputPath = Join-Path $repoRoot $OutDir
 
 $templateContentManifestPath = Join-Path $contentRootPath "AppxManifest.xml"
 $rootManifestPath = Join-Path $repoRoot "AppxManifest.xml"
+$packageVersion = (Get-Content (Join-Path $repoRoot "package.json") | ConvertFrom-Json).version -replace "-.*$", ""
+$manifestVersion = "$packageVersion.0"
 
 $iconMappings = @(
     @{ Source = "src-tauri\icons\Square150x150Logo.png"; Destination = "Images\Square150x150Logo.png" },
@@ -122,7 +127,7 @@ $stagedArchitectures = @()
 
 foreach ($architecture in $architectures) {
     $sourceExe = Get-ArchitectureExecutablePath -Architecture $architecture -RepoRoot $repoRoot
-    if (-not (Test-Path -Path $sourceExe -PathType Leaf)) {
+    if ($null -eq $sourceExe -or -not (Test-Path -Path $sourceExe -PathType Leaf)) {
         continue
     }
 
@@ -158,7 +163,7 @@ foreach ($architecture in $architectures) {
         throw "A manifest was not staged for $($architecture.Name): $stageManifestPath"
     }
 
-    Set-ManifestArchitecture -ManifestPath $stageManifestPath -ProcessorArchitecture $architecture.ProcessorArchitecture
+    Set-ManifestIdentity -ManifestPath $stageManifestPath -ProcessorArchitecture $architecture.ProcessorArchitecture -Version $manifestVersion
     Copy-Item -Path $sourceExe -Destination (Join-Path $stageDir "quadrant_next.exe") -Force
 
     $stagedArchitectures += [pscustomobject]@{

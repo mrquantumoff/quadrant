@@ -8,7 +8,7 @@ app-id: dev.mrquantumoff.mcmodpackmanager
 runtime: org.gnome.Platform
 runtime-version: "50"
 sdk: org.gnome.Sdk
-command: quadrant-next
+command: quadrant_next
 
 finish-args:
   - --share=ipc
@@ -61,7 +61,7 @@ modules:
         fi
 
         desktop-file-edit \
-          --set-key=Exec --set-value="quadrant-next %u" \
+          --set-key=Exec --set-value="quadrant_next %u" \
           --set-key=Icon --set-value=dev.mrquantumoff.mcmodpackmanager \
           "$desktop_file"
         install -Dm644 "$desktop_file" /app/share/applications/dev.mrquantumoff.mcmodpackmanager.desktop

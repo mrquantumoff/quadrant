@@ -65,9 +65,19 @@ export default function SharePage({
       return;
     }
 
-    const newModpack = await getQuadrantShareModpack(extracted);
-    console.log("New modpack: " + newModpack);
-    setModpack(newModpack);
+    setIsLoading(true);
+    try {
+      const newModpack = await getQuadrantShareModpack(extracted);
+      setModpack(newModpack);
+    } catch (error) {
+      context.setSnackbar({
+        className: "bg-red-700",
+        message: String(error),
+        timeout: 5000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const installRemoteModpack = async () => {
@@ -86,6 +96,7 @@ export default function SharePage({
       }
     } catch (e: any) {
       modpackInstallRequestedRef.current = false;
+      setProgress(1);
       context.setSnackbar({
         className: "bg-red-700",
         message: t(e),
@@ -139,6 +150,8 @@ export default function SharePage({
   useEffect(() => {
     if (preselectedModpack !== undefined) {
       setModpack(preselectedModpack);
+      setProgress(1);
+      modpackInstallRequestedRef.current = false;
     }
   }, [preselectedModpack]);
 
@@ -149,6 +162,7 @@ export default function SharePage({
         return;
       }
       setMods([]);
+      setIsLoading(true);
 
       const fetchMods = async () => {
         console.log("Mods: " + modpack.mods.length);
@@ -177,7 +191,10 @@ export default function SharePage({
         setIsLoading(false);
       };
 
-      fetchMods();
+      fetchMods().catch((error) => {
+        console.error("Failed to load shared modpack", error);
+        setIsLoading(false);
+      });
     };
     effect().catch(console.error);
   }, [modpack]);

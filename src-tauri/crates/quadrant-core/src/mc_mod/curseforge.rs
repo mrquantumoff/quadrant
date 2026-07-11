@@ -67,7 +67,7 @@ pub struct ModFile {
     pub hashes: Vec<Hash>,
     pub file_date: String,
     pub file_length: u64,
-    pub download_url: String,
+    pub download_url: Option<String>,
 }
 
 impl From<ModFile> for UniversalModFile {
@@ -75,14 +75,13 @@ impl From<ModFile> for UniversalModFile {
         Self {
             id: Some(value.id.to_string()),
             file_name: value.file_name,
-            download_url: value.download_url,
+            download_url: value.download_url.unwrap_or_default(),
             sha1: value
                 .hashes
                 .iter()
                 .find(|hash| hash.algo == 1)
-                .expect("failedToGetHash")
-                .value
-                .clone(),
+                .map(|hash| hash.value.clone())
+                .unwrap_or_default(),
             size: value.file_length,
         }
     }
@@ -141,9 +140,7 @@ pub async fn get_mod_curseforge(args: GetModArgs) -> Result<Mod> {
         .collect();
     let logo = res_data["logo"]["url"]
         .as_str()
-        .unwrap_or(
-            "https://github.com/QuadrantMC/quadrant/raw/next/public/logoNoBg.png",
-        )
+        .unwrap_or("https://github.com/QuadrantMC/quadrant/raw/next/public/logoNoBg.png")
         .to_string();
     Ok(Mod {
         id: args.id,
@@ -202,14 +199,16 @@ pub async fn get_mod_deps_curseforge(id: String) -> Result<Vec<Mod>> {
         .await?
         .json()
         .await?;
-    let mods_to_get: Vec<String> = res_json["data"]["latestFileIndexes"][0]["dependencies"]
+    let mods_to_get: Vec<String> = res_json["data"]["latestFiles"]
         .as_array()
-        .unwrap_or(&vec![])
-        .iter()
+        .into_iter()
+        .flatten()
+        .flat_map(|file| file["dependencies"].as_array().into_iter().flatten())
         .filter_map(|mod_info| {
-            if let (Some(mod_info_id), Some(relation_type)) =
-                (mod_info["id"].as_str(), mod_info["relationType"].as_i64())
-                && relation_type == 3
+            if let (Some(mod_info_id), Some(relation_type)) = (
+                mod_info["modId"].as_u64(),
+                mod_info["relationType"].as_i64(),
+            ) && relation_type == 3
             {
                 return Some(mod_info_id.to_string());
             }
@@ -242,13 +241,12 @@ pub async fn search_mods_curseforge(
     args: SearchModsArgs,
 ) -> Result<Vec<Mod>> {
     let mod_type = ModType::from(args.mod_type);
-    let mut raw_uri = format!(
-        "{}/v1/mods/search?gameId={}&searchFilter={}&sortOrder=desc&classId={}",
-        curseforge_api_base(),
-        MINECRAFT_ID,
-        args.query,
-        mod_type.curseforge_id()
-    );
+    let mut query = vec![
+        ("gameId", MINECRAFT_ID.to_string()),
+        ("searchFilter", args.query),
+        ("sortOrder", "desc".to_string()),
+        ("classId", mod_type.curseforge_id().to_string()),
+    ];
 
     if args.filter_on {
         let mut game_version = settings.get_string("lastUsedVersion")?.unwrap_or_default();
@@ -258,7 +256,7 @@ pub async fn search_mods_curseforge(
                 game_version = format!("{}.{}", trimmed_version[0], trimmed_version[1]);
             }
         }
-        raw_uri = format!("{}&gameVersion={}", raw_uri, game_version);
+        query.push(("gameVersion", game_version));
     }
     if args.filter_on && mod_type == ModType::Mod {
         let mod_loader_type =
@@ -267,12 +265,17 @@ pub async fn search_mods_curseforge(
             let Some(curseforge_id) = mod_loader_type.curseforge_id() else {
                 return Ok(Vec::new());
             };
-            raw_uri = format!("{}&modLoaderType={}", raw_uri, curseforge_id);
+            query.push(("modLoaderType", curseforge_id.to_string()));
         }
     }
 
+    let raw_uri = reqwest::Url::parse_with_params(
+        format!("{}/v1/mods/search", curseforge_api_base()).as_str(),
+        query.iter().map(|(key, value)| (*key, value.as_str())),
+    )?;
+
     let response_json: serde_json::Value = provider_cached_client()
-        .get(&raw_uri)
+        .get(raw_uri)
         .header("X-API-Key", env!("ETERNAL_API_TOKEN"))
         .send()
         .await?
@@ -379,8 +382,8 @@ pub async fn get_latest_mod_version_curseforge(
             return Err(anyhow::anyhow!("noVersion"));
         }
         data.sort_by(|a, b| {
-            let date_a = DateTime::parse_from_rfc3339(&a.file_date).unwrap();
-            let date_b = DateTime::parse_from_rfc3339(&b.file_date).unwrap();
+            let date_a = DateTime::parse_from_rfc3339(&a.file_date).ok();
+            let date_b = DateTime::parse_from_rfc3339(&b.file_date).ok();
             date_b.cmp(&date_a)
         });
         data.first().cloned()
@@ -498,17 +501,24 @@ pub async fn identify_modpack_curseforge(
     let mut mods = Vec::new();
     for match_ in matches {
         let file = match_.file;
-        let hash = file.hashes.iter().find(|hash| hash.algo == 1).unwrap();
-        let original_file = hashes
+        let Some(hash) = file.hashes.iter().find(|hash| hash.algo == 1) else {
+            continue;
+        };
+        let Some(original_file) = hashes
             .iter()
             .find(|(_, sha1, _)| sha1 == &hash.value)
             .map(|hash_info| hash_info.2.clone())
-            .unwrap();
+        else {
+            continue;
+        };
+        let Some(download_url) = file.download_url else {
+            continue;
+        };
         mods.push(IdentifiedMod {
             installed_mod: InstalledMod::minimal(
                 file.mod_id.to_string(),
                 ModSource::CurseForge,
-                file.download_url,
+                download_url,
             ),
             file_name: original_file,
         });

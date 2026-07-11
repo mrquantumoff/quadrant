@@ -9,6 +9,9 @@ pub mod quadrant_settings_sync;
 pub mod quadrant_share;
 pub mod quadrant_sync;
 
+#[cfg(test)]
+pub(crate) static ACCOUNT_ENV_TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 /// Returns the default backend base URL.
 /// The compile-time default can be overridden by setting the `QUADRANT_API_BASE_URL`
 /// environment variable at build time. Runtime overrides (via env var or CLI) take

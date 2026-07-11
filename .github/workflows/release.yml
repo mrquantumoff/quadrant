@@ -118,7 +118,7 @@ jobs:
   submit_update:
     runs-on: blacksmith-2vcpu-ubuntu-2404
     needs: publish-tauri
-    if: endsWith(github.ref_name, '-flatpak') == false || endsWith(github.ref_name, '-msstore') == false
+    if: endsWith(github.ref_name, '-flatpak') == false && endsWith(github.ref_name, '-msstore') == false
     steps:
       - name: Parse semver string
         id: semver_parser
