@@ -240,7 +240,7 @@ export default function SharePage({
                   {t("modCount", { amount: mods.length })}
                 </p>
                 <div className=" items-center justify-center my-4 rounded-4xl p-2 h-min  border-slate-900 border-8 ">
-                  <div className="grid grid-cols-3 mb-0 2xl:grid-cols-4 gap-6 p-4 max-h-[35vh] max-w-[80vw] overflow-auto  ">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 mb-0 gap-4 p-4 max-h-[35vh] max-w-[80vw] overflow-auto  ">
                     {mods.map((mod) => {
                       return (
                         <Mod

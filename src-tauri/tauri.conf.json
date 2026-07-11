@@ -16,15 +16,15 @@
         "title": "Quadrant",
         "width": 1280,
         "height": 720,
-        "minHeight": 720,
-        "minWidth": 1280,
+        "minHeight": 500,
+        "minWidth": 800,
         "resizable": true,
         "devtools": true,
         "decorations": false,
         "browserExtensionsEnabled": false,
         "shadow": true,
         "theme": "Dark",
-        "zoomHotkeysEnabled": true
+        "zoomHotkeysEnabled": false
       }
     ],
     "security": {

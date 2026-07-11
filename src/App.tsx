@@ -37,6 +37,14 @@ import {
   platform,
   ProgressBarStatus,
 } from "./desktop";
+import {
+  applyUiScale,
+  COMPACT_UI_SCALE,
+  getAppliedUiScale,
+  setUiScale,
+  UI_SCALE_KEY,
+  UI_SCALE_STEP,
+} from "./uiScale";
 
 interface PageWithScroll {
   scrollPositionX: number;
@@ -83,7 +91,7 @@ function App() {
       content: <ApplyPage />,
       title: t("apply"),
       name: "apply",
-      icon: <md.MdCheck className="duration-0 w-8 h-8" />,
+      icon: <md.MdCheck className="duration-0 w-6 h-6" />,
       style: " hover:bg-emerald-400 data-[selected=true]:bg-emerald-900 ",
       main: true,
     },
@@ -91,7 +99,7 @@ function App() {
       content: <CurrentModpackPage />,
       title: t("currentModpack"),
       name: "currentModpack",
-      icon: <md.MdDescription className="duration-0 w-8 h-8" />,
+      icon: <md.MdDescription className="duration-0 w-6 h-6" />,
       style: " hover:bg-blue-400 data-[selected=true]:bg-blue-900 ",
       main: true,
     },
@@ -99,7 +107,7 @@ function App() {
       content: <SearchPage />,
       title: t("search"),
       name: "search",
-      icon: <md.MdSearch className="duration-0 w-8 h-8" />,
+      icon: <md.MdSearch className="duration-0 w-6 h-6" />,
       style: " hover:bg-sky-400 data-[selected=true]:bg-sky-900 ",
       main: true,
     },
@@ -107,7 +115,7 @@ function App() {
       content: <ShareSyncPage />,
       title: t("importMods"),
       name: "shareSync",
-      icon: <md.MdSync className="duration-0 w-8 h-8" />,
+      icon: <md.MdSync className="duration-0 w-6 h-6" />,
       style: " hover:bg-cyan-400 data-[selected=true]:bg-cyan-900 ",
       main: true,
     },
@@ -115,7 +123,7 @@ function App() {
       content: <AccountPage />,
       title: t("account"),
       name: "account",
-      icon: <md.MdAccountCircle className="duration-0 w-8 h-8" />,
+      icon: <md.MdAccountCircle className="duration-0 w-6 h-6" />,
       style: " hover:bg-orange-400 data-[selected=true]:bg-orange-900 ",
       main: true,
     },
@@ -123,7 +131,7 @@ function App() {
       content: <SettingsPage />,
       title: t("settings"),
       name: "settings",
-      icon: <md.MdSettings className="duration-0 w-8 h-8" />,
+      icon: <md.MdSettings className="duration-0 w-6 h-6" />,
       style: " hover:bg-slate-400 data-[selected=true]:bg-slate-900 ",
       main: true,
     },
@@ -134,7 +142,6 @@ function App() {
   const configRef = useRef(createDesktopStore("config.json"));
   const config = configRef.current;
   const [contentHistory, setContentHistory] = useState<PageWithScroll[]>([]);
-  const [extendedNavigation, setExtendedNavigation] = useState(false);
   const isLinuxRef = useRef(false);
 
   const [snackBarHistory, setSnackbarHistory] = useState<SnackbarHistoryItem[]>(
@@ -255,18 +262,35 @@ function App() {
         cleanupFns.push(modpackDownloadUnlisten);
       }
 
-      const [currentPlatform, extendedNavigationValue, lastPageIndex] =
-        await Promise.all([
+      const [currentPlatform, lastPageIndex, savedUiScale] = await Promise.all(
+        [
           platform(),
-          config.get<boolean>("extendedNavigation"),
           config.get<number>("lastPage"),
-        ]);
+          config.get<number>(UI_SCALE_KEY),
+        ],
+      );
+      if (!isUnmounted) {
+        applyUiScale(savedUiScale ?? COMPACT_UI_SCALE);
+      }
+
+      // Keeps the scale in sync when it changes elsewhere (settings sync).
+      const uiScaleUnlisten = await config.onKeyChange<number>(
+        UI_SCALE_KEY,
+        (newValue) => {
+          if (!isUnmounted) {
+            applyUiScale(newValue ?? COMPACT_UI_SCALE);
+          }
+        },
+      );
+      if (isUnmounted) {
+        uiScaleUnlisten();
+      } else {
+        cleanupFns.push(uiScaleUnlisten);
+      }
 
       if (!isUnmounted) {
-        const resolvedExtendedNavigation = extendedNavigationValue ?? false;
         const initialPage = pages[lastPageIndex ?? 0] ?? pages[0];
         isLinuxRef.current = currentPlatform === "linux";
-        setExtendedNavigation(resolvedExtendedNavigation);
         setPage(initialPage);
         setContent(initialPage);
         setContentHistory([
@@ -276,20 +300,6 @@ function App() {
             scrollPositionY: 0,
           },
         ]);
-      }
-
-      const extendedNavigationUnlisten = await config.onKeyChange<boolean>(
-        "extendedNavigation",
-        async (newValue) => {
-          if (!isUnmounted) {
-            setExtendedNavigation(newValue ?? false);
-          }
-        },
-      );
-      if (isUnmounted) {
-        extendedNavigationUnlisten();
-      } else {
-        cleanupFns.push(extendedNavigationUnlisten);
       }
 
       const configChangeUnlisten = await config.onChange(async (key) => {
@@ -574,7 +584,7 @@ function App() {
                 contextFunctions.changeContent({
                   content: <ShareSyncPage sharedCode={code} />,
                   name: randomString,
-                  icon: <md.MdSync className="duration-0 w-8 h-8" />,
+                  icon: <md.MdSync className="duration-0 w-6 h-6" />,
                   title: t("importMods"),
                   style: "",
                   main: false,
@@ -597,7 +607,7 @@ function App() {
                     contextFunctions.changeContent({
                       content: <ShareSyncPage sharedCode={code} />,
                       name: randomString,
-                      icon: <md.MdSync className="duration-0 w-8 h-8" />,
+                      icon: <md.MdSync className="duration-0 w-6 h-6" />,
                       title: t("importMods"),
                       style: "",
                       main: false,
@@ -643,6 +653,43 @@ function App() {
         }
       }
       document.removeEventListener("contextmenu", disableContextMenu);
+    };
+  }, []);
+
+  // Zoom shortcuts: Ctrl/Cmd with +, -, 0 and Ctrl + mouse wheel.
+  useEffect(() => {
+    const zoomBy = (direction: number) => {
+      void setUiScale(getAppliedUiScale() + direction * UI_SCALE_STEP);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!event.ctrlKey && !event.metaKey) {
+        return;
+      }
+      if (event.key === "+" || event.key === "=") {
+        event.preventDefault();
+        zoomBy(1);
+      } else if (event.key === "-" || event.key === "_") {
+        event.preventDefault();
+        zoomBy(-1);
+      } else if (event.key === "0") {
+        event.preventDefault();
+        void setUiScale(COMPACT_UI_SCALE);
+      }
+    };
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey) {
+        return;
+      }
+      event.preventDefault();
+      if (event.deltaY !== 0) {
+        zoomBy(event.deltaY < 0 ? 1 : -1);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("wheel", onWheel);
     };
   }, []);
 
@@ -831,15 +878,16 @@ function App() {
           <ContentContext.Provider value={contextFunctions}>
             <main className="flex flex-1 p-0 h-screen w-screen disableSelect ">
               <div className="flex items-center justify-center ">
-                <div className="w-16 min-w-min mx-2 flex flex-col items-center justify-center border-slate-700 ">
+                <div className="w-fit mx-2 flex flex-col items-center justify-center border-slate-700 ">
                   {pages.map((p, i) => {
                     const isSelected = p.name == page.name;
                     return (
                       <Button
                         animate
+                        fullRound
                         data-selected={isSelected}
                         className={
-                          "text-center items-center justify-center flex flex-col align-center w-full min-w-fit wrap-break-word relative min-h-fit transition-colors duration-200 ease-linear font-extrabold py-4 p-1 my-1 rounded-4xl " +
+                          "text-center items-center justify-center flex flex-col align-center w-12 h-12 relative transition-colors duration-200 ease-linear font-extrabold my-1 " +
                           p.style +
                           (page === p ? "bg-slate-700" : "bg-slate-800")
                         }
@@ -868,40 +916,28 @@ function App() {
                         <div className="grid place-content-center ">
                           {p.icon}
                         </div>
-                        <AnimatePresence>
-                          {extendedNavigation && (
-                            <motion.p
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              className="overflow-hidden text-xs wrap-break-word w-fit"
-                            >
-                              {p.title}
-                            </motion.p>
-                          )}
-                        </AnimatePresence>
                       </Button>
                     );
                   })}
                 </div>
                 <div className="border-2 h-svh border-slate-700"></div>
               </div>
-              <div className="flex flex-1 flex-col text-2xl w-full overflow-y-auto">
+              <div className="flex flex-1 flex-col text-base w-full overflow-y-auto">
                 <div
                   data-tauri-drag-region
                   className="border-b-4 w-full border-slate-700 flex items-center shadow-2xl shadow-slate-900"
                 >
                   <h1
                     data-tauri-drag-region
-                    className="font-extrabold mt-4 h-full w-full"
+                    className="font-extrabold mt-2 h-full w-full text-lg"
                   >
-                    <p className=" bg-slate-700 my-4 p-2 rounded-4xl w-fit mx-4 px-6 ">
+                    <p className=" bg-slate-700 my-2 p-1.5 rounded-4xl w-fit mx-4 px-4 ">
                       {content.title}
                     </p>
                   </h1>
                   <div
                     data-tauri-drag-region
-                    className="w-full items-center justify-end flex h-full mx-8"
+                    className="w-full items-center justify-end flex h-full mx-4"
                   >
                     {updateDownloadProgress !== 0 && (
                       <Button
@@ -909,7 +945,7 @@ function App() {
                           (updateDownloadProgress !== 1
                             ? "bg-slate-700 hover:bg-slate-600 "
                             : "bg-emerald-600 hover:bg-emerald-700") +
-                          " mr-4 rounded-4xl p-2.5 px-6 "
+                          " mr-4 rounded-4xl p-1.5 px-4 "
                         }
                         onClick={async () => {
                           if (updateDownloadProgress === 1) {

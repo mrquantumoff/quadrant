@@ -38,8 +38,8 @@ pub struct AppConfig {
     pub show_unupgradeable_mods: bool,
     /// Last selected page index in the current app navigation.
     pub last_page: i64,
-    /// Whether extended navigation is enabled in the frontend.
-    pub extended_navigation: bool,
+    /// UI scale percentage applied by the frontend (100 = default).
+    pub ui_scale: i64,
     /// Whether experimental features are enabled.
     pub experimental_features: bool,
     /// Whether the user has dismissed the data collection recommendation.
@@ -112,7 +112,7 @@ pub fn default_app_config() -> AppConfig {
         show_modpack_update_notifications: true,
         show_unupgradeable_mods: false,
         last_page: 0,
-        extended_navigation: false,
+        ui_scale: 100,
         experimental_features: false,
         dont_show_user_data_recommendation: false,
         cache_keep_alive: 30,
@@ -171,7 +171,7 @@ pub fn ensure_default_app_config(store: &impl SettingsStore) -> Result<()> {
         defaults.show_unupgradeable_mods,
     )?;
     ensure_i64(store, "lastPage", defaults.last_page)?;
-    ensure_bool(store, "extendedNavigation", defaults.extended_navigation)?;
+    ensure_i64(store, "uiScale", defaults.ui_scale)?;
     ensure_bool(
         store,
         "experimentalFeatures",
