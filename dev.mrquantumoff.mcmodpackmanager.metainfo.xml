@@ -49,6 +49,17 @@
 
   <releases>
 
+
+    <release date="2026-07-11" version="26.7.1">
+        <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
+        <description>
+        <p>Bug fixes</p>
+        <p>QoL updates</p>
+        <p>Dependency updates</p>
+        <p>macOS support</p>
+        </description>
+    </release>
+
     <release date="2026-06-27" version="26.7.0">
       <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
       <description>
