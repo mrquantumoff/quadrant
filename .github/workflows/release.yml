@@ -54,7 +54,7 @@ jobs:
             args: ""
           - platform: "windows-11-arm"
             args: ""
-          - platform: "macos-latest"
+          - platform: "blacksmith-6vcpu-macos-26"
             args: "--target aarch64-apple-darwin"
 
     runs-on: ${{ matrix.platform }}
@@ -95,7 +95,7 @@ jobs:
           QUADRANT_API_KEY: ${{ secrets.QUADRANT_API_KEY }}
           QUADRANT_OAUTH2_CLIENT_ID: ${{ secrets.QUADRANT_OAUTH2_CLIENT_ID }}
           QUADRANT_OAUTH2_CLIENT_SECRET: ${{ secrets.QUADRANT_OAUTH2_CLIENT_SECRET }}
-          APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && '-' || '' }}
+          APPLE_SIGNING_IDENTITY: ${{ contains(matrix.platform, 'macos') && '-' || '' }}
           NO_STRIP: ${{ contains(matrix.platform, 'ubuntu') && 'true' }}
         with:
           releaseName: "Quadrant v__VERSION__"
