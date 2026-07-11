@@ -123,6 +123,15 @@ jobs:
             throw "msstore reconfigure failed with exit code $LASTEXITCODE"
           }
 
+          # Diagnostics: show which products this identity can actually see and
+          # whether the configured product ID resolves. A missing product here
+          # means an authorization / first-submission / wrong-ID problem in
+          # Partner Center rather than a packaging issue. Non-fatal on purpose.
+          Write-Host "=== Apps visible to this identity ==="
+          msstore apps list
+          Write-Host "=== Trying to GET product '$env:MSSTORE_PRODUCT_ID' ==="
+          msstore apps get $env:MSSTORE_PRODUCT_ID
+
           $packagePreference = @{
             ".msixupload" = 0
             ".appxupload" = 1
