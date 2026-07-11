@@ -69,6 +69,10 @@ jobs:
           path: "AppxBundles/*"
 
       - name: Upload MS Store bundles to release
+        # Releases are only created for -stable tags (see release.yml). A
+        # -msstore tag has no matching release, so skip the upload and go
+        # straight to the Store submission instead of failing the job.
+        if: endsWith(github.ref_name, '-stable')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG_NAME: ${{ github.ref_name }}
