@@ -583,7 +583,7 @@ export default function ApplyPage() {
                           JSON.stringify(modpackToUpdate),
                         );
                         const newName = newValue.target.value.replace(
-                          /[<>:"/\\|?*]/,
+                          /[<>:"/\\|?*]/g,
                           "",
                         );
 
