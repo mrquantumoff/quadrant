@@ -139,7 +139,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         }}
         className="bg-slate-800 mt-2 ml-4 rounded-4xl hover:bg-slate-700 flex text-center items-center "
       >
-        <MdArrowBack className="w-10 h-10  " />
+        <MdArrowBack className="w-6 h-6 mr-1 " />
         {t("cancel")}
       </Button>
       <motion.div
@@ -147,15 +147,15 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         animate={{ x: 0, opacity: 1 }}
         className="bg-slate-800 mb-5 overflow-y-auto rounded-4xl h-fit pb-8 mx-4 mt-2 flex flex-col items-start"
       >
-        <div className="flex h-full w-full mt-8 ">
-          <div className="flex flex-col items-start ml-12 h-min w-full mr-24">
+        <div className="flex flex-col lg:flex-row h-full w-full mt-4 ">
+          <div className="flex flex-col items-start ml-6 h-min w-full mr-6">
             <div className="bg-slate-900 mt-6 rounded-4xl p-2 mb-4">
               <img
                 src={mod.modIconUrl}
                 className={"w-24 h-24 " + (clipIcons ? "rounded-full" : "")}
               ></img>
             </div>
-            <h2 className="text-start text-4xl flex font-extrabold text-wrap">
+            <h2 className="text-start text-2xl flex font-extrabold text-wrap">
               {mod.name}
             </h2>
             <h3 className="font-bold">
@@ -175,7 +175,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
               <div className="flex flex-col ">
                 <span className="border-2 my-4 h-full w-full rounded-full border-slate-400"></span>
                 <div className="flex flex-row items-center justify-center">
-                  <span className="w-fit h-full place-content-center text-2xl align-center justify-center text-center font-bold ">
+                  <span className="w-fit h-full place-content-center text-lg align-center justify-center text-center font-bold ">
                     {Intl.NumberFormat(i18n.language, {
                       compactDisplay: "short",
                       notation: "compact",
@@ -215,7 +215,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         animate={{ y: 0, opacity: 1 }}
         className="bg-slate-800 overflow-x-auto rounded-4xl m-4 p-4 flex flex-col flex-1 items-center transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
       >
-        <h1 className="text-center text-4xl mb-2 font-extrabold">
+        <h1 className="text-center text-2xl mb-2 font-extrabold">
           {t("owners", { amount: owners.length })}:
         </h1>
         <div className="flex flex-row w-full overflow-auto">
@@ -225,7 +225,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 key={owner.name}
                 className="p-2 mx-2 items-center text-center h-5/6 w-fit bg-slate-700 rounded-4xl"
               >
-                <p className="font-extrabold text-3xl">{owner.name}</p>
+                <p className="font-extrabold text-xl">{owner.name}</p>
                 <Button
                   onClick={async () => {
                     openIn(owner.url);

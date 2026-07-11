@@ -85,7 +85,7 @@ export default function AccountPage() {
       <div className="flex flex-1 h-full w-full items-center justify-center">
         <div className="flex w-[75%] max-w-4xl flex-col items-center justify-center rounded-4xl bg-slate-800 px-6 py-10 text-center shadow-2xl">
           <CircularProgress />
-          <h1 className="mt-6 text-4xl font-extrabold">
+          <h1 className="mt-6 text-2xl font-extrabold">
             {t("loadingAccount")}
           </h1>
           <p className="mt-4 max-w-2xl text-lg text-slate-400">
@@ -99,7 +99,7 @@ export default function AccountPage() {
   return accountInfo !== null ? (
     <>
       <div className="flex flex-col items-center justify-center align-middle flex-1 h-full">
-        <h1 className="font-extrabold text-4xl">
+        <h1 className="font-extrabold text-2xl">
           {t("hello", { name: accountInfo.name })}
         </h1>
         <div className="w-[50%] items-center justify-center text-center font-bold">
@@ -142,7 +142,7 @@ export default function AccountPage() {
     <div className="items-center justify-center align-middle flex flex-1 h-full flex-col w-full ">
       <div className="place-content-center w-[75%] ">
         <div className="bg-slate-800 rounded-4xl p-2 my-4">
-          <h1 className="font-extrabold text-4xl my-2">{t("signIn")}</h1>
+          <h1 className="font-extrabold text-2xl my-2">{t("signIn")}</h1>
         </div>
         {loginWarning !== null && (
           <div className="my-4 rounded-4xl border border-red-400/40 bg-red-950/60 p-4 text-left">
@@ -254,7 +254,7 @@ export default function AccountPage() {
           </Button>
         </div>
       </div>
-      <div className="mt-4 w-[47.5vw]">
+      <div className="mt-4 w-[75%]">
         <Button
           className="bg-slate-800 hover:bg-slate-700 w-full h-full flex flex-row items-center justify-center text-lg"
           onClick={async () => {
@@ -264,7 +264,7 @@ export default function AccountPage() {
           }}
         >
           {t("acceptQuadrantIDTOS")}
-          <MdOpenInBrowser className="w-12 h-12 ml-2 "></MdOpenInBrowser>
+          <MdOpenInBrowser className="w-6 h-6 ml-2 "></MdOpenInBrowser>
         </Button>
       </div>
     </div>

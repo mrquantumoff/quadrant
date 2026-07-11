@@ -185,8 +185,8 @@ export default function Mod(props: IModProps) {
             <span className="w-full"></span>
             <img
               src={mod.modIconUrl}
-              height={"64px"}
-              width={"64px"}
+              height={"48px"}
+              width={"48px"}
               className={
                 "align-center justify-center" +
                 (clipIcons ? " rounded-full" : "")
@@ -194,14 +194,14 @@ export default function Mod(props: IModProps) {
             ></img>
             <span className="w-full"></span>
           </div>
-          <div className="flex line-clamp-1 mt-4 w-full place-content-center align-center text-center justify-center">
-            <h1 className="max-w-full line-clamp-1 h-full text-2xl align-center justify-center text-center font-bold">
+          <div className="flex line-clamp-1 mt-2 w-full place-content-center align-center text-center justify-center">
+            <h1 className="max-w-full line-clamp-1 h-full text-lg align-center justify-center text-center font-bold">
               {mod.name}
             </h1>
 
             <span className="flex text-slate-400 rounded-4xl">
               <span className="border-2 mx-2 border-slate-400"></span>
-              <span className="w-fit h-full place-content-center text-2xl align-center justify-center text-center font-bold ">
+              <span className="w-fit h-full place-content-center text-lg align-center justify-center text-center font-bold ">
                 {Intl.NumberFormat(i18n.language, {
                   compactDisplay: "short",
                   notation: "compact",
@@ -213,13 +213,13 @@ export default function Mod(props: IModProps) {
               </span>
             </span>
           </div>
-          <p className="w-full line-clamp-1 text-base align-center text-center text-slate-400">
+          <p className="w-full line-clamp-1 text-sm align-center text-center text-slate-400">
             {desc}
           </p>
-          <h2 className="w-full line-clamp-1 text-sm align-center justify-center text-center text-slate-400">
+          <h2 className="w-full line-clamp-1 text-xs align-center justify-center text-center text-slate-400">
             {t(mod.modType.toLowerCase(), { source: modSource })}
           </h2>
-          <div className="flex h-min align-center w-full items-center justify-center text-center mt-4 transition-colors duration-300 ease-linear">
+          <div className="flex h-min align-center w-full items-center justify-center text-center mt-2 transition-colors duration-300 ease-linear">
             {mod.deleteable ? (
               <Button
                 animate
@@ -227,10 +227,10 @@ export default function Mod(props: IModProps) {
                   await deleteMod(props.modpack ?? "free", mod.id);
                   setVisible(false);
                 }}
-                className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-slate-800 hover:bg-red-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                className="flex justify-center items-center w-full h-full text-sm/none text-pretty self-center bg-slate-800 hover:bg-red-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
               >
                 {t("delete")}
-                <MdDelete className="ml-2 w-6 h-6" />
+                <MdDelete className="ml-1.5 w-5 h-5" />
               </Button>
             ) : (
               <></>
@@ -265,10 +265,10 @@ export default function Mod(props: IModProps) {
                       });
                     }
                   }}
-                  className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-600 hover:bg-emerald-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                  className="flex justify-center items-center w-full h-full text-sm/none text-pretty self-center bg-emerald-600 hover:bg-emerald-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 >
                   {progress === -1 ? t("update") : +progress.toFixed(2) + "%"}
-                  <MdFileDownload className="ml-2 w-6 h-6"></MdFileDownload>
+                  <MdFileDownload className="ml-1.5 w-5 h-5"></MdFileDownload>
                 </Button>
               ) : (
                 <Button
@@ -313,10 +313,10 @@ export default function Mod(props: IModProps) {
                     }
                     openModDownload();
                   }}
-                  className="flex justify-center items-center w-full h-full text-lg/none text-pretty self-center bg-emerald-600 hover:bg-emerald-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                  className="flex justify-center items-center w-full h-full text-sm/none text-pretty self-center bg-emerald-600 hover:bg-emerald-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 >
                   {progress === -1 ? t("download") : +progress.toFixed(2) + "%"}
-                  <MdFileDownload className="ml-2 w-6 h-6"></MdFileDownload>
+                  <MdFileDownload className="ml-1.5 w-5 h-5"></MdFileDownload>
                 </Button>
               )
             ) : (
@@ -325,7 +325,7 @@ export default function Mod(props: IModProps) {
             {mod.selectable && (
               <Button
                 animate
-                className="flex items-center w-full text-lg/none self-center h-full wrap-break-word text-center justify-center bg-blue-600 hover:bg-blue-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                className="flex items-center w-full text-sm/none self-center h-full wrap-break-word text-center justify-center bg-blue-600 hover:bg-blue-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
                 onClick={async () => {
                   await registerMod(
                     {
@@ -339,7 +339,7 @@ export default function Mod(props: IModProps) {
                 }}
               >
                 {t("select")}
-                <MdCheck className="ml-2 w-6 h-6"></MdCheck>
+                <MdCheck className="ml-1.5 w-5 h-5"></MdCheck>
               </Button>
             )}
             {mod.url.trim().length !== 0 && (
@@ -348,10 +348,10 @@ export default function Mod(props: IModProps) {
                   await openIn(mod.url);
                 }}
                 animate
-                className="flex items-center w-full text-lg/none self-center h-full wrap-break-word text-center justify-center bg-blue-600 hover:bg-blue-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                className="flex items-center w-full text-sm/none self-center h-full wrap-break-word text-center justify-center bg-blue-600 hover:bg-blue-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
               >
                 {t("openInTheWeb")}
-                <MdOpenInBrowser className="ml-2 w-6 h-6"></MdOpenInBrowser>
+                <MdOpenInBrowser className="ml-1.5 w-5 h-5"></MdOpenInBrowser>
               </Button>
             )}
           </div>
