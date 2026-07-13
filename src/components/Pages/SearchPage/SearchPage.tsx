@@ -19,12 +19,16 @@ import {
 import Mod from "../../shared/Mod";
 import "./SearchPage.css";
 import {
+  MdArrowForward,
   MdCheck,
+  MdChevronLeft,
   MdClose,
   MdExpandMore,
   MdExtension,
   MdFilterAlt,
+  MdFirstPage,
   MdGridView,
+  MdLastPage,
   MdSearch,
   MdWbSunny,
 } from "react-icons/md";
@@ -60,6 +64,21 @@ const SORT_OPTIONS: { value: string; labelKey: string }[] = [
   { value: "name", labelKey: "sortName" },
   { value: "updated", labelKey: "sortUpdated" },
 ];
+
+// Results are paged client-side over the merged provider lists.
+const PAGE_SIZE = 25;
+
+// Shape of the persisted search filter state (config.json → "searchFilters").
+interface SavedFilters {
+  contentType?: ModType;
+  sortBy?: string;
+  version?: string;
+  loader?: string;
+  selected?: string[];
+  openSource?: boolean;
+  matchModpack?: boolean;
+  filtersCollapsed?: boolean;
+}
 
 const HEADER_ORDER = ["categories", "resolutions", "features", "performance impact"];
 const PILL_HEADERS = new Set(["resolutions", "performance impact"]);
@@ -140,6 +159,11 @@ export default function SearchPage() {
   const [openSource, setOpenSource] = useState(false);
   const [matchModpack, setMatchModpack] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [page, setPage] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [noMoreResults, setNoMoreResults] = useState(false);
+  const [sliding, setSliding] = useState(false);
 
   // Data
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
@@ -147,6 +171,10 @@ export default function SearchPage() {
   const [categories, setCategories] = useState<MergedCategory[]>([]);
 
   const searchRequestRef = useRef(0);
+  const resultsScrollRef = useRef<HTMLDivElement>(null);
+  // Gate persistence until the saved filter blob has been loaded, so the
+  // initial default state never overwrites what was previously stored.
+  const hydratedRef = useRef(false);
   const configRef = useRef(createDesktopStore("config.json"));
   const configStore = configRef.current;
 
@@ -192,6 +220,23 @@ export default function SearchPage() {
     [rawLists, sortBy, i18n.language],
   );
 
+  // Client-side paging over the merged list, 25 per page.
+  const pageCount = Math.max(1, Math.ceil(mods.length / PAGE_SIZE));
+  const pagedMods = useMemo(
+    () => mods.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+    [mods, page],
+  );
+
+  // Keep the current page in range when the result set shrinks.
+  useEffect(() => {
+    if (page > pageCount - 1) setPage(pageCount - 1);
+  }, [pageCount, page]);
+
+  // Jump back to the top of the results whenever the page changes.
+  useEffect(() => {
+    resultsScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [page]);
+
   const catIdsFor = (source: ModSource): string[] => {
     const ids: string[] = [];
     for (const key of selected) {
@@ -203,10 +248,19 @@ export default function SearchPage() {
     return ids;
   };
 
-  const runSearch = async () => {
+  // `append` fetches the next page from each provider (via an offset) and
+  // concatenates it onto the existing results — the "search further" action —
+  // rather than replacing them.
+  const runSearch = async (append = false) => {
     const requestId = ++searchRequestRef.current;
-    setSearching(true);
     setSearchError(null);
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setSearching(true);
+      setPage(0);
+      setNoMoreResults(false);
+    }
 
     try {
       const query = searchQuery.trim().toLowerCase();
@@ -223,31 +277,39 @@ export default function SearchPage() {
         sortBy,
       };
 
-      const requests: Promise<IMod[]>[] = [];
+      // Build the provider list in a stable order so an appended page lines up
+      // with the matching existing per-provider result list.
+      const providers: { source: ModSource; categories: string[] }[] = [];
       if (
         effCf &&
         (!base.modLoader || loaderSupportsProvider(base.modLoader, ModSource.CurseForge))
       ) {
-        requests.push(
-          searchMods({
-            ...base,
-            source: ModSource.CurseForge,
-            categories: catIdsFor(ModSource.CurseForge),
-          }),
-        );
+        providers.push({
+          source: ModSource.CurseForge,
+          categories: catIdsFor(ModSource.CurseForge),
+        });
       }
       if (
         effMr &&
         (!base.modLoader || loaderSupportsProvider(base.modLoader, ModSource.Modrinth))
       ) {
-        requests.push(
-          searchMods({
-            ...base,
-            source: ModSource.Modrinth,
-            categories: catIdsFor(ModSource.Modrinth),
-          }),
-        );
+        providers.push({
+          source: ModSource.Modrinth,
+          categories: catIdsFor(ModSource.Modrinth),
+        });
       }
+
+      // When appending, each provider resumes from however many of its results
+      // are already loaded.
+      const existing = append ? rawLists : [];
+      const requests = providers.map((provider, index) =>
+        searchMods({
+          ...base,
+          source: provider.source,
+          categories: provider.categories,
+          offset: existing[index]?.length ?? 0,
+        }),
+      );
 
       const settled = await Promise.allSettled(requests);
       if (requestId !== searchRequestRef.current) return;
@@ -260,43 +322,111 @@ export default function SearchPage() {
         console.error("Search provider failed", failure),
       );
 
-      const lists = settled
-        .filter(
-          (result): result is PromiseFulfilledResult<IMod[]> =>
-            result.status === "fulfilled",
-        )
-        .map((result) => result.value);
-      setRawLists(lists);
+      // Keep results aligned to provider order; a failed provider contributes
+      // an empty list so appended pages stay index-matched.
+      const lists = settled.map((result) =>
+        result.status === "fulfilled" ? result.value : [],
+      );
+
+      if (append) {
+        const added = lists.reduce((sum, list) => sum + list.length, 0);
+        if (added === 0) {
+          setNoMoreResults(true);
+        } else {
+          setRawLists((previous) =>
+            previous.map((list, index) => [...list, ...(lists[index] ?? [])]),
+          );
+        }
+      } else {
+        setRawLists(lists);
+      }
     } catch (error) {
-      if (requestId === searchRequestRef.current) {
+      if (requestId === searchRequestRef.current && !append) {
         setSearchError(String(error));
         setRawLists([]);
+      } else if (append) {
+        console.error(error);
       }
     } finally {
       if (requestId === searchRequestRef.current) {
-        setSearching(false);
+        if (append) setLoadingMore(false);
+        else setSearching(false);
       }
     }
   };
 
-  // Initial load: config, versions, modpacks.
+  // The "load more" arrow: slide it off to the right, then pull the next batch.
+  const searchFurther = async () => {
+    if (loadingMore || sliding) return;
+    setSliding(true);
+    await new Promise((resolve) => setTimeout(resolve, 75));
+    await runSearch(true);
+    setSliding(false);
+  };
+
+  // Initial load: config, versions, modpacks, and the last-used filter state.
   useEffect(() => {
     const boot = async () => {
-      const [availableVersions, availableModpacks, cfEnabled, mrEnabled] =
+      const [availableVersions, availableModpacks, cfEnabled, mrEnabled, saved] =
         await Promise.all([
           getVersions(),
           getModpacks(),
           configStore.get<boolean>("curseforge"),
           configStore.get<boolean>("modrinth"),
+          configStore.get<SavedFilters>("searchFilters"),
         ]);
       setVersions(availableVersions);
       setModpacks(availableModpacks);
       setCurseforge(cfEnabled ?? true);
       setModrinth(mrEnabled ?? true);
+
+      // Restore the previously persisted filters before enabling persistence,
+      // so the first render's defaults never clobber the saved blob.
+      if (saved) {
+        if (saved.contentType) setContentType(saved.contentType);
+        if (saved.sortBy) setSortBy(saved.sortBy);
+        if (saved.version) setVersion(saved.version);
+        if (saved.loader !== undefined) setLoader(saved.loader);
+        if (saved.selected) setSelected(new Set(saved.selected));
+        if (saved.openSource !== undefined) setOpenSource(saved.openSource);
+        if (saved.matchModpack !== undefined) setMatchModpack(saved.matchModpack);
+        if (saved.filtersCollapsed !== undefined)
+          setFiltersCollapsed(saved.filtersCollapsed);
+      }
+      hydratedRef.current = true;
     };
     boot().catch(console.error);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Persist the filter state whenever it changes (after the initial hydration).
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    const data: SavedFilters = {
+      contentType,
+      sortBy,
+      version,
+      loader,
+      selected: [...selected],
+      openSource,
+      matchModpack,
+      filtersCollapsed,
+    };
+    void configStore
+      .set("searchFilters", data)
+      .then(() => configStore.save())
+      .catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    contentType,
+    sortBy,
+    version,
+    loader,
+    selected,
+    openSource,
+    matchModpack,
+    filtersCollapsed,
+  ]);
 
   // Fetch the facet taxonomy for the enabled sources whenever the content type
   // or source set changes. Skipping a disabled provider avoids a wasted request
@@ -532,10 +662,29 @@ export default function SearchPage() {
       </div>
 
       {/* Body */}
-      <div className="flex-1 flex min-h-0 gap-4 px-6 pb-6">
+      <div
+        className={
+          "flex-1 flex min-h-0 px-6 pb-6 " +
+          (filtersCollapsed ? "gap-0" : "gap-4")
+        }
+      >
         {/* Filters sidebar */}
-        <aside className="flex-none w-79 flex flex-col min-h-0">
-          <div className="bg-slate-800 rounded-[28px] flex flex-col min-h-0 h-full overflow-hidden">
+        <motion.aside
+          className="flex-none flex flex-col min-h-0 overflow-hidden"
+          initial={false}
+          animate={{ width: filtersCollapsed ? 0 : "19.75rem" }}
+          transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+        >
+          <AnimatePresence initial={false}>
+            {!filtersCollapsed && (
+              <motion.div
+                key="filters-expanded"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="w-79 bg-slate-800 rounded-[28px] flex flex-col min-h-0 h-full overflow-hidden"
+              >
             <div className="flex-none flex items-center justify-between px-6 pt-5 pb-3">
               <div className="flex items-center gap-2">
                 <MdFilterAlt className="size-4.5 text-slate-200" />
@@ -548,14 +697,24 @@ export default function SearchPage() {
                   </span>
                 )}
               </div>
-              {chips.length > 0 && (
+              <div className="flex items-center gap-3">
+                {chips.length > 0 && (
+                  <button
+                    onClick={clearAll}
+                    className="text-slate-400 text-xs font-bold hover:text-red-400"
+                  >
+                    {t("clearAll")}
+                  </button>
+                )}
                 <button
-                  onClick={clearAll}
-                  className="text-slate-400 text-xs font-bold hover:text-red-400"
+                  onClick={() => setFiltersCollapsed(true)}
+                  title={t("collapseFilters")}
+                  aria-label={t("collapseFilters")}
+                  className="text-slate-400 hover:text-slate-100 transition-colors"
                 >
-                  {t("clearAll")}
+                  <MdChevronLeft className="size-5" />
                 </button>
-              )}
+              </div>
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
@@ -758,12 +917,29 @@ export default function SearchPage() {
                 />
               </div>
             </div>
-          </div>
-        </aside>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.aside>
 
         {/* Results */}
         <main className="flex-1 min-w-0 flex flex-col min-h-0">
           <div className="flex-none flex items-center gap-3 flex-wrap mb-3">
+            {filtersCollapsed && (
+              <button
+                onClick={() => setFiltersCollapsed(false)}
+                title={t("expandFilters")}
+                aria-label={t("expandFilters")}
+                className="relative flex-none flex items-center justify-center size-9 rounded-full bg-slate-800 text-slate-200 hover:brightness-110 transition-[filter]"
+              >
+                <MdFilterAlt className="size-4.5" />
+                {chips.length > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-4.5 h-4.5 px-1 rounded-full bg-blue-600 text-white text-[10px] font-extrabold inline-flex items-center justify-center">
+                    {chips.length}
+                  </span>
+                )}
+              </button>
+            )}
             <span className="text-sm text-slate-400 font-bold">
               {t("resultCount", { count: mods.length, type: contentLabel })}
             </span>
@@ -801,7 +977,10 @@ export default function SearchPage() {
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-y-auto bg-slate-800 rounded-[28px] p-4.5">
+          <div
+            ref={resultsScrollRef}
+            className="flex-1 min-h-0 overflow-y-auto bg-slate-800 rounded-[28px] p-4.5"
+          >
             {searchError ? (
               <div className="bg-red-700 rounded-4xl p-4 font-bold">
                 {searchError}
@@ -847,9 +1026,9 @@ export default function SearchPage() {
                 )}
               </div>
             ) : (
-              <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
-                <AnimatePresence>
-                  {mods.map((mod, index) => (
+              <>
+                <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
+                  {pagedMods.map((mod, index) => (
                     <Mod
                       key={`${mod.source}-${mod.id}-${index}`}
                       className=""
@@ -857,8 +1036,74 @@ export default function SearchPage() {
                       modpack={undefined}
                     />
                   ))}
-                </AnimatePresence>
-              </div>
+
+                  {/* "Search further" arrow: appears in the cell after the last
+                      card on the final page; slides right, then fetches more. */}
+                  {page >= pageCount - 1 && !noMoreResults && (
+                    <button
+                      onClick={() => void searchFurther()}
+                      disabled={loadingMore || sliding}
+                      title={t("searchFurther")}
+                      aria-label={t("searchFurther")}
+                      className="group flex items-center justify-center h-full min-h-32 disabled:cursor-not-allowed"
+                    >
+                      <motion.span
+                        animate={{
+                          x: sliding ? 260 : 0,
+                          opacity: sliding ? 0 : 1,
+                        }}
+                        transition={{ duration: 0.075, ease: "easeIn" }}
+                        className="flex items-center justify-center size-10 rounded-full bg-emerald-600 text-white shadow-lg shadow-emerald-950/40 transition-transform group-hover:scale-105 group-hover:bg-emerald-500"
+                      >
+                        <MdArrowForward className="size-5" />
+                      </motion.span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Page navigation — sits at the end of the results, scrolls with them */}
+                {pageCount > 1 && (
+                  <div className="flex items-center justify-center gap-2 mt-5">
+                    <button
+                      onClick={() => setPage(0)}
+                      disabled={page === 0}
+                      title={t("firstPage")}
+                      aria-label={t("firstPage")}
+                      className="inline-flex items-center justify-center size-9 rounded-full bg-slate-700 text-slate-200 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100"
+                    >
+                      <MdFirstPage className="size-5" />
+                    </button>
+                    <button
+                      onClick={() => setPage((value) => Math.max(0, value - 1))}
+                      disabled={page === 0}
+                      className="inline-flex items-center h-9 px-4 rounded-full bg-slate-700 text-slate-200 text-[13.5px] font-bold hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100"
+                    >
+                      {t("previous")}
+                    </button>
+                    <span className="px-2 text-[13px] text-slate-400 font-bold tabular-nums">
+                      {t("pageOf", { current: page + 1, total: pageCount })}
+                    </span>
+                    <button
+                      onClick={() =>
+                        setPage((value) => Math.min(pageCount - 1, value + 1))
+                      }
+                      disabled={page >= pageCount - 1}
+                      className="inline-flex items-center h-9 px-4 rounded-full bg-slate-700 text-slate-200 text-[13.5px] font-bold hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100"
+                    >
+                      {t("next")}
+                    </button>
+                    <button
+                      onClick={() => setPage(pageCount - 1)}
+                      disabled={page >= pageCount - 1}
+                      title={t("lastPage")}
+                      aria-label={t("lastPage")}
+                      className="inline-flex items-center justify-center size-9 rounded-full bg-slate-700 text-slate-200 hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:brightness-100"
+                    >
+                      <MdLastPage className="size-5" />
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </main>

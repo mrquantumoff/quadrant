@@ -67,11 +67,13 @@ pub async fn search_mods_modrinth(args: SearchModsArgs) -> Result<Vec<Mod>> {
         _ => "relevance",
     };
 
+    let offset = args.offset.to_string();
     let raw_uri = reqwest::Url::parse_with_params(
         format!("{}/v2/search", modrinth_api_base()).as_str(),
         [
             ("query", args.query.as_str()),
             ("limit", "100"),
+            ("offset", offset.as_str()),
             ("index", index),
             ("facets", facets_param.as_str()),
         ],
