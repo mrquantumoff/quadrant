@@ -18,8 +18,8 @@ use crate::{
 };
 
 use super::{
-    GetModArgs, IdentifiedMod, Mod, ModType, SearchModsArgs, UniversalModFile, get_file,
-    get_mod_url,
+    GetModArgs, IdentifiedMod, Mod, ModType, SearchCategory, SearchModsArgs, UniversalModFile,
+    get_file, get_mod_url,
 };
 use crate::mc_mod::curseforge_fingerprint::*;
 use crate::mc_mod::http::{provider_cached_client, provider_http_client};
@@ -151,6 +151,10 @@ pub async fn get_mod_curseforge(args: GetModArgs) -> Result<Mod> {
             .as_str()
             .unwrap_or_default()
             .to_string(),
+        date_modified: res_data["dateModified"]
+            .as_str()
+            .unwrap_or_default()
+            .to_string(),
         mod_type: mod_class,
         source: ModSource::CurseForge,
         slug: res_data["slug"].as_str().unwrap_or_default().to_string(),
@@ -236,21 +240,29 @@ pub async fn get_mod_deps_curseforge(id: String) -> Result<Vec<Mod>> {
     Ok(mods)
 }
 
-pub async fn search_mods_curseforge(
-    settings: &impl SettingsStore,
-    args: SearchModsArgs,
-) -> Result<Vec<Mod>> {
-    let mod_type = ModType::from(args.mod_type);
+pub async fn search_mods_curseforge(args: SearchModsArgs) -> Result<Vec<Mod>> {
+    let mod_type = ModType::from(args.mod_type.clone());
+
+    let (sort_field, sort_order) = match args.sort_by.as_str() {
+        "downloads" => ("6", "desc"), // TotalDownloads
+        "updated" => ("3", "desc"),   // LastUpdated
+        "name" => ("4", "asc"),       // Name
+        _ => ("2", "desc"),           // Popularity (relevance default)
+    };
+
     let mut query = vec![
         ("gameId", MINECRAFT_ID.to_string()),
-        ("searchFilter", args.query),
-        ("sortOrder", "desc".to_string()),
+        ("searchFilter", args.query.clone()),
+        ("sortField", sort_field.to_string()),
+        ("sortOrder", sort_order.to_string()),
         ("classId", mod_type.curseforge_id().to_string()),
     ];
 
-    if args.filter_on {
-        let mut game_version = settings.get_string("lastUsedVersion")?.unwrap_or_default();
-        if mod_type != ModType::Mod {
+    if !args.game_version.is_empty() && args.game_version != "any" {
+        let mut game_version = args.game_version.clone();
+        // Resource packs, shaders and data packs are indexed on CurseForge by
+        // the major.minor version only.
+        if mod_type != ModType::Mod && mod_type != ModType::Modpack {
             let trimmed_version = game_version.split('.').collect::<Vec<&str>>();
             if trimmed_version.len() >= 2 {
                 game_version = format!("{}.{}", trimmed_version[0], trimmed_version[1]);
@@ -258,9 +270,9 @@ pub async fn search_mods_curseforge(
         }
         query.push(("gameVersion", game_version));
     }
-    if args.filter_on && mod_type == ModType::Mod {
-        let mod_loader_type =
-            ModLoader::from(settings.get_string("lastUsedAPI")?.unwrap_or_default());
+
+    if mod_type == ModType::Mod || mod_type == ModType::Modpack {
+        let mod_loader_type = ModLoader::from(args.mod_loader.clone());
         if mod_loader_type != ModLoader::Unknown {
             let Some(curseforge_id) = mod_loader_type.curseforge_id() else {
                 return Ok(Vec::new());
@@ -268,6 +280,18 @@ pub async fn search_mods_curseforge(
             query.push(("modLoaderType", curseforge_id.to_string()));
         }
     }
+
+    if !args.categories.is_empty() {
+        let ids = args
+            .categories
+            .iter()
+            .map(String::as_str)
+            .collect::<Vec<_>>()
+            .join(",");
+        query.push(("categoryIds", format!("[{ids}]")));
+    }
+    // CurseForge search exposes no open-source facet; that filter is
+    // Modrinth-only and the frontend restricts the source set accordingly.
 
     let raw_uri = reqwest::Url::parse_with_params(
         format!("{}/v1/mods/search", curseforge_api_base()).as_str(),
@@ -291,6 +315,10 @@ pub async fn search_mods_curseforge(
                 description: mod_data["summary"].as_str().unwrap_or_default().to_string(),
                 download_count: mod_data["downloadCount"].as_i64().unwrap_or_default(),
                 version: mod_data["dateModified"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string(),
+                date_modified: mod_data["dateModified"]
                     .as_str()
                     .unwrap_or_default()
                     .to_string(),
@@ -334,6 +362,55 @@ pub async fn search_mods_curseforge(
         }
     }
     Ok(mods)
+}
+
+/// Fetches the CurseForge category list for a content type and maps it into
+/// selectable search facets. CurseForge exposes numeric category ids (passed
+/// back verbatim as `categoryIds`); the class rows and non-leaf groupings are
+/// skipped so only user-facing categories remain.
+pub async fn get_categories_curseforge(mod_type: ModType) -> Result<Vec<SearchCategory>> {
+    let class_id = mod_type.curseforge_id();
+    let raw_uri = reqwest::Url::parse_with_params(
+        format!("{}/v1/categories", curseforge_api_base()).as_str(),
+        [
+            ("gameId", MINECRAFT_ID.to_string()),
+            ("classId", class_id.to_string()),
+        ]
+        .iter()
+        .map(|(key, value)| (*key, value.as_str())),
+    )?;
+
+    let response_json: serde_json::Value = provider_cached_client()
+        .get(raw_uri)
+        .header("X-API-Key", env!("ETERNAL_API_TOKEN"))
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+
+    let mut categories = Vec::new();
+    if let Some(data) = response_json["data"].as_array() {
+        for category in data {
+            // Skip the class row itself; only real categories are selectable.
+            if category["isClass"].as_bool().unwrap_or(false) {
+                continue;
+            }
+            let id = category["id"].as_i64().unwrap_or_default();
+            let name = category["name"].as_str().unwrap_or_default().to_string();
+            if id == 0 || name.is_empty() {
+                continue;
+            }
+            categories.push(SearchCategory {
+                id: id.to_string(),
+                name,
+                header: "categories".to_string(),
+                source: ModSource::CurseForge,
+            });
+        }
+    }
+
+    Ok(categories)
 }
 
 pub async fn get_latest_mod_version_curseforge(

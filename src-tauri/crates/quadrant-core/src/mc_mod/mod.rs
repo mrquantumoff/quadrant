@@ -41,15 +41,19 @@ pub enum ModType {
     Mod,
     ResourcePack,
     ShaderPack,
+    Modpack,
+    DataPack,
     Unknown,
 }
 
 impl From<String> for ModType {
     fn from(value: String) -> Self {
         match value.to_lowercase().as_str() {
-            "shader" => Self::ShaderPack,
+            "shader" | "shaderpack" => Self::ShaderPack,
             "mod" => Self::Mod,
             "resourcepack" => Self::ResourcePack,
+            "modpack" => Self::Modpack,
+            "datapack" => Self::DataPack,
             _ => Self::Unknown,
         }
     }
@@ -62,6 +66,8 @@ impl ModType {
             Self::Mod => 6,
             Self::ResourcePack => 12,
             Self::ShaderPack => 6552,
+            Self::Modpack => 4471,
+            Self::DataPack => 6945,
             Self::Unknown => 999,
         }
     }
@@ -72,6 +78,8 @@ impl ModType {
             6 => Self::Mod,
             12 => Self::ResourcePack,
             6552 => Self::ShaderPack,
+            4471 => Self::Modpack,
+            6945 => Self::DataPack,
             _ => Self::Unknown,
         }
     }
@@ -83,6 +91,8 @@ impl std::fmt::Display for ModType {
             Self::Mod => "mod",
             Self::ResourcePack => "resourcepack",
             Self::ShaderPack => "shader",
+            Self::Modpack => "modpack",
+            Self::DataPack => "datapack",
             Self::Unknown => "unknown",
         };
         f.write_str(label)
@@ -101,6 +111,8 @@ pub struct Mod {
     pub download_count: i64,
     /// Selected or primary version label.
     pub version: String,
+    /// Provider "last updated" timestamp (RFC 3339), empty when unknown.
+    pub date_modified: String,
     /// Broad content type.
     pub mod_type: ModType,
     /// Upstream source provider.
@@ -169,8 +181,26 @@ pub struct GlobalSearchModsArgs {
     pub query: String,
     /// Requested content type.
     pub mod_type: String,
-    /// Whether loader/version filtering should be applied.
+    /// Whether results should be treated as auto-installable into the current
+    /// modpack context (mirrors the "match current modpack" toggle).
+    #[serde(default)]
     pub filter_on: bool,
+    /// Explicit Minecraft version to filter on. Empty or `"any"` disables it.
+    #[serde(default)]
+    pub game_version: String,
+    /// Explicit mod loader to filter on. Empty/`Unknown` disables it.
+    #[serde(default)]
+    pub mod_loader: String,
+    /// Provider-specific category identifiers (CurseForge numeric ids as
+    /// strings, or Modrinth tag slugs). Matched as OR.
+    #[serde(default)]
+    pub categories: Vec<String>,
+    /// Restrict to open-source projects (Modrinth only).
+    #[serde(default)]
+    pub open_source: bool,
+    /// Sort key: `relevance` | `downloads` | `name` | `updated`.
+    #[serde(default)]
+    pub sort_by: String,
 }
 
 /// Provider-local search input.
@@ -180,8 +210,35 @@ pub struct SearchModsArgs {
     pub query: String,
     /// Requested content type.
     pub mod_type: String,
-    /// Whether provider-side filtering should be applied.
+    /// Whether results should be treated as auto-installable.
     pub filter_on: bool,
+    /// Explicit Minecraft version to filter on. Empty or `"any"` disables it.
+    pub game_version: String,
+    /// Explicit mod loader to filter on. Empty/`Unknown` disables it.
+    pub mod_loader: String,
+    /// Provider-specific category identifiers, matched as OR.
+    pub categories: Vec<String>,
+    /// Restrict to open-source projects (Modrinth only).
+    pub open_source: bool,
+    /// Sort key: `relevance` | `downloads` | `name` | `updated`.
+    pub sort_by: String,
+}
+
+/// A selectable search facet exposed by a provider (category, resolution,
+/// feature, or performance tag).
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchCategory {
+    /// Provider-specific identifier passed back in `SearchModsArgs::categories`
+    /// (CurseForge numeric id as a string, or Modrinth tag slug).
+    pub id: String,
+    /// Human-readable display label.
+    pub name: String,
+    /// Grouping header: `categories` | `resolutions` | `features` |
+    /// `performance impact`.
+    pub header: String,
+    /// Provider this facet belongs to.
+    pub source: ModSource,
 }
 
 /// Mod detail and install input exposed to hosts.
@@ -305,33 +362,56 @@ pub async fn check_mod_updates(
 }
 
 /// Searches mods from the requested provider and sorts them by download count.
-pub async fn search_mods(
-    args: GlobalSearchModsArgs,
-    settings: &impl SettingsStore,
-) -> Result<Vec<Mod>> {
+pub async fn search_mods(args: GlobalSearchModsArgs) -> Result<Vec<Mod>> {
     let search_args = SearchModsArgs {
         query: args.query,
         mod_type: args.mod_type,
         filter_on: args.filter_on,
+        game_version: args.game_version,
+        mod_loader: args.mod_loader,
+        categories: args.categories,
+        open_source: args.open_source,
+        sort_by: args.sort_by,
     };
 
-    let mut mods = match args.source {
+    let mods = match args.source {
         ModSource::CurseForge => {
             #[cfg(feature = "curseforge")]
             {
-                search_mods_curseforge(settings, search_args).await?
+                search_mods_curseforge(search_args).await?
             }
             #[cfg(not(feature = "curseforge"))]
             {
                 Vec::new()
             }
         }
-        ModSource::Modrinth => search_mods_modrinth(settings, search_args).await?,
+        ModSource::Modrinth => search_mods_modrinth(search_args).await?,
         ModSource::Online => Vec::new(),
     };
 
-    mods.sort_by(|a, b| b.download_count.cmp(&a.download_count));
+    // Final ordering is applied client-side across the merged provider results,
+    // so no server-side re-sort is imposed here.
     Ok(mods)
+}
+
+/// Lists the selectable category/facet tags a provider exposes for a content
+/// type, used to populate the search filter sidebar.
+pub async fn get_categories(source: ModSource, mod_type: String) -> Result<Vec<SearchCategory>> {
+    match source {
+        ModSource::CurseForge => {
+            #[cfg(feature = "curseforge")]
+            {
+                curseforge::get_categories_curseforge(ModType::from(mod_type)).await
+            }
+            #[cfg(not(feature = "curseforge"))]
+            {
+                let _ = mod_type;
+                Ok(Vec::new())
+            }
+        }
+        ModSource::Modrinth => modrinth::get_categories_modrinth(ModType::from(mod_type)).await,
+        ModSource::Online => Ok(Vec::new()),
+    }
 }
 
 /// Builds the canonical provider page URL for a mod or content item.
@@ -347,12 +427,16 @@ pub fn get_mod_url(slug: String, mod_type: ModType, source: ModSource) -> String
             ModType::Mod => "mc-mods",
             ModType::ResourcePack => "texture-packs",
             ModType::ShaderPack => "customization",
+            ModType::Modpack => "modpacks",
+            ModType::DataPack => "data-packs",
             ModType::Unknown => "",
         },
         ModSource::Modrinth => match mod_type {
             ModType::Mod => "mod",
             ModType::ResourcePack => "resourcepack",
             ModType::ShaderPack => "shader",
+            ModType::Modpack => "modpack",
+            ModType::DataPack => "datapack",
             ModType::Unknown => "unknown",
         },
         ModSource::Online => "",
@@ -407,6 +491,8 @@ pub async fn enrich_installed_mod(mod_: InstalledMod) -> Result<InstalledMod> {
         ModType::Mod => "Mod",
         ModType::ResourcePack => "ResourcePack",
         ModType::ShaderPack => "ShaderPack",
+        ModType::Modpack => "Modpack",
+        ModType::DataPack => "DataPack",
         ModType::Unknown => "Unknown",
     };
     Ok(InstalledMod {
@@ -662,6 +748,12 @@ pub fn install_local_file(
             None,
             None,
         ),
+        // Modpacks and data packs are browsable in search but are not installed
+        // through the single-file mod path (modpacks use the import flow; data
+        // packs are per-world). The UI surfaces "open in web" for these instead.
+        ModType::Modpack | ModType::DataPack => {
+            return Err(anyhow!("unsupportedDownload"));
+        }
         ModType::Unknown => return Err(anyhow!("unsupportedDownload")),
     };
 

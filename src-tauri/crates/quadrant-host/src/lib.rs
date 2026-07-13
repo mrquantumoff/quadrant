@@ -32,8 +32,8 @@ use quadrant_core::{
     events::BackendEvent,
     mc_mod::{
         GetModArgs, GlobalSearchModsArgs, IdentifiedMod, MinecraftVersion, Mod, ModType,
-        UniversalModFile, check_mod_updates, get_user_agent, get_versions, identify_modpack,
-        install_mod, install_remote_file, search_mods,
+        SearchCategory, UniversalModFile, check_mod_updates, get_categories, get_user_agent,
+        get_versions, identify_modpack, install_mod, install_remote_file, search_mods,
     },
     models::{Article, InstalledMod, InstalledModpack, LocalModpack, ModLoader, ModSource},
     modpacks::{
@@ -596,7 +596,15 @@ impl QuadrantHost {
     }
 
     pub async fn search_mods(&self, args: GlobalSearchModsArgs) -> Result<Vec<Mod>> {
-        search_mods(args, &self.inner.config_store).await
+        search_mods(args).await
+    }
+
+    pub async fn get_categories(
+        &self,
+        source: ModSource,
+        mod_type: String,
+    ) -> Result<Vec<SearchCategory>> {
+        get_categories(source, mod_type).await
     }
 
     pub async fn check_mod_updates(
@@ -993,6 +1001,7 @@ impl QuadrantHost {
             "get_config_value",
             "set_config_value",
             "search_mods",
+            "get_categories",
             "get_versions",
             "get_user_url",
             "install_mod",
@@ -1109,6 +1118,10 @@ impl QuadrantHost {
             "search_mods" => {
                 let args: SearchModsCompatArgs = from_value(payload)?;
                 to_value(self.search_mods(args.args).await?)
+            }
+            "get_categories" => {
+                let args: GetCategoriesArgs = from_value(payload)?;
+                to_value(self.get_categories(args.source, args.mod_type).await?)
             }
             "get_versions" => to_value(self.get_versions().await?),
             "get_user_url" => {
@@ -2083,6 +2096,13 @@ struct SetModpackSyncDateArgs {
 #[derive(Deserialize)]
 struct SearchModsCompatArgs {
     args: GlobalSearchModsArgs,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GetCategoriesArgs {
+    source: ModSource,
+    mod_type: String,
 }
 
 #[derive(Deserialize)]

@@ -6,13 +6,14 @@ import {
   ModLoader,
   ModpackViewContext,
   ModSource,
+  ModType,
 } from "../../intefaces";
 import {
   MdCheck,
   MdDelete,
   MdDownload,
   MdFileDownload,
-  MdOpenInBrowser,
+  MdOpenInNew,
 } from "react-icons/md";
 import { motion } from "motion/react";
 import {
@@ -34,20 +35,30 @@ export interface IModProps {
   className: string;
 }
 
+/** Deterministic hue (0-359) from a string, for the gradient fallback tile. */
+function hashHue(value: string): number {
+  let hue = 0;
+  for (let i = 0; i < value.length; i++) {
+    hue = (hue * 31 + value.charCodeAt(i)) % 360;
+  }
+  return hue;
+}
+
 export default function Mod(props: IModProps) {
   const mod = props.mod;
   const { t, i18n } = useTranslation();
-  const modSource =
-    mod.source === ModSource.CurseForge
-      ? "CurseForge"
-      : mod.source === ModSource.Modrinth
-        ? "Modrinth"
-        : "?";
-  const desc = (
-    mod.description.trim().length >= 36
-      ? mod.description.trim().substring(0, 36) + "..."
-      : mod.description
-  ).trim();
+  const isCurseForge = mod.source === ModSource.CurseForge;
+  const isModrinth = mod.source === ModSource.Modrinth;
+  const sourceLabel = isCurseForge
+    ? "CurseForge"
+    : isModrinth
+      ? "Modrinth"
+      : "";
+  // Modpacks and data packs are browsable but not one-click installable; the
+  // card surfaces "open in web" for them instead of a download action.
+  const installable =
+    mod.modType !== ModType.Modpack && mod.modType !== ModType.DataPack;
+  const description = mod.description.trim();
 
   const [visible, setVisible] = useState(true);
   const [clickableDownload, setClickableDownload] = useState(true);
@@ -66,7 +77,7 @@ export default function Mod(props: IModProps) {
   const isAutoinstallable = mod.autoinstallable;
 
   const openModDownload = async () => {
-    if (!mod.downloadable) {
+    if (!mod.downloadable || !installable) {
       return;
     }
     // 8 character random string
@@ -160,82 +171,102 @@ export default function Mod(props: IModProps) {
     }
   }, [context, isAutoinstallable, progress, t]);
 
+  const downloadCount = Intl.NumberFormat(i18n.language, {
+    compactDisplay: "short",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(mod.downloadCount);
+
+  const hue = hashHue(mod.name);
+  const gradientTile = `linear-gradient(135deg, hsl(${hue} 58% 50%), hsl(${(hue + 45) % 360} 55% 38%))`;
+
+  const actionButtonClass =
+    "flex items-center gap-1.5 h-[38px] px-5 rounded-full font-extrabold text-[13.5px] text-white whitespace-nowrap self-center";
+  const iconButtonClass =
+    "inline-flex items-center justify-center w-[38px] h-[38px] rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-slate-50 self-center";
+
   return (
     <>
       {visible && (
         <motion.div
-          initial={{
-            opacity: 0,
-            y: 24,
-          }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ y: 0, opacity: 1, x: 0 }}
-          whileHover={{ opacity: 1, y: -5, x: 0 }}
-          exit={{
-            opacity: 0,
-            y: -24,
-          }}
+          exit={{ opacity: 0, y: -24 }}
           transition={{ type: "spring", stiffness: 100, duration: 0.3 }}
           className={
             props.className +
-            " p-4 h-full bg-slate-900 w-full flex-1 items-center justify-center align-middle rounded-4xl flex flex-col hover:shadow-2xl hover:bg-slate-950 hover:shadow-slate-950 transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
+            " flex flex-col gap-2.5 h-full w-full p-4 bg-slate-900 rounded-2xl hover:bg-slate-950 hover:shadow-2xl hover:shadow-slate-950 transition-[background,box-shadow] transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
           }
           onDoubleClick={openModDownload}
         >
-          <div className="flex flex-row">
-            <span className="w-full"></span>
-            <img
-              src={mod.modIconUrl}
-              height={"48px"}
-              width={"48px"}
-              className={
-                "align-center justify-center" +
-                (clipIcons ? " rounded-full" : "")
-              }
-            ></img>
-            <span className="w-full"></span>
+          {/* Header: icon tile + name/meta/description */}
+          <div className="flex items-start gap-3">
+            {mod.modIconUrl && mod.modIconUrl.trim().length !== 0 ? (
+              <img
+                src={mod.modIconUrl}
+                height="56px"
+                width="56px"
+                className={
+                  "flex-none w-14 h-14 object-cover bg-slate-800" +
+                  (clipIcons ? " rounded-full" : " rounded-2xl")
+                }
+              ></img>
+            ) : (
+              <div
+                className={
+                  "flex-none w-14 h-14 flex items-center justify-center text-2xl font-extrabold text-white" +
+                  (clipIcons ? " rounded-full" : " rounded-2xl")
+                }
+                style={{ background: gradientTile }}
+              >
+                {mod.name.trim().charAt(0).toUpperCase() || "?"}
+              </div>
+            )}
+            <div className="flex-1 min-w-0 flex flex-col gap-1">
+              <span className="text-base font-extrabold tracking-tight truncate">
+                {mod.name}
+              </span>
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold">
+                <MdDownload className="w-[13px] h-[13px]" />
+                {downloadCount}
+                {sourceLabel && (
+                  <>
+                    <span className="text-slate-600">·</span>
+                    <span
+                      className={
+                        "px-2 py-0.5 rounded-full text-[11px] font-extrabold " +
+                        (isCurseForge
+                          ? "bg-orange-500/20 text-orange-400"
+                          : "bg-emerald-500/15 text-emerald-400")
+                      }
+                    >
+                      {sourceLabel}
+                    </span>
+                  </>
+                )}
+              </div>
+              <p className="text-[12.5px] leading-[18px] text-slate-400 line-clamp-2 overflow-hidden m-0 h-[36px]">
+                {description}
+              </p>
+            </div>
           </div>
-          <div className="flex line-clamp-1 mt-2 w-full place-content-center align-center text-center justify-center">
-            <h1 className="max-w-full line-clamp-1 h-full text-lg align-center justify-center text-center font-bold">
-              {mod.name}
-            </h1>
 
-            <span className="flex text-slate-400 rounded-4xl">
-              <span className="border-2 mx-2 border-slate-400"></span>
-              <span className="w-fit h-full place-content-center text-lg align-center justify-center text-center font-bold ">
-                {Intl.NumberFormat(i18n.language, {
-                  compactDisplay: "short",
-                  notation: "compact",
-                  maximumFractionDigits: 1,
-                }).format(mod.downloadCount)}
-              </span>
-              <span className="place-content-center align-center justify-center">
-                <MdDownload className="w-6 h-6 place-content-center align-center justify-center text-center font-bold" />
-              </span>
-            </span>
-          </div>
-          <p className="w-full line-clamp-1 text-sm align-center text-center text-slate-400">
-            {desc}
-          </p>
-          <h2 className="w-full line-clamp-1 text-xs align-center justify-center text-center text-slate-400">
-            {t(mod.modType.toLowerCase(), { source: modSource })}
-          </h2>
-          <div className="flex h-min align-center w-full items-center justify-center text-center mt-2 transition-colors duration-300 ease-linear">
-            {mod.deleteable ? (
+          {/* Actions */}
+          <div className="flex items-center justify-end gap-2 mt-auto">
+            {mod.deleteable && (
               <Button
                 animate
                 onClick={async () => {
                   await deleteMod(props.modpack ?? "free", mod.id);
                   setVisible(false);
                 }}
-                className="flex justify-center items-center w-full h-full text-sm/none text-pretty self-center bg-slate-800 hover:bg-red-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                className={actionButtonClass + " bg-slate-800 hover:bg-red-700"}
               >
                 {t("delete")}
-                <MdDelete className="ml-1.5 w-5 h-5" />
+                <MdDelete className="w-5 h-5" />
               </Button>
-            ) : (
-              <></>
             )}
-            {mod.downloadable && progress !== 100 ? (
+            {mod.downloadable && installable && progress !== 100 ? (
               mod.newVersion !== undefined && mod.showPreviousVersion ? (
                 <Button
                   animate
@@ -265,10 +296,12 @@ export default function Mod(props: IModProps) {
                       });
                     }
                   }}
-                  className="flex justify-center items-center w-full h-full text-sm/none text-pretty self-center bg-emerald-600 hover:bg-emerald-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                  className={
+                    actionButtonClass + " bg-emerald-600 hover:bg-emerald-700"
+                  }
                 >
                   {progress === -1 ? t("update") : +progress.toFixed(2) + "%"}
-                  <MdFileDownload className="ml-1.5 w-5 h-5"></MdFileDownload>
+                  <MdFileDownload className="w-5 h-5"></MdFileDownload>
                 </Button>
               ) : (
                 <Button
@@ -313,10 +346,12 @@ export default function Mod(props: IModProps) {
                     }
                     openModDownload();
                   }}
-                  className="flex justify-center items-center w-full h-full text-sm/none text-pretty self-center bg-emerald-600 hover:bg-emerald-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                  className={
+                    actionButtonClass + " bg-emerald-600 hover:bg-emerald-700"
+                  }
                 >
                   {progress === -1 ? t("download") : +progress.toFixed(2) + "%"}
-                  <MdFileDownload className="ml-1.5 w-5 h-5"></MdFileDownload>
+                  <MdFileDownload className="w-5 h-5"></MdFileDownload>
                 </Button>
               )
             ) : (
@@ -325,7 +360,7 @@ export default function Mod(props: IModProps) {
             {mod.selectable && (
               <Button
                 animate
-                className="flex items-center w-full text-sm/none self-center h-full wrap-break-word text-center justify-center bg-blue-600 hover:bg-blue-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                className={actionButtonClass + " bg-blue-600 hover:bg-blue-700"}
                 onClick={async () => {
                   await registerMod(
                     {
@@ -339,20 +374,19 @@ export default function Mod(props: IModProps) {
                 }}
               >
                 {t("select")}
-                <MdCheck className="ml-1.5 w-5 h-5"></MdCheck>
+                <MdCheck className="w-5 h-5"></MdCheck>
               </Button>
             )}
             {mod.url.trim().length !== 0 && (
-              <Button
+              <button
+                title={t("openInTheWeb")}
                 onClick={async () => {
                   await openIn(mod.url);
                 }}
-                animate
-                className="flex items-center w-full text-sm/none self-center h-full wrap-break-word text-center justify-center bg-blue-600 hover:bg-blue-700 font-extrabold px-2 py-1 rounded-4xl mx-2"
+                className={iconButtonClass}
               >
-                {t("openInTheWeb")}
-                <MdOpenInBrowser className="ml-1.5 w-5 h-5"></MdOpenInBrowser>
-              </Button>
+                <MdOpenInNew className="w-[17px] h-[17px]" />
+              </button>
             )}
           </div>
         </motion.div>

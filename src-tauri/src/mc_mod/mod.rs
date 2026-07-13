@@ -2,7 +2,7 @@ use quadrant_host::QuadrantHost;
 use tauri::{AppHandle, Manager};
 
 pub use quadrant_core::mc_mod::{
-    GetModArgs, GlobalSearchModsArgs, IdentifiedMod, MinecraftVersion, Mod, ModType,
+    GetModArgs, GlobalSearchModsArgs, IdentifiedMod, MinecraftVersion, Mod, ModType, SearchCategory,
     SearchModsArgs, UniversalModFile, get_mod_url, get_user_agent,
 };
 pub use quadrant_core::models::{InstalledMod, ModSource};
@@ -40,6 +40,18 @@ pub async fn search_mods(
 ) -> Result<Vec<Mod>, tauri::Error> {
     app.state::<QuadrantHost>()
         .search_mods(args)
+        .await
+        .map_err(tauri::Error::from)
+}
+
+#[tauri::command]
+pub async fn get_categories(
+    source: ModSource,
+    mod_type: String,
+    app: AppHandle,
+) -> Result<Vec<SearchCategory>, tauri::Error> {
+    app.state::<QuadrantHost>()
+        .get_categories(source, mod_type)
         .await
         .map_err(tauri::Error::from)
 }

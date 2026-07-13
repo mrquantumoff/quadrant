@@ -13,8 +13,8 @@ use crate::{
 
 use super::http::provider_cached_client;
 use super::{
-    GetModArgs, IdentifiedMod, InstalledMod, Mod, ModType, SearchModsArgs, UniversalModFile,
-    get_file, get_mod_url,
+    GetModArgs, IdentifiedMod, InstalledMod, Mod, ModType, SearchCategory, SearchModsArgs,
+    UniversalModFile, get_file, get_mod_url,
 };
 
 pub(crate) fn modrinth_api_base() -> String {
@@ -26,36 +26,53 @@ pub(crate) fn modrinth_api_base() -> String {
     "https://api.modrinth.com".to_string()
 }
 
-pub async fn search_mods_modrinth(
-    settings: &impl SettingsStore,
-    args: SearchModsArgs,
-) -> Result<Vec<Mod>> {
-    let mut mod_type = args.mod_type.to_lowercase();
-    if mod_type == "shaderpack" {
-        mod_type = "shader".to_string();
+pub async fn search_mods_modrinth(args: SearchModsArgs) -> Result<Vec<Mod>> {
+    let mod_type = ModType::from(args.mod_type.clone());
+
+    // Facet groups are AND-ed together; identifiers within a single group are
+    // OR-ed. `project_type` scopes the content type, loader/version/open-source
+    // each constrain further, and the selected categories form one OR group.
+    let mut facet_groups: Vec<String> = vec![format!("[\"project_type:{mod_type}\"]")];
+
+    if !args.game_version.is_empty() && args.game_version != "any" {
+        facet_groups.push(format!("[\"versions:{}\"]", args.game_version));
     }
 
-    let mod_type = ModType::from(mod_type);
-    let mut facets = format!("[\"project_type:{}\"]", mod_type);
-
-    if args.filter_on {
-        let last_used_version = settings.get_string("lastUsedVersion")?.unwrap_or_default();
-        facets = format!("{},[\"versions:{}\"]", facets, last_used_version);
-        if mod_type == ModType::Mod {
-            let last_used_loader =
-                ModLoader::from(settings.get_string("lastUsedAPI")?.unwrap_or_default());
-            if let Some(loader_slug) = last_used_loader.modrinth_slug() {
-                facets = format!("{},[\"categories:{}\"]", facets, loader_slug);
-            }
+    let loader = ModLoader::from(args.mod_loader.clone());
+    if loader != ModLoader::Unknown {
+        if let Some(loader_slug) = loader.modrinth_slug() {
+            facet_groups.push(format!("[\"categories:{loader_slug}\"]"));
         }
     }
 
-    let facets_param = format!("[{facets}]");
+    if !args.categories.is_empty() {
+        let inner = args
+            .categories
+            .iter()
+            .map(|category| format!("\"categories:{category}\""))
+            .collect::<Vec<_>>()
+            .join(",");
+        facet_groups.push(format!("[{inner}]"));
+    }
+
+    if args.open_source {
+        facet_groups.push("[\"open_source:true\"]".to_string());
+    }
+
+    let facets_param = format!("[{}]", facet_groups.join(","));
+
+    let index = match args.sort_by.as_str() {
+        "downloads" => "downloads",
+        "updated" => "updated",
+        _ => "relevance",
+    };
+
     let raw_uri = reqwest::Url::parse_with_params(
         format!("{}/v2/search", modrinth_api_base()).as_str(),
         [
             ("query", args.query.as_str()),
             ("limit", "100"),
+            ("index", index),
             ("facets", facets_param.as_str()),
         ],
     )?;
@@ -95,6 +112,10 @@ pub async fn search_mods_modrinth(
                     .to_string(),
                 download_count: mod_data["downloads"].as_i64().unwrap_or_default(),
                 version: String::new(),
+                date_modified: mod_data["date_modified"]
+                    .as_str()
+                    .unwrap_or_default()
+                    .to_string(),
                 mod_type,
                 source: ModSource::Modrinth,
                 slug: slug.clone(),
@@ -119,6 +140,60 @@ pub async fn search_mods_modrinth(
     }
 
     Ok(mods)
+}
+
+/// Fetches the Modrinth tag list and maps it into selectable search facets for
+/// the given content type. Modrinth groups tags by `header` (categories,
+/// resolutions, features, performance impact); loader tags are filtered out
+/// because the loader is chosen separately.
+pub async fn get_categories_modrinth(mod_type: ModType) -> Result<Vec<SearchCategory>> {
+    let project_type = mod_type.to_string();
+
+    let response_json: serde_json::Value = provider_cached_client()
+        .get(format!("{}/v2/tag/category", modrinth_api_base()))
+        .send()
+        .await?
+        .error_for_status()?
+        .json()
+        .await?;
+
+    let mut categories = Vec::new();
+    if let Some(tags) = response_json.as_array() {
+        for tag in tags {
+            if tag["project_type"].as_str().unwrap_or_default() != project_type {
+                continue;
+            }
+            let slug = tag["name"].as_str().unwrap_or_default().to_string();
+            if slug.is_empty() {
+                continue;
+            }
+            let header = tag["header"].as_str().unwrap_or("categories").to_string();
+            categories.push(SearchCategory {
+                name: prettify_slug(&slug),
+                id: slug,
+                header,
+                source: ModSource::Modrinth,
+            });
+        }
+    }
+
+    Ok(categories)
+}
+
+/// Turns a Modrinth tag slug (e.g. `game-mechanics`) into a display label
+/// (`Game Mechanics`).
+fn prettify_slug(slug: &str) -> String {
+    slug.split(['-', '_'])
+        .filter(|word| !word.is_empty())
+        .map(|word| {
+            let mut chars = word.chars();
+            match chars.next() {
+                Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+                None => String::new(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 pub async fn get_mod_modrinth(args: GetModArgs) -> Result<Mod> {
@@ -153,6 +228,10 @@ pub async fn get_mod_modrinth(args: GetModArgs) -> Result<Mod> {
             .as_array()
             .and_then(|versions| versions.last())
             .and_then(|version| version.as_str())
+            .unwrap_or_default()
+            .to_string(),
+        date_modified: res_json["updated"]
+            .as_str()
             .unwrap_or_default()
             .to_string(),
         mod_type,
