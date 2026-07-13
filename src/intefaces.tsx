@@ -94,6 +94,8 @@ export enum ModType {
   Mod = "Mod",
   ResourcePack = "ResourcePack",
   ShaderPack = "Shader",
+  Modpack = "Modpack",
+  DataPack = "DataPack",
   Unknown = "Unknown",
 }
 
@@ -102,6 +104,7 @@ export interface IMod {
   id: string;
   downloadCount: number;
   version: string;
+  dateModified: string;
   modType: ModType;
   source: ModSource;
   slug: string;
@@ -137,7 +140,30 @@ export interface GlobalSearchModsArgs {
   source: ModSource;
   query: string;
   modType: string;
+  /** Treat results as auto-installable into the current modpack context. */
   filterOn: boolean;
+  /** Explicit Minecraft version filter. Empty or "any" disables it. */
+  gameVersion: string;
+  /** Explicit loader filter. Empty / Unknown disables it. */
+  modLoader: string;
+  /** Provider-specific category identifiers (CF numeric ids / Modrinth slugs). */
+  categories: string[];
+  /** Restrict to open-source projects (Modrinth only). */
+  openSource: boolean;
+  /** Sort key: relevance | downloads | name | updated. */
+  sortBy: string;
+}
+
+/** A selectable search facet returned by `getCategories`. */
+export interface SearchCategory {
+  /** Provider-specific id passed back in {@link GlobalSearchModsArgs.categories}. */
+  id: string;
+  /** Human-readable display label. */
+  name: string;
+  /** Grouping header: categories | resolutions | features | performance impact. */
+  header: string;
+  /** Provider this facet belongs to. */
+  source: ModSource;
 }
 
 export interface IdentifiedMod {

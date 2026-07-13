@@ -324,6 +324,7 @@ pub async fn run() {
             modpacks::general::export_modpack_to,
             mc_mod::modrinth::get_mod_modrinth,
             mc_mod::search_mods,
+            mc_mod::get_categories,
             mc_mod::get_versions,
             mc_mod::get_user_url,
             mc_mod::install_mod,

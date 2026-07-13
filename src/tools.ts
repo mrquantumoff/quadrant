@@ -14,6 +14,7 @@ import {
   ModLoader,
   ModSource,
   ModType,
+  SearchCategory,
   SyncedModpack,
   UniversalModFile,
 } from "./intefaces";
@@ -73,10 +74,19 @@ export async function getModpacks(
 }
 
 export async function searchMods(args: GlobalSearchModsArgs): Promise<IMod[]> {
-  const res = await invoke<IMod[]>("search_mods", { args });
-  res.sort((a, b) => b.downloadCount - a.downloadCount);
+  // Provider order reflects the requested sort (relevance / updated / …); the
+  // SearchPage merges and applies the final ordering, so don't re-sort here.
+  return await invoke<IMod[]>("search_mods", { args });
+}
 
-  return res;
+export async function getCategories(
+  source: ModSource,
+  modType: ModType,
+): Promise<SearchCategory[]> {
+  return await invoke<SearchCategory[]>("get_categories", {
+    source,
+    modType: modType.toString(),
+  });
 }
 
 export async function getMod(
