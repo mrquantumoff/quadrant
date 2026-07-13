@@ -27,6 +27,7 @@ export interface DesktopWindowAdapter {
   setFocus(): Promise<void>;
   unminimize(): Promise<void>;
   setProgressBar(state: DesktopWindowProgressState): Promise<void>;
+  setDecorations(decorations: boolean): Promise<void>;
 }
 
 export interface RuntimeAdapter {

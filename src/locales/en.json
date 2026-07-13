@@ -108,6 +108,7 @@
   "uiScale": "UI scale",
   "uiScaleCompact": "Compact (new)",
   "uiScaleClassic": "Classic (old)",
+  "nativeDecorations": "Use native window decorations",
   "noConnectivity": "No internet connectivity",
   "noConnectivityDetailed": "The app can't function without internet.",
   "currentModpack": "Current modpack",

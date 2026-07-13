@@ -137,6 +137,8 @@ export function getCurrentDesktopWindow() {
       withRuntime((runtime) => runtime.getWindow().unminimize()),
     setProgressBar: (state: DesktopWindowProgressState) =>
       withRuntime((runtime) => runtime.getWindow().setProgressBar(state)),
+    setDecorations: (decorations: boolean) =>
+      withRuntime((runtime) => runtime.getWindow().setDecorations(decorations)),
   };
 }
 

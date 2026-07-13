@@ -181,6 +181,10 @@ class TauriWindowAdapter implements DesktopWindowAdapter {
       status: mapProgressStatus(state.status),
     });
   }
+
+  async setDecorations(decorations: boolean): Promise<void> {
+    await this.window.setDecorations(decorations);
+  }
 }
 
 export const tauriRuntime: RuntimeAdapter = {

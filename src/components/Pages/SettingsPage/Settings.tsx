@@ -60,6 +60,7 @@ export default function SettingsPage() {
   const [currentVersion, setCurrentVersion] = useState("");
   const [currentRuntimeName, setCurrentRuntimeName] = useState("");
   const [currentRuntimeVersion, setCurrentRuntimeVersion] = useState("");
+  const [nativeDecorations, setNativeDecorations] = useState(false);
   const [showUpdateSettings, setShowUpdateSettings] = useState(true);
   const [uiScale, setUiScaleState] = useState(COMPACT_UI_SCALE);
 
@@ -116,6 +117,9 @@ export default function SettingsPage() {
       setCurrentVersion(await getAppVersion());
       setCurrentRuntimeName(await getRuntimeName());
       setCurrentRuntimeVersion(await getRuntimeVersion());
+      setNativeDecorations(
+        (await box.get<boolean>("nativeDecorations")) ?? false,
+      );
       setShowUpdateSettings(await isAutoupdateEnabled());
       setUiScaleState(clampUiScale(await box.get<number>(UI_SCALE_KEY)));
     };
@@ -404,6 +408,25 @@ export default function SettingsPage() {
           />
         </Switch>
         <Label className="ml-4">{"Modrinth"}</Label>
+      </Field>
+      <Field className="flex items-center font-bold my-4">
+        <Switch
+          className={
+            "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
+          }
+          checked={nativeDecorations}
+          onChange={async (newValue) => {
+            setNativeDecorations(newValue);
+            await box.set("nativeDecorations", newValue);
+            await box.save();
+          }}
+        >
+          <span
+            aria-hidden="true"
+            className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
+          />
+        </Switch>
+        <Label className="ml-4">{t("nativeDecorations")}</Label>
       </Field>
       {/* <Field className="flex items-center font-bold my-4">
         <Switch

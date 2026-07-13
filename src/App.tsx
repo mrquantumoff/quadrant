@@ -143,6 +143,7 @@ function App() {
   const config = configRef.current;
   const [contentHistory, setContentHistory] = useState<PageWithScroll[]>([]);
   const isLinuxRef = useRef(false);
+  const [nativeDecorations, setNativeDecorations] = useState(false);
 
   const [snackBarHistory, setSnackbarHistory] = useState<SnackbarHistoryItem[]>(
     [],
@@ -262,13 +263,13 @@ function App() {
         cleanupFns.push(modpackDownloadUnlisten);
       }
 
-      const [currentPlatform, lastPageIndex, savedUiScale] = await Promise.all(
-        [
+      const [currentPlatform, lastPageIndex, savedUiScale, nativeDecorationsValue] =
+        await Promise.all([
           platform(),
           config.get<number>("lastPage"),
           config.get<number>(UI_SCALE_KEY),
-        ],
-      );
+          config.get<boolean>("nativeDecorations"),
+        ]);
       if (!isUnmounted) {
         applyUiScale(savedUiScale ?? COMPACT_UI_SCALE);
       }
@@ -289,8 +290,11 @@ function App() {
       }
 
       if (!isUnmounted) {
+        const resolvedNativeDecorations = nativeDecorationsValue ?? false;
         const initialPage = pages[lastPageIndex ?? 0] ?? pages[0];
         isLinuxRef.current = currentPlatform === "linux";
+        setNativeDecorations(resolvedNativeDecorations);
+        await currentWindow.setDecorations(resolvedNativeDecorations);
         setPage(initialPage);
         setContent(initialPage);
         setContentHistory([
@@ -300,6 +304,22 @@ function App() {
             scrollPositionY: 0,
           },
         ]);
+      }
+
+      const nativeDecorationsUnlisten = await config.onKeyChange<boolean>(
+        "nativeDecorations",
+        async (newValue) => {
+          if (!isUnmounted) {
+            const resolved = newValue ?? false;
+            setNativeDecorations(resolved);
+            await currentWindow.setDecorations(resolved);
+          }
+        },
+      );
+      if (isUnmounted) {
+        nativeDecorationsUnlisten();
+      } else {
+        cleanupFns.push(nativeDecorationsUnlisten);
       }
 
       const configChangeUnlisten = await config.onChange(async (key) => {
@@ -963,38 +983,49 @@ function App() {
                         )}
                       </Button>
                     )}
-                    <div className="bg-slate-800 p-2 flex rounded-full items-center justify-center">
+                    <div
+                      className={
+                        (nativeDecorations ? "" : "bg-slate-800 rounded-full ") +
+                        "p-2 flex items-center justify-center"
+                      }
+                    >
                       <Notifications
                         snackBarHistory={snackBarHistory}
                         setSnackbarHistory={setSnackbarHistory}
                       />
 
-                      <Button
-                        fullRound
-                        className="bg-slate-700 hover:bg-slate-600 mx-2"
-                        onClick={async () => {
-                          await currentWindow.minimize();
-                        }}
-                      >
-                        <md.MdMinimize />
-                      </Button>
-                      <Button
-                        fullRound
-                        className="bg-slate-700 hover:bg-slate-600 ml-2"
-                        onClick={async () => {
-                          await currentWindow.hide();
-                          // `setEnabled(false)` maps to the Windows-only
-                          // EnableWindow API; it keeps the hidden window from
-                          // being reactivated from the taskbar. On macOS it
-                          // only greys the window out and prevents it from
-                          // hiding into the tray, so limit it to Windows.
-                          if ((await platform()) === "windows") {
-                            await currentWindow.setEnabled(false);
-                          }
-                        }}
-                      >
-                        <md.MdClose />
-                      </Button>
+                      {/* When native decorations are enabled the OS draws the
+                          window controls, so hide our custom ones. */}
+                      {!nativeDecorations && (
+                        <>
+                          <Button
+                            fullRound
+                            className="bg-slate-700 hover:bg-slate-600 mx-2"
+                            onClick={async () => {
+                              await currentWindow.minimize();
+                            }}
+                          >
+                            <md.MdMinimize />
+                          </Button>
+                          <Button
+                            fullRound
+                            className="bg-slate-700 hover:bg-slate-600 ml-2"
+                            onClick={async () => {
+                              await currentWindow.hide();
+                              // `setEnabled(false)` maps to the Windows-only
+                              // EnableWindow API; it keeps the hidden window from
+                              // being reactivated from the taskbar. On macOS it
+                              // only greys the window out and prevents it from
+                              // hiding into the tray, so limit it to Windows.
+                              if ((await platform()) === "windows") {
+                                await currentWindow.setEnabled(false);
+                              }
+                            }}
+                          >
+                            <md.MdClose />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
