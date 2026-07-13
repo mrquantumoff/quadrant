@@ -181,7 +181,7 @@ export default function Mod(props: IModProps) {
   const gradientTile = `linear-gradient(135deg, hsl(${hue} 58% 50%), hsl(${(hue + 45) % 360} 55% 38%))`;
 
   const actionButtonClass =
-    "flex items-center gap-1.5 h-[38px] px-5 rounded-full font-extrabold text-[13.5px] text-white whitespace-nowrap self-center";
+    "flex items-center gap-1.5 h-8 px-5 rounded-full font-extrabold text-xs text-white whitespace-nowrap self-center";
   const iconButtonClass =
     "inline-flex items-center justify-center w-[38px] h-[38px] rounded-full bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-slate-50 self-center";
 
@@ -195,7 +195,7 @@ export default function Mod(props: IModProps) {
           transition={{ type: "spring", stiffness: 100, duration: 0.3 }}
           className={
             props.className +
-            " flex flex-col gap-2.5 h-full w-full p-4 bg-slate-900 rounded-2xl hover:bg-slate-950 hover:shadow-2xl hover:shadow-slate-950 transition-[background,box-shadow] transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
+            " flex flex-col gap-2.5 h-full w-full p-4 bg-slate-900 rounded-2xl hover:bg-slate-950 hover:shadow-2xl hover:shadow-slate-950 transition-[background,box-shadow] transform-gpu backface-hidden will-change-[transform,opacity]"
           }
           onDoubleClick={openModDownload}
         >
@@ -222,12 +222,12 @@ export default function Mod(props: IModProps) {
                 {mod.name.trim().charAt(0).toUpperCase() || "?"}
               </div>
             )}
-            <div className="flex-1 min-w-0 flex flex-col gap-1">
-              <span className="text-base font-extrabold tracking-tight truncate">
+            <div className="flex-1 min-w-0 flex flex-col gap-px">
+              <span className="text-base font-black tracking-tight truncate">
                 {mod.name}
               </span>
               <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold">
-                <MdDownload className="w-[13px] h-[13px]" />
+                <MdDownload className="w-3.25 h-3.25" />
                 {downloadCount}
                 {sourceLabel && (
                   <>
@@ -245,7 +245,7 @@ export default function Mod(props: IModProps) {
                   </>
                 )}
               </div>
-              <p className="text-[12.5px] leading-[18px] text-slate-400 line-clamp-2 overflow-hidden m-0 h-[36px]">
+              <p className="text-xs leading-4.5 text-slate-400 line-clamp-2 overflow-hidden m-0 h-9">
                 {description}
               </p>
             </div>
@@ -374,7 +374,7 @@ export default function Mod(props: IModProps) {
                 }}
               >
                 {t("select")}
-                <MdCheck className="w-5 h-5"></MdCheck>
+                <MdCheck className="size-2"></MdCheck>
               </Button>
             )}
             {mod.url.trim().length !== 0 && (
@@ -385,7 +385,7 @@ export default function Mod(props: IModProps) {
                 }}
                 className={iconButtonClass}
               >
-                <MdOpenInNew className="w-[17px] h-[17px]" />
+                <MdOpenInNew className="size-4" />
               </button>
             )}
           </div>

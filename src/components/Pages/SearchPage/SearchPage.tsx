@@ -500,7 +500,7 @@ export default function SearchPage() {
       initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 24, opacity: 0 }}
-      className="content-main flex flex-col w-full h-full min-h-0 text-slate-50 transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
+      className="content-main flex flex-col w-full h-full min-h-0 text-slate-50 transform-gpu backface-hidden will-change-[transform,opacity]"
     >
       {/* Search + submit */}
       <div className="flex-none flex justify-center px-6 pt-5 pb-4">
@@ -525,7 +525,7 @@ export default function SearchPage() {
             type="submit"
             className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-sky-700 hover:bg-sky-600 text-white text-sm font-extrabold whitespace-nowrap"
           >
-            <MdSearch className="w-[18px] h-[18px]" />
+            <MdSearch className="size-4.5" />
             {t("search")}
           </button>
         </form>
@@ -534,16 +534,16 @@ export default function SearchPage() {
       {/* Body */}
       <div className="flex-1 flex min-h-0 gap-4 px-6 pb-6">
         {/* Filters sidebar */}
-        <aside className="flex-none w-[316px] flex flex-col min-h-0">
+        <aside className="flex-none w-79 flex flex-col min-h-0">
           <div className="bg-slate-800 rounded-[28px] flex flex-col min-h-0 h-full overflow-hidden">
             <div className="flex-none flex items-center justify-between px-6 pt-5 pb-3">
               <div className="flex items-center gap-2">
-                <MdFilterAlt className="w-[18px] h-[18px] text-slate-200" />
+                <MdFilterAlt className="size-4.5 text-slate-200" />
                 <span className="text-[17px] font-extrabold tracking-tight">
                   {t("filter")}
                 </span>
                 {chips.length > 0 && (
-                  <span className="min-w-[22px] h-[22px] px-[7px] rounded-full bg-blue-600 text-white text-xs font-extrabold inline-flex items-center justify-center">
+                  <span className="min-w-5.5 h-5.5 px-1.75 rounded-full bg-blue-600 text-white text-xs font-extrabold inline-flex items-center justify-center">
                     {chips.length}
                   </span>
                 )}
@@ -714,7 +714,7 @@ export default function SearchPage() {
                       </span>
                       <MdExpandMore
                         className={
-                          "w-[17px] h-[17px] text-slate-400 transition-transform " +
+                          "size-4.25 text-slate-400 transition-transform " +
                           (isCollapsed ? "rotate-180" : "")
                         }
                       />
@@ -801,18 +801,18 @@ export default function SearchPage() {
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-y-auto bg-slate-800 rounded-[28px] p-[18px]">
+          <div className="flex-1 min-h-0 overflow-y-auto bg-slate-800 rounded-[28px] p-4.5">
             {searchError ? (
               <div className="bg-red-700 rounded-4xl p-4 font-bold">
                 {searchError}
               </div>
             ) : !effCf && !effMr ? (
-              <div className="flex flex-col items-center justify-center py-[70px] px-5 text-center text-slate-500">
+              <div className="flex flex-col items-center justify-center py-17.5 px-5 text-center text-slate-500">
                 <MdFilterAlt className="w-12 h-12 text-slate-700" />
                 <div className="text-[17px] font-extrabold text-slate-400 mt-4">
                   {t("noActiveSourceTitle")}
                 </div>
-                <div className="text-[13.5px] mt-1.5 max-w-[360px] leading-relaxed">
+                <div className="text-[13.5px] mt-1.5 max-w-90 leading-relaxed">
                   {t("noActiveSourceHint")}
                 </div>
                 {chips.length > 0 && (
@@ -829,12 +829,12 @@ export default function SearchPage() {
                 <CircularProgress />
               </div>
             ) : mods.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-[70px] px-5 text-center text-slate-500">
+              <div className="flex flex-col items-center justify-center py-17.5 px-5 text-center text-slate-500">
                 <MdSearch className="w-12 h-12 text-slate-700" />
                 <div className="text-[17px] font-extrabold text-slate-400 mt-4">
                   {t("noResultsTitle")}
                 </div>
-                <div className="text-[13.5px] mt-1.5 max-w-[360px] leading-relaxed">
+                <div className="text-[13.5px] mt-1.5 max-w-90 leading-relaxed">
                   {t("noResultsHint")}
                 </div>
                 {chips.length > 0 && (
@@ -847,7 +847,7 @@ export default function SearchPage() {
                 )}
               </div>
             ) : (
-              <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(300px,1fr))]">
+              <div className="grid gap-3 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
                 <AnimatePresence>
                   {mods.map((mod, index) => (
                     <Mod
@@ -997,7 +997,7 @@ function PillOption({
       onClick={disabled ? undefined : onToggle}
       disabled={disabled}
       className={
-        "inline-flex items-center gap-1.5 h-[34px] px-3.5 rounded-full text-[13px] font-bold transition-[filter] " +
+        "inline-flex items-center gap-1.5 h-8.5 px-3.5 rounded-full text-[13px] font-bold transition-[filter] " +
         (disabled
           ? "bg-slate-800 text-slate-600 cursor-not-allowed"
           : selected
@@ -1028,7 +1028,7 @@ function SourceToggle({
       onClick={disabled ? undefined : onToggle}
       disabled={disabled}
       className={
-        "flex-1 inline-flex items-center justify-center gap-2 h-[42px] rounded-full text-[13.5px] font-extrabold transition-[filter] " +
+        "flex-1 inline-flex items-center justify-center gap-2 h-10.5 rounded-full text-[13.5px] font-extrabold transition-[filter] " +
         (disabled
           ? "bg-slate-800 border border-dashed border-slate-700 text-slate-600 cursor-not-allowed"
           : active
@@ -1064,14 +1064,14 @@ function SwitchRow({
       </span>
       <span
         className={
-          "flex-none w-[42px] h-6 rounded-full relative transition-colors " +
+          "flex-none w-10.5 h-6 rounded-full relative transition-colors " +
           (on ? "bg-blue-600" : "bg-slate-700")
         }
       >
         <span
           className={
             "absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform " +
-            (on ? "translate-x-[18px]" : "")
+            (on ? "translate-x-4.5" : "")
           }
         />
       </span>
