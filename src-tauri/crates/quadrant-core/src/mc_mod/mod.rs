@@ -201,6 +201,10 @@ pub struct GlobalSearchModsArgs {
     /// Sort key: `relevance` | `downloads` | `name` | `updated`.
     #[serde(default)]
     pub sort_by: String,
+    /// Zero-based offset into the provider's result set, for pagination /
+    /// "search further". `0` returns the first page.
+    #[serde(default)]
+    pub offset: u32,
 }
 
 /// Provider-local search input.
@@ -222,6 +226,8 @@ pub struct SearchModsArgs {
     pub open_source: bool,
     /// Sort key: `relevance` | `downloads` | `name` | `updated`.
     pub sort_by: String,
+    /// Zero-based offset into the provider's result set, for pagination.
+    pub offset: u32,
 }
 
 /// A selectable search facet exposed by a provider (category, resolution,
@@ -372,6 +378,7 @@ pub async fn search_mods(args: GlobalSearchModsArgs) -> Result<Vec<Mod>> {
         categories: args.categories,
         open_source: args.open_source,
         sort_by: args.sort_by,
+        offset: args.offset,
     };
 
     let mods = match args.source {

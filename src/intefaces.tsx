@@ -152,6 +152,9 @@ export interface GlobalSearchModsArgs {
   openSource: boolean;
   /** Sort key: relevance | downloads | name | updated. */
   sortBy: string;
+  /** Zero-based offset into the provider's result set, for "search further"
+   *  pagination. Omitted or 0 returns the first page. */
+  offset?: number;
 }
 
 /** A selectable search facet returned by `getCategories`. */

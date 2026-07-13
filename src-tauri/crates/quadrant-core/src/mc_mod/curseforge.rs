@@ -256,6 +256,10 @@ pub async fn search_mods_curseforge(args: SearchModsArgs) -> Result<Vec<Mod>> {
         ("sortField", sort_field.to_string()),
         ("sortOrder", sort_order.to_string()),
         ("classId", mod_type.curseforge_id().to_string()),
+        // Zero-based pagination offset. CurseForge caps `index + pageSize` at
+        // 10000, and `pageSize` itself at 50.
+        ("index", args.offset.to_string()),
+        ("pageSize", "50".to_string()),
     ];
 
     let has_concrete_game_version = !args.game_version.is_empty() && args.game_version != "any";
