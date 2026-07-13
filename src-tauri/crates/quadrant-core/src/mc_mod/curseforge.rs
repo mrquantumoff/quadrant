@@ -258,7 +258,9 @@ pub async fn search_mods_curseforge(args: SearchModsArgs) -> Result<Vec<Mod>> {
         ("classId", mod_type.curseforge_id().to_string()),
     ];
 
-    if !args.game_version.is_empty() && args.game_version != "any" {
+    let has_concrete_game_version = !args.game_version.is_empty() && args.game_version != "any";
+
+    if has_concrete_game_version {
         let mut game_version = args.game_version.clone();
         // Resource packs, shaders and data packs are indexed on CurseForge by
         // the major.minor version only.
@@ -271,7 +273,7 @@ pub async fn search_mods_curseforge(args: SearchModsArgs) -> Result<Vec<Mod>> {
         query.push(("gameVersion", game_version));
     }
 
-    if mod_type == ModType::Mod || mod_type == ModType::Modpack {
+    if has_concrete_game_version && (mod_type == ModType::Mod || mod_type == ModType::Modpack) {
         let mod_loader_type = ModLoader::from(args.mod_loader.clone());
         if mod_loader_type != ModLoader::Unknown {
             let Some(curseforge_id) = mod_loader_type.curseforge_id() else {
