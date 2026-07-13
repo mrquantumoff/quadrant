@@ -44,6 +44,7 @@ export default function ModpackView(modpack: LocalModpack) {
     showPreviousVersion: false,
     slug: "-",
     version: "",
+    dateModified: "",
     newVersion: null,
     modpack: "",
     selectable: false,
