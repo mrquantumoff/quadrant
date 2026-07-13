@@ -108,6 +108,7 @@
   "uiScale": "Масштаб інтерфейсу",
   "uiScaleCompact": "Компактний (новий)",
   "uiScaleClassic": "Класичний (старий)",
+  "nativeDecorations": "Використовувати системні рамки вікна",
   "noConnectivity": "Не підключено до інтернету",
   "noConnectivityDetailed": "Ця програма не працює без інтернету.",
   "currentModpack": "Поточний модпак",

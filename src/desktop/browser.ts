@@ -54,6 +54,8 @@ class BrowserWindowAdapter implements DesktopWindowAdapter {
   async unminimize(): Promise<void> {}
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async setProgressBar(_state: DesktopWindowProgressState): Promise<void> {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async setDecorations(_decorations: boolean): Promise<void> {}
 }
 
 export const browserRuntime: RuntimeAdapter = {

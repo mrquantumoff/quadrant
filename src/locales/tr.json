@@ -108,6 +108,7 @@
   "uiScale": "Arayüz ölçeği",
   "uiScaleCompact": "Kompakt (yeni)",
   "uiScaleClassic": "Klasik (eski)",
+  "nativeDecorations": "Yerel pencere süslemelerini kullan",
   "noConnectivity": "İnternet bağlantısı yok",
   "noConnectivityDetailed": "Bu uygulama internet olmadan çalışamaz.",
   "currentModpack": "Mevcut mod paketi",

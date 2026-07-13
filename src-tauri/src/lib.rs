@@ -141,6 +141,23 @@ pub async fn run() {
             app.manage(host.clone());
             log::info!("Initializing app...\nInitializing config...");
             host.init_config()?;
+
+            // Apply the persisted native-decorations preference before the
+            // window is shown so the app launches with the correct frame
+            // instead of relying on the renderer to flip it at runtime.
+            if let Some(window) = app.get_webview_window("main") {
+                use tauri_plugin_store::StoreExt;
+                let native_decorations = app
+                    .store("config.json")
+                    .ok()
+                    .and_then(|store| store.get("nativeDecorations"))
+                    .and_then(|value| value.as_bool())
+                    .unwrap_or(false);
+                if let Err(e) = window.set_decorations(native_decorations) {
+                    log::error!("Failed to apply native decorations preference: {e}");
+                }
+            }
+
             let mut autoupdate = true;
 
             log::info!("Initializing deep links and autostart...");
@@ -504,5 +521,11 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), tauri::Error> {
     update
         .install(update_bytes)
         .map_err(|e| tauri::Error::from(anyhow::Error::from(e)))?;
+    // On Windows the NSIS `passive` installer shuts down and relaunches the app
+    // itself. On macOS/Linux `install()` swaps the bundle in place and returns
+    // without restarting, so we must relaunch explicitly.
+    #[cfg(not(target_os = "windows"))]
+    app.restart();
+    #[cfg(target_os = "windows")]
     Ok(())
 }

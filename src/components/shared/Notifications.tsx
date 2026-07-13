@@ -251,21 +251,18 @@ function Notifications({
                 <PopoverPanel
                   static
                   as={motion.div}
-                  anchor="top start"
+                  anchor="bottom end"
                   initial={{
                     opacity: 0,
                     y: -16,
-                    x: -150,
                   }}
                   animate={{
                     opacity: 1,
                     y: 0,
-                    x: -150,
                   }}
                   exit={{
                     opacity: 0,
                     y: -16,
-                    x: -150,
                   }}
                   className="flex flex-col p-4 mt-4 font-bold bg-slate-800 rounded-4xl w-[35vw] min-w-72 my-8 h-[75vh] transform-gpu backface-hidden will-change-[transform,opacity]"
                 >

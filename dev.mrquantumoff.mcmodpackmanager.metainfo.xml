@@ -50,6 +50,13 @@
   <releases>
 
 
+    <release date="2026-07-13" version="26.7.4">
+        <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
+        <description>
+        <p>Added an option to use native window decorations</p>
+        </description>
+    </release>
+
     <release date="2026-07-13" version="26.7.3">
         <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
         <description>
