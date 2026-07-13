@@ -50,6 +50,15 @@
   <releases>
 
 
+    <release date="2026-07-13" version="26.7.3">
+        <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
+        <description>
+        <p>Reworked search</p>
+        <p>Faster MS Store pipeline</p>
+        <p>New screenshots</p>
+        </description>
+    </release>
+
     <release date="2026-07-11" version="26.7.2">
         <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
         <description>

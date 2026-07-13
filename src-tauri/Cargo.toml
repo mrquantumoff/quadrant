@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "26.7.2-stable"
+version = "26.7.3-stable"
 
 [workspace.dependencies]
 anyhow = "1.0.103"
