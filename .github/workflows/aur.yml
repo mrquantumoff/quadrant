@@ -97,7 +97,7 @@ jobs:
           cat aur-pkg/PKGBUILD
 
       - name: Publish to the AUR
-        uses: KSXGitHub/github-actions-deploy-aur@v4
+        uses: KSXGitHub/github-actions-deploy-aur@v4.2.0
         with:
           pkgname: ${{ env.PKGNAME }}
           pkgbuild: ./aur-pkg/PKGBUILD
