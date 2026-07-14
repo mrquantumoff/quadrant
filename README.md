@@ -16,7 +16,7 @@ Quadrant is a Tauri desktop app with a React renderer and Rust backend logic.
 
 <table align="center">
   <tr>
-    <td valign="middle"><a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager"><img height="60" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/></a></td>
+    <td valign="middle"><a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager"><picture><source media="(prefers-color-scheme: dark)" srcset="https://flathub.org/api/badge?svg"/><img height="60" alt="Download on Flathub" src="https://flathub.org/api/badge?svg&amp;light"/></picture></a></td>
     <td valign="middle"><a href="https://apps.microsoft.com/detail/9nlt70m0tvd0"><picture><source media="(prefers-color-scheme: dark)" srcset="https://get.microsoft.com/images/en-us%20dark.svg"/><img height="60" alt="Download on Microsoft Store" src="https://get.microsoft.com/images/en-us%20light.svg"/></picture></a></td>
     <td valign="middle"><a href="https://aur.archlinux.org/packages/quadrant-bin"><img height="46" alt="Get it on AUR" src="https://img.shields.io/aur/version/quadrant-bin?style=for-the-badge&logo=archlinux&label=Get%20it%20on%20AUR"/></a></td>
   </tr>
