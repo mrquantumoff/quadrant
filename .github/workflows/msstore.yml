@@ -18,12 +18,12 @@ jobs:
       matrix:
         include:
           - arch: x64
-            triple: x86_64-pc-windows-msvc
+            triple: blacksmith-4vcpu-windows-2025
             msvcArch: amd64
           - arch: arm64
             triple: aarch64-pc-windows-msvc
             msvcArch: amd64_arm64
-    runs-on: "windows-2025-vs2026"
+    runs-on: "blacksmith-4vcpu-windows-2025"
     steps:
       - uses: actions/checkout@v6
 
