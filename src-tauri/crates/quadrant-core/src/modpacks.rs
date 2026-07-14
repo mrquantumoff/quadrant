@@ -234,7 +234,15 @@ pub fn apply_modpack(mc_folder: &Path, name: &str) -> Result<()> {
     if !modpack_dir.exists() {
         return Err(anyhow!("Modpack does not exist"));
     }
-    if !mods_path.is_symlink() && mods_path.exists() {
+    if mods_path.is_symlink() {
+        // An existing `mods` symlink. This may be dangling if the modpack it
+        // pointed at was deleted as a directory outside of Quadrant, in which
+        // case `exists()` is false (it follows the link) but the broken link
+        // still occupies the path and would make symlink creation fail with
+        // `AlreadyExists`. Remove it either way before re-linking.
+        std::fs::remove_dir_all(&mods_path)?;
+    } else if mods_path.exists() {
+        // A real, non-symlink `mods` directory — back it up rather than delete.
         std::fs::rename(
             &mods_path,
             mc_folder.join("modpacks").join(format!(
@@ -242,8 +250,6 @@ pub fn apply_modpack(mc_folder: &Path, name: &str) -> Result<()> {
                 Utc::now().format("%Y%m%d-%H%M%S")
             )),
         )?;
-    } else if mods_path.exists() {
-        std::fs::remove_dir_all(&mods_path)?;
     }
 
     #[cfg(target_os = "windows")]
@@ -1006,5 +1012,30 @@ mod tests {
         std::fs::create_dir_all(modpack_path(&mc_folder, "alpha")).unwrap();
         apply_modpack(&mc_folder, "alpha").unwrap();
         assert!(mc_folder.join("mods").is_symlink());
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[test]
+    fn apply_modpack_replaces_dangling_symlink() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        std::fs::create_dir_all(modpack_path(&mc_folder, "alpha")).unwrap();
+        std::fs::create_dir_all(modpack_path(&mc_folder, "beta")).unwrap();
+
+        apply_modpack(&mc_folder, "alpha").unwrap();
+
+        // Simulate the modpack directory being deleted outside of Quadrant,
+        // leaving `mods` as a dangling symlink.
+        std::fs::remove_dir_all(modpack_path(&mc_folder, "alpha")).unwrap();
+        let mods_path = mc_folder.join("mods");
+        assert!(mods_path.is_symlink());
+        assert!(!mods_path.exists());
+
+        // Applying another modpack should remove the broken link and re-point it.
+        apply_modpack(&mc_folder, "beta").unwrap();
+        assert!(mods_path.is_symlink());
+        assert_eq!(
+            mods_path.read_link().unwrap(),
+            modpack_path(&mc_folder, "beta")
+        );
     }
 }
