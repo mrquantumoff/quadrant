@@ -50,6 +50,13 @@
   <releases>
 
 
+    <release date="2026-07-14" version="26.7.6">
+        <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
+        <description>
+        <p>The search page now lets you pick which modpack to install into from a dropdown</p>
+        </description>
+    </release>
+
     <release date="2026-07-14" version="26.7.5">
         <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
         <description>
