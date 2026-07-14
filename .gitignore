@@ -46,3 +46,4 @@ ds-bundle/
 .design-sync/node_modules
 .design-sync/quadrant-compiled.css
 .design-sync/Inter-Font.ttf
+.claude/
