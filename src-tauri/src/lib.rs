@@ -169,7 +169,7 @@ pub async fn run() {
                     .ok()
                     .flatten()
                     .and_then(|value| value.as_bool())
-                    .unwrap_or(false);
+                    .unwrap_or(cfg!(target_os = "macos"));
                 if let Err(e) = window.set_decorations(native_decorations) {
                     log::error!("Failed to apply native decorations preference: {e}");
                 }
