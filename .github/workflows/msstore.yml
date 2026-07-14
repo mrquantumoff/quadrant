@@ -24,6 +24,9 @@ jobs:
             triple: aarch64-pc-windows-msvc
             msvcArch: amd64_arm64
     runs-on: "blacksmith-4vcpu-windows-2025"
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v6
 
