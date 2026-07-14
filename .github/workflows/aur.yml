@@ -1,0 +1,108 @@
+# @format
+
+name: Publish to AUR
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Stable tag to publish to the AUR, e.g. v26.3.1-stable
+        required: true
+        type: string
+      release_repo:
+        description: Repository that owns the release assets
+        required: false
+        type: string
+        default: QuadrantMC/quadrant
+    secrets:
+      AUR_SSH_PRIVATE_KEY:
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Stable tag to publish to the AUR, e.g. v26.3.1-stable
+        required: true
+        type: string
+      release_repo:
+        description: Repository that owns the release assets
+        required: false
+        type: string
+        default: QuadrantMC/quadrant
+
+jobs:
+  publish-aur:
+    name: Build PKGBUILD and publish
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ inputs.tag }}
+      RELEASE_REPO: ${{ inputs.release_repo }}
+      PKGNAME: quadrant-bin
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Derive versions
+        id: versions
+        run: |
+          set -euo pipefail
+
+          # Full release version, e.g. 26.7.4-stable (matches the .deb file name).
+          version="${TAG#v}"
+          if [ "$version" = "$TAG" ]; then
+            echo "Expected TAG to start with 'v', got: $TAG" >&2
+            exit 1
+          fi
+
+          # AUR pkgver must be a clean, monotonic version with no suffix, so drop
+          # everything from the first '-' onwards, e.g. 26.7.4-stable -> 26.7.4.
+          pkgver="${version%%-*}"
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "pkgver=$pkgver" >> "$GITHUB_OUTPUT"
+
+      - name: Download release .rpm packages
+        env:
+          PKGVER: ${{ steps.versions.outputs.pkgver }}
+        run: |
+          set -euo pipefail
+          mkdir -p downloads
+          gh release download "$TAG" \
+            --repo "$RELEASE_REPO" \
+            --dir downloads \
+            --pattern "Quadrant-${PKGVER}-stable-1.x86_64.rpm" \
+            --pattern "Quadrant-${PKGVER}-stable-1.aarch64.rpm"
+
+      - name: Generate PKGBUILD
+        id: pkgbuild
+        env:
+          PKGVER: ${{ steps.versions.outputs.pkgver }}
+        run: |
+          set -euo pipefail
+
+          x86_64_sha="$(sha256sum "downloads/Quadrant-${PKGVER}-stable-1.x86_64.rpm" | awk '{print $1}')"
+          aarch64_sha="$(sha256sum "downloads/Quadrant-${PKGVER}-stable-1.aarch64.rpm" | awk '{print $1}')"
+          ghurl="https://github.com/${RELEASE_REPO}"
+
+          mkdir -p aur-pkg
+          sed \
+            -e "s|@PKGVER@|${PKGVER}|g" \
+            -e "s|@GHURL@|${ghurl}|g" \
+            -e "s|@SHA256_X86_64@|${x86_64_sha}|g" \
+            -e "s|@SHA256_AARCH64@|${aarch64_sha}|g" \
+            .github/aur/PKGBUILD.template > aur-pkg/PKGBUILD
+
+          echo "----- generated PKGBUILD -----"
+          cat aur-pkg/PKGBUILD
+
+      - name: Publish to the AUR
+        uses: KSXGitHub/github-actions-deploy-aur@v4
+        with:
+          pkgname: ${{ env.PKGNAME }}
+          pkgbuild: ./aur-pkg/PKGBUILD
+          commit_username: MrQuantumOFF
+          commit_email: me@mrquantumoff.dev
+          ssh_private_key: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
+          commit_message: "Update to ${{ steps.versions.outputs.pkgver }}"
+          ssh_keyscan_types: rsa,ed25519
