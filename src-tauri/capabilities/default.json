@@ -9,7 +9,6 @@
     "core:app:default",
     "fs:default",
     "os:default",
-    "store:default",
     "http:default",
     {
       "identifier": "fs:allow-watch",
@@ -53,6 +52,7 @@
     "core:window:allow-hide",
     "core:window:allow-set-enabled",
     "core:window:allow-minimize",
+    "core:window:allow-set-decorations",
     "core:window:allow-set-progress-bar",
     "oauth:allow-start",
     "oauth:allow-cancel",

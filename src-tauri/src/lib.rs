@@ -13,8 +13,6 @@ use tauri::Url;
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 use tauri_plugin_deep_link::DeepLinkExt;
 #[cfg(feature = "updater")]
-use tauri_plugin_store::StoreExt;
-#[cfg(feature = "updater")]
 use tauri_plugin_updater::UpdaterExt;
 
 #[cfg(feature = "quadrant_id")]
@@ -111,7 +109,6 @@ pub async fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_http::init())
-        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_oauth::init())
         .plugin(tauri_plugin_opener::init())
@@ -142,15 +139,35 @@ pub async fn run() {
             log::info!("Initializing app...\nInitializing config...");
             host.init_config()?;
 
+            // One-time migration: the update channel used to live in a
+            // separate updateConfig.json store. Fold it into the single config
+            // store so the app has exactly one source of truth for settings.
+            if host.get_config_value("channel").ok().flatten().is_none() {
+                if let Ok(data_dir) = app.path().app_data_dir() {
+                    let legacy_path = data_dir.join("updateConfig.json");
+                    if let Ok(contents) = std::fs::read_to_string(&legacy_path) {
+                        if let Some(channel) = serde_json::from_str::<serde_json::Value>(&contents)
+                            .ok()
+                            .and_then(|json| json.get("channel").cloned())
+                        {
+                            if let Err(e) = host.set_config_value("channel", channel) {
+                                log::warn!("Failed to migrate update channel: {e}");
+                            }
+                        }
+                    }
+                }
+            }
+
             // Apply the persisted native-decorations preference before the
             // window is shown so the app launches with the correct frame
-            // instead of relying on the renderer to flip it at runtime.
+            // instead of relying on the renderer to flip it at runtime. Read
+            // it from the host config store — the single source of truth that
+            // `get_config_value`/`set_config_value` and the UI all go through.
             if let Some(window) = app.get_webview_window("main") {
-                use tauri_plugin_store::StoreExt;
-                let native_decorations = app
-                    .store("config.json")
+                let native_decorations = host
+                    .get_config_value("nativeDecorations")
                     .ok()
-                    .and_then(|store| store.get("nativeDecorations"))
+                    .flatten()
                     .and_then(|value| value.as_bool())
                     .unwrap_or(false);
                 if let Err(e) = window.set_decorations(native_decorations) {
@@ -433,8 +450,6 @@ async fn check_update(_app: tauri::AppHandle) -> Result<(), anyhow::Error> {
 
         let mut update_urls = vec![update_url];
 
-        let update_config = app.store("updateConfig.json")?;
-
         let ms_store_build = app
             .config()
             .version
@@ -444,12 +459,15 @@ async fn check_update(_app: tauri::AppHandle) -> Result<(), anyhow::Error> {
 
         let defualt_channel = "stable";
 
-        if update_config.get("channel").is_some() {
-            let channel = update_config.get("channel").unwrap();
-            let channel = channel.as_str().unwrap_or(defualt_channel);
-            if channel != "stable" {
-                update_urls.push(Url::parse(&format!("https://api.usequadrant.dev/api/any/quadrant/updates/{}/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}?variant={{{{bundle_type}}}}",channel))?);
-            }
+        let channel = app
+            .state::<QuadrantHost>()
+            .get_config_value("channel")
+            .ok()
+            .flatten()
+            .and_then(|value| value.as_str().map(str::to_string))
+            .unwrap_or_else(|| defualt_channel.to_string());
+        if channel != "stable" {
+            update_urls.push(Url::parse(&format!("https://api.usequadrant.dev/api/any/quadrant/updates/{}/{{{{target}}}}/{{{{arch}}}}/{{{{current_version}}}}?variant={{{{bundle_type}}}}",channel))?);
         }
         // Prefer the preview version if we're updating from a preview version
         update_urls.reverse();

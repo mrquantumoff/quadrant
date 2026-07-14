@@ -36,9 +36,7 @@ import {
 export default function SettingsPage() {
   const { t } = useTranslation();
   const boxRef = useRef(createDesktopStore("config.json"));
-  const updateChannelBoxRef = useRef(createDesktopStore("updateConfig.json"));
   const box = boxRef.current;
-  const updateChannelBox = updateChannelBoxRef.current;
   const contentContext = useContext(ContentContext);
 
   const [currentLocale, setCurrentLocale] = useState("en");
@@ -97,9 +95,7 @@ export default function SettingsPage() {
       setDevMode((await box.get<boolean>("devMode")) ?? false);
       // setRssFeeds((await box.get<boolean>("rssFeeds")) ?? false);
       // setSilentNews((await box.get<boolean>("silentNews")) ?? false);
-      setUpdateChannel(
-        (await updateChannelBox.get<string>("channel")) ?? "stable",
-      );
+      setUpdateChannel((await box.get<string>("channel")) ?? "stable");
       setAutoQuadrantSync(
         (await box.get<boolean>("autoQuadrantSync")) ?? false,
       );
@@ -149,7 +145,7 @@ export default function SettingsPage() {
       isUnmounted = true;
       uiScaleUnlisten?.();
     };
-  }, [box, updateChannelBox]);
+  }, [box]);
 
   return (
     <motion.div
@@ -181,9 +177,9 @@ export default function SettingsPage() {
               e.preventDefault();
               e.preventDefault();
               const newChannel = e.target.value;
-              await updateChannelBox.set("channel", newChannel);
+              await box.set("channel", newChannel);
               setUpdateChannel(newChannel);
-              await updateChannelBox.save();
+              await box.save();
               requestCheckForUpdates();
             }}
           >
