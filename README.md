@@ -22,7 +22,9 @@ Quadrant is a Tauri desktop app with a React renderer and Rust backend logic.
         <img width="200" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
 </a>
 
-##### The app is also packaged unofficially on [AUR](https://aur.archlinux.org/packages/quadrant-bin), but only Flathub, MS Store, Windows setup-based distributions, and ad-hoc-signed Apple-Silicon macOS DMGs are officially supported. macOS users must approve the app in Privacy & Security before first launch. Use other distribution methods at your risk.
+<a href="https://aur.archlinux.org/packages/quadrant-bin">
+        <img width="200" alt="AUR Version" src="https://img.shields.io/aur/version/quadrant-bin?style=flat-square&logo=archlinux&label=Get%20it%20on%20AUR">
+</a>
 
 #### OR
 
@@ -53,6 +55,12 @@ Quadrant is a Tauri desktop app with a React renderer and Rust backend logic.
 > #### If app fails to apply your modpacks after installation, delete your mods folder.
 >
 > #### The app relies on time being synced correctly on your machine. If you encounter issues with features like Quadrant ID / Quadrant Share / Quadrant Sync, make sure that your time is set correctly. If that doesn't help, check the [status](https://status.bultek.com.ua/status/main) page
+
+> [!NOTE]
+> 
+> macOS users must approve the app in Privacy & Security before first launch. 
+> macOS users must also let the app use the key chain with the "Always allow" button in order to have Quadrant ID/Sync functionality.
+> 
 
 > [!TIP]
 >
