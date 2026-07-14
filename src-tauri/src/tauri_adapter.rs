@@ -8,57 +8,17 @@ use keyring_core::{Entry, Error as KeyringError, set_default_store};
 use quadrant_core::{
     Result,
     events::BackendEvent,
-    ports::{EventSink, Notifier, RuntimeState, SecretStore, SettingsStore, Shell},
+    ports::{EventSink, Notifier, RuntimeState, SecretStore, Shell},
 };
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_notification::NotificationExt;
-use tauri_plugin_store::StoreExt;
 use tokio::sync::Mutex;
 
 use crate::AppState;
 
 static KEYRING_STORE_INIT: OnceLock<std::result::Result<(), String>> = OnceLock::new();
-
-#[derive(Clone)]
-pub struct TauriSettingsStore {
-    app: AppHandle,
-    store_name: &'static str,
-}
-
-impl TauriSettingsStore {
-    pub fn new(app: AppHandle, store_name: &'static str) -> Self {
-        Self { app, store_name }
-    }
-}
-
-impl SettingsStore for TauriSettingsStore {
-    fn get_value(&self, key: &str) -> Result<Option<Value>> {
-        let store = self
-            .app
-            .store(self.store_name)
-            .map_err(anyhow::Error::from)?;
-        Ok(store.get(key))
-    }
-
-    fn set_value(&self, key: &str, value: Value) -> Result<()> {
-        let store = self
-            .app
-            .store(self.store_name)
-            .map_err(anyhow::Error::from)?;
-        store.set(key, value);
-        Ok(())
-    }
-
-    fn entries(&self) -> Result<Vec<(String, Value)>> {
-        let store = self
-            .app
-            .store(self.store_name)
-            .map_err(anyhow::Error::from)?;
-        Ok(store.entries())
-    }
-}
 
 #[derive(Clone)]
 pub struct TauriEventSink {
@@ -265,15 +225,6 @@ impl RuntimeState for TauriRuntimeState {
         }
         Ok(())
     }
-}
-
-pub fn mc_folder(app: &AppHandle) -> Result<PathBuf> {
-    let store = app.store("config.json").map_err(anyhow::Error::from)?;
-    let mc_folder = store
-        .get("mcFolder")
-        .and_then(|value| value.as_str().map(PathBuf::from))
-        .ok_or_else(|| anyhow!("mcFolder is not configured"))?;
-    Ok(mc_folder)
 }
 
 #[cfg(test)]

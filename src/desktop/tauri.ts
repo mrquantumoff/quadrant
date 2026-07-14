@@ -14,7 +14,6 @@ import { watch as watchPath } from "@tauri-apps/plugin-fs";
 import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 import { getCurrent, onOpenUrl } from "@tauri-apps/plugin-deep-link";
 import { platform as tauriPlatform } from "@tauri-apps/plugin-os";
-import { LazyStore } from "@tauri-apps/plugin-store";
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import {
@@ -100,55 +99,37 @@ function mapProgressStatus(
 }
 
 class TauriStoreAdapter implements DesktopStoreAdapter {
-  private readonly store: LazyStore;
-  private readonly isConfig: boolean;
-
-  constructor(name: string) {
-    this.store = new LazyStore(name);
-    this.isConfig = name === "config.json";
-  }
+  // The whole app persists settings through a single host-backed config
+  // store, addressed via the get_config_value/set_config_value commands and
+  // the "configChanged" event. The store name is kept for API compatibility
+  // but there is only one store.
+  constructor(_name: string) {}
 
   async get<T>(key: string): Promise<T | undefined> {
-    if (this.isConfig) {
-      const value = await tauriInvoke<T | null>("get_config_value", { key });
-      return value ?? undefined;
-    }
-    return this.store.get<T>(key);
+    const value = await tauriInvoke<T | null>("get_config_value", { key });
+    return value ?? undefined;
   }
 
   async set(key: string, value: unknown): Promise<void> {
-    if (this.isConfig) {
-      await tauriInvoke("set_config_value", { key, value });
-      return;
-    }
-    await this.store.set(key, value);
+    await tauriInvoke("set_config_value", { key, value });
   }
 
   async save(): Promise<void> {
-    if (this.isConfig) {
-      return;
-    }
-    await this.store.save();
+    // Writes are persisted immediately by the host store; nothing to flush.
   }
 
   async onChange(listener: (key: string) => void) {
-    if (this.isConfig) {
-      return tauriListen<string>("configChanged", (event) =>
-        listener(event.payload),
-      );
-    }
-    return this.store.onChange(listener);
+    return tauriListen<string>("configChanged", (event) =>
+      listener(event.payload),
+    );
   }
 
   async onKeyChange<T>(key: string, listener: (value: T | null) => void) {
-    if (this.isConfig) {
-      return tauriListen<string>("configChanged", (event) => {
-        if (event.payload === key) {
-          void this.get<T>(key).then((value) => listener(value ?? null));
-        }
-      });
-    }
-    return this.store.onKeyChange<T>(key, (value) => listener(value ?? null));
+    return tauriListen<string>("configChanged", (event) => {
+      if (event.payload === key) {
+        void this.get<T>(key).then((value) => listener(value ?? null));
+      }
+    });
   }
 }
 
