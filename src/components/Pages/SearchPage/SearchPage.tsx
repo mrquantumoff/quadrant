@@ -76,6 +76,9 @@ interface SavedFilters {
   loader?: string;
   selected?: string[];
   openSource?: boolean;
+  /** Name of the modpack chosen as the install target ("" = none). */
+  targetModpack?: string;
+  /** Legacy toggle; migrated to {@link targetModpack} on load. */
   matchModpack?: boolean;
   filtersCollapsed?: boolean;
 }
@@ -157,7 +160,9 @@ export default function SearchPage() {
   const [loader, setLoader] = useState<string>("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openSource, setOpenSource] = useState(false);
-  const [matchModpack, setMatchModpack] = useState(false);
+  // Name of the modpack chosen as the install target ("" = none). Selecting one
+  // matches its version/loader and makes results auto-installable into it.
+  const [targetModpack, setTargetModpack] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   const [page, setPage] = useState(0);
@@ -200,9 +205,10 @@ export default function SearchPage() {
   const effCf = curseforge && lock !== "modrinth" && !openSource;
   const effMr = modrinth && lock !== "cf";
 
-  const currentModpack = useMemo(
-    () => modpacks.find((modpack) => modpack.isApplied) ?? modpacks[0],
-    [modpacks],
+  // The modpack currently chosen as the install target, resolved from its name.
+  const targetModpackObj = useMemo(
+    () => modpacks.find((modpack) => modpack.name === targetModpack),
+    [modpacks, targetModpack],
   );
 
   const loaderProviders = loaderProvidersFromSettings(effCf, effMr);
@@ -268,9 +274,9 @@ export default function SearchPage() {
         query,
         modType: contentType.toString(),
         // Only auto-installable when there is a concrete install target: a
-        // matched modpack AND a concrete version (autoinstall reads the version
+        // chosen modpack AND a concrete version (autoinstall reads the version
         // from config, so "Any version" has no unambiguous file to install).
-        filterOn: matchModpack && version !== "any",
+        filterOn: targetModpack !== "" && version !== "any",
         gameVersion: version === "any" ? "" : version,
         modLoader: loaderVisible ? loader : "",
         openSource,
@@ -389,7 +395,14 @@ export default function SearchPage() {
         if (saved.loader !== undefined) setLoader(saved.loader);
         if (saved.selected) setSelected(new Set(saved.selected));
         if (saved.openSource !== undefined) setOpenSource(saved.openSource);
-        if (saved.matchModpack !== undefined) setMatchModpack(saved.matchModpack);
+        if (saved.targetModpack !== undefined) {
+          setTargetModpack(saved.targetModpack);
+        } else if (saved.matchModpack) {
+          // Migrate the legacy "match current modpack" toggle: it targeted
+          // whichever modpack was applied.
+          const applied = availableModpacks.find((modpack) => modpack.isApplied);
+          if (applied) setTargetModpack(applied.name);
+        }
         if (saved.filtersCollapsed !== undefined)
           setFiltersCollapsed(saved.filtersCollapsed);
       }
@@ -409,7 +422,7 @@ export default function SearchPage() {
       loader,
       selected: [...selected],
       openSource,
-      matchModpack,
+      targetModpack,
       filtersCollapsed,
     };
     void configStore
@@ -424,7 +437,7 @@ export default function SearchPage() {
     loader,
     selected,
     openSource,
-    matchModpack,
+    targetModpack,
     filtersCollapsed,
   ]);
 
@@ -463,7 +476,7 @@ export default function SearchPage() {
     version,
     loader,
     openSource,
-    matchModpack,
+    targetModpack,
     selected,
     categories,
     sortBy,
@@ -493,8 +506,10 @@ export default function SearchPage() {
   // auto-install target (Mod.tsx reads lastUsedVersion/lastUsedAPI from config),
   // so persist every change to keep the two in lockstep.
   const changeVersion = async (value: string) => {
-    if (matchModpack && value !== currentModpack?.version) {
-      setMatchModpack(false);
+    // Diverging from the target modpack's version means results would install
+    // the wrong file, so drop the target rather than silently mismatch.
+    if (targetModpack && value !== targetModpackObj?.version) {
+      setTargetModpack("");
     }
     setVersion(value);
     await configStore.set("lastUsedVersion", value === "any" ? "" : value);
@@ -502,27 +517,26 @@ export default function SearchPage() {
   };
 
   const changeLoader = async (value: string) => {
-    if (matchModpack && value !== currentModpack?.modLoader) {
-      setMatchModpack(false);
+    if (targetModpack && value !== targetModpackObj?.modLoader) {
+      setTargetModpack("");
     }
     setLoader(value);
     await configStore.set("lastUsedAPI", value);
     await configStore.save();
   };
 
-  const applyMatchModpack = async (enabled: boolean) => {
-    // With no modpack to match, enabling would mark results auto-installable
-    // into a nonexistent target, so it is a no-op.
-    if (enabled && !currentModpack) return;
-    setMatchModpack(enabled);
-    if (enabled && currentModpack) {
-      setVersion(currentModpack.version);
-      setLoader(currentModpack.modLoader);
-      await configStore.set("lastUsedModpack", currentModpack.name);
-      await configStore.set("lastUsedVersion", currentModpack.version);
-      await configStore.set("lastUsedAPI", currentModpack.modLoader);
-      await configStore.save();
-    }
+  // Choose a modpack as the install target: adopt its version/loader and point
+  // the autoinstall config keys at it. An empty name clears the target.
+  const selectTargetModpack = async (name: string) => {
+    setTargetModpack(name);
+    const modpack = modpacks.find((entry) => entry.name === name);
+    if (!modpack) return;
+    setVersion(modpack.version);
+    setLoader(modpack.modLoader);
+    await configStore.set("lastUsedModpack", modpack.name);
+    await configStore.set("lastUsedVersion", modpack.version);
+    await configStore.set("lastUsedAPI", modpack.modLoader);
+    await configStore.save();
   };
 
   const toggleOpenSource = () => {
@@ -548,7 +562,7 @@ export default function SearchPage() {
     setSelected(new Set());
     void changeLoader("");
     setOpenSource(false);
-    setMatchModpack(false);
+    setTargetModpack("");
   };
 
   const isDisabled = (category: MergedCategory): boolean => {
@@ -589,16 +603,16 @@ export default function SearchPage() {
         onRemove: () => setOpenSource(false),
       });
     }
-    if (matchModpack) {
+    if (targetModpack) {
       list.push({
         key: "mp",
-        label: t("matchCurrentModpack"),
-        onRemove: () => setMatchModpack(false),
+        label: t("targetModpackChip", { name: targetModpack }),
+        onRemove: () => setTargetModpack(""),
       });
     }
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selected, catByKey, loader, loaderVisible, openSource, matchModpack, t]);
+  }, [selected, catByKey, loader, loaderVisible, openSource, targetModpack, t]);
 
   const sections = useMemo(() => {
     const byHeader = new Map<string, MergedCategory[]>();
@@ -775,29 +789,41 @@ export default function SearchPage() {
                 </div>
               </div>
 
-              {/* Quick filter: match current modpack */}
+              {/* Install target: pick which local modpack a mod installs into.
+                  The applied modpack is marked "(current)" so matching it stays
+                  a one-click choice. */}
               <div className="mb-6">
-                <button
-                  onClick={() => void applyMatchModpack(!matchModpack)}
-                  disabled={!currentModpack}
+                <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
+                  {t("installInto")}
+                </div>
+                <select
+                  value={targetModpack}
+                  onChange={(event) =>
+                    void selectTargetModpack(event.target.value)
+                  }
+                  disabled={modpacks.length === 0}
                   className={
-                    "w-full flex items-center justify-center gap-2 h-10 px-4 rounded-full text-[13.5px] font-extrabold transition-[filter] " +
-                    (!currentModpack
+                    "w-full h-11 px-4 rounded-full border-none text-sm font-bold outline-none " +
+                    (modpacks.length === 0
                       ? "bg-slate-800 text-slate-600 cursor-not-allowed"
-                      : matchModpack
-                        ? "bg-blue-600 text-white hover:brightness-110"
-                        : "bg-slate-700 text-slate-200 hover:brightness-110")
+                      : targetModpack
+                        ? "bg-blue-600 text-white cursor-pointer hover:brightness-110"
+                        : "bg-slate-700 text-slate-200 cursor-pointer hover:brightness-110")
                   }
                 >
-                  {matchModpack && <MdCheck className="w-4 h-4" />}
-                  {t("matchCurrentModpack")}
-                </button>
-                {currentModpack && (
-                  <div className="mt-1.5 text-[11.5px] text-slate-500 font-medium truncate text-center">
-                    {currentModpack.name} · {currentModpack.modLoader} ·{" "}
-                    {currentModpack.version}
-                  </div>
-                )}
+                  <option value="">{t("noTargetModpack")}</option>
+                  {modpacks.map((modpack) => (
+                    <option key={modpack.name} value={modpack.name}>
+                      {modpack.name} · {modpack.modLoader} · {modpack.version}
+                      {modpack.isApplied ? ` (${t("currentModpack")})` : ""}
+                    </option>
+                  ))}
+                </select>
+                <div className="mt-1.5 text-[11.5px] text-slate-500 font-medium leading-snug text-center">
+                  {targetModpack
+                    ? t("installIntoHint")
+                    : t("noTargetModpackHint")}
+                </div>
               </div>
 
               {/* Minecraft version */}
