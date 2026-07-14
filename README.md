@@ -14,17 +14,22 @@ Quadrant is a Tauri desktop app with a React renderer and Rust backend logic.
 
 ##### Read the warnings before installation!
 
-<a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
-    <img width="200" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
-</a>
-
-<a href="https://apps.microsoft.com/detail/9nlt70m0tvd0">
-        <img width="200" src="https://get.microsoft.com/images/en-us%20light.svg" alt="Download on Microsoft Store" />
-</a>
-
-<a href="https://aur.archlinux.org/packages/quadrant-bin">
-        <img width="200" alt="AUR Version" src="https://img.shields.io/aur/version/quadrant-bin?style=flat-square&logo=archlinux&label=Get%20it%20on%20AUR">
-</a>
+<p align="center">
+    <a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
+        <img height="64" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
+    </a>
+    &nbsp;
+    <a href="https://apps.microsoft.com/detail/9nlt70m0tvd0">
+        <picture>
+            <source media="(prefers-color-scheme: dark)" srcset="https://get.microsoft.com/images/en-us%20dark.svg"/>
+            <img height="64" alt="Download on Microsoft Store" src="https://get.microsoft.com/images/en-us%20light.svg"/>
+        </picture>
+    </a>
+    &nbsp;
+    <a href="https://aur.archlinux.org/packages/quadrant-bin">
+        <img height="64" alt="Get it on AUR" src="https://img.shields.io/aur/version/quadrant-bin?style=for-the-badge&logo=archlinux&label=Get%20it%20on%20AUR"/>
+    </a>
+</p>
 
 #### OR
 
@@ -57,10 +62,9 @@ Quadrant is a Tauri desktop app with a React renderer and Rust backend logic.
 > #### The app relies on time being synced correctly on your machine. If you encounter issues with features like Quadrant ID / Quadrant Share / Quadrant Sync, make sure that your time is set correctly. If that doesn't help, check the [status](https://status.bultek.com.ua/status/main) page
 
 > [!NOTE]
-> 
-> macOS users must approve the app in Privacy & Security before first launch. 
+>
+> macOS users must approve the app in Privacy & Security before first launch.
 > macOS users must also let the app use the key chain with the "Always allow" button in order to have Quadrant ID/Sync functionality.
-> 
 
 > [!TIP]
 >
