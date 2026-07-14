@@ -14,22 +14,13 @@ Quadrant is a Tauri desktop app with a React renderer and Rust backend logic.
 
 ##### Read the warnings before installation!
 
-<p align="center">
-    <a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager">
-        <img height="64" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/>
-    </a>
-    &nbsp;
-    <a href="https://apps.microsoft.com/detail/9nlt70m0tvd0">
-        <picture>
-            <source media="(prefers-color-scheme: dark)" srcset="https://get.microsoft.com/images/en-us%20dark.svg"/>
-            <img height="64" alt="Download on Microsoft Store" src="https://get.microsoft.com/images/en-us%20light.svg"/>
-        </picture>
-    </a>
-    &nbsp;
-    <a href="https://aur.archlinux.org/packages/quadrant-bin">
-        <img height="64" alt="Get it on AUR" src="https://img.shields.io/aur/version/quadrant-bin?style=for-the-badge&logo=archlinux&label=Get%20it%20on%20AUR"/>
-    </a>
-</p>
+<table align="center">
+  <tr>
+    <td valign="middle"><a href="https://flathub.org/apps/details/dev.mrquantumoff.mcmodpackmanager"><img height="60" alt="Download on Flathub" src="https://dl.flathub.org/assets/badges/flathub-badge-i-en.svg"/></a></td>
+    <td valign="middle"><a href="https://apps.microsoft.com/detail/9nlt70m0tvd0"><picture><source media="(prefers-color-scheme: dark)" srcset="https://get.microsoft.com/images/en-us%20dark.svg"/><img height="60" alt="Download on Microsoft Store" src="https://get.microsoft.com/images/en-us%20light.svg"/></picture></a></td>
+    <td valign="middle"><a href="https://aur.archlinux.org/packages/quadrant-bin"><img height="46" alt="Get it on AUR" src="https://img.shields.io/aur/version/quadrant-bin?style=for-the-badge&logo=archlinux&label=Get%20it%20on%20AUR"/></a></td>
+  </tr>
+</table>
 
 #### OR
 
