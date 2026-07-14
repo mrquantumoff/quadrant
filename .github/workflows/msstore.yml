@@ -18,7 +18,7 @@ jobs:
       matrix:
         include:
           - arch: x64
-            triple: blacksmith-4vcpu-windows-2025
+            triple: x86_64-pc-windows-msvc
             msvcArch: amd64
           - arch: arm64
             triple: aarch64-pc-windows-msvc
