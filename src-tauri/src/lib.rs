@@ -50,6 +50,59 @@ fn resolve_autoupdate(matches: Option<&tauri_plugin_cli::Matches>, version: &str
     !disabled
 }
 
+/// The directory Flatpak shares between the sandbox and the host, if we're
+/// running inside one. Returns `None` everywhere else, including a normal
+/// Linux install, so callers don't need to guard on the platform.
+///
+/// Flatpak bind-mounts `$XDG_RUNTIME_DIR/app/$FLATPAK_ID` through to the host
+/// at the same path; everything else under `$XDG_RUNTIME_DIR` is private to
+/// the sandbox.
+fn flatpak_host_shared_dir() -> Option<PathBuf> {
+    let runtime_dir = std::env::var_os("XDG_RUNTIME_DIR")?;
+    let flatpak_id = std::env::var_os("FLATPAK_ID")?;
+    Some(PathBuf::from(runtime_dir).join("app").join(flatpak_id))
+}
+
+/// Works around a blank tray icon under Flatpak.
+///
+/// `tray-icon` hands libappindicator a path on disk rather than pixels, and it
+/// writes that file to `$XDG_RUNTIME_DIR/tray-icon`. Inside a Flatpak sandbox
+/// that directory is invisible to the host, so the StatusNotifierHost creates
+/// the tray slot but has no icon to draw. Pointing the crate at the shared
+/// directory instead puts the file somewhere the host can actually read.
+///
+/// The path is only consulted the next time the icon is written, so the icon
+/// has to be re-applied afterwards — the tray was already built from the
+/// config by the time `setup` runs.
+fn try_redirect_tray_icon(
+    tray: &tauri::tray::TrayIcon,
+    image: Option<&tauri::image::Image<'static>>,
+    shared_dir: &std::path::Path,
+) -> Result<(), anyhow::Error> {
+    std::fs::create_dir_all(shared_dir)?;
+    tray.set_temp_dir_path(Some(shared_dir))?;
+    let image = image
+        .ok_or_else(|| anyhow::anyhow!("no tray icon is embedded in the app context"))?
+        .clone();
+    tray.set_icon(Some(image))?;
+    Ok(())
+}
+
+fn redirect_tray_icon_for_flatpak(
+    tray: &tauri::tray::TrayIcon,
+    image: Option<&tauri::image::Image<'static>>,
+) {
+    let Some(shared_dir) = flatpak_host_shared_dir() else {
+        return;
+    };
+    match try_redirect_tray_icon(tray, image, &shared_dir) {
+        Ok(()) => log::info!("Tray icon redirected to {shared_dir:?} for Flatpak."),
+        Err(error) => log::error!(
+            "Failed to redirect the tray icon to {shared_dir:?}; it will likely render blank under Flatpak: {error}"
+        ),
+    }
+}
+
 fn build_quadrant_host(
     app: &tauri::AppHandle,
     api_base_url: Option<String>,
@@ -76,6 +129,11 @@ fn build_quadrant_host(
 #[allow(deprecated)]
 pub async fn run() {
     log::info!("Initializing Tauri...");
+    let context = tauri::generate_context!();
+    // The tray image is embedded in the context at build time and the tray is
+    // built before `setup` runs, so keep a copy here — the Flatpak workaround
+    // in `setup` has to re-apply it to move the file it writes.
+    let tray_image = context.tray_icon().map(|image| image.clone().to_owned());
     let mut builder = tauri::Builder::default().manage(Mutex::new(AppState {
         updated_modpacks: vec![],
         is_update_enabled: false,
@@ -131,7 +189,7 @@ pub async fn run() {
         .plugin(tauri_plugin_oauth::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .setup(|app| {
+        .setup(move |app| {
             // Don't silently discard a parse failure: if the CLI args fail to
             // parse, flags like `--noupdater` are lost, so log loudly rather
             // than falling back to the defaults without a trace.
@@ -304,6 +362,7 @@ pub async fn run() {
                 tray.set_title(None::<&str>)?;
                 #[cfg(not(target_os = "macos"))]
                 tray.set_title(Some("Quadrant"))?;
+                redirect_tray_icon_for_flatpak(&tray, tray_image.as_ref());
                 let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
                 let show_w = MenuItem::with_id(app, "show", "Show/Hide", true, None::<&str>)?;
                 let menu = Menu::with_items(app, &[&show_w, &quit_i])?;
@@ -459,7 +518,7 @@ pub async fn run() {
         });
 
     builder
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }
 
@@ -683,5 +742,123 @@ mod tests {
         assert_eq!(positional["index"], Value::from(1));
         assert_eq!(positional["takesValue"], Value::Bool(true));
         assert_eq!(positional["multiple"], Value::Bool(true));
+    }
+}
+
+#[cfg(test)]
+mod icon_tests {
+    use serde_json::Value;
+    use std::path::{Path, PathBuf};
+
+    fn manifest_dir() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    }
+
+    fn icons_in(config: &str) -> Vec<String> {
+        let config: Value = serde_json::from_str(config).expect("config should be valid JSON");
+        config["bundle"]["icon"]
+            .as_array()
+            .expect("the config should declare bundle.icon")
+            .iter()
+            .map(|icon| {
+                icon.as_str()
+                    .expect("icon entries should be strings")
+                    .to_string()
+            })
+            .collect()
+    }
+
+    fn base_icons() -> Vec<String> {
+        icons_in(include_str!("../tauri.conf.json"))
+    }
+
+    fn linux_icons() -> Vec<String> {
+        icons_in(include_str!("../tauri.linux.conf.json"))
+    }
+
+    /// Config merging is JSON merge-patch, so the Linux array replaces the base
+    /// one wholesale. That's the point: none of the dark-plate icons should
+    /// reach hicolor on Linux.
+    #[test]
+    fn linux_icons_are_all_linux_specific() {
+        for icon in linux_icons() {
+            assert!(
+                icon == "icons/logoNoBgLinux.svg" || icon.starts_with("icons/linux/"),
+                "`{icon}` is not a Linux-specific icon"
+            );
+        }
+        assert!(linux_icons().contains(&"icons/logoNoBgLinux.svg".to_string()));
+    }
+
+    /// The base config must keep the plated logo, so Windows and macOS are
+    /// untouched by the Linux swap.
+    #[test]
+    fn base_config_still_uses_the_plated_logo() {
+        let icons = base_icons();
+        assert!(icons.contains(&"icons/logo.svg".to_string()));
+        assert!(!icons.iter().any(|icon| icon.contains("logoNoBgLinux")));
+        assert!(!icons.iter().any(|icon| icon.starts_with("icons/linux/")));
+    }
+
+    /// A typo in an icon path fails late and confusingly, inside the bundler.
+    #[test]
+    fn every_declared_icon_exists() {
+        let root = manifest_dir();
+        for icon in base_icons().into_iter().chain(linux_icons()) {
+            assert!(
+                root.join(&icon).exists(),
+                "declared icon `{icon}` does not exist"
+            );
+        }
+    }
+
+    /// `tauri-codegen` picks the first `.png` in the list as the Unix window
+    /// icon, so the Linux list has to contain one.
+    #[test]
+    fn the_linux_list_has_a_window_icon() {
+        let first_png = linux_icons()
+            .into_iter()
+            .find(|icon| icon.ends_with(".png"))
+            .expect("the Linux icon list needs a PNG for the window icon");
+        assert_eq!(first_png, "icons/linux/512x512.png");
+    }
+
+    fn png_size(path: &Path) -> (u32, u32) {
+        let bytes = std::fs::read(path).expect("icon should be readable");
+        assert_eq!(&bytes[1..4], b"PNG", "{path:?} is not a PNG");
+        let dimension = |offset: usize| {
+            u32::from_be_bytes([
+                bytes[offset],
+                bytes[offset + 1],
+                bytes[offset + 2],
+                bytes[offset + 3],
+            ])
+        };
+        (dimension(16), dimension(20))
+    }
+
+    /// The deb/rpm bundler derives each hicolor directory from the PNG's real
+    /// dimensions, not its filename, so a mislabelled file lands in the wrong
+    /// theme directory and silently never gets used.
+    #[test]
+    fn linux_png_dimensions_match_their_names() {
+        let root = manifest_dir();
+        let expected = [
+            ("icons/linux/32x32.png", 32),
+            ("icons/linux/128x128.png", 128),
+            ("icons/linux/128x128@2x.png", 256),
+            ("icons/linux/512x512.png", 512),
+        ];
+        for (icon, size) in expected {
+            assert_eq!(png_size(&root.join(icon)), (size, size), "{icon}");
+        }
+        assert_eq!(
+            linux_icons()
+                .into_iter()
+                .filter(|icon| icon.ends_with(".png"))
+                .count(),
+            expected.len(),
+            "every Linux PNG should have a pinned size"
+        );
     }
 }
