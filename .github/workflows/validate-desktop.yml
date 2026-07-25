@@ -39,6 +39,10 @@ jobs:
     outputs:
       native: ${{ steps.filter.outputs.native }}
     steps:
+      # On `pull_request` the filter resolves the diff through the API, but on
+      # `push` it shells out to git, so the repository has to be present.
+      - uses: actions/checkout@v6
+
       - uses: dorny/paths-filter@v3
         id: filter
         with:
