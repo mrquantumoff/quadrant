@@ -1,6 +1,6 @@
 {
   "identifier": "dev.mrquantumoff.mcmodpackmanager",
-  "version": "26.7.8-msstore",
+  "version": "26.8.0-msstore",
   "bundle": {
     "active": false,
     "createUpdaterArtifacts": false

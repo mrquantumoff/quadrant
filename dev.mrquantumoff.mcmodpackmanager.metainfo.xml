@@ -50,6 +50,18 @@
   <releases>
 
 
+    <release date="2026-07-25" version="26.8.0">
+        <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
+        <description>
+        <p>Closing the window now hides Quadrant to the tray instead of quitting</p>
+        <p>The Flatpak build no longer shows a blank tray icon</p>
+        <p>New transparent app icon on Linux</p>
+        <p>The macOS menu bar shows only the tray icon, without the app name</p>
+        <p>The --noupdater flag now reliably disables the built-in updater</p>
+        <p>Bug fixes and internal improvements</p>
+        </description>
+    </release>
+
     <release date="2026-07-17" version="26.7.8">
         <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->
         <description>
