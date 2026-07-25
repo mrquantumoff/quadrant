@@ -55,7 +55,15 @@
         },
         {
           "name": "api-url",
-          "description": "Override the Quadrant API base URL"
+          "description": "Override the Quadrant API base URL",
+          "takesValue": true
+        },
+        {
+          "name": "url",
+          "description": "Deep link or file path the app was launched with",
+          "index": 1,
+          "takesValue": true,
+          "multiple": true
         }
       ]
     },

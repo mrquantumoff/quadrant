@@ -32,6 +32,24 @@ pub struct AppState {
     pub update_bytes: Vec<u8>,
 }
 
+/// Decides whether the built-in auto-updater should run for this launch.
+///
+/// The updater is on by default and turned off by `--noupdater` (used by the
+/// AUR/flatpak packaging, where the package manager owns updates) or by an
+/// msstore build, which ships through the Store instead. `matches` is `None`
+/// when the CLI args failed to parse; that must not be read as "the flag was
+/// absent", but there is nothing better to fall back to than the default.
+fn resolve_autoupdate(matches: Option<&tauri_plugin_cli::Matches>, version: &str) -> bool {
+    if version.contains("msstore") {
+        return false;
+    }
+    let disabled = matches
+        .and_then(|matches| matches.args.get("noupdater"))
+        .map(|arg| arg.value == true)
+        .unwrap_or(false);
+    !disabled
+}
+
 fn build_quadrant_host(
     app: &tauri::AppHandle,
     api_base_url: Option<String>,
@@ -114,7 +132,16 @@ pub async fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {
-            let matches = app.cli().matches().ok();
+            // Don't silently discard a parse failure: if the CLI args fail to
+            // parse, flags like `--noupdater` are lost, so log loudly rather
+            // than falling back to the defaults without a trace.
+            let matches = match app.cli().matches() {
+                Ok(matches) => Some(matches),
+                Err(error) => {
+                    log::error!("Failed to parse CLI arguments: {error}");
+                    None
+                }
+            };
             let api_base_url = matches
                 .as_ref()
                 .and_then(|m| m.args.get("api-url"))
@@ -175,8 +202,6 @@ pub async fn run() {
                 }
             }
 
-            let mut autoupdate = true;
-
             log::info!("Initializing deep links and autostart...");
             #[cfg(any(target_os = "windows", target_os = "linux"))]
             {
@@ -228,25 +253,10 @@ pub async fn run() {
                         }
                     }
                 }
-                let autoupdater_disabled = matches.args.get_key_value("noupdater");
-                if autoupdater_disabled.is_some() {
-                    let autoupdater_disabled = autoupdater_disabled.unwrap();
-
-                    let value = autoupdater_disabled.1.value == true;
-
-                    autoupdate = !value;
-                }
             }
             let handle = app.handle().clone();
-            let ms_store_build = app
-                .config()
-                .version
-                .clone()
-                .unwrap_or_default()
-                .contains("msstore");
-            if ms_store_build {
-                autoupdate = false;
-            }
+            let version = app.config().version.clone().unwrap_or_default();
+            let autoupdate = resolve_autoupdate(matches.as_ref(), &version);
             log::info!("Autoupdate enabled: {}\nInitializing state...", autoupdate);
 
             if let Ok(mut state) = app.state::<Mutex<AppState>>().try_lock() {
@@ -455,6 +465,17 @@ pub async fn run() {
 
 #[tauri::command]
 async fn request_check_for_updates(app: tauri::AppHandle) -> Result<(), tauri::Error> {
+    // Gate every caller, not just the startup check: the renderer asks for an
+    // update check on its own, so `--noupdater` (and msstore builds) have to be
+    // honoured here too.
+    {
+        let state = app.state::<Mutex<AppState>>();
+        let state = state.lock().await;
+        if !state.is_update_enabled {
+            log::info!("Skipping update check: the updater is disabled.");
+            return Ok(());
+        }
+    }
     check_update(app).await.map_err(tauri::Error::from)
 }
 
@@ -570,4 +591,97 @@ async fn install_update(app: tauri::AppHandle) -> Result<(), tauri::Error> {
     app.restart();
     #[cfg(target_os = "windows")]
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::Value;
+    use tauri_plugin_cli::{ArgData, Matches};
+
+    fn matches_with(name: &str, value: Value) -> Matches {
+        let mut matches = Matches::default();
+        let mut arg = ArgData::default();
+        arg.value = value;
+        arg.occurrences = 1;
+        matches.args.insert(name.to_string(), arg);
+        matches
+    }
+
+    /// The plugin reports every declared flag, using `Bool(false)` for the ones
+    /// that weren't passed — so "present in the map" must not mean "disabled".
+    fn matches_without_noupdater() -> Matches {
+        matches_with("noupdater", Value::Bool(false))
+    }
+
+    #[test]
+    fn autoupdate_is_enabled_by_default() {
+        assert!(resolve_autoupdate(
+            Some(&matches_without_noupdater()),
+            "26.7.8-stable"
+        ));
+        assert!(resolve_autoupdate(None, "26.7.8-stable"));
+    }
+
+    #[test]
+    fn noupdater_flag_disables_autoupdate() {
+        let matches = matches_with("noupdater", Value::Bool(true));
+        assert!(!resolve_autoupdate(Some(&matches), "26.7.8-stable"));
+    }
+
+    #[test]
+    fn msstore_builds_never_autoupdate() {
+        assert!(!resolve_autoupdate(
+            Some(&matches_without_noupdater()),
+            "26.7.8-msstore"
+        ));
+        assert!(!resolve_autoupdate(None, "26.7.8-msstore"));
+    }
+
+    fn cli_args() -> Vec<Value> {
+        let config: Value = serde_json::from_str(include_str!("../tauri.conf.json"))
+            .expect("tauri.conf.json should be valid JSON");
+        config["plugins"]["cli"]["args"]
+            .as_array()
+            .expect("the CLI plugin should declare args")
+            .clone()
+    }
+
+    fn cli_arg(name: &str) -> Value {
+        cli_args()
+            .into_iter()
+            .find(|arg| arg["name"] == name)
+            .unwrap_or_else(|| panic!("`{name}` should be declared in the CLI config"))
+    }
+
+    /// `--noupdater` and `--autostart` are boolean flags: giving them
+    /// `takesValue` would make clap demand an argument and reject the bare form
+    /// the desktop entries use.
+    #[test]
+    fn boolean_flags_do_not_take_a_value() {
+        for name in ["noupdater", "autostart"] {
+            assert_ne!(cli_arg(name)["takesValue"], Value::Bool(true));
+        }
+    }
+
+    /// Without `takesValue`, `--api-url https://…` makes clap reject the value,
+    /// which drops the whole match set — taking `--noupdater` down with it.
+    #[test]
+    fn api_url_takes_a_value() {
+        assert_eq!(cli_arg("api-url")["takesValue"], Value::Bool(true));
+    }
+
+    /// Deep links and file associations launch the app with a positional URL
+    /// (`Exec=quadrant --noupdater %u`). Without a positional arg to absorb it,
+    /// clap errors out and every flag on that command line is lost.
+    #[test]
+    fn a_positional_arg_absorbs_deep_link_urls() {
+        let positional = cli_args()
+            .into_iter()
+            .find(|arg| arg["index"].is_number())
+            .expect("the CLI config should declare a positional arg for deep links");
+        assert_eq!(positional["index"], Value::from(1));
+        assert_eq!(positional["takesValue"], Value::Bool(true));
+        assert_eq!(positional["multiple"], Value::Bool(true));
+    }
 }
