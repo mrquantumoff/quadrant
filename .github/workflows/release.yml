@@ -127,6 +127,15 @@ jobs:
     with:
       tag: ${{ github.ref_name }}
 
+  publish_winget:
+    name: Publish to WinGet
+    needs: publish-tauri
+    if: endsWith(github.ref_name, '-stable')
+    uses: ./.github/workflows/winget.yml
+    secrets: inherit
+    with:
+      tag: ${{ github.ref_name }}
+
   submit_update:
     runs-on: blacksmith-2vcpu-ubuntu-2404
     needs: publish-tauri

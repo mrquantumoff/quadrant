@@ -1,0 +1,161 @@
+# @format
+
+name: Publish to WinGet
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Stable tag to publish to WinGet, e.g. v26.8.0-stable
+        required: true
+        type: string
+      release_repo:
+        description: Repository that owns the release assets
+        required: false
+        type: string
+        default: QuadrantMC/quadrant
+      dry_run:
+        description: Render and print the manifests without opening a PR
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      WINGET_TOKEN:
+        required: true
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Stable tag to publish to WinGet, e.g. v26.8.0-stable
+        required: true
+        type: string
+      release_repo:
+        description: Repository that owns the release assets
+        required: false
+        type: string
+        default: QuadrantMC/quadrant
+      dry_run:
+        description: Render and print the manifests without opening a PR
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  publish-winget:
+    name: Render manifests and open a winget-pkgs PR
+    # wingetcreate is a Windows-only executable, so this cannot share the
+    # Linux runners the other packaging jobs use.
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+    env:
+      TAG: ${{ inputs.tag }}
+      RELEASE_REPO: ${{ inputs.release_repo }}
+      PACKAGE_ID: QuadrantMC.Quadrant
+      MANIFEST_ROOT: .github/winget/manifests/q/QuadrantMC/Quadrant
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Derive version
+        id: versions
+        run: |
+          set -euo pipefail
+
+          # WinGet correlates the installed package against the Add/Remove
+          # Programs DisplayVersion, which Tauri writes as the full config
+          # version, so the suffix is kept: 26.8.0-stable, not 26.8.0.
+          version="${TAG#v}"
+          if [ "$version" = "$TAG" ]; then
+            echo "Expected TAG to start with 'v', got: $TAG" >&2
+            exit 1
+          fi
+
+          if [[ "$TAG" != *-stable ]]; then
+            echo "Refusing to publish a non-stable tag to WinGet: $TAG" >&2
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Read installer hashes from the release
+        id: hashes
+        env:
+          VERSION: ${{ steps.versions.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          # GitHub publishes a sha256 digest for every asset, so the installers
+          # never have to be downloaded just to hash them.
+          digest() {
+            local name="$1" value
+            value="$(gh release view "$TAG" --repo "$RELEASE_REPO" --json assets \
+              --jq '.assets[] | select(.name == "'"$name"'") | .digest')"
+            if [ -z "$value" ]; then
+              echo "Release $TAG has no asset named $name" >&2
+              exit 1
+            fi
+            echo "${value#sha256:}" | tr '[:lower:]' '[:upper:]'
+          }
+
+          {
+            echo "x64=$(digest "Quadrant_${VERSION}_x64-setup.exe")"
+            echo "arm64=$(digest "Quadrant_${VERSION}_arm64-setup.exe")"
+            echo "date=$(gh release view "$TAG" --repo "$RELEASE_REPO" --json publishedAt --jq '.publishedAt[0:10]')"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Render manifests
+        id: render
+        env:
+          VERSION: ${{ steps.versions.outputs.version }}
+          SHA256_X64: ${{ steps.hashes.outputs.x64 }}
+          SHA256_ARM64: ${{ steps.hashes.outputs.arm64 }}
+          RELEASE_DATE: ${{ steps.hashes.outputs.date }}
+        run: |
+          set -euo pipefail
+
+          # The newest checked-in version folder is the base manifest: it carries
+          # the installer switches, scope, product code and locale metadata
+          # forward. Only the version, hashes and release date change per release.
+          base_dir="$(ls -d "$MANIFEST_ROOT"/*/ | sort -V | tail -n1)"
+          base_version="$(basename "$base_dir")"
+          echo "Rendering $base_version -> $VERSION"
+
+          out_dir="rendered/manifests/q/QuadrantMC/Quadrant/$VERSION"
+          mkdir -p "$out_dir"
+
+          for src in "$base_dir"*.yaml; do
+            name="$(basename "$src")"
+            sed \
+              -e "s|${base_version}|${VERSION}|g" \
+              -e "s|^ReleaseDate: .*|ReleaseDate: ${RELEASE_DATE}|" \
+              "$src" \
+            | awk -v x64="$SHA256_X64" -v arm64="$SHA256_ARM64" '
+                /^- Architecture: / { arch = $3 }
+                /^  InstallerSha256: / {
+                  print "  InstallerSha256: " (arch == "arm64" ? arm64 : x64)
+                  next
+                }
+                { print }
+              ' > "$out_dir/$name"
+
+            echo "----- $name -----"
+            cat "$out_dir/$name"
+          done
+
+          echo "out_dir=$out_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Submit to winget-pkgs
+        if: ${{ !inputs.dry_run }}
+        env:
+          OUT_DIR: ${{ steps.render.outputs.out_dir }}
+          WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # Self-contained executable, so this works without winget itself being
+          # present on the runner. wingetcreate validates before opening the PR.
+          curl -sSLo wingetcreate.exe https://aka.ms/wingetcreate/latest
+          ./wingetcreate.exe submit --token "$WINGET_TOKEN" "$OUT_DIR"
