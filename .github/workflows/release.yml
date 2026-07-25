@@ -57,7 +57,7 @@ jobs:
             args: ""
           - platform: "windows-11-arm"
             args: ""
-          - platform: "blacksmith-6vcpu-macos-26"
+          - platform: "macos-latest"
             args: "--target aarch64-apple-darwin"
 
     runs-on: ${{ matrix.platform }}
