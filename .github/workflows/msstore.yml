@@ -56,10 +56,12 @@ jobs:
         env:
           # Thin LTO + parallel codegen build far faster than the shipping
           # profile's fat LTO / codegen-units=1, at a negligible runtime cost
-          # for this I/O-bound app. Scoped to CI here; Cargo.toml is unchanged,
-          # so the GitHub -stable release keeps the fully optimized profile.
+          # for this I/O-bound app. Every CI build path now uses these same
+          # overrides (see release.yml and validate-desktop.yml); Cargo.toml is
+          # unchanged, so local release builds keep the fully optimized profile.
           CARGO_PROFILE_RELEASE_LTO: thin
           CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
+          CARGO_INCREMENTAL: "0"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ETERNAL_API_TOKEN: ${{ secrets.ETERNAL_API_TOKEN }}
           QUADRANT_API_KEY: ${{ secrets.QUADRANT_API_KEY }}

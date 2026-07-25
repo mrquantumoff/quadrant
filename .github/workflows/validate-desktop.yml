@@ -4,15 +4,62 @@ on:
   pull_request:
   push:
     branches:
-      - main
-      - master
-      - release
+      # Must track the repository's default branch. GitHub only shares a cache
+      # entry with other refs when it was written from the default branch, so
+      # these pushes are the only thing that keeps PR builds off a cold cache.
+      - next
 
 permissions:
   contents: read
 
+# A newer push to the same PR makes the in-flight validation obsolete, so let it
+# go instead of paying for two full matrices. Pushes to `next` are never
+# cancelled: they are what populate the shared caches.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Fat LTO with a single codegen unit is the right profile for a shipping
+  # binary, not for a does-it-compile check. Thin LTO with parallel codegen
+  # produces the same diagnostics far faster. Cargo.toml keeps the fully
+  # optimized profile, so local release builds are unaffected.
+  CARGO_PROFILE_RELEASE_LTO: thin
+  CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
+  CARGO_PROFILE_RELEASE_DEBUG: "false"
+  CARGO_INCREMENTAL: "0"
+
 jobs:
+  # Frontend-only changes do not need three Rust compiles. This gate runs on a
+  # GitHub-hosted runner so the check itself costs nothing, and downstream jobs
+  # report as "skipped" (which satisfies required status checks) rather than
+  # never reporting at all, the way a workflow-level `paths:` filter would.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      native: ${{ steps.filter.outputs.native }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            native:
+              - 'src-tauri/**'
+              - 'package.json'
+              - 'bun.lock'
+              - 'vite.config.ts'
+              - 'tsconfig*.json'
+              - 'index.html'
+              - 'postcss.config.cjs'
+              - 'dev.mrquantumoff.mcmodpackmanager.metainfo.xml'
+              - 'Quadrant.desktop'
+              - '.github/workflows/validate-desktop.yml'
+
   test-rust:
+    needs: changes
+    # Pushes always build so the default-branch cache stays fresh, even when the
+    # commit only touched the renderer.
+    if: needs.changes.outputs.native == 'true' || github.event_name == 'push'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     env:
       # quadrant-core itself now compiles credential-free; the top-level Tauri
@@ -31,13 +78,20 @@ jobs:
           components: rustfmt, clippy
 
       - name: Install Linux desktop dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
+          # Arch is part of the cache key so an x64 entry can never be restored
+          # onto an arm64 runner.
+          version: 1-${{ runner.arch }}
 
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
+          # Only the default branch writes a cache other refs can read, so PR
+          # runs restore without spending time uploading an entry that nothing
+          # else will ever restore.
+          save-if: ${{ github.ref == 'refs/heads/next' }}
 
       - name: Check formatting
         working-directory: src-tauri
@@ -47,9 +101,12 @@ jobs:
         working-directory: src-tauri
         run: cargo test --workspace
 
-      # Non-blocking until the existing warning backlog is cleared; then
-      # switch to `-- -D warnings`.
+      # Advisory only, and clippy shares no artifacts with `cargo test`, so on a
+      # PR this is a second full workspace compile whose output is discarded.
+      # Keep the signal on `next` and stop charging every PR for it. Switch to
+      # `-- -D warnings` here once the warning backlog is cleared.
       - name: Clippy (advisory)
+        if: github.event_name == 'push'
         working-directory: src-tauri
         run: cargo clippy --workspace --all-targets || true
 
@@ -69,10 +126,18 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      # Type-checks and bundles the renderer. This job always runs, so the
+      # native jobs below can be skipped on renderer-only changes without
+      # losing `tsc` coverage.
+      - name: Build shared renderer
+        run: bun run build
+
       - name: Run frontend tests
         run: bun run test
 
   validate:
+    needs: changes
+    if: needs.changes.outputs.native == 'true' || github.event_name == 'push'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     env:
       # The Tauri crate and the curseforge feature use compile-time env!()
@@ -92,9 +157,12 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Linux desktop dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev appstream desktop-file-utils
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev appstream desktop-file-utils
+          # Arch is part of the cache key so an x64 entry can never be restored
+          # onto an arm64 runner.
+          version: 1-${{ runner.arch }}
 
       - name: Validate Linux metadata
         run: |
@@ -116,14 +184,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
+          save-if: ${{ github.ref == 'refs/heads/next' }}
 
-      - name: Build shared renderer
-        run: bun run build
-
+      # No separate renderer build: `tauri build` runs `beforeBuildCommand`
+      # (`bun run build`) itself, so building it here first ran tsc + vite twice.
       - name: Build Tauri shell
         run: bun tauri build --no-bundle
 
   validate-macos:
+    needs: changes
+    if: needs.changes.outputs.native == 'true' || github.event_name == 'push'
     runs-on: macos-latest
     env:
       QUADRANT_API_KEY: dev
@@ -147,9 +217,17 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
+          save-if: ${{ github.ref == 'refs/heads/next' }}
 
+      # `generate_context!` resolves `frontendDist` at compile time, so the
+      # bundle has to exist even for a check-only build.
       - name: Build shared renderer
         run: bun run build
 
-      - name: Build Apple-Silicon Tauri shell
-        run: bun tauri build --no-bundle --target aarch64-apple-darwin
+      # This job exists to catch macOS-only cfg code (the Apple keyring store)
+      # failing to compile. `cargo check` reports the same errors without
+      # codegen, LTO or linking, which is where a full `tauri build` spent
+      # almost all of its time.
+      - name: Check Apple-Silicon Tauri shell
+        working-directory: src-tauri
+        run: cargo check --target aarch64-apple-darwin

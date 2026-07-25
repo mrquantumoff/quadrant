@@ -12,6 +12,22 @@ on:
 permissions:
   contents: read
 
+# Never cancel a release in flight; this only stops the same tag from being
+# built twice concurrently (e.g. a re-run overlapping the original).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Thin LTO + parallel codegen build far faster than fat LTO with a single
+  # codegen unit, at a negligible runtime cost for this I/O-bound app. Applied
+  # to every CI build path (see validate-desktop.yml and msstore.yml) so release
+  # artifacts are produced with the same profile they were validated with.
+  # Cargo.toml is unchanged, so local `bun run build:tauri` still uses fat LTO.
+  CARGO_PROFILE_RELEASE_LTO: thin
+  CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
+  CARGO_INCREMENTAL: "0"
+
 jobs:
   ensure-release:
     permissions:
@@ -77,9 +93,12 @@ jobs:
 
       - name: install dependencies (ubuntu only)
         if: contains(matrix.platform, 'ubuntu')
-        run: |
-          sudo apt update
-          sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
+        uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
+          # Arch is part of the cache key so an x64 entry can never be restored
+          # onto the arm64 runner.
+          version: 1-${{ runner.arch }}
 
       - name: install frontend dependencies (bun)
         run: bun install
