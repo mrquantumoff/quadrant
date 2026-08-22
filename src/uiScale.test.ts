@@ -49,7 +49,10 @@ describe("applyUiScale / getAppliedUiScale", () => {
     expect(getAppliedUiScale()).toBe(MAX_UI_SCALE);
   });
 
-  it("falls back to the compact default when nothing is applied", () => {
+  it("reads 100% when the document uses the App.css root size", () => {
+    // jsdom 30 reports the spec UA default (16px) for an unset html font-size.
+    // The app sets 14px in App.css; that is the compact 100% baseline.
+    document.documentElement.style.fontSize = "14px";
     expect(getAppliedUiScale()).toBe(COMPACT_UI_SCALE);
   });
 });
