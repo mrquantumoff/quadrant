@@ -82,12 +82,9 @@ jobs:
           components: rustfmt, clippy
 
       - name: Install Linux desktop dependencies
-        uses: awalsh128/cache-apt-pkgs-action@v1
-        with:
-          packages: libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
-          # Arch is part of the cache key so an x64 entry can never be restored
-          # onto an arm64 runner.
-          version: 1-${{ runner.arch }}
+        run: |
+          sudo apt update
+          sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -161,12 +158,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Install Linux desktop dependencies
-        uses: awalsh128/cache-apt-pkgs-action@v1
-        with:
-          packages: libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev appstream desktop-file-utils
-          # Arch is part of the cache key so an x64 entry can never be restored
-          # onto an arm64 runner.
-          version: 1-${{ runner.arch }}
+        run: |
+          sudo apt update
+          sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev appstream desktop-file-utils
 
       - name: Validate Linux metadata
         run: |
