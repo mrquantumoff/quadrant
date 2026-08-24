@@ -93,22 +93,9 @@ jobs:
 
       - name: install dependencies (ubuntu only)
         if: contains(matrix.platform, 'ubuntu')
-        uses: awalsh128/cache-apt-pkgs-action@v1
-        with:
-          packages: libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev build-essential curl wget file libxdo-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev
-          # Arch is part of the cache key so an x64 entry can never be restored
-          # onto the arm64 runner.
-          version: 1-${{ runner.arch }}
-          # On a cache hit this action only untars package files; without this it
-          # never runs the maintainer scripts, so dpkg-generated state is absent.
-          # The arm64 image ships no GTK 3 runtime, so libgtk-3-0t64 comes from
-          # the cache there and its postinst (which writes
-          # /usr/lib/aarch64-linux-gnu/gtk-3.0/3.0.0/immodules.cache) never runs.
-          # linuxdeploy-plugin-gtk copies that cache into the AppDir and then
-          # sed's it unconditionally, so a missing file aborts the plugin and
-          # `tauri build` fails with the opaque "failed to run linuxdeploy".
-          # x64 is unaffected only because its image preinstalls GTK 3.
-          execute_install_scripts: true
+        run: |
+          sudo apt update
+          sudo apt install -y libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
 
       - name: install frontend dependencies (bun)
         run: bun install
