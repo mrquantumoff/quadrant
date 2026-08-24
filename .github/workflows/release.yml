@@ -95,7 +95,7 @@ jobs:
         if: contains(matrix.platform, 'ubuntu')
         uses: awalsh128/cache-apt-pkgs-action@v1
         with:
-          packages: libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev
+          packages: libwebkit2gtk-4.1-dev xdg-utils libappindicator3-dev librsvg2-dev patchelf libsecret-1-dev build-essential curl wget file libxdo-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev
           # Arch is part of the cache key so an x64 entry can never be restored
           # onto the arm64 runner.
           version: 1-${{ runner.arch }}

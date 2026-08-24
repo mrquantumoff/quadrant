@@ -5,8 +5,8 @@ name: "Build for Microsoft Store"
 on:
   push:
     tags:
-      - "v*-stable"
-      - "v*-msstore"
+      - "v*-stable*"
+      - "v*-msstore*"
 
 jobs:
   # Build each architecture in parallel. msixbuild.ps1 consumes each arch's
