@@ -49,6 +49,11 @@
 
   <releases>
 
+    <release date="2026-08-24" version="26.9.0">
+      <description>
+        <p>Dependency updates</p>
+      </description>
+    </release>
 
     <release date="2026-07-25" version="26.8.0">
         <!-- <url type="details">https://blog.mrquantumoff.dev</url> -->

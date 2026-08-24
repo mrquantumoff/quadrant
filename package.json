@@ -1,7 +1,7 @@
 {
   "name": "quadrant-next",
   "private": true,
-  "version": "26.8.0-stable",
+  "version": "26.9.0-stable",
   "type": "module",
   "description": "An easy way to manage your Minecraft mods and modpacks.",
   "author": "Demir Yerli <me@mrquantumoff.dev>",
@@ -53,7 +53,7 @@
     "@testing-library/user-event": "^14.6.6",
     "@types/node": "26.2.0",
     "@types/react": "19.2.18",
-    "@types/react-dom": "^19.2.4",
+    "@types/react-dom": "^19.2.5",
     "@vitejs/plugin-react": "6.1.0",
     "@vitest/coverage-v8": "^4.1.11",
     "autoprefixer": "10.5.4",
