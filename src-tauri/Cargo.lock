@@ -3221,9 +3221,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.33"
+version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ceec5bc11778974d1bcb055b18002eba7f4b3518b6a0081b3af5f21666da9ad"
+checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "lru-slab"
@@ -3861,9 +3861,9 @@ checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
 name = "open"
-version = "5.4.1"
+version = "5.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9cfef937e9c486488c7e3d949ae31c0f1d06bdacd75b99c086cb35356e30408"
+checksum = "ade3be4664bc1ef537ce133015f04c176b737815c2ba9fd60edf212d6e90dd55"
 dependencies = [
  "dunce",
  "is-wsl",
@@ -4399,7 +4399,7 @@ checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
 
 [[package]]
 name = "quadrant-core"
-version = "26.8.0-stable"
+version = "26.9.0-stable"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4426,7 +4426,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant-host"
-version = "26.8.0-stable"
+version = "26.9.0-stable"
 dependencies = [
  "anyhow",
  "apple-native-keyring-store",
@@ -4448,7 +4448,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant-napi"
-version = "26.8.0-stable"
+version = "26.9.0-stable"
 dependencies = [
  "napi",
  "napi-build",
@@ -4460,7 +4460,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant_next"
-version = "26.8.0-stable"
+version = "26.9.0-stable"
 dependencies = [
  "anyhow",
  "apple-native-keyring-store",
@@ -6852,9 +6852,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.24.1"
+version = "1.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cefc03fd367c0c6d4305de1b312cf00248c4114f4a0418ce6a6af769e3b0bd9"
+checksum = "f053576934f05a761a402421fbbe3d425d9366f75f978806a037b3ca481abecc"
 dependencies = [
  "getrandom 0.4.3",
  "js-sys",
