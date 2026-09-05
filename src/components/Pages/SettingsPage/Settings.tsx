@@ -25,7 +25,6 @@ import {
 import { ContentContext } from "../../../intefaces";
 import { MdAdd, MdRemove } from "react-icons/md";
 import {
-  CLASSIC_UI_SCALE,
   clampUiScale,
   COMPACT_UI_SCALE,
   setUiScale,
@@ -230,30 +229,6 @@ export default function SettingsPage() {
             }}
           >
             <MdAdd className="w-5 h-5" />
-          </Button>
-          <Button
-            className={
-              (uiScale === COMPACT_UI_SCALE
-                ? "bg-emerald-800 "
-                : "bg-slate-700 hover:bg-slate-600 ") + "px-4"
-            }
-            onClick={async () => {
-              await changeUiScale(COMPACT_UI_SCALE);
-            }}
-          >
-            {t("uiScaleCompact")}
-          </Button>
-          <Button
-            className={
-              (uiScale === CLASSIC_UI_SCALE
-                ? "bg-emerald-800 "
-                : "bg-slate-700 hover:bg-slate-600 ") + "px-4"
-            }
-            onClick={async () => {
-              await changeUiScale(CLASSIC_UI_SCALE);
-            }}
-          >
-            {t("uiScaleClassic")}
           </Button>
         </div>
       </Field>

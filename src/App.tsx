@@ -470,8 +470,12 @@ function App() {
     };
   }, []);
 
-  const updateContentWithTransition = (update: () => void) => {
+  const updateContentWithTransition = (
+    update: () => void,
+    skipTransition = false,
+  ) => {
     if (
+      !skipTransition &&
       !isLinuxRef.current &&
       typeof document.startViewTransition === "function"
     ) {
@@ -495,9 +499,11 @@ function App() {
       const previousEntry = newHistory[newHistory.length - 1];
 
       // Update state with the previous page.
+      const leaving = currentContentRef.current;
+      currentContentRef.current = previousEntry.page;
       updateContentWithTransition(() => {
         setContent(previousEntry.page);
-      });
+      }, leaving.ownTransition === true);
       setContentHistory(newHistory);
 
       // Wait a short time to ensure the new content is rendered before scrolling.
@@ -505,7 +511,7 @@ function App() {
         contentRef.current?.scrollTo({
           top: Math.round(previousEntry.scrollPositionY),
           left: Math.round(previousEntry.scrollPositionX),
-          behavior: "smooth",
+          behavior: "instant",
         });
       }, 50);
     },
@@ -546,7 +552,7 @@ function App() {
       currentContentRef.current = component;
       updateContentWithTransition(() => {
         setContent(component);
-      });
+      }, component.ownTransition === true);
     },
     changePage: (name) => {
       const newPage = pages.filter((pg) => pg.name === name);
@@ -698,7 +704,9 @@ function App() {
                     )}
                     <div
                       className={
-                        (nativeDecorations ? "" : "bg-slate-800 rounded-full ") +
+                        (nativeDecorations
+                          ? ""
+                          : "bg-slate-800 rounded-full ") +
                         "p-2 flex items-center justify-center"
                       }
                     >

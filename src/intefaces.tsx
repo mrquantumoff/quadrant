@@ -89,6 +89,8 @@ export interface Page {
   name: string;
   style: string;
   main: boolean;
+  /** The page animates its own enter and leave, so App skips the view transition. */
+  ownTransition?: boolean;
 }
 
 export enum ModType {

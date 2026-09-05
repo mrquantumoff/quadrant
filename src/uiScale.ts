@@ -3,16 +3,18 @@
 import { createDesktopStore } from "./desktop";
 
 export const UI_SCALE_KEY = "uiScale";
-/** Default scale of the redesigned compact UI (percent). */
+/** Default UI scale (percent). */
 export const COMPACT_UI_SCALE = 100;
-/** Approximates the sizing of the UI before the compact redesign (percent). */
-export const CLASSIC_UI_SCALE = 150;
 export const MIN_UI_SCALE = 50;
 export const MAX_UI_SCALE = 200;
 export const UI_SCALE_STEP = 10;
 
-/** Root font size in px at 100% scale. Keep in sync with App.css. */
-const BASE_ROOT_FONT_PX = 14;
+/**
+ * Root font size in px at 100% scale. Keep in sync with App.css.
+ * What used to be 120% is now the 100% default; every other scale
+ * value is a percentage of this base.
+ */
+const BASE_ROOT_FONT_PX = 16.8;
 
 export function clampUiScale(scale: number | null | undefined): number {
   if (typeof scale !== "number" || !Number.isFinite(scale)) {
