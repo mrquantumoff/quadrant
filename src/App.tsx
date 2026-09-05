@@ -232,13 +232,17 @@ function App() {
         cleanupFns.push(modpackDownloadUnlisten);
       }
 
-      const [currentPlatform, lastPageIndex, savedUiScale, nativeDecorationsValue] =
-        await Promise.all([
-          platform(),
-          config.get<number>("lastPage"),
-          config.get<number>(UI_SCALE_KEY),
-          config.get<boolean>("nativeDecorations"),
-        ]);
+      const [
+        currentPlatform,
+        savedPageName,
+        savedUiScale,
+        nativeDecorationsValue,
+      ] = await Promise.all([
+        platform(),
+        config.get<string>("lastPageName"),
+        config.get<number>(UI_SCALE_KEY),
+        config.get<boolean>("nativeDecorations"),
+      ]);
       if (!isUnmounted) {
         applyUiScale(savedUiScale ?? COMPACT_UI_SCALE);
       }
@@ -260,7 +264,10 @@ function App() {
 
       if (!isUnmounted) {
         const resolvedNativeDecorations = nativeDecorationsValue ?? false;
-        const initialPage = pages[lastPageIndex ?? 0] ?? pages[0];
+        // A legacy numeric "lastPage" matches no name, so those users land on pages[0] once.
+        const initialPage =
+          pages.find((candidate) => candidate.name === savedPageName) ??
+          pages[0];
         isLinuxRef.current = currentPlatform === "linux";
         setNativeDecorations(resolvedNativeDecorations);
         await currentWindow.setDecorations(resolvedNativeDecorations);
@@ -622,7 +629,7 @@ function App() {
                         }
                         key={i}
                         onClick={async () => {
-                          await config.set("lastPage", i);
+                          await config.set("lastPageName", p.name);
                           await config.save();
                           setPage(p);
                           setContent(p);
