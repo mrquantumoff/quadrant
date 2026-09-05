@@ -161,6 +161,8 @@
   "experimentalFeauturesAreDisabled": "Deneysel özellikler devre dışı bırakıldı!",
   "cloudSyncDate": "Quadrant Sync'teki sürüm: {{date}}",
   "localSyncDate": "Yerel sürüm: {{date}}",
+  "localModpacks": "Yerel modpackler",
+  "cloudModpacks": "Quadrant Sync'teki modpackler",
   "sync": "Senkronize et",
   "modpackUpdated": "Mod paketi başarıyla güncellendi",
   "areYouSure": "Hesabınızı silmek istediğinizden emin misiniz?",

@@ -2,16 +2,20 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { ModLoader } from "../../../intefaces";
+import userEvent from "@testing-library/user-event";
+import { useContext, type ReactNode } from "react";
+import { ContentContext, ModLoader } from "../../../intefaces";
 
 const getVersions = vi.fn();
 const getModpacks = vi.fn();
 const getMinecraftFolder = vi.fn();
+const getQuadrantShareModpack = vi.fn();
 
 const storeGet = vi.fn();
 const joinPath = vi.fn();
 const watch = vi.fn();
 const listen = vi.fn();
+const readClipboardText = vi.fn();
 
 vi.mock("../../../tools", () => ({
   applyModpack: vi.fn(),
@@ -19,8 +23,11 @@ vi.mock("../../../tools", () => ({
   deleteModpack: vi.fn(),
   exportModpack: vi.fn(),
   getMinecraftFolder: (...a: unknown[]) => getMinecraftFolder(...a),
+  getMod: vi.fn(),
   getModpacks: (...a: unknown[]) => getModpacks(...a),
+  getQuadrantShareModpack: (...a: unknown[]) => getQuadrantShareModpack(...a),
   getVersions: (...a: unknown[]) => getVersions(...a),
+  installModpack: vi.fn(),
   openModpacksFolder: vi.fn(),
   shareModpack: vi.fn(),
   syncModpack: vi.fn(),
@@ -31,8 +38,10 @@ vi.mock("../../../desktop", () => ({
   createDesktopStore: () => ({
     get: (...a: unknown[]) => storeGet(...a),
   }),
+  invoke: vi.fn(),
   joinPath: (...a: unknown[]) => joinPath(...a),
   listen: (...a: unknown[]) => listen(...a),
+  readClipboardText: (...a: unknown[]) => readClipboardText(...a),
   watch: (...a: unknown[]) => watch(...a),
 }));
 
@@ -44,7 +53,31 @@ vi.mock("../../shared/Pages/ModpackView", () => ({
   ),
 }));
 
+// CloudModpackSection fetches account info and synced modpacks of its own; stub
+// it to a marker so only the local list and share-code flow are in scope here.
+vi.mock("./CloudModpackSection", () => ({
+  default: ({ searchQuery }: { searchQuery: string }) => (
+    <div data-testid="cloud-modpack-section">{searchQuery}</div>
+  ),
+}));
+
 import ApplyPage from "./Apply";
+
+const changeContent = vi.fn();
+const setSnackbar = vi.fn();
+
+// Spreading the inherited context keeps this provider valid as ContentContext
+// grows; only the two members these tests observe are replaced with spies.
+function SpiedContent({ children }: { children: ReactNode }) {
+  const inherited = useContext(ContentContext);
+  return (
+    <ContentContext.Provider
+      value={{ ...inherited, changeContent, setSnackbar }}
+    >
+      {children}
+    </ContentContext.Provider>
+  );
+}
 
 function pack(over: Record<string, unknown>) {
   return {
@@ -71,6 +104,13 @@ beforeEach(() => {
   getVersions.mockResolvedValue([{ version: "1.20.1", versionType: "release" }]);
   getModpacks.mockResolvedValue([]);
   getMinecraftFolder.mockResolvedValue("/mc");
+  getQuadrantShareModpack.mockResolvedValue({
+    name: "Shared Pack",
+    mods: [],
+    modLoader: ModLoader.Fabric,
+    version: "1.20.1",
+  });
+  readClipboardText.mockResolvedValue("1234567");
   storeGet.mockResolvedValue(true);
   joinPath.mockImplementation(async (...segments: string[]) => segments.join("/"));
   watch.mockImplementation(async (_path: string, cb: () => void) => {
@@ -145,5 +185,66 @@ describe("ApplyPage", () => {
     expect(() =>
       shareCallback?.({ payload: { uses_left: 3 } }),
     ).not.toThrow();
+  });
+
+  it("offers the Quadrant Share prompt only for a share code", async () => {
+    render(<ApplyPage />);
+    const input = screen.getByRole("textbox");
+
+    await userEvent.type(input, "alpha");
+    expect(
+      screen.queryByRole("button", { name: /^download$/i }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.clear(input);
+    await userEvent.type(input, "1234567");
+    expect(
+      screen.getByRole("button", { name: /^download$/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("resolves the typed share code when the prompt is confirmed", async () => {
+    render(<ApplyPage />);
+
+    await userEvent.type(screen.getByRole("textbox"), "1234567");
+    await userEvent.click(screen.getByRole("button", { name: /^download$/i }));
+
+    await waitFor(() =>
+      expect(getQuadrantShareModpack).toHaveBeenCalledWith("1234567"),
+    );
+  });
+
+  it("shows the error snackbar and stays put when the lookup fails", async () => {
+    getQuadrantShareModpack.mockRejectedValue(new Error("gone"));
+    render(
+      <SpiedContent>
+        <ApplyPage />
+      </SpiedContent>,
+    );
+
+    await userEvent.type(screen.getByRole("textbox"), "1234567");
+    await userEvent.click(screen.getByRole("button", { name: /^download$/i }));
+
+    await waitFor(() =>
+      expect(setSnackbar).toHaveBeenCalledWith(
+        expect.objectContaining({ className: "bg-red-700 rounded-4xl" }),
+      ),
+    );
+    expect(changeContent).not.toHaveBeenCalled();
+  });
+
+  it("pastes the clipboard into the search query", async () => {
+    readClipboardText.mockResolvedValue("  1234567  ");
+    render(<ApplyPage />);
+
+    await userEvent.click(screen.getByRole("button", { name: /^paste$/i }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("textbox")).toHaveValue("1234567"),
+    );
+    // Asserts the ref was updated too: updateModpacks reads it, not the state.
+    await waitFor(() =>
+      expect(getModpacks).toHaveBeenCalledWith(true, "1234567"),
+    );
   });
 });

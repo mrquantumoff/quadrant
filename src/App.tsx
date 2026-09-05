@@ -19,10 +19,14 @@ import * as md from "react-icons/md";
 import CurrentModpackPage from "./components/Pages/CurrentModpackPage/CurrentModpackPage";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import SearchPage from "./components/Pages/SearchPage/SearchPage";
-import { getMod, requestCheckForUpdates } from "./tools";
+import {
+  getMod,
+  getQuadrantShareModpack,
+  requestCheckForUpdates,
+} from "./tools";
 import ModInstallPage from "./components/Pages/ModInstallPage/ModInstallPage";
 import AccountPage from "./components/Pages/AccountPage/AccountPage";
-import ShareSyncPage from "./components/Pages/ShareSyncPage/ShareSyncPage";
+import SharedModpackView from "./components/Pages/ApplyPage/SharedModpackView";
 import Button from "./components/core/Button";
 import Notifications from "./components/shared/Notifications";
 import {
@@ -78,14 +82,6 @@ function App() {
       name: "search",
       icon: <md.MdSearch className="duration-0 w-6 h-6" />,
       style: " hover:bg-sky-400 data-[selected=true]:bg-sky-900 ",
-      main: true,
-    },
-    {
-      content: <ShareSyncPage />,
-      title: t("importMods"),
-      name: "shareSync",
-      icon: <md.MdSync className="duration-0 w-6 h-6" />,
-      style: " hover:bg-cyan-400 data-[selected=true]:bg-cyan-900 ",
       main: true,
     },
     {
@@ -359,12 +355,13 @@ function App() {
             }
 
             if (action.kind === "importModpack") {
+              const resolved = await getQuadrantShareModpack(action.code);
               const randomString = Math.random().toString(36).substring(2, 10);
               contextFunctions.changeContent({
-                content: <ShareSyncPage sharedCode={action.code} />,
+                content: <SharedModpackView modpack={resolved} />,
                 name: randomString,
-                icon: <md.MdSync className="duration-0 w-6 h-6" />,
-                title: t("importMods"),
+                icon: <></>,
+                title: resolved.name,
                 style: "",
                 main: false,
               });

@@ -161,6 +161,8 @@
   "experimentalFeauturesAreDisabled": "Experimental features are disabled!",
   "cloudSyncDate": "Quadrant Sync version: {{date}}",
   "localSyncDate": "Local version: {{date}}",
+  "localModpacks": "Local modpacks",
+  "cloudModpacks": "Quadrant Sync modpacks",
   "sync": "Sync",
   "modpackUpdated": "Modpack updated successfully",
   "areYouSure": "Are you sure that you want to delete your account?",

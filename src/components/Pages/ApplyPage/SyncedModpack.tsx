@@ -1,14 +1,14 @@
 /** @format */
 
 import { useTranslation } from "react-i18next";
-import quadrantLocale from "../../../../i18n";
+import quadrantLocale from "../../../i18n";
 import {
   AccountInfo,
   InstalledModpack,
   LocalModpack,
   SyncContext,
   SyncedModpack,
-} from "../../../../intefaces";
+} from "../../../intefaces";
 import {
   Dialog,
   DialogBackdrop,
@@ -35,25 +35,20 @@ import { AnimatePresence, motion } from "motion/react";
 export interface SyncedModpackProps {
   modpack: SyncedModpack;
   localModpack?: LocalModpack;
+  accountInfo: AccountInfo | null;
 }
-import { Fragment, useContext, useEffect, useState } from "react";
-import Button from "../../../core/Button";
-import {
-  getAccountInfo,
-  inviteMember,
-  kickMember,
-  shareModpackRaw,
-} from "../../../../tools";
-import { ContentContext } from "../../../../intefaces";
-import { ShareSyncContext } from "../ShareSyncPage";
-import { invoke } from "../../../../desktop";
+import { Fragment, useContext, useState } from "react";
+import Button from "../../core/Button";
+import { inviteMember, kickMember, shareModpackRaw } from "../../../tools";
+import { ContentContext } from "../../../intefaces";
+import { invoke } from "../../../desktop";
+import SharedModpackView from "./SharedModpackView";
 
 export default function SyncedModpackComponent({
   modpack,
   localModpack,
+  accountInfo,
 }: SyncedModpackProps) {
-  const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
-
   const formatter = new Intl.DateTimeFormat(quadrantLocale.language, {
     weekday: "long",
     day: "2-digit",
@@ -86,7 +81,6 @@ export default function SyncedModpackComponent({
 
   const syncContext = useContext(SyncContext);
   const contentContext = useContext(ContentContext);
-  const shareSyncContext = useContext(ShareSyncContext);
 
   const [userToInvite, setUserToInvite] = useState<string>("");
   const [userToInviteAdmin, setUserToInviteAdmin] = useState<boolean>(false);
@@ -98,14 +92,6 @@ export default function SyncedModpackComponent({
     modLoader: modpack.mod_loader,
     version: modpack.minecraft_version,
   };
-
-  useEffect(() => {
-    const effect = async () => {
-      const accountInfo = await getAccountInfo();
-      setAccountInfo(accountInfo);
-    };
-    effect().catch(console.error);
-  }, []);
 
   return (
     <motion.div
@@ -127,10 +113,24 @@ export default function SyncedModpackComponent({
           <Button
             className="flex items-center self-center bg-emerald-600 hover:bg-emerald-700"
             onClick={async () => {
-              shareSyncContext.changeTab(0);
-              shareSyncContext.setModpack(modConfigObject);
-              shareSyncContext.setSync(modpack.last_synced);
-              shareSyncContext.setModpackId(modpack.modpack_id);
+              contentContext.changeContent({
+                content: (
+                  <SharedModpackView
+                    modpack={modConfigObject}
+                    syncTarget={{
+                      syncedAt: modpack.last_synced,
+                      modpackId: modpack.modpack_id,
+                    }}
+                  />
+                ),
+                name:
+                  modpack.modpack_id +
+                  Math.random().toString(36).substring(2, 10),
+                title: modpack.name,
+                style: "",
+                main: false,
+                icon: <></>,
+              });
             }}
           >
             {t("download")}

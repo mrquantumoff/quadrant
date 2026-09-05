@@ -20,11 +20,10 @@ export { default as ModpackView } from "../src/components/shared/Pages/ModpackVi
 
 export { default as AccountPage } from "../src/components/Pages/AccountPage/AccountPage";
 export { default as ApplyPage } from "../src/components/Pages/ApplyPage/Apply";
+export { default as CloudModpackSection } from "../src/components/Pages/ApplyPage/CloudModpackSection";
 export { default as CurrentModpackPage } from "../src/components/Pages/CurrentModpackPage/CurrentModpackPage";
 export { default as ModInstallPage } from "../src/components/Pages/ModInstallPage/ModInstallPage";
 export { default as SearchPage } from "../src/components/Pages/SearchPage/SearchPage";
 export { default as SettingsPage } from "../src/components/Pages/SettingsPage/Settings";
-export { default as SharePage } from "../src/components/Pages/ShareSyncPage/SharePage";
-export { default as ShareSyncPage } from "../src/components/Pages/ShareSyncPage/ShareSyncPage";
-export { default as SyncPage } from "../src/components/Pages/ShareSyncPage/SyncPage";
-export { default as SyncedModpack } from "../src/components/Pages/ShareSyncPage/SyncedModpack/SyncedModpack";
+export { default as SharedModpackView } from "../src/components/Pages/ApplyPage/SharedModpackView";
+export { default as SyncedModpack } from "../src/components/Pages/ApplyPage/SyncedModpack";

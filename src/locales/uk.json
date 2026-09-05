@@ -161,6 +161,8 @@
   "experimentalFeauturesAreDisabled": "Експерементальні функції вимкнені!",
   "cloudSyncDate": "Версія на Quadrant Sync: {{date}}",
   "localSyncDate": "Локальна версія: {{date}}",
+  "localModpacks": "Локальні модпаки",
+  "cloudModpacks": "Модпаки на Quadrant Sync",
   "sync": "Синхронізувати",
   "modpackUpdated": "Модпак успішно оновлено",
   "areYouSure": "Чи ви впевнені, що хочете видалити свій обліковий запис?",

@@ -8,6 +8,7 @@ import {
   deleteModpack,
   getMinecraftFolder,
   getModpacks,
+  getQuadrantShareModpack,
   getVersions,
   openModpacksFolder,
 } from "../../../tools";
@@ -19,11 +20,20 @@ import { MdCheck, MdClear, MdCreate, MdFolder } from "react-icons/md";
 import { ContentContext } from "../../../intefaces";
 import LocalModpackCard from "./LocalModpackCard";
 import ModpackEditDialog from "./ModpackEditDialog";
-import { createDesktopStore, joinPath, listen, watch } from "../../../desktop";
+import {
+  createDesktopStore,
+  joinPath,
+  listen,
+  readClipboardText,
+  watch,
+} from "../../../desktop";
 import {
   loaderProvidersFromSettings,
   ModLoaderProvider,
 } from "../../../modLoaders";
+import { parseShareCode } from "../../../deepLinks";
+import SharedModpackView from "./SharedModpackView";
+import CloudModpackSection from "./CloudModpackSection";
 export default function ApplyPage() {
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
 
@@ -53,6 +63,7 @@ export default function ApplyPage() {
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const searchQueryRef = useRef("");
+  const [isResolvingShareCode, setIsResolvingShareCode] = useState(false);
   const [loaderProviders, setLoaderProviders] = useState<ModLoaderProvider[]>(
     loaderProvidersFromSettings(true, true),
   );
@@ -162,6 +173,36 @@ export default function ApplyPage() {
     setModpacks(newModpacks);
   };
 
+  const shareCode = parseShareCode(searchQuery);
+
+  const openSharedModpack = async () => {
+    if (shareCode === null || isResolvingShareCode) {
+      return;
+    }
+    setIsResolvingShareCode(true);
+    try {
+      const resolved = await getQuadrantShareModpack(shareCode);
+      const randomString = Math.random().toString(36).substring(2, 10);
+      context.changeContent({
+        name: shareCode + randomString,
+        title: resolved.name,
+        style: "",
+        main: false,
+        icon: <></>,
+        content: <SharedModpackView modpack={resolved} />,
+      });
+    } catch (e: any) {
+      console.error(e);
+      context.setSnackbar({
+        message: t("unsupportedDownload"),
+        className: "bg-red-700 rounded-4xl",
+        timeout: 5000,
+      });
+    } finally {
+      setIsResolvingShareCode(false);
+    }
+  };
+
   return (
     <>
       <motion.div
@@ -170,17 +211,46 @@ export default function ApplyPage() {
         exit={{ y: 24, opacity: 0 }}
         className="flex flex-1 flex-col w-full transform-gpu backface-hidden will-change-[transform,opacity]"
       >
-        <input
-          placeholder={t("search")}
-          className="p-2 input w-[95.5%] bg-slate-700 h-11 rounded-full self-center mx-8 my-4 text-center"
-          onChange={(event) => {
-            const query = event.target.value.toLowerCase().trim();
-            searchQueryRef.current = query;
-            setSearchQuery(query);
-          }}
-          autoComplete="off"
-          value={searchQuery}
-        ></input>
+        <div className="flex flex-row items-center pr-8">
+          <input
+            placeholder={t("search")}
+            className="p-2 input flex-1 bg-slate-700 h-11 rounded-full self-center mx-8 my-4 text-center"
+            onChange={(event) => {
+              const query = event.target.value.toLowerCase().trim();
+              searchQueryRef.current = query;
+              setSearchQuery(query);
+            }}
+            autoComplete="off"
+            value={searchQuery}
+          ></input>
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 h-11 px-6 my-4 shrink-0"
+            onClick={async () => {
+              const clipboardText = await readClipboardText();
+              const query = clipboardText.toLowerCase().trim();
+              searchQueryRef.current = query;
+              setSearchQuery(query);
+            }}
+          >
+            {t("paste")}
+          </Button>
+        </div>
+        {shareCode !== null && (
+          <div className="bg-slate-800 rounded-4xl mx-8 mb-2 p-4 flex flex-col items-center font-bold">
+            <p>{t("manualInput")}</p>
+            <Button
+              className={
+                "mt-4 w-full " +
+                (isResolvingShareCode
+                  ? "bg-slate-700 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700")
+              }
+              onClick={openSharedModpack}
+            >
+              {isResolvingShareCode ? t("loadingMore") : t("download")}
+            </Button>
+          </div>
+        )}
         <div className="flex flex-row flex-wrap justify-center w-fit self-center bg-slate-700 rounded-4xl my-2 p-1.5">
           <Button
             onClick={() => {
@@ -223,6 +293,9 @@ export default function ApplyPage() {
             <MdFolder className="w-5 h-5 mx-2" />
           </Button>
         </div>
+        <h2 className="text-2xl font-extrabold mx-8 mt-4 mb-2">
+          {t("localModpacks")}
+        </h2>
         <div className="bg-slate-800 rounded-4xl mx-6 mb-8">
           <AnimatePresence>
             {modpacks?.map((modpack, index) => (
@@ -242,6 +315,7 @@ export default function ApplyPage() {
             ))}
           </AnimatePresence>
         </div>
+        <CloudModpackSection searchQuery={searchQuery} />
         <ModpackEditDialog
           open={isUpdateDialogOpen}
           onClose={() => setIsUpdateDialogOpen(false)}
