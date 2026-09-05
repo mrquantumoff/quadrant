@@ -24,7 +24,7 @@ export { default as CurrentModpackPage } from "../src/components/Pages/CurrentMo
 export { default as ModInstallPage } from "../src/components/Pages/ModInstallPage/ModInstallPage";
 export { default as SearchPage } from "../src/components/Pages/SearchPage/SearchPage";
 export { default as SettingsPage } from "../src/components/Pages/SettingsPage/Settings";
-export { default as SharePage } from "../src/components/Pages/ShareSyncPage/SharePage";
-export { default as ShareSyncPage } from "../src/components/Pages/ShareSyncPage/ShareSyncPage";
-export { default as SyncPage } from "../src/components/Pages/ShareSyncPage/SyncPage";
-export { default as SyncedModpack } from "../src/components/Pages/ShareSyncPage/SyncedModpack/SyncedModpack";
+export { default as SharedModpackView } from "../src/components/Pages/ApplyPage/SharedModpackView";
+export { default as SyncedModpack } from "../src/components/Pages/ApplyPage/SyncedModpack";
+export { default as CloudMembersPanel } from "../src/components/Pages/ApplyPage/CloudMembersPanel";
+export { default as ModpackBadges } from "../src/components/Pages/ApplyPage/ModpackBadges";

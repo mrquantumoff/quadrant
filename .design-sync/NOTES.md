@@ -36,15 +36,16 @@ sync is wired by hand. Key setup (all committed):
   utility not in src (e.g. `bg-purple-500`) would get an unstyled result. To make
   the DS fully general, ship a non-purged/safelisted Tailwind build. Not done —
   ship-now decision. Revisit if designs come out partly unstyled.
-- **Fidelity of Pages.** `CurrentModpackPage`, `SyncPage`, `ModInstallPage`,
+- **Fidelity of Pages.** `CurrentModpackPage`, `SharedModpackView`, `ModInstallPage`,
   `SyncedModpack` render as floor cards (need `invoke` data). `Mod`,
   `Notifications` render but are data-driven — author previews with real props on
   a re-sync to lift them. These are the standing incremental-authoring offer.
 - **Only `Button` has an authored preview** (`.design-sync/previews/Button.tsx`).
   The other 16 ship their auto-render/floor card. This was a "ship it now" run
   (user: "upload this shit"), not the full author-every-preview pass.
-- **ShareSync context.** `SharePage`/`SyncPage`/`SyncedModpack` consume
-  `ShareSyncPage`'s context — author their previews *inside* `ShareSyncPage`.
+- **Cloud previews.** `SharedModpackView` takes a manifest; `SyncedModpack` and
+  `CloudMembersPanel` take a cloud record and account info. Supply `SyncContext`
+  when previewing management actions that refresh the parent list.
 
 ## Re-sync procedure
 1. `node .design-sync/build-css.mjs`  (regenerate cssEntry + font)

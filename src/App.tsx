@@ -19,10 +19,14 @@ import * as md from "react-icons/md";
 import CurrentModpackPage from "./components/Pages/CurrentModpackPage/CurrentModpackPage";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import SearchPage from "./components/Pages/SearchPage/SearchPage";
-import { getMod, requestCheckForUpdates } from "./tools";
+import {
+  getMod,
+  getQuadrantShareModpack,
+  requestCheckForUpdates,
+} from "./tools";
 import ModInstallPage from "./components/Pages/ModInstallPage/ModInstallPage";
 import AccountPage from "./components/Pages/AccountPage/AccountPage";
-import ShareSyncPage from "./components/Pages/ShareSyncPage/ShareSyncPage";
+import SharedModpackView from "./components/Pages/ApplyPage/SharedModpackView";
 import Button from "./components/core/Button";
 import Notifications from "./components/shared/Notifications";
 import {
@@ -78,14 +82,6 @@ function App() {
       name: "search",
       icon: <md.MdSearch className="duration-0 w-6 h-6" />,
       style: " hover:bg-sky-400 data-[selected=true]:bg-sky-900 ",
-      main: true,
-    },
-    {
-      content: <ShareSyncPage />,
-      title: t("importMods"),
-      name: "shareSync",
-      icon: <md.MdSync className="duration-0 w-6 h-6" />,
-      style: " hover:bg-cyan-400 data-[selected=true]:bg-cyan-900 ",
       main: true,
     },
     {
@@ -232,13 +228,17 @@ function App() {
         cleanupFns.push(modpackDownloadUnlisten);
       }
 
-      const [currentPlatform, lastPageIndex, savedUiScale, nativeDecorationsValue] =
-        await Promise.all([
-          platform(),
-          config.get<number>("lastPage"),
-          config.get<number>(UI_SCALE_KEY),
-          config.get<boolean>("nativeDecorations"),
-        ]);
+      const [
+        currentPlatform,
+        savedPageName,
+        savedUiScale,
+        nativeDecorationsValue,
+      ] = await Promise.all([
+        platform(),
+        config.get<string>("lastPageName"),
+        config.get<number>(UI_SCALE_KEY),
+        config.get<boolean>("nativeDecorations"),
+      ]);
       if (!isUnmounted) {
         applyUiScale(savedUiScale ?? COMPACT_UI_SCALE);
       }
@@ -260,7 +260,10 @@ function App() {
 
       if (!isUnmounted) {
         const resolvedNativeDecorations = nativeDecorationsValue ?? false;
-        const initialPage = pages[lastPageIndex ?? 0] ?? pages[0];
+        // A legacy numeric "lastPage" matches no name, so those users land on pages[0] once.
+        const initialPage =
+          pages.find((candidate) => candidate.name === savedPageName) ??
+          pages[0];
         isLinuxRef.current = currentPlatform === "linux";
         setNativeDecorations(resolvedNativeDecorations);
         await currentWindow.setDecorations(resolvedNativeDecorations);
@@ -352,12 +355,13 @@ function App() {
             }
 
             if (action.kind === "importModpack") {
+              const resolved = await getQuadrantShareModpack(action.code);
               const randomString = Math.random().toString(36).substring(2, 10);
               contextFunctions.changeContent({
-                content: <ShareSyncPage sharedCode={action.code} />,
+                content: <SharedModpackView modpack={resolved} />,
                 name: randomString,
-                icon: <md.MdSync className="duration-0 w-6 h-6" />,
-                title: t("importMods"),
+                icon: <></>,
+                title: resolved.name,
                 style: "",
                 main: false,
               });
@@ -466,8 +470,12 @@ function App() {
     };
   }, []);
 
-  const updateContentWithTransition = (update: () => void) => {
+  const updateContentWithTransition = (
+    update: () => void,
+    skipTransition = false,
+  ) => {
     if (
+      !skipTransition &&
       !isLinuxRef.current &&
       typeof document.startViewTransition === "function"
     ) {
@@ -491,9 +499,11 @@ function App() {
       const previousEntry = newHistory[newHistory.length - 1];
 
       // Update state with the previous page.
+      const leaving = currentContentRef.current;
+      currentContentRef.current = previousEntry.page;
       updateContentWithTransition(() => {
         setContent(previousEntry.page);
-      });
+      }, leaving.ownTransition === true);
       setContentHistory(newHistory);
 
       // Wait a short time to ensure the new content is rendered before scrolling.
@@ -501,7 +511,7 @@ function App() {
         contentRef.current?.scrollTo({
           top: Math.round(previousEntry.scrollPositionY),
           left: Math.round(previousEntry.scrollPositionX),
-          behavior: "smooth",
+          behavior: "instant",
         });
       }, 50);
     },
@@ -542,7 +552,7 @@ function App() {
       currentContentRef.current = component;
       updateContentWithTransition(() => {
         setContent(component);
-      });
+      }, component.ownTransition === true);
     },
     changePage: (name) => {
       const newPage = pages.filter((pg) => pg.name === name);
@@ -622,7 +632,7 @@ function App() {
                         }
                         key={i}
                         onClick={async () => {
-                          await config.set("lastPage", i);
+                          await config.set("lastPageName", p.name);
                           await config.save();
                           setPage(p);
                           setContent(p);
@@ -694,7 +704,9 @@ function App() {
                     )}
                     <div
                       className={
-                        (nativeDecorations ? "" : "bg-slate-800 rounded-full ") +
+                        (nativeDecorations
+                          ? ""
+                          : "bg-slate-800 rounded-full ") +
                         "p-2 flex items-center justify-center"
                       }
                     >

@@ -3,6 +3,7 @@ import type {
   DesktopCommand,
   DesktopDialogOptions,
   DesktopOAuthStartOptions,
+  DesktopWatchOptions,
   DesktopWindowProgressState,
 } from "./types";
 import { ProgressBarStatus } from "./types";
@@ -69,7 +70,7 @@ export async function listen<T = unknown>(
 export async function watch(
   targetPath: string,
   listener: () => void,
-  options?: { delayMs?: number },
+  options?: DesktopWatchOptions,
 ) {
   return withRuntime((runtime) => runtime.watch(targetPath, listener, options));
 }

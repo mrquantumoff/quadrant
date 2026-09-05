@@ -40,7 +40,7 @@ describe("clampUiScale", () => {
 describe("applyUiScale / getAppliedUiScale", () => {
   it("round-trips a scale through the root font size", () => {
     applyUiScale(150);
-    expect(document.documentElement.style.fontSize).toBe("21px");
+    expect(document.documentElement.style.fontSize).toBe("25.2px");
     expect(getAppliedUiScale()).toBe(150);
   });
 
@@ -51,8 +51,9 @@ describe("applyUiScale / getAppliedUiScale", () => {
 
   it("reads 100% when the document uses the App.css root size", () => {
     // jsdom 30 reports the spec UA default (16px) for an unset html font-size.
-    // The app sets 14px in App.css; that is the compact 100% baseline.
-    document.documentElement.style.fontSize = "14px";
+    // The app sets 16.8px in App.css; that is the compact 100% baseline
+    // (old-scale 120%).
+    document.documentElement.style.fontSize = "16.8px";
     expect(getAppliedUiScale()).toBe(COMPACT_UI_SCALE);
   });
 });
