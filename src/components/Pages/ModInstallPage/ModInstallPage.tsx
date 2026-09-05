@@ -18,8 +18,8 @@ import {
   ModType,
 } from "../../../intefaces";
 import Button from "../../core/Button";
+import CancelButton from "../../core/CancelButton";
 import {
-  MdArrowBack,
   MdDownload,
   MdExtension,
   MdOpenInNew,
@@ -290,13 +290,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       className="flex flex-col gap-3 px-4 pt-2 pb-5 transform-gpu [backface-visibility:hidden] [will-change:transform,opacity]"
       key={mod.name}
     >
-      <Button
-        onClick={() => void close()}
-        className="self-start flex items-center bg-slate-800 hover:bg-slate-700"
-      >
-        <MdArrowBack className="w-6 h-6 mr-1" />
-        {t("cancel")}
-      </Button>
+      <CancelButton onClick={() => void close()} />
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_22rem] items-start">
         <div className="flex flex-col gap-3 min-w-0">

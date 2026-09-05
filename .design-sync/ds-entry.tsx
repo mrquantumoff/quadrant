@@ -20,7 +20,6 @@ export { default as ModpackView } from "../src/components/shared/Pages/ModpackVi
 
 export { default as AccountPage } from "../src/components/Pages/AccountPage/AccountPage";
 export { default as ApplyPage } from "../src/components/Pages/ApplyPage/Apply";
-export { default as CloudModpackSection } from "../src/components/Pages/ApplyPage/CloudModpackSection";
 export { default as CurrentModpackPage } from "../src/components/Pages/CurrentModpackPage/CurrentModpackPage";
 export { default as ModInstallPage } from "../src/components/Pages/ModInstallPage/ModInstallPage";
 export { default as SearchPage } from "../src/components/Pages/SearchPage/SearchPage";

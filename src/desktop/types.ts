@@ -105,6 +105,8 @@ export interface DesktopDialogOptions {
 
 export interface DesktopWatchOptions {
   delayMs?: number;
+  /** Also watch subdirectories. Off by default. */
+  recursive?: boolean;
 }
 
 export interface DesktopOAuthStartOptions {

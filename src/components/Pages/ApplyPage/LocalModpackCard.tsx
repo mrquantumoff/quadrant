@@ -1,7 +1,13 @@
 /** @format */
 
 import { useContext } from "react";
-import { ContentContext, LocalModpack } from "../../../intefaces";
+import {
+  AccountInfo,
+  ContentContext,
+  LocalModpack,
+  SyncContext,
+  SyncedModpack,
+} from "../../../intefaces";
 import {
   applyModpack,
   deleteModpack,
@@ -10,7 +16,6 @@ import {
   syncModpack,
 } from "../../../tools";
 import { useTranslation } from "react-i18next";
-import quadrantLocale from "../../../i18n";
 import Button from "../../core/Button";
 import { motion } from "motion/react";
 import {
@@ -23,33 +28,33 @@ import {
   MdSync,
 } from "react-icons/md";
 import ModpackView from "../../shared/Pages/ModpackView";
+import CloudMembersPanel from "./CloudMembersPanel";
+import ModpackBadges from "./ModpackBadges";
+import { formatSyncDate } from "./syncDates";
 
 export interface LocalModpackCardProps {
   modpack: LocalModpack;
+  /** The Quadrant Sync record this modpack is paired with, if any. */
+  synced?: SyncedModpack;
+  accountInfo?: AccountInfo | null;
   onChanged: () => void | Promise<void>;
   onEdit: (modpack: LocalModpack) => void;
 }
 
 export default function LocalModpackCard({
   modpack,
+  synced,
+  accountInfo = null,
   onChanged,
   onEdit,
 }: LocalModpackCardProps) {
   const { t } = useTranslation();
   const context = useContext(ContentContext);
+  const syncContext = useContext(SyncContext);
 
-  const date = new Date(modpack.lastSynced);
-
-  const formattedDate = new Intl.DateTimeFormat(quadrantLocale.language, {
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(date);
-  const dateString = t("localSyncDate", { date: formattedDate });
+  const dateString = t("localSyncDate", {
+    date: formatSyncDate(modpack.lastSynced),
+  });
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -62,13 +67,23 @@ export default function LocalModpackCard({
       }}
       className="flex flex-col bg-slate-900 hover:bg-slate-950 p-4 rounded-4xl mx-5 my-5 h-max hover:shadow-lg hover:shadow-slate-950 transform-gpu backface-hidden will-change-[transform,opacity]"
     >
-      <h1 className="text-2xl font-extrabold max-w-full w-fit">
-        {modpack.name}
-      </h1>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h1 className="text-2xl font-extrabold max-w-full w-fit">
+          {modpack.name}
+        </h1>
+        <ModpackBadges installed synced={synced !== undefined} />
+      </div>
       <p className="text-md text-slate-400 ">
         {modpack.version} | {modpack.modLoader} |{" "}
         {t("modCount", { amount: modpack.mods.length })}{" "}
         {modpack.lastSynced !== 0 && <span>| {dateString}</span>}
+        {synced && (
+          <span>
+            {" "}
+            |{" "}
+            {t("cloudSyncDate", { date: formatSyncDate(synced.last_synced) })}
+          </span>
+        )}
       </p>
       <div className="my-2 flex overflow-x-auto flex-wrap h-max flex-row items-center text-sm justify-start text-center w-full">
         <Button
@@ -131,6 +146,9 @@ export default function LocalModpackCard({
           onClick={async () => {
             try {
               await syncModpack(modpack, true);
+              // The push creates or updates the cloud record; nothing else
+              // tells the cloud list about it.
+              syncContext.refreshSyncedModpacks();
               context.setSnackbar({
                 message: (
                   <span className="flex">
@@ -245,6 +263,13 @@ export default function LocalModpackCard({
           <MdInfo className="w-5 h-5 mx-2" />
         </Button>
       </div>
+      {synced && (
+        <CloudMembersPanel
+          modpack={synced}
+          accountInfo={accountInfo}
+          showForcePull
+        />
+      )}
     </motion.div>
   );
 }

@@ -1,7 +1,12 @@
 /** @format */
 
 import { useContext, useEffect, useRef, useState } from "react";
-import { LocalModpack, MinecraftVersion, ModLoader } from "../../../intefaces";
+import {
+  LocalModpack,
+  MinecraftVersion,
+  ModLoader,
+  SyncContext,
+} from "../../../intefaces";
 import {
   applyModpack,
   createModpack,
@@ -16,26 +21,33 @@ import { useTranslation } from "react-i18next";
 import Button from "../../core/Button";
 import { AnimatePresence, motion } from "motion/react";
 import "./Apply.css";
-import { MdCheck, MdClear, MdCreate, MdFolder } from "react-icons/md";
+import { MdAdd, MdCheck, MdClear, MdFolder } from "react-icons/md";
 import { ContentContext } from "../../../intefaces";
 import LocalModpackCard from "./LocalModpackCard";
 import ModpackEditDialog from "./ModpackEditDialog";
-import {
-  createDesktopStore,
-  joinPath,
-  listen,
-  readClipboardText,
-  watch,
-} from "../../../desktop";
+import { createDesktopStore, joinPath, listen, watch } from "../../../desktop";
 import {
   loaderProvidersFromSettings,
   ModLoaderProvider,
 } from "../../../modLoaders";
 import { parseShareCode } from "../../../deepLinks";
 import SharedModpackView from "./SharedModpackView";
-import CloudModpackSection from "./CloudModpackSection";
+import SyncedModpackComponent from "./SyncedModpack";
+import { useSyncedModpacks } from "./useSyncedModpacks";
+import { mergeModpacks } from "./mergeModpacks";
+
+const toolbarActionClass =
+  "flex shrink-0 items-center justify-center gap-2 h-10 px-4 rounded-full text-sm text-white whitespace-nowrap";
+const toolbarIconClass =
+  "flex shrink-0 items-center justify-center w-10 h-10 rounded-full bg-slate-700 text-slate-200 hover:text-white";
+
 export default function ApplyPage() {
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
+  const {
+    accountInfo,
+    syncedModpacks,
+    refresh: refreshSyncedModpacks,
+  } = useSyncedModpacks();
 
   const { t } = useTranslation();
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
@@ -102,21 +114,36 @@ export default function ApplyPage() {
         unknownMods: false,
       });
 
-      const unwatch = await watch(
-        await joinPath(await getMinecraftFolder(false)),
-        async () => {
-          if (!isUnmounted) {
-            await updateModpacks();
-          }
-        },
-        {
-          delayMs: 50,
-        },
-      );
-      if (isUnmounted) {
-        unwatch();
-      } else {
-        cleanupFns.push(unwatch);
+      // The Minecraft folder itself (the `mods` link flips on apply) plus the
+      // modpacks tree, where installs and sync metadata land several levels
+      // deep and would be invisible to a non-recursive watch.
+      const minecraftFolder = await getMinecraftFolder(false);
+      const watches = await Promise.all([
+        watch(
+          await joinPath(minecraftFolder),
+          async () => {
+            if (!isUnmounted) {
+              await updateModpacks();
+            }
+          },
+          { delayMs: 50 },
+        ),
+        watch(
+          await joinPath(minecraftFolder, "modpacks"),
+          async () => {
+            if (!isUnmounted) {
+              await updateModpacks();
+            }
+          },
+          { delayMs: 50, recursive: true },
+        ),
+      ]);
+      for (const unwatch of watches) {
+        if (isUnmounted) {
+          unwatch();
+        } else {
+          cleanupFns.push(unwatch);
+        }
       }
 
       const unlisten = await listen(
@@ -174,6 +201,7 @@ export default function ApplyPage() {
   };
 
   const shareCode = parseShareCode(searchQuery);
+  const rows = mergeModpacks(modpacks, syncedModpacks, searchQuery);
 
   const openSharedModpack = async () => {
     if (shareCode === null || isResolvingShareCode) {
@@ -211,10 +239,10 @@ export default function ApplyPage() {
         exit={{ y: 24, opacity: 0 }}
         className="flex flex-1 flex-col w-full transform-gpu backface-hidden will-change-[transform,opacity]"
       >
-        <div className="flex flex-row items-center pr-8">
+        <div className="flex flex-row items-center gap-2 mx-8 my-4">
           <input
-            placeholder={t("search")}
-            className="p-2 input flex-1 bg-slate-700 h-11 rounded-full self-center mx-8 my-4 text-center"
+            placeholder={t("searchModpacksPlaceholder")}
+            className="input min-w-0 flex-1 h-10 px-4 rounded-full bg-slate-700 text-sm font-bold text-slate-100 placeholder:font-normal placeholder:text-slate-400 outline-none focus:bg-slate-600"
             onChange={(event) => {
               const query = event.target.value.toLowerCase().trim();
               searchQueryRef.current = query;
@@ -224,15 +252,46 @@ export default function ApplyPage() {
             value={searchQuery}
           ></input>
           <Button
-            className="bg-blue-600 hover:bg-blue-700 h-11 px-6 my-4 shrink-0"
-            onClick={async () => {
-              const clipboardText = await readClipboardText();
-              const query = clipboardText.toLowerCase().trim();
-              searchQueryRef.current = query;
-              setSearchQuery(query);
+            onClick={() => {
+              setIsDialogToCreate(true);
+              setIsUpdateDialogOpen(true);
+              setModpackToUpdate(defaultModpack);
             }}
+            className={toolbarActionClass + " bg-emerald-600 hover:bg-emerald-700"}
           >
-            {t("paste")}
+            <MdAdd aria-hidden="true" className="w-5 h-5" />
+            {t("createModpack")}
+          </Button>
+          <Button
+            onClick={async () => {
+              const firstVersion = versions[0]?.version;
+              if (!firstVersion) {
+                return;
+              }
+              try {
+                await deleteModpack("free");
+              } catch {
+                // Ignore missing temporary modpack.
+              }
+              await createModpack("free", firstVersion, ModLoader.Unknown);
+              await applyModpack("free");
+              await updateModpacks();
+            }}
+            className={toolbarIconClass + " hover:bg-red-700"}
+            title={t("clear")}
+            aria-label={t("clear")}
+          >
+            <MdClear aria-hidden="true" className="w-5 h-5" />
+          </Button>
+          <Button
+            onClick={async () => {
+              await openModpacksFolder();
+            }}
+            className={toolbarIconClass + " hover:bg-slate-600"}
+            title={t("openModpacksFolder")}
+            aria-label={t("openModpacksFolder")}
+          >
+            <MdFolder aria-hidden="true" className="w-5 h-5" />
           </Button>
         </div>
         {shareCode !== null && (
@@ -251,71 +310,39 @@ export default function ApplyPage() {
             </Button>
           </div>
         )}
-        <div className="flex flex-row flex-wrap justify-center w-fit self-center bg-slate-700 rounded-4xl my-2 p-1.5">
-          <Button
-            onClick={() => {
-              setIsDialogToCreate(true);
-              setIsUpdateDialogOpen(true);
-              setModpackToUpdate(defaultModpack);
-            }}
-            className="bg-emerald-600 mx-2 flex items-center align-middle w-fit hover:bg-emerald-700 px-4 rounded-4xl "
-          >
-            {t("createModpack")}
-            <MdCreate className="w-5 h-5 mx-2" />
-          </Button>
-          <Button
-            onClick={async () => {
-              const firstVersion = versions[0]?.version;
-              if (!firstVersion) {
-                return;
-              }
-              try {
-                await deleteModpack("free");
-              } catch {
-                // Ignore missing temporary modpack.
-              }
-              await createModpack("free", firstVersion, ModLoader.Unknown);
-              await applyModpack("free");
-              await updateModpacks();
-            }}
-            className="bg-slate-800 flex items-center align-middle mx-2 w-fit hover:bg-red-700 px-4 rounded-4xl "
-          >
-            {t("clear")}
-            <MdClear className="w-5 h-5 mx-2" />
-          </Button>
-          <Button
-            onClick={async () => {
-              await openModpacksFolder();
-            }}
-            className="bg-slate-800 flex items-center align-middle mx-2 w-fit hover:bg-slate-700 px-4 rounded-4xl "
-          >
-            {t("openModpacksFolder")}
-            <MdFolder className="w-5 h-5 mx-2" />
-          </Button>
-        </div>
-        <h2 className="text-2xl font-extrabold mx-8 mt-4 mb-2">
-          {t("localModpacks")}
-        </h2>
-        <div className="bg-slate-800 rounded-4xl mx-6 mb-8">
-          <AnimatePresence>
-            {modpacks?.map((modpack, index) => (
-              <LocalModpackCard
-                key={index}
-                modpack={modpack}
-                onChanged={updateModpacks}
-                onEdit={(target) => {
-                  setIsUpdateDialogOpen(true);
-                  setIsDialogToCreate(false);
-                  setOriginalModpackName(
-                    JSON.parse(JSON.stringify(target.name)),
-                  );
-                  setModpackToUpdate(target);
-                }}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
-        <CloudModpackSection searchQuery={searchQuery} />
+        <SyncContext.Provider value={{ refreshSyncedModpacks }}>
+          <div className="bg-slate-800 rounded-4xl mx-6 my-4">
+            <AnimatePresence>
+              {rows.map(({ local, synced }) =>
+                local ? (
+                  <LocalModpackCard
+                    key={"local:" + local.name}
+                    modpack={local}
+                    synced={synced}
+                    accountInfo={accountInfo}
+                    onChanged={updateModpacks}
+                    onEdit={(target) => {
+                      setIsUpdateDialogOpen(true);
+                      setIsDialogToCreate(false);
+                      setOriginalModpackName(
+                        JSON.parse(JSON.stringify(target.name)),
+                      );
+                      setModpackToUpdate(target);
+                    }}
+                  />
+                ) : (
+                  synced && (
+                    <SyncedModpackComponent
+                      key={"cloud:" + synced.modpack_id}
+                      modpack={synced}
+                      accountInfo={accountInfo}
+                    />
+                  )
+                ),
+              )}
+            </AnimatePresence>
+          </div>
+        </SyncContext.Provider>
         <ModpackEditDialog
           open={isUpdateDialogOpen}
           onClose={() => setIsUpdateDialogOpen(false)}

@@ -1,90 +1,35 @@
 /** @format */
 
+import { useContext } from "react";
 import { useTranslation } from "react-i18next";
-import quadrantLocale from "../../../i18n";
+import { motion } from "motion/react";
+import { MdDownload, MdInfo, MdShare } from "react-icons/md";
 import {
   AccountInfo,
+  ContentContext,
   InstalledModpack,
-  LocalModpack,
-  SyncContext,
   SyncedModpack,
 } from "../../../intefaces";
-import {
-  Dialog,
-  DialogBackdrop,
-  DialogPanel,
-  DialogTitle,
-  Disclosure,
-  DisclosureButton,
-  DisclosurePanel,
-  Field,
-  Input,
-  Label,
-  Switch,
-} from "@headlessui/react";
-import {
-  MdCheck,
-  MdDelete,
-  MdDownload,
-  MdExpandMore,
-  MdPersonAdd,
-  MdShare,
-} from "react-icons/md";
-import { AnimatePresence, motion } from "motion/react";
+import { shareModpackRaw } from "../../../tools";
+import Button from "../../core/Button";
+import CloudMembersPanel from "./CloudMembersPanel";
+import ModpackBadges from "./ModpackBadges";
+import SharedModpackView from "./SharedModpackView";
+import { formatSyncDate } from "./syncDates";
+import { useModpackInstall } from "./useModpackInstall";
 
 export interface SyncedModpackProps {
   modpack: SyncedModpack;
-  localModpack?: LocalModpack;
   accountInfo: AccountInfo | null;
 }
-import { Fragment, useContext, useState } from "react";
-import Button from "../../core/Button";
-import { inviteMember, kickMember, shareModpackRaw } from "../../../tools";
-import { ContentContext } from "../../../intefaces";
-import { invoke } from "../../../desktop";
-import SharedModpackView from "./SharedModpackView";
 
+/** A Quadrant Sync modpack that is not installed locally. */
 export default function SyncedModpackComponent({
   modpack,
-  localModpack,
   accountInfo,
 }: SyncedModpackProps) {
-  const formatter = new Intl.DateTimeFormat(quadrantLocale.language, {
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  let localFormattedDate = "-";
-  if (localModpack !== undefined) {
-    let localDateMultiplier = 1;
-    const localTimeStamp = localModpack.lastSynced;
-    if (localTimeStamp <= 170406720000) {
-      localDateMultiplier = 1000;
-    }
-    const localDate = new Date(localTimeStamp * localDateMultiplier);
-    localFormattedDate = formatter.format(localDate);
-  }
-  let cloudDateMultiplier = 1;
-  if (modpack.last_synced <= 170406720000) {
-    cloudDateMultiplier = 1000;
-  }
-
-  const date = new Date(modpack.last_synced * cloudDateMultiplier);
-
-  const formattedDate = formatter.format(date);
-
   const { t } = useTranslation();
-
-  const syncContext = useContext(SyncContext);
   const contentContext = useContext(ContentContext);
-
-  const [userToInvite, setUserToInvite] = useState<string>("");
-  const [userToInviteAdmin, setUserToInviteAdmin] = useState<boolean>(false);
-  const [openInviteDialog, setOpenInviteDialog] = useState(false);
 
   const modConfigObject: InstalledModpack = {
     name: modpack.name,
@@ -92,283 +37,88 @@ export default function SyncedModpackComponent({
     modLoader: modpack.mod_loader,
     version: modpack.minecraft_version,
   };
+  const syncTarget = {
+    syncedAt: modpack.last_synced,
+    modpackId: modpack.modpack_id,
+  };
+  const { install, progress } = useModpackInstall(
+    modConfigObject,
+    syncTarget,
+  );
+
+  const openDetails = () => {
+    contentContext.changeContent({
+      content: (
+        <SharedModpackView modpack={modConfigObject} syncTarget={syncTarget} />
+      ),
+      name: modpack.modpack_id + Math.random().toString(36).substring(2, 10),
+      title: modpack.name,
+      style: "",
+      main: false,
+      icon: <></>,
+    });
+  };
 
   return (
     <motion.div
-      className="p-4 bg-slate-900 m-4 rounded-4xl transform-gpu backface-hidden will-change-[transform,opacity]"
-      initial={{ y: 24, opacity: 0 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={{ y: 0, opacity: 1 }}
+      whileHover={{ y: -5 }}
+      transition={{ duration: 0.15, ease: "linear" }}
+      exit={{ opacity: 0, y: -24 }}
+      className="flex flex-col bg-slate-900 hover:bg-slate-950 p-4 rounded-4xl mx-5 my-5 h-max hover:shadow-lg hover:shadow-slate-950 transform-gpu backface-hidden will-change-[transform,opacity]"
     >
-      <div className="mx-4">
-        <h1 className="font-extrabold text-2xl">{modpack.name}</h1>
-        <h2 className="text-lg text-slate-400 ">
-          {modpack.mod_loader} {modpack.minecraft_version} |{" "}
-          {t("modCount", { amount: JSON.parse(modpack.mods).length })}
-        </h2>
-        <div className="text-bold text-sm">
-          <h3>{t("cloudSyncDate", { date: formattedDate })}</h3>
-          <h3>{t("localSyncDate", { date: localFormattedDate })}</h3>
-        </div>
-        <div className="flex items-center py-2 px-2 bg-slate-700 rounded-4xl my-3 h-12">
-          <Button
-            className="flex items-center self-center bg-emerald-600 hover:bg-emerald-700"
-            onClick={async () => {
-              contentContext.changeContent({
-                content: (
-                  <SharedModpackView
-                    modpack={modConfigObject}
-                    syncTarget={{
-                      syncedAt: modpack.last_synced,
-                      modpackId: modpack.modpack_id,
-                    }}
-                  />
-                ),
-                name:
-                  modpack.modpack_id +
-                  Math.random().toString(36).substring(2, 10),
-                title: modpack.name,
-                style: "",
-                main: false,
-                icon: <></>,
-              });
-            }}
-          >
-            {t("download")}
-            <MdDownload className="w-6 h-6 mx-2" />
-          </Button>
-          <Button
-            className="flex items-center self-center bg-blue-600 hover:bg-blue-700 ml-2 justify-center"
-            onClick={async () => {
-              try {
-                await shareModpackRaw(modConfigObject);
-              } catch (e: any) {
-                console.error(e);
-                contentContext.setSnackbar({
-                  message: t(e),
-                  className: "bg-red-700 rounded-4xl",
-                  timeout: 5000,
-                });
-              }
-            }}
-          >
-            {t("share")}
-            <MdShare className="w-6 h-6 mx-2" />
-          </Button>
-        </div>
-        <Disclosure as="div" className={"w-full"}>
-          {({ open }) => (
-            <>
-              <div className="bg-slate-700 rounded-4xl">
-                <DisclosureButton
-                  className={
-                    "w-full text-start  data-open:rounded-b-none p-2 flex flex-1 group h-12 items-center "
-                  }
-                >
-                  <span className="text-start ml-2 flex w-full font-bold items-start">
-                    {t("details")}
-                  </span>
-                  <div className="w-full items-end justify-end flex  ">
-                    <MdExpandMore className="h-6 flex w-6 ml-0 group-data-open:rotate-180" />
-                  </div>
-                </DisclosureButton>
-                <DisclosurePanel static as={Fragment}>
-                  <AnimatePresence>
-                    {open && (
-                      <motion.div
-                        className={"p-4"}
-                        initial={{ opacity: 1, y: -50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.1, ease: "easeIn" }}
-                        exit={{ opacity: 0, y: -50 }}
-                      >
-                        {modpack.owners.map((owner) => {
-                          const currentUserIsAdmin = modpack.owners.some(
-                            (candidate) =>
-                              candidate.username === accountInfo?.login &&
-                              candidate.admin,
-                          );
-                          const canKick =
-                            currentUserIsAdmin &&
-                            owner.username !== accountInfo?.login;
-                          const kickButton = canKick ? (
-                            <Button
-                              className="bg-slate-700 hover:bg-red-700 px-4 mr-4"
-                              onClick={async () => {
-                                await kickMember(
-                                  modpack.modpack_id,
-                                  owner.username,
-                                );
-                                syncContext.refreshSyncedModpacks();
-                              }}
-                            >
-                              {t("kick")}
-                            </Button>
-                          ) : (
-                            <></>
-                          );
-
-                          return (
-                            <div
-                              key={owner.username}
-                              className="my-3 bg-slate-800 rounded-full p-2 flex items-center justify-center font-bold h-14 "
-                            >
-                              <p className="flex items-center px-4 justify-start w-full">
-                                {owner.admin
-                                  ? t("owner", { username: owner.username })
-                                  : owner.username}
-                              </p>
-                              <div className="w-full items-end text-end justify-end">
-                                {kickButton}
-                              </div>
-                            </div>
-                          );
-                        })}
-                        <div className="flex w-full items-center justify-center">
-                          <Button
-                            className="bg-slate-800 flex items-center justify-center  hover:bg-red-700 w-full mr-2 "
-                            onClick={async () => {
-                              try {
-                                await invoke("delete_synced_modpack", {
-                                  modpackId: modpack.modpack_id,
-                                });
-                                contentContext.setSnackbar({
-                                  message: (
-                                    <span className="flex items-center justify-center">
-                                      <p>{t("delete")}</p>
-                                      <MdDelete className="w-6 h-6 mx-2" />
-                                    </span>
-                                  ),
-                                  className: "bg-emerald-600 font-bold",
-                                  timeout: 5000,
-                                });
-                                syncContext.refreshSyncedModpacks();
-                              } catch (e: any) {
-                                console.error(e);
-                                contentContext.setSnackbar({
-                                  message: t(e),
-                                  className: "bg-red-700 rounded-4xl",
-                                  timeout: 5000,
-                                });
-                              }
-                            }}
-                          >
-                            {t("delete")}
-                            <MdDelete className="w-6 h-6 mx-2" />
-                          </Button>
-                          <Button
-                            className="bg-emerald-600 flex items-center justify-center hover:bg-emerald-700 w-full "
-                            onClick={async () => {
-                              setOpenInviteDialog(true);
-                            }}
-                          >
-                            {t("invite")}
-                            <MdPersonAdd className="w-6 h-6 ml-2" />
-                          </Button>
-                        </div>
-                      </motion.div>
-                    )}
-                    <Dialog
-                      open={openInviteDialog}
-                      onClose={() => {
-                        setOpenInviteDialog(false);
-                        setUserToInvite("");
-                        setUserToInviteAdmin(false);
-                      }}
-                      className={"relative z-50"}
-                    >
-                      <DialogBackdrop className="fixed inset-0 opacity-60 bg-slate-950/30" />
-                      <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
-                        <DialogPanel
-                          className={
-                            "max-w-xl space-y-4 rounded-4xl bg-slate-800 p-8"
-                          }
-                        >
-                          <DialogTitle className={"font-black text-xl"}>
-                            {t("invite")}
-                          </DialogTitle>
-                          <Input
-                            type="text"
-                            value={userToInvite}
-                            autoComplete="off"
-                            className="bg-slate-700 focus:bg-slate-600 focus: focus:border-2 focus:border-slate-500 w-full p-2 rounded-4xl font-semibold hover:bg-slate-600  focus:outline-hidden"
-                            placeholder={t("username")}
-                            onChange={async (e) =>
-                              setUserToInvite(e.target.value)
-                            }
-                          ></Input>
-                          <Field className={"flex items-center "}>
-                            <Switch
-                              className={
-                                "group inline-flex h-8 align-middle w-16 rounded-full bg-slate-700 transition data-checked:bg-emerald-800 hover:bg-slate-600 hover:data-checked:bg-emerald-700 "
-                              }
-                              checked={userToInviteAdmin}
-                              onChange={async (newValue) => {
-                                setUserToInviteAdmin(newValue);
-                              }}
-                            >
-                              <span
-                                aria-hidden="true"
-                                className="pointer-events-none inline-block size-8 translate-x-0 rounded-full bg-slate-300 ring-0 shadow-lg transition duration-200 ease-in-out group-data-checked:translate-x-8"
-                              />
-                            </Switch>
-                            <Label className={"mx-2 font-black text-base"}>
-                              {t("admin")}
-                            </Label>
-                          </Field>
-                          <div className="flex">
-                            <Button
-                              className="bg-emerald-600 hover:bg-emerald-700 w-full "
-                              onClick={async () => {
-                                try {
-                                  await inviteMember(
-                                    modpack.modpack_id,
-                                    userToInvite,
-                                    userToInviteAdmin,
-                                  );
-                                  contentContext.setSnackbar({
-                                    message: (
-                                      <span className="flex items-center justify-center">
-                                        <p>{t("invite")}</p>
-                                        <MdCheck className="w-6 h-6 mx-2" />
-                                      </span>
-                                    ),
-                                    className: "bg-emerald-600 font-bold",
-                                    timeout: 5000,
-                                  });
-                                  setOpenInviteDialog(false);
-                                } catch (e: any) {
-                                  contentContext.setSnackbar({
-                                    className: "bg-red-700 font-bold",
-                                    message: t(e),
-                                    timeout: 5000,
-                                  });
-                                  setOpenInviteDialog(false);
-                                }
-                              }}
-                            >
-                              {t("invite")}
-                            </Button>
-                            <Button
-                              className="ml-2 bg-slate-700 w-full hover:bg-slate-600"
-                              onClick={async () => {
-                                setOpenInviteDialog(false);
-                                setUserToInvite("");
-                                setUserToInviteAdmin(false);
-                              }}
-                            >
-                              {t("cancel")}
-                            </Button>
-                          </div>
-                        </DialogPanel>
-                      </div>
-                    </Dialog>
-                  </AnimatePresence>
-                </DisclosurePanel>
-              </div>
-            </>
-          )}
-        </Disclosure>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h1 className="text-2xl font-extrabold max-w-full w-fit">
+          {modpack.name}
+        </h1>
+        <ModpackBadges installed={false} synced />
       </div>
+      <p className="text-md text-slate-400">
+        {modpack.minecraft_version} | {modpack.mod_loader} |{" "}
+        {t("modCount", { amount: modConfigObject.mods.length })} |{" "}
+        {t("cloudSyncDate", { date: formatSyncDate(modpack.last_synced) })}
+      </p>
+      <div className="my-2 flex overflow-x-auto flex-wrap h-max flex-row items-center text-sm justify-start text-center w-full">
+        <Button
+          className={
+            "flex items-center self-center px-4 w-max h-10 justify-center m-2 " +
+            (progress === 1
+              ? "bg-emerald-600 hover:bg-emerald-700"
+              : "bg-slate-800 cursor-not-allowed")
+          }
+          onClick={install}
+        >
+          {progress === 1 ? t("download") : (progress * 100).toFixed(2) + "%"}
+          <MdDownload className="w-5 h-5 mx-2" />
+        </Button>
+        <Button
+          className="flex items-center self-center bg-blue-600 hover:bg-blue-700 px-4 m-2 w-max h-10 justify-center"
+          onClick={async () => {
+            try {
+              await shareModpackRaw(modConfigObject);
+            } catch (e: any) {
+              console.error(e);
+              contentContext.setSnackbar({
+                message: t(e),
+                className: "bg-red-700 rounded-4xl",
+                timeout: 5000,
+              });
+            }
+          }}
+        >
+          {t("share")}
+          <MdShare className="w-5 h-5 mx-2" />
+        </Button>
+        <Button
+          className="flex items-center self-center bg-slate-800 hover:bg-slate-700 px-4 w-max m-2 h-10 justify-center"
+          onClick={openDetails}
+        >
+          {t("details")}
+          <MdInfo className="w-5 h-5 mx-2" />
+        </Button>
+      </div>
+      <CloudMembersPanel modpack={modpack} accountInfo={accountInfo} />
     </motion.div>
   );
 }

@@ -10,6 +10,7 @@ import {
 import { createModpack, updateModpack } from "../../../tools";
 import { useTranslation } from "react-i18next";
 import Button from "../../core/Button";
+import CancelButton from "../../core/CancelButton";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Description,
@@ -228,12 +229,7 @@ export default function ModpackEditDialog({
               >
                 {isCreate ? t("createModpack") : t("update")}
               </Button>
-              <Button
-                className="bg-slate-700 hover:bg-slate-600"
-                onClick={onClose}
-              >
-                {t("cancel")}
-              </Button>
+              <CancelButton onClick={onClose} />
             </div>
           </DialogPanel>
         </motion.div>

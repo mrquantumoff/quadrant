@@ -1,19 +1,19 @@
 /** @format */
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { IMod, InstalledModpack } from "../../../intefaces";
-import CircularProgress from "../../core/CircularProgress";
 import { useTranslation } from "react-i18next";
 import Button from "../../core/Button";
-import { getMod, installModpack } from "../../../tools";
+import CancelButton from "../../core/CancelButton";
+import { getMod } from "../../../tools";
 import Mod from "../../shared/Mod";
 import { ContentContext } from "../../../intefaces";
-import { invoke, listen } from "../../../desktop";
-import { MdArrowBack } from "react-icons/md";
+import { MdDownload } from "react-icons/md";
+import { ModpackSyncTarget, useModpackInstall } from "./useModpackInstall";
 
 export interface SharedModpackViewProps {
   modpack: InstalledModpack;
-  syncTarget?: { syncedAt: number; modpackId: string };
+  syncTarget?: ModpackSyncTarget;
 }
 
 export default function SharedModpackView({
@@ -21,81 +21,20 @@ export default function SharedModpackView({
   syncTarget,
 }: SharedModpackViewProps) {
   const [mods, setMods] = useState<IMod[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { t } = useTranslation();
-  const [progress, setProgress] = useState(1);
-  const modpackInstallRequestedRef = useRef(false);
-
   const context = useContext(ContentContext);
-
-  const installRemoteModpack = async () => {
-    if (progress !== 1 || modpackInstallRequestedRef.current) {
-      return;
-    }
-    modpackInstallRequestedRef.current = true;
-    try {
-      await installModpack(modpack);
-      if (syncTarget) {
-        await invoke("set_modpack_sync_date", {
-          time: syncTarget.syncedAt,
-          modpack: modpack.name,
-          modpackId: syncTarget.modpackId,
-        });
-      }
-    } catch (e: any) {
-      modpackInstallRequestedRef.current = false;
-      setProgress(1);
-      context.setSnackbar({
-        className: "bg-red-700",
-        message: t(e),
-        timeout: 5000,
-      });
-    }
-  };
+  const { install, progress } = useModpackInstall(modpack, syncTarget);
 
   useEffect(() => {
-    let isUnmounted = false;
-    let unlisten: (() => void | Promise<void>) | null = null;
-
-    const attachListener = async () => {
-      unlisten = await listen("modpackDownloadProgress", (progress: any) => {
-        if (isUnmounted) {
-          return;
-        }
-        setProgress(progress.payload);
-        if (progress.payload === 1 && modpackInstallRequestedRef.current) {
-          modpackInstallRequestedRef.current = false;
-          context.setSnackbar({
-            className: "bg-emerald-600",
-            message: t("downloadSuccess"),
-            timeout: 5000,
-          });
-        }
-      });
-
-      if (isUnmounted && unlisten) {
-        await unlisten();
-        unlisten = null;
-      }
-    };
-
-    attachListener().catch(console.error);
-
-    return () => {
-      isUnmounted = true;
-      if (unlisten) {
-        unlisten();
-      }
-    };
-  }, [context, t]);
-
-  useEffect(() => {
+    let cancelled = false;
     const effect = async () => {
       setMods([]);
       setIsLoading(true);
 
       const fetchMods = async () => {
         for (const mod of modpack.mods) {
+          if (cancelled) return;
           try {
             const newMod = await getMod(
               {
@@ -111,71 +50,75 @@ export default function SharedModpackView({
               },
               mod.source,
             );
-            setMods((prevMods) => [...prevMods, newMod]);
+            if (!cancelled) {
+              setMods((prevMods) => [...prevMods, newMod]);
+            }
           } catch (error) {
             console.error("Failed to fetch mod:", error);
           }
         }
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       };
 
       fetchMods().catch((error) => {
         console.error("Failed to load shared modpack", error);
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       });
     };
     effect().catch(console.error);
+    return () => {
+      cancelled = true;
+    };
   }, [modpack]);
 
   return (
-    <div className="flex flex-1 flex-col justify-center items-center w-full my-8 h-[80vh] ">
-      <button
-        onClick={() => context.back()}
-        className="self-start flex items-center gap-1 text-sm font-bold text-slate-400 hover:text-slate-100 transition-colors cursor-pointer"
-      >
-        <MdArrowBack className="size-4.5" />
-        {t("cancel")}
-      </button>
-      {isLoading && (
-        <div className="bg-slate-800 rounded-4xl p-4">
-          <CircularProgress />
-        </div>
-      )}
-      {!isLoading && (
-        <div className="bg-slate-800 p-4 flex flex-col rounded-4xl font-bold">
-          <p>
+    <div className="flex w-full min-w-0 flex-col gap-3 px-4 pt-2 pb-5">
+      <CancelButton onClick={() => context.back()} />
+      <section className="min-w-0 rounded-4xl bg-slate-700 p-4 font-bold">
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <h2 className="min-w-0 text-center text-base break-words">
             {modpack.name} | {modpack.modLoader} | {modpack.version} |{" "}
-            {t("modCount", { amount: mods.length })}
-          </p>
-          <div className=" items-center justify-center my-4 rounded-4xl p-2 h-min  border-slate-900 border-8 ">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 mb-0 gap-4 p-4 max-h-[35vh] max-w-[80vw] overflow-auto  ">
-              {mods.map((mod) => {
-                return (
-                  <Mod
-                    key={mod.id}
-                    mod={mod}
-                    modpack={modpack.name}
-                    className={"h-72 "}
-                  />
-                );
-              })}
-            </div>
+            {t("modCount", { amount: modpack.mods.length })}
+          </h2>
+          <Button
+            className={
+              "flex w-fit shrink-0 items-center px-4 " +
+              (progress === 1
+                ? "bg-emerald-600 hover:bg-emerald-700"
+                : "bg-slate-800 cursor-not-allowed")
+            }
+            onClick={install}
+          >
+            {progress === 1 ? t("download") : (progress * 100).toFixed(2) + "%"}
+            <MdDownload aria-hidden="true" className="w-6 h-6 ml-2" />
+          </Button>
+        </div>
+        {isLoading && (
+          <div
+            role="status"
+            className="mt-4 flex items-center justify-center gap-3 text-sm text-slate-300"
+          >
+            <span
+              aria-hidden="true"
+              className="size-6 shrink-0 animate-spin rounded-full border-2 border-slate-600 border-t-emerald-400 motion-reduce:animate-none"
+            />
+            {t("loadingMods", {
+              loaded: mods.length,
+              total: modpack.mods.length,
+            })}
           </div>
-          <div className="flex w-full">
-            <Button
-              className={
-                "mt-2 w-full mr-1 " +
-                (progress === 1
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-slate-700 hover:bg-slate-700 cursor-not-allowed")
-              }
-              onClick={installRemoteModpack}
-            >
-              {progress === 1
-                ? t("download")
-                : (progress * 100).toFixed(2) + "%"}
-            </Button>
-          </div>
+        )}
+      </section>
+      {mods.length > 0 && (
+        <div className="grid min-w-0 grid-cols-1 gap-4 rounded-4xl bg-slate-800 p-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          {mods.map((mod) => (
+            <Mod
+              key={mod.source + mod.id}
+              mod={mod}
+              modpack={modpack.name}
+              className="w-full min-w-0"
+            />
+          ))}
         </div>
       )}
     </div>

@@ -18,12 +18,13 @@
     "ModpackView": "src/components/shared/Pages/ModpackView.tsx",
     "AccountPage": "src/components/Pages/AccountPage/AccountPage.tsx",
     "ApplyPage": "src/components/Pages/ApplyPage/Apply.tsx",
-    "CloudModpackSection": "src/components/Pages/ApplyPage/CloudModpackSection.tsx",
     "CurrentModpackPage": "src/components/Pages/CurrentModpackPage/CurrentModpackPage.tsx",
     "ModInstallPage": "src/components/Pages/ModInstallPage/ModInstallPage.tsx",
     "SearchPage": "src/components/Pages/SearchPage/SearchPage.tsx",
     "SettingsPage": "src/components/Pages/SettingsPage/Settings.tsx",
     "SharedModpackView": "src/components/Pages/ApplyPage/SharedModpackView.tsx",
-    "SyncedModpack": "src/components/Pages/ApplyPage/SyncedModpack.tsx"
+    "SyncedModpack": "src/components/Pages/ApplyPage/SyncedModpack.tsx",
+    "CloudMembersPanel": "src/components/Pages/ApplyPage/CloudMembersPanel.tsx",
+    "ModpackBadges": "src/components/Pages/ApplyPage/ModpackBadges.tsx"
   }
 }
