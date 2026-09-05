@@ -26,3 +26,5 @@ export { default as SearchPage } from "../src/components/Pages/SearchPage/Search
 export { default as SettingsPage } from "../src/components/Pages/SettingsPage/Settings";
 export { default as SharedModpackView } from "../src/components/Pages/ApplyPage/SharedModpackView";
 export { default as SyncedModpack } from "../src/components/Pages/ApplyPage/SyncedModpack";
+export { default as CloudMembersPanel } from "../src/components/Pages/ApplyPage/CloudMembersPanel";
+export { default as ModpackBadges } from "../src/components/Pages/ApplyPage/ModpackBadges";

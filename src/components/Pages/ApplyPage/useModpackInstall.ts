@@ -6,6 +6,11 @@ import { ContentContext, InstalledModpack } from "../../../intefaces";
 import { installModpack } from "../../../tools";
 import { invoke, listen } from "../../../desktop";
 
+// Progress events have no request id. Run these installs one at a time, even
+// across page changes, and suppress duplicate writes to the same local folder.
+let installQueue: Promise<void> = Promise.resolve();
+const pendingInstalls = new Set<string>();
+
 export interface ModpackSyncTarget {
   syncedAt: number;
   modpackId: string;
@@ -32,6 +37,7 @@ export function useModpackInstall(
   const context = useContext(ContentContext);
   const [progress, setProgress] = useState(1);
   const requestedRef = useRef(false);
+  const activeRef = useRef(false);
 
   useEffect(() => {
     let isUnmounted = false;
@@ -41,18 +47,11 @@ export function useModpackInstall(
       unlisten = await listen("modpackDownloadProgress", (event: any) => {
         // The event is global; only the instance that started the install
         // should reflect it.
-        if (isUnmounted || !requestedRef.current) {
+        if (isUnmounted || !activeRef.current) {
           return;
         }
-        setProgress(event.payload);
-        if (event.payload === 1) {
-          requestedRef.current = false;
-          context.setSnackbar({
-            className: "bg-emerald-600",
-            message: t("downloadSuccess"),
-            timeout: 5000,
-          });
-        }
+        // Only the command promise confirms success, including sync metadata.
+        setProgress(Math.min(event.payload, 0.99));
       });
 
       if (isUnmounted && unlisten) {
@@ -69,33 +68,46 @@ export function useModpackInstall(
         unlisten();
       }
     };
-  }, [context, t]);
+  }, []);
 
   const install = async () => {
-    if (requestedRef.current) {
+    if (requestedRef.current || pendingInstalls.has(modpack.name)) {
       return;
     }
     requestedRef.current = true;
-    // Progress is driven by the backend's first event, so the label does not
-    // flicker to 0% for installs that finish before any event arrives.
-    try {
-      await installModpack(modpack);
-      if (syncTarget) {
-        await invoke("set_modpack_sync_date", {
-          time: syncTarget.syncedAt,
-          modpack: modpack.name,
-          modpackId: syncTarget.modpackId,
+    pendingInstalls.add(modpack.name);
+    setProgress(0);
+    const operation = installQueue.then(async () => {
+      activeRef.current = true;
+      try {
+        await installModpack(modpack);
+        if (syncTarget) {
+          await invoke("set_modpack_sync_date", {
+            time: syncTarget.syncedAt,
+            modpack: modpack.name,
+            modpackId: syncTarget.modpackId,
+          });
+        }
+        context.setSnackbar({
+          className: "bg-emerald-600",
+          message: t("downloadSuccess"),
+          timeout: 5000,
         });
+      } catch (e: any) {
+        context.setSnackbar({
+          className: "bg-red-700",
+          message: t(e),
+          timeout: 5000,
+        });
+      } finally {
+        activeRef.current = false;
+        requestedRef.current = false;
+        pendingInstalls.delete(modpack.name);
+        setProgress(1);
       }
-    } catch (e: any) {
-      requestedRef.current = false;
-      setProgress(1);
-      context.setSnackbar({
-        className: "bg-red-700",
-        message: t(e),
-        timeout: 5000,
-      });
-    }
+    });
+    installQueue = operation.catch(console.error);
+    await operation;
   };
 
   return { install, progress };

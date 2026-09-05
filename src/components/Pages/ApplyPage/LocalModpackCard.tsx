@@ -80,8 +80,7 @@ export default function LocalModpackCard({
         {synced && (
           <span>
             {" "}
-            |{" "}
-            {t("cloudSyncDate", { date: formatSyncDate(synced.last_synced) })}
+            | {t("cloudSyncDate", { date: formatSyncDate(synced.last_synced) })}
           </span>
         )}
       </p>
@@ -267,7 +266,7 @@ export default function LocalModpackCard({
         <CloudMembersPanel
           modpack={synced}
           accountInfo={accountInfo}
-          showForcePull
+          localName={modpack.name}
         />
       )}
     </motion.div>

@@ -1,6 +1,6 @@
 /** @format */
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   LocalModpack,
   MinecraftVersion,
@@ -74,7 +74,6 @@ export default function ApplyPage() {
   const [originalModpackName, setOriginalModpackName] = useState("free");
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const searchQueryRef = useRef("");
   const [isResolvingShareCode, setIsResolvingShareCode] = useState(false);
   const [loaderProviders, setLoaderProviders] = useState<ModLoaderProvider[]>(
     loaderProvidersFromSettings(true, true),
@@ -118,33 +117,43 @@ export default function ApplyPage() {
       // modpacks tree, where installs and sync metadata land several levels
       // deep and would be invisible to a non-recursive watch.
       const minecraftFolder = await getMinecraftFolder(false);
-      const watches = await Promise.all([
-        watch(
+      let treeWatchAttached = false;
+      const watchTree = async () => {
+        if (treeWatchAttached || isUnmounted) return;
+        treeWatchAttached = true;
+        try {
+          const unwatch = await watch(
+            await joinPath(minecraftFolder, "modpacks"),
+            () => {
+              if (!isUnmounted) void updateModpacks().catch(console.error);
+            },
+            { delayMs: 50, recursive: true },
+          );
+          if (isUnmounted) unwatch();
+          else cleanupFns.push(unwatch);
+        } catch (error) {
+          // The tree may not exist until the first local pack is created.
+          treeWatchAttached = false;
+          console.error(error);
+        }
+      };
+      try {
+        const unwatch = await watch(
           await joinPath(minecraftFolder),
           async () => {
             if (!isUnmounted) {
-              await updateModpacks();
+              await watchTree();
+              await updateModpacks().catch(console.error);
             }
           },
           { delayMs: 50 },
-        ),
-        watch(
-          await joinPath(minecraftFolder, "modpacks"),
-          async () => {
-            if (!isUnmounted) {
-              await updateModpacks();
-            }
-          },
-          { delayMs: 50, recursive: true },
-        ),
-      ]);
-      for (const unwatch of watches) {
-        if (isUnmounted) {
-          unwatch();
-        } else {
-          cleanupFns.push(unwatch);
-        }
+        );
+        if (isUnmounted) unwatch();
+        else cleanupFns.push(unwatch);
+      } catch (error) {
+        console.error(error);
       }
+      await watchTree();
 
       const unlisten = await listen(
         "quadrantShareSubmission",
@@ -187,15 +196,8 @@ export default function ApplyPage() {
     };
   }, []);
 
-  useEffect(() => {
-    const effect = async () => {
-      await updateModpacks();
-    };
-    effect();
-  }, [searchQuery]);
-
   const updateModpacks = async () => {
-    const newModpacks = await getModpacks(true, searchQueryRef.current);
+    const newModpacks = await getModpacks();
 
     setModpacks(newModpacks);
   };
@@ -245,7 +247,6 @@ export default function ApplyPage() {
             className="input min-w-0 flex-1 h-10 px-4 rounded-full bg-slate-700 text-sm font-bold text-slate-100 placeholder:font-normal placeholder:text-slate-400 outline-none focus:bg-slate-600"
             onChange={(event) => {
               const query = event.target.value.toLowerCase().trim();
-              searchQueryRef.current = query;
               setSearchQuery(query);
             }}
             autoComplete="off"
@@ -257,7 +258,9 @@ export default function ApplyPage() {
               setIsUpdateDialogOpen(true);
               setModpackToUpdate(defaultModpack);
             }}
-            className={toolbarActionClass + " bg-emerald-600 hover:bg-emerald-700"}
+            className={
+              toolbarActionClass + " bg-emerald-600 hover:bg-emerald-700"
+            }
           >
             <MdAdd aria-hidden="true" className="w-5 h-5" />
             {t("createModpack")}

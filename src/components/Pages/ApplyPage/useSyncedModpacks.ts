@@ -1,6 +1,6 @@
 /** @format */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AccountInfo, SyncedModpack } from "../../../intefaces";
 import { getAccountInfo, getSyncedModpacks } from "../../../tools";
 import { listen } from "../../../desktop";
@@ -21,9 +21,15 @@ export function useSyncedModpacks(): SyncedModpacksState {
   const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
   const [syncedModpacks, setSyncedModpacks] = useState<SyncedModpack[]>([]);
 
+  const requestRef = useRef(0);
   const refresh = async () => {
-    const modpacks = await getSyncedModpacks(true);
-    setSyncedModpacks(modpacks);
+    const request = ++requestRef.current;
+    try {
+      const modpacks = await getSyncedModpacks(true);
+      if (request === requestRef.current) setSyncedModpacks(modpacks);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {
@@ -44,8 +50,8 @@ export function useSyncedModpacks(): SyncedModpacksState {
       }
       setAccountInfo(info);
 
-      await refresh();
-
+      // A transient fetch failure must not prevent subscribing to recovery events.
+      void refresh();
       const unlisten = await listen<string>("refreshSyncedModpacks", () => {
         if (isUnmounted) {
           return;
@@ -63,6 +69,7 @@ export function useSyncedModpacks(): SyncedModpacksState {
 
     return () => {
       isUnmounted = true;
+      requestRef.current++;
       while (cleanupFns.length > 0) {
         const cleanup = cleanupFns.pop();
         try {

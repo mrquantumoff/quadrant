@@ -43,7 +43,7 @@ export interface CloudMembersPanelProps {
    * Adds a Force pull button that reinstalls the cloud version over the local
    * copy in place, for modpacks that are also installed locally.
    */
-  showForcePull?: boolean;
+  localName?: string;
 }
 
 /**
@@ -53,7 +53,7 @@ export interface CloudMembersPanelProps {
 export default function CloudMembersPanel({
   modpack,
   accountInfo,
-  showForcePull = false,
+  localName,
 }: CloudMembersPanelProps) {
   const { t } = useTranslation();
   const syncContext = useContext(SyncContext);
@@ -74,7 +74,7 @@ export default function CloudMembersPanel({
   );
 
   const modConfigObject: InstalledModpack = {
-    name: modpack.name,
+    name: localName ?? modpack.name,
     mods: JSON.parse(modpack.mods),
     modLoader: modpack.mod_loader,
     version: modpack.minecraft_version,
@@ -144,7 +144,7 @@ export default function CloudMembersPanel({
                     );
                   })}
                   <div className="flex w-full flex-wrap items-center justify-center gap-2">
-                    {showForcePull && (
+                    {localName !== undefined && (
                       <Button
                         className={
                           "flex items-center justify-center flex-1 " +
@@ -209,7 +209,9 @@ export default function CloudMembersPanel({
                 <DialogBackdrop className="fixed inset-0 opacity-60 bg-slate-950/30" />
                 <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
                   <DialogPanel
-                    className={"max-w-xl space-y-4 rounded-4xl bg-slate-800 p-8"}
+                    className={
+                      "max-w-xl space-y-4 rounded-4xl bg-slate-800 p-8"
+                    }
                   >
                     <DialogTitle className={"font-black text-xl"}>
                       {t("invite")}

@@ -14,10 +14,12 @@ below.
   Tauri shell — calling it throws "Quadrant desktop runtime is unavailable". So
   when you compose a screen, **pass data in as props** (a `Mod`'s metadata, a
   modpack list) rather than expecting it to load itself. Page components
-  (`SettingsPage`, `AccountPage`, `SharePage`, …) paint their chrome fine; their
+  (`SettingsPage`, `AccountPage`, `SharedModpackView`, …) paint their chrome fine; their
   live data lists stay empty in a design environment.
-- The Share/Sync flow shares state through `ShareSyncPage`'s context — render
-  `SharePage`, `SyncPage`, `SyncedModpack` **inside `ShareSyncPage`**, not alone.
+- Apply combines local and cloud modpacks. Pass a manifest to
+  `SharedModpackView`, and cloud records plus account info to `SyncedModpack`
+  or `CloudMembersPanel`. Cloud management actions use `SyncContext` to refresh
+  the parent list.
 
 ### Styling idiom — Tailwind v4 utilities
 

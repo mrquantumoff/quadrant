@@ -1,7 +1,7 @@
 /** @format */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useContext, type ReactNode } from "react";
 import { ContentContext, ModLoader } from "../../../intefaces";
@@ -287,7 +287,9 @@ describe("ApplyPage", () => {
     expect(screen.queryByText("Cloud")).not.toBeInTheDocument();
     // The merged card keeps the local action row; the cloud-only Download
     // button is not added to it.
-    expect(screen.getByRole("button", { name: /^apply$/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^apply$/i }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /^download$/i }),
     ).not.toBeInTheDocument();
@@ -302,7 +304,9 @@ describe("ApplyPage", () => {
     render(<ApplyPage />);
 
     await waitFor(() => expect(screen.getByText("Synced")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: /quadrant sync/i }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /quadrant sync/i }),
+    );
 
     expect(
       screen.getByRole("button", { name: /^force pull$/i }),
@@ -418,8 +422,12 @@ describe("ApplyPage", () => {
     );
 
     await waitFor(() => expect(screen.getByText("Synced")).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: /quadrant sync/i }));
-    await userEvent.click(screen.getByRole("button", { name: /^force pull$/i }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /quadrant sync/i }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /^force pull$/i }),
+    );
 
     await waitFor(() =>
       expect(installModpack).toHaveBeenCalledWith(
@@ -468,9 +476,107 @@ describe("ApplyPage", () => {
     await waitFor(() =>
       expect(screen.getByRole("textbox")).toHaveValue("1234567"),
     );
-    // Asserts the ref was updated too: updateModpacks reads it, not the state.
-    await waitFor(() =>
-      expect(getModpacks).toHaveBeenCalledWith(true, "1234567"),
+    expect(
+      screen.getByRole("button", { name: /^download$/i }),
+    ).toBeInTheDocument();
+  });
+  it("force pulls into the local name when the cloud name differs", async () => {
+    getAccountInfo.mockResolvedValue({ login: "me", quadrant_sync_limit: 5 });
+    getModpacks.mockResolvedValue([
+      pack({ name: "Renamed", modpackId: "abc" }),
+    ]);
+    getSyncedModpacks.mockResolvedValue([
+      cloudPack({ name: "Original", modpack_id: "abc" }),
+    ]);
+    installModpack.mockResolvedValue(undefined);
+    render(<ApplyPage />);
+    await userEvent.click(
+      await screen.findByRole("button", { name: /quadrant sync/i }),
     );
+    await userEvent.click(
+      screen.getByRole("button", { name: /^force pull$/i }),
+    );
+    await waitFor(() =>
+      expect(installModpack).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Renamed" }),
+      ),
+    );
+    expect(invoke).toHaveBeenCalledWith(
+      "set_modpack_sync_date",
+      expect.objectContaining({ modpack: "Renamed", modpackId: "abc" }),
+    );
+  });
+
+  it("searches both names without turning an installed pack into a cloud-only card", async () => {
+    getAccountInfo.mockResolvedValue({ login: "me", quadrant_sync_limit: 5 });
+    // Match the real tools facade, which filters local names when given a query.
+    getModpacks.mockImplementation(async (_hide, query) =>
+      query ? [] : [pack({ name: "Renamed", modpackId: "abc" })],
+    );
+    getSyncedModpacks.mockResolvedValue([
+      cloudPack({ name: "Original", modpack_id: "abc" }),
+    ]);
+    render(<ApplyPage />);
+    await screen.findByText("Synced");
+    await userEvent.type(screen.getByRole("textbox"), "original");
+    expect(screen.getByText("Renamed")).toBeInTheDocument();
+    expect(screen.queryByText("Cloud")).not.toBeInTheDocument();
+  });
+
+  it("retains share confirmations and retries a missing modpacks tree", async () => {
+    const rootUnwatch = vi.fn();
+    const treeUnwatch = vi.fn();
+    let rootChanged!: () => Promise<void>;
+    watch.mockImplementation(async (path, cb) => {
+      if (path === "/mc") {
+        rootChanged = cb;
+        return rootUnwatch;
+      }
+      throw new Error("missing directory");
+    });
+    const { unmount } = render(<ApplyPage />);
+    await waitFor(() => expect(shareCallback).toBeTypeOf("function"));
+    watch.mockResolvedValue(treeUnwatch);
+    await act(async () => rootChanged());
+    expect(watch).toHaveBeenCalledTimes(3);
+    unmount();
+    expect(rootUnwatch).toHaveBeenCalledOnce();
+    expect(treeUnwatch).toHaveBeenCalledOnce();
+  });
+
+  it("recovers the cloud list on a refresh event after the initial request fails", async () => {
+    getAccountInfo.mockResolvedValue({ login: "me", quadrant_sync_limit: 5 });
+    getSyncedModpacks.mockRejectedValueOnce(new Error("offline"));
+    let refresh!: () => void;
+    listen.mockImplementation(async (event, cb) => {
+      if (event === "refreshSyncedModpacks") refresh = cb;
+      return () => {};
+    });
+    render(<ApplyPage />);
+    await waitFor(() => expect(getSyncedModpacks).toHaveBeenCalledOnce());
+    getSyncedModpacks.mockResolvedValue([cloudPack({ name: "Recovered" })]);
+    await act(async () => refresh());
+    expect(await screen.findByText("Recovered")).toBeInTheDocument();
+  });
+  it("does not replace a refreshed cloud list with an older response", async () => {
+    getAccountInfo.mockResolvedValue({ login: "me", quadrant_sync_limit: 5 });
+    let resolveOld!: (packs: ReturnType<typeof cloudPack>[]) => void;
+    getSyncedModpacks.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveOld = resolve;
+      }),
+    );
+    let refresh!: () => void;
+    listen.mockImplementation(async (event, cb) => {
+      if (event === "refreshSyncedModpacks") refresh = cb;
+      return () => {};
+    });
+    render(<ApplyPage />);
+    await waitFor(() => expect(refresh).toBeTypeOf("function"));
+    getSyncedModpacks.mockResolvedValue([cloudPack({ name: "Latest" })]);
+    await act(async () => refresh());
+    await act(async () => resolveOld([cloudPack({ name: "Stale" })]));
+    expect(await screen.findByText("Latest")).toBeInTheDocument();
+    expect(screen.queryByText("Stale")).not.toBeInTheDocument();
   });
 });

@@ -45,10 +45,15 @@ describe("mergeModpacks", () => {
   it("falls back to the name only for local modpacks without an id", () => {
     const rows = mergeModpacks(
       [local({ name: "Legacy" }), local({ name: "Other", modpackId: "zzz" })],
-      [synced({ name: "Legacy", modpack_id: "abc" }), synced({ name: "Other", modpack_id: "def" })],
+      [
+        synced({ name: "Legacy", modpack_id: "abc" }),
+        synced({ name: "Other", modpack_id: "def" }),
+      ],
     );
 
-    expect(rows.map((row) => [row.local?.name, row.synced?.modpack_id])).toEqual([
+    expect(
+      rows.map((row) => [row.local?.name, row.synced?.modpack_id]),
+    ).toEqual([
       ["Legacy", "abc"],
       ["Other", undefined],
       [undefined, "def"],
@@ -79,9 +84,15 @@ describe("mergeModpacks", () => {
       synced({ name: "Gamma", modpack_id: "3", mod_loader: ModLoader.Forge }),
     ];
 
-    expect(mergeModpacks([], cloud, "alpha").map((r) => r.synced?.name)).toEqual(["Alpha"]);
-    expect(mergeModpacks([], cloud, "1.21").map((r) => r.synced?.name)).toEqual(["Beta"]);
-    expect(mergeModpacks([], cloud, "forge").map((r) => r.synced?.name)).toEqual(["Gamma"]);
+    expect(
+      mergeModpacks([], cloud, "alpha").map((r) => r.synced?.name),
+    ).toEqual(["Alpha"]);
+    expect(mergeModpacks([], cloud, "1.21").map((r) => r.synced?.name)).toEqual(
+      ["Beta"],
+    );
+    expect(
+      mergeModpacks([], cloud, "forge").map((r) => r.synced?.name),
+    ).toEqual(["Gamma"]);
   });
 
   it("does not let two local packs claim the same cloud record", () => {
@@ -91,5 +102,23 @@ describe("mergeModpacks", () => {
     );
 
     expect(rows.filter((row) => row.synced).length).toBe(1);
+  });
+  it("keeps a renamed installed pack paired when searching its cloud name", () => {
+    const installed = local({ name: "Renamed", modpackId: "abc" });
+    const remote = synced({ name: "Original", modpack_id: "abc" });
+    expect(mergeModpacks([installed], [remote], "original")).toEqual([
+      { local: installed, synced: remote },
+    ]);
+    expect(mergeModpacks([installed], [remote], "missing")).toEqual([]);
+  });
+
+  it("reserves cloud ids before matching legacy packs by name", () => {
+    const legacy = local({ name: "Original" });
+    const installed = local({ name: "Renamed", modpackId: "abc" });
+    const remote = synced({ name: "Original", modpack_id: "abc" });
+    expect(mergeModpacks([legacy, installed], [remote])).toEqual([
+      { local: legacy, synced: undefined },
+      { local: installed, synced: remote },
+    ]);
   });
 });
