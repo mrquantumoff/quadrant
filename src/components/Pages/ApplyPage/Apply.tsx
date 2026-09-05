@@ -237,7 +237,7 @@ export default function ApplyPage() {
         </div>
         {shareCode !== null && (
           <div className="bg-slate-800 rounded-4xl mx-8 mb-2 p-4 flex flex-col items-center font-bold">
-            <p>{t("manualInput")}</p>
+            <p>{t("shareCodeDetected", { code: shareCode })}</p>
             <Button
               className={
                 "mt-4 w-full " +
