@@ -17,7 +17,12 @@ pub async fn get_modpacks(hide_free: bool, app: AppHandle) -> Vec<LocalModpack> 
     app.state::<QuadrantHost>()
         .get_modpacks(hide_free)
         .await
-        .unwrap_or_default()
+        .unwrap_or_else(|error| {
+            // The renderer treats this as "no packs"; leave a trace so an empty
+            // list caused by an unreadable modpacks folder is diagnosable.
+            log::error!("Failed to list modpacks: {error}");
+            Vec::new()
+        })
 }
 
 #[tauri::command]

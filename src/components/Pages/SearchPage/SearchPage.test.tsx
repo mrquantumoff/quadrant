@@ -1,7 +1,7 @@
 /** @format */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ModSource, ModType, type IMod } from "../../../intefaces";
 
@@ -127,7 +127,10 @@ describe("SearchPage", () => {
 
     await waitFor(() =>
       expect(searchMods).toHaveBeenCalledWith(
-        expect.objectContaining({ query: "sodium", source: ModSource.Modrinth }),
+        expect.objectContaining({
+          query: "sodium",
+          source: ModSource.Modrinth,
+        }),
       ),
     );
   });
@@ -146,7 +149,9 @@ describe("SearchPage", () => {
     });
 
     render(<SearchPage />);
-    await waitFor(() => expect(screen.getByRole("textbox")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("textbox")).toBeInTheDocument(),
+    );
 
     const input = screen.getByRole("textbox");
     await userEvent.type(input, "race");
@@ -175,5 +180,71 @@ describe("SearchPage", () => {
       expect(screen.getByText("Newer result")).toBeInTheDocument(),
     );
     expect(screen.queryByText("Stale result")).not.toBeInTheDocument();
+  });
+
+  it("appends results for the submitted query when the search input has an unsubmitted edit", async () => {
+    searchMods.mockResolvedValue([mod({ name: "Initial result" })]);
+    render(<SearchPage />);
+    await screen.findByText("Initial result");
+    await userEvent.type(screen.getByRole("textbox"), "unsubmitted");
+    searchMods.mockClear();
+    await userEvent.click(
+      screen.getByRole("button", { name: "searchFurther" }),
+    );
+    await waitFor(() =>
+      expect(searchMods).toHaveBeenCalledWith(
+        expect.objectContaining({ query: "", offset: 1 }),
+      ),
+    );
+  });
+
+  it("keeps pagination usable when a new search supersedes an in-flight append", async () => {
+    const pending = deferred<IMod[]>();
+    searchMods.mockImplementation((args: { query: string; offset: number }) => {
+      if (args.offset > 0) return pending.promise;
+      return Promise.resolve([
+        mod({ name: args.query === "new" ? "New result" : "Initial result" }),
+      ]);
+    });
+    render(<SearchPage />);
+    await screen.findByText("Initial result");
+    await userEvent.click(
+      screen.getByRole("button", { name: "searchFurther" }),
+    );
+    await waitFor(() =>
+      expect(searchMods).toHaveBeenCalledWith(
+        expect.objectContaining({ offset: 1 }),
+      ),
+    );
+    await userEvent.type(screen.getByRole("textbox"), "new{Enter}");
+    await screen.findByText("New result");
+    expect(screen.getByRole("button", { name: "searchFurther" })).toBeEnabled();
+    await act(async () =>
+      pending.resolve([mod({ name: "Stale appended result" })]),
+    );
+    expect(screen.queryByText("Stale appended result")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "searchFurther" })).toBeEnabled();
+  });
+
+  it("does not mark results auto-installable when their saved target no longer exists", async () => {
+    storeGet.mockImplementation(async (key: string) => {
+      if (key === "curseforge") return false;
+      if (key === "modrinth") return true;
+      if (key === "searchFilters")
+        return { targetModpack: "Deleted", version: "1.20.1" };
+      return undefined;
+    });
+    render(<SearchPage />);
+    await waitFor(() =>
+      expect(searchMods).toHaveBeenCalledWith(
+        expect.objectContaining({ gameVersion: "1.20.1" }),
+      ),
+    );
+    const restoredRequests = searchMods.mock.calls.filter(
+      ([args]) => args.gameVersion === "1.20.1",
+    );
+    expect(restoredRequests.every(([args]) => args.filterOn === false)).toBe(
+      true,
+    );
   });
 });

@@ -80,9 +80,16 @@ pub fn get_refresh_token(secret_store: &impl SecretStore) -> Result<String> {
 /// Removes any persisted account and refresh tokens.
 pub fn clear_account_token(secret_store: &impl SecretStore) -> Result<()> {
     log::info!("Clearing account and refresh tokens");
-    let _ = secret_store.delete_secret("accountToken");
-    let _ = secret_store.delete_secret("refreshToken");
-    let _ = secret_store.delete_secret(TOKEN_REFRESH_AT_KEY);
+    let mut first_error = None;
+    for key in ["accountToken", "refreshToken", TOKEN_REFRESH_AT_KEY] {
+        if let Err(error) = secret_store.delete_secret(key) {
+            // Still remove the remaining credentials when one deletion fails.
+            first_error.get_or_insert(error);
+        }
+    }
+    if let Some(error) = first_error {
+        return Err(error);
+    }
     Ok(())
 }
 
@@ -210,6 +217,42 @@ mod tests {
         let store = MemorySecretStore::default();
         set_token_refresh_deadline(&store, 0).unwrap();
         assert!(!account_token_needs_refresh(&store).unwrap());
+    }
+
+    #[test]
+    fn clear_account_token_reports_failures_and_attempts_every_deletion() {
+        struct FailingSecretStore {
+            deleted: Mutex<Vec<String>>,
+        }
+
+        impl SecretStore for FailingSecretStore {
+            fn get_secret(&self, _key: &str) -> Result<Option<String>> {
+                Ok(None)
+            }
+
+            fn set_secret(&self, _key: &str, _value: &str) -> Result<()> {
+                Ok(())
+            }
+
+            fn delete_secret(&self, key: &str) -> Result<()> {
+                self.deleted.lock().unwrap().push(key.to_string());
+                if key == "accountToken" {
+                    return Err(anyhow::anyhow!("keyring is locked"));
+                }
+                Ok(())
+            }
+        }
+
+        let store = FailingSecretStore {
+            deleted: Mutex::new(Vec::new()),
+        };
+        let error = clear_account_token(&store).unwrap_err();
+
+        assert!(error.to_string().contains("keyring is locked"));
+        assert_eq!(
+            *store.deleted.lock().unwrap(),
+            ["accountToken", "refreshToken", TOKEN_REFRESH_AT_KEY]
+        );
     }
 
     #[test]

@@ -107,6 +107,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   const [modInstallProgress, setModInstallProgress] = useState<number>(0);
   const [modDownloadProgress, setModDownloadProgress] = useState<number>(0);
   const [isInstalling, setIsInstalling] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const installInFlightRef = useRef(false);
   const configRef = useRef(createDesktopStore("config.json"));
   const config = configRef.current;
@@ -166,45 +167,90 @@ export default function ModInstallPage(props: IModInstallPageProps) {
 
   useEffect(() => {
     let cancelled = false;
-    const unlisteners: Array<() => void | Promise<void>> = [];
+    setIsReady(false);
     const effect = async () => {
-      setVersions(await getVersions());
-      setModpacks(await getModpacks());
-      setVersion((await config.get<string>("lastUsedVersion")) ?? "");
-      setLoader((await config.get<string>("lastUsedAPI")) ?? "");
-      setModpack((await config.get<string>("lastUsedModpack")) ?? "");
-      const newOwners = await getModOwners(mod.source, mod.id);
-      const newDeps = await getModDependencies(mod.source, mod.id);
-      const roundIcons = await config.get<boolean>("clipIcons");
-      setClipIcons(roundIcons ?? true);
-      const newOwnersList: IModOwner[] = [];
-      for (const owner of newOwners) {
-        newOwnersList.push({
-          name: owner,
-          url: await getUserURL(owner, mod.source),
-        });
-      }
-      setDeps(newDeps);
-      setOwners(newOwnersList);
-      const listeners = await Promise.all([
-        listen<ModProgress>("modInstallProgress", (event) => {
-          if (!cancelled && event.payload.modId === mod.id) {
-            setModInstallProgress(event.payload.progress);
-          }
-        }),
-        listen<ModProgress>("modDownloadProgress", (event) => {
-          if (!cancelled && event.payload.modId === mod.id) {
-            setModDownloadProgress(event.payload.progress);
-          }
-        }),
+      const [
+        availableVersions,
+        availableModpacks,
+        savedVersion,
+        savedLoader,
+        savedModpack,
+      ] = await Promise.all([
+        getVersions(),
+        getModpacks(),
+        config.get<string>("lastUsedVersion"),
+        config.get<string>("lastUsedAPI"),
+        config.get<string>("lastUsedModpack"),
       ]);
-      if (cancelled) {
-        await Promise.all(listeners.map((unlisten) => unlisten()));
-      } else {
-        unlisteners.push(...listeners);
-      }
+      if (cancelled) return;
+      // Reconcile the saved choices with what actually exists: a deleted pack
+      // or an unavailable version must never reach the install call.
+      const target =
+        mod.modType === ModType.Mod
+          ? (availableModpacks.find((entry) => entry.name === savedModpack) ??
+            availableModpacks.find((entry) => entry.isApplied) ??
+            availableModpacks[0])
+          : undefined;
+      // Keep a saved choice while it is still offered; otherwise fall back to
+      // the target pack, so the install never submits an unavailable value.
+      const initialVersion =
+        availableVersions.find((entry) => entry.version === savedVersion)
+          ?.version ??
+        target?.version ??
+        availableVersions[0]?.version ??
+        "";
+      setVersions(availableVersions);
+      setModpacks(availableModpacks);
+      setVersion(initialVersion);
+      setLoader(savedLoader || target?.modLoader || ModLoader.Unknown);
+      setModpack(target?.name ?? "");
+      setIsReady(true);
     };
     effect().catch(console.error);
+    return () => {
+      cancelled = true;
+    };
+  }, [config, mod.modType]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const unlisteners: Array<() => void | Promise<void>> = [];
+    setDeps([]);
+    setOwners([]);
+    const effect = async () => {
+      const [newOwners, newDeps, roundIcons] = await Promise.all([
+        getModOwners(mod.source, mod.id),
+        getModDependencies(mod.source, mod.id),
+        config.get<boolean>("clipIcons"),
+      ]);
+      const newOwnersList = await Promise.all(
+        newOwners.map(async (owner) => ({
+          name: owner,
+          url: await getUserURL(owner, mod.source),
+        })),
+      );
+      // A previously viewed mod's response must not overwrite the current one.
+      if (cancelled) return;
+      setClipIcons(roundIcons ?? true);
+      setDeps(newDeps);
+      setOwners(newOwnersList);
+    };
+    effect().catch(console.error);
+    for (const [eventName, setProgress] of [
+      ["modInstallProgress", setModInstallProgress],
+      ["modDownloadProgress", setModDownloadProgress],
+    ] as const) {
+      void listen<ModProgress>(eventName, (event) => {
+        if (!cancelled && event.payload.modId === mod.id) {
+          setProgress(event.payload.progress);
+        }
+      })
+        .then((unlisten) => {
+          if (cancelled) return unlisten();
+          unlisteners.push(unlisten);
+        })
+        .catch(console.error);
+    }
     return () => {
       cancelled = true;
       unlisteners.forEach((unlisten) => void unlisten());
@@ -227,8 +273,15 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   const pickTargets = props.fileId === undefined;
   const showProgress = isInstalling || modDownloadProgress > 0;
 
+  // Never submit an empty version or a pack that is not in the list.
+  const canInstall =
+    isReady &&
+    !isInstalling &&
+    (!pickTargets || version !== "") &&
+    (mod.modType !== ModType.Mod || modpack !== "");
+
   const install = async () => {
-    if (installInFlightRef.current) {
+    if (!canInstall || installInFlightRef.current) {
       return;
     }
     installInFlightRef.current = true;
@@ -260,12 +313,13 @@ export default function ModInstallPage(props: IModInstallPageProps) {
     <>
       <Button
         onClick={() => void install()}
+        disabled={!canInstall}
         className={
           actionClass +
           " flex-1 " +
-          (isInstalling
-            ? "bg-slate-700 cursor-not-allowed"
-            : "bg-emerald-600 hover:bg-emerald-700")
+          (canInstall
+            ? "bg-emerald-600 hover:bg-emerald-700"
+            : "bg-slate-700 cursor-not-allowed")
         }
       >
         <MdDownload className="size-5" />
@@ -406,6 +460,10 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                     await config.save();
                   }}
                 >
+                  {version &&
+                    !versions.some((entry) => entry.version === version) && (
+                      <option value={version}>{version}</option>
+                    )}
                   {versions.map((versionOption) => (
                     <option
                       value={versionOption.version}

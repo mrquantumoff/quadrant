@@ -26,4 +26,7 @@ pub enum BackendEvent {
     RefreshNotifications(Value),
     /// Signals that the host should re-check account token state.
     RecheckAccountToken,
+    /// Signals that a settings key was changed by the backend (for example by
+    /// cloud settings sync) so frontend subscribers can re-read it.
+    ConfigChanged(String),
 }

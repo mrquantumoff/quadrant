@@ -8,6 +8,7 @@ export interface IButtonProps {
   children?: React.ReactNode;
   fullRound?: boolean;
   animate?: boolean;
+  disabled?: boolean;
   title?: string;
   "aria-label"?: string;
 }
@@ -17,6 +18,7 @@ export default function Button({
   className,
   fullRound,
   animate,
+  disabled,
   title,
   "aria-label": ariaLabel,
 }: IButtonProps) {
@@ -24,6 +26,7 @@ export default function Button({
   return (
     <motion.button
       onClick={onClick}
+      disabled={disabled}
       title={title}
       aria-label={ariaLabel}
       whileHover={animate ? { y: -5, scale: 1.1 } : {}}

@@ -189,7 +189,9 @@ export default function LocalModpackCard({
         <Button
           onClick={async () => {
             try {
-              exportModpack(modpack.name);
+              // Must be awaited, or a rejected export bypasses the catch and
+              // the user never sees the error.
+              await exportModpack(modpack.name);
             } catch (e: any) {
               console.error(e);
               context.setSnackbar({

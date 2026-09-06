@@ -206,14 +206,8 @@ export default function ModpackView(modpack: LocalModpack) {
   };
 
   const { t } = useTranslation();
-  useEffect(() => {
-    const effect = async () => {
-      await updateModpackDetails();
-    };
-
-    effect().catch((e) => console.error(e));
-  }, []);
-
+  // A single effect covers mount and toggle changes. A separate mount-only
+  // effect used to run alongside it, fetching every mod twice on open.
   useEffect(() => {
     if (showIdentify === false) {
       setToIdentify([]);
@@ -221,7 +215,7 @@ export default function ModpackView(modpack: LocalModpack) {
     if (showUpdates === false) {
       setUpdates([]);
     }
-    updateModpackDetails();
+    updateModpackDetails().catch((e) => console.error(e));
   }, [showIdentify, showUpdates]);
 
   return (
@@ -279,12 +273,9 @@ export default function ModpackView(modpack: LocalModpack) {
           {modpack.unknownMods && (
             <Button
               onClick={async () => {
-                if (showIdentify) {
-                  setShowIdentify(false);
-                  return;
-                }
-                setShowIdentify(true);
-                await getIdentifiedMods();
+                // The [showIdentify] effect runs identification; calling it
+                // here too fingerprinted every unknown jar twice.
+                setShowIdentify(!showIdentify);
               }}
               className="bg-slate-800 px-4 hover:bg-slate-600 mx-2 w-fit flex items-center "
             >

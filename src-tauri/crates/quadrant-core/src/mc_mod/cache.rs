@@ -1,6 +1,6 @@
 //! Local file cache utilities used by mod downloads.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use chrono::prelude::*;
 use once_cell::sync::Lazy;
@@ -34,8 +34,14 @@ pub struct CacheIndex {
 
 /// Initializes the cache directory and removes stale cache entries.
 pub async fn init_cache() -> Result<(), anyhow::Error> {
+    let _guard = CACHE_WRITE_LOCK.lock().await;
+    init_cache_locked(&cache_dir())
+}
+
+// Initialization prunes and rewrites the index, so callers must hold the same
+// lock used by additions and lookups for the entire read/modify/write operation.
+fn init_cache_locked(cache_dir: &Path) -> Result<(), anyhow::Error> {
     log::info!("Initializing mod cache");
-    let cache_dir = cache_dir();
     if !cache_dir.exists() {
         std::fs::create_dir_all(&cache_dir)?
     }
@@ -90,8 +96,9 @@ pub fn file_hash(file_bytes: &[u8]) -> String {
 
 /// Looks up a cached file by content hash.
 pub async fn get_cache_index(file_hash: String) -> Result<Option<CacheIndex>, anyhow::Error> {
+    let _guard = CACHE_WRITE_LOCK.lock().await;
     let cache_dir = cache_dir();
-    init_cache().await?;
+    init_cache_locked(&cache_dir)?;
     let cache_config = cache_dir.join("cacheIndex.json");
     let config_raw = std::fs::read_to_string(cache_config)?;
     let file_conts: Vec<CacheIndex> = serde_json::from_str(&config_raw)?;
@@ -115,7 +122,7 @@ pub async fn add_cache_index(
     let cache_dir = cache_dir();
     let cache_config = cache_dir.join("cacheIndex.json");
     if !cache_config.exists() {
-        init_cache().await?;
+        init_cache_locked(&cache_dir)?;
     }
     let config_raw = std::fs::read_to_string(&cache_config)?;
     let mut file_conts: Vec<CacheIndex> = serde_json::from_str(&config_raw)?;
@@ -160,13 +167,13 @@ pub async fn add_cache_index(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::{CacheIndex, add_cache_index, file_hash, get_cache_index, init_cache};
     use chrono::{Days, Utc};
 
     static CACHE_ENV_TEST_MUTEX: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
-    struct CacheDirGuard {
+    pub(crate) struct CacheDirGuard {
         _lock: std::sync::MutexGuard<'static, ()>,
         _dir: tempfile::TempDir,
     }
@@ -179,7 +186,7 @@ mod tests {
         }
     }
 
-    fn set_cache_dir() -> CacheDirGuard {
+    pub(crate) fn set_cache_dir() -> CacheDirGuard {
         let lock = CACHE_ENV_TEST_MUTEX
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
@@ -293,5 +300,46 @@ mod tests {
                 .unwrap()
                 .is_none()
         );
+    }
+
+    #[test]
+    fn concurrent_cache_maintenance_and_downloads_preserve_every_entry() {
+        let _guard = set_cache_dir();
+        const WORKERS: usize = 6;
+        const DOWNLOADS: usize = 12;
+        let start = std::sync::Barrier::new(WORKERS);
+        std::thread::scope(|scope| {
+            for worker in 0..WORKERS {
+                let start = &start;
+                scope.spawn(move || {
+                    start.wait();
+                    futures::executor::block_on(async {
+                        for download in 0..DOWNLOADS {
+                            let bytes = format!("download-{worker}-{download}");
+                            let hash = file_hash(bytes.as_bytes());
+                            let file = add_cache_index(
+                                "mod.jar".to_string(),
+                                bytes.as_bytes(),
+                                hash.clone(),
+                            )
+                            .await
+                            .unwrap();
+                            init_cache().await.unwrap();
+                            let entry = get_cache_index(hash)
+                                .await
+                                .unwrap()
+                                .expect("entry was lost");
+                            assert_eq!(std::fs::read(file).unwrap(), bytes.as_bytes());
+                            assert!(std::path::Path::new(&entry.file_name).is_file());
+                        }
+                    });
+                });
+            }
+        });
+        let entries: Vec<CacheIndex> = serde_json::from_slice(
+            &std::fs::read(super::cache_dir().join("cacheIndex.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(entries.len(), WORKERS * DOWNLOADS);
     }
 }

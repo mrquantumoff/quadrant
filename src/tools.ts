@@ -58,11 +58,12 @@ export async function getModpacks(
     );
   }
   if (searchQuery) {
+    const normalizedQuery = searchQuery.toLowerCase();
     const filtered = res.filter((modpack) => {
       if (
-        modpack.name.toLowerCase().includes(searchQuery) ||
-        modpack.version.toLowerCase().includes(searchQuery) ||
-        modpack.modLoader.toLowerCase().includes(searchQuery)
+        modpack.name.toLowerCase().includes(normalizedQuery) ||
+        modpack.version.toLowerCase().includes(normalizedQuery) ||
+        modpack.modLoader.toLowerCase().includes(normalizedQuery)
       ) {
         return modpack;
       }

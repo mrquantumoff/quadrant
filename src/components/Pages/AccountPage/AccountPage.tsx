@@ -24,6 +24,8 @@ export default function AccountPage() {
   >(undefined);
   const [loginWarning, setLoginWarning] = useState<string | null>(null);
   const oauthCleanupRef = useRef<(() => Promise<void>) | null>(null);
+  const loginStartingRef = useRef(false);
+  const [loginStarting, setLoginStarting] = useState(false);
 
   const updateAccountInfo = async (showLoader = true) => {
     if (showLoader) {
@@ -152,6 +154,13 @@ export default function AccountPage() {
         <div className="w-full flex flex-row">
           <Button
             onClick={async () => {
+              // A second click before the callback server is up would start a
+              // second server and leak the first one's cleanup.
+              if (loginStartingRef.current) {
+                return;
+              }
+              loginStartingRef.current = true;
+              setLoginStarting(true);
               setLoginWarning(null);
               await oauthCleanupRef.current?.();
               oauthCleanupRef.current = null;
@@ -161,9 +170,8 @@ export default function AccountPage() {
                 b.toString(16).padStart(2, "0"),
               ).join("");
 
-              await config.set("oauthState", randomString);
-
               try {
+                await config.set("oauthState", randomString);
                 const port = await startOAuthServer({
                   response:
                     "<html><body><h1>" +
@@ -244,8 +252,14 @@ export default function AccountPage() {
                 await oauthCleanupRef.current?.();
                 oauthCleanupRef.current = null;
                 showLoginFailureWarning();
+              } finally {
+                // The guard only spans server startup; once the callback
+                // listener is registered a new click may restart the flow.
+                loginStartingRef.current = false;
+                setLoginStarting(false);
               }
             }}
+            disabled={loginStarting}
             className="bg-blue-600 hover:bg-blue-700 w-full mx-2"
           >
             {t("signInWithOAuth")}

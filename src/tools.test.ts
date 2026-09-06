@@ -86,6 +86,19 @@ describe("getModpacks", () => {
     await getModpacks(false);
     expect(invoke).toHaveBeenCalledWith("get_modpacks", { hideFree: false });
   });
+
+  it("matches uppercase queries against names and loaders", async () => {
+    invoke.mockResolvedValue([
+      modpack({ name: "Fancy", modLoader: "fabric" }),
+      modpack({ name: "Other", modLoader: "forge" }),
+    ]);
+    expect((await getModpacks(true, "FANCY")).map((m) => m.name)).toEqual([
+      "Fancy",
+    ]);
+    expect((await getModpacks(true, "FABRIC")).map((m) => m.name)).toEqual([
+      "Fancy",
+    ]);
+  });
 });
 
 describe("source dispatch", () => {

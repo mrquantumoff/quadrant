@@ -28,6 +28,13 @@ describe("resolveDeepLink — curseforge scheme", () => {
       "unsupported",
     );
   });
+
+  it.each(["curseforge://install", "curseforge://install?addonId=%20"])(
+    "rejects an install link without a project ID: %s",
+    (url) => {
+      expect(resolveDeepLink(url)).toEqual({ kind: "unsupported" });
+    },
+  );
 });
 
 describe("resolveDeepLink — modrinth scheme", () => {
@@ -54,6 +61,30 @@ describe("resolveDeepLink — modrinth scheme", () => {
     expect(resolveDeepLink("modrinth://user/jellysquid").kind).toBe(
       "unsupported",
     );
+  });
+
+  it.each([
+    "modrinth://mod/sodium/",
+    "modrinth:///mod/sodium",
+    "modrinth://modrinth.com/mod/sodium",
+    "modrinth://https://modrinth.com/mod/sodium",
+  ])("resolves the project from a supported link shape: %s", (url) => {
+    expect(resolveDeepLink(url)).toEqual({
+      kind: "installMod",
+      source: ModSource.Modrinth,
+      modId: "sodium",
+      stopAfter: true,
+    });
+  });
+
+  it.each([
+    "modrinth://mod",
+    "modrinth://mod/",
+    "modrinth:///mod/",
+    "modrinth://user/mod-fan",
+    "modrinth://unsupported-mod/sodium",
+  ])("rejects missing projects and unsupported actions: %s", (url) => {
+    expect(resolveDeepLink(url)).toEqual({ kind: "unsupported" });
   });
 });
 

@@ -197,4 +197,127 @@ describe("ModInstallPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /cancel/ }));
     expect(back).toHaveBeenCalled();
   });
+
+  it("falls back to the target pack when the saved version is gone", async () => {
+    // The remembered version is no longer offered by the provider.
+    storeGet.mockImplementation(async (key: string) =>
+      key === "lastUsedVersion"
+        ? "1.16.5"
+        : key === "lastUsedModpack"
+          ? "Pack"
+          : undefined,
+    );
+    renderPage({ mod: mod({}) });
+
+    const picker = await screen.findByRole("combobox", {
+      name: /chooseVersion/,
+    });
+    await waitFor(() => expect(picker).toHaveValue("1.20.1"));
+    await userEvent.click(
+      screen.getAllByRole("button", { name: /download/ })[0],
+    );
+    expect(installMod).toHaveBeenCalledWith(
+      "sodium",
+      "1.20.1",
+      ModLoader.Fabric,
+      ModSource.Modrinth,
+      ModType.Mod,
+      "Pack",
+      undefined,
+    );
+  });
+
+  it("replaces a saved pack that no longer exists with an available one", async () => {
+    getModpacks.mockResolvedValue([
+      { name: "Applied Pack", version: "1.20.1", modLoader: ModLoader.Fabric, isApplied: true },
+    ]);
+    storeGet.mockImplementation(async (key: string) =>
+      key === "lastUsedModpack" ? "Deleted Pack" : undefined,
+    );
+    renderPage({ mod: mod({}) });
+
+    const picker = await screen.findByRole("combobox", {
+      name: /chooseModpack/,
+    });
+    await waitFor(() => expect(picker).toHaveValue("Applied Pack"));
+    await userEvent.click(
+      screen.getAllByRole("button", { name: /download/ })[0],
+    );
+    expect(installMod).toHaveBeenCalledWith(
+      "sodium",
+      "1.20.1",
+      ModLoader.Fabric,
+      ModSource.Modrinth,
+      ModType.Mod,
+      "Applied Pack",
+      undefined,
+    );
+  });
+
+  it("blocks downloads until the install choices have loaded", async () => {
+    let releaseModpacks!: (packs: unknown[]) => void;
+    getModpacks.mockReturnValue(
+      new Promise((resolve) => {
+        releaseModpacks = resolve;
+      }),
+    );
+    renderPage({ mod: mod({}) });
+
+    const download = screen.getAllByRole("button", { name: /download/ })[0];
+    expect(download).toBeDisabled();
+    await userEvent.click(download);
+    expect(installMod).not.toHaveBeenCalled();
+
+    releaseModpacks([
+      { name: "Pack", version: "1.20.1", modLoader: ModLoader.Fabric },
+    ]);
+    await waitFor(() => expect(download).not.toBeDisabled());
+  });
+
+  it("keeps the download disabled when a mod has no modpack to install into", async () => {
+    getModpacks.mockResolvedValue([]);
+    storeGet.mockResolvedValue(undefined);
+    renderPage({ mod: mod({}) });
+
+    await screen.findByText("jellysquid");
+    const download = screen.getAllByRole("button", { name: /download/ })[0];
+    expect(download).toBeDisabled();
+    await userEvent.click(download);
+    expect(installMod).not.toHaveBeenCalled();
+  });
+
+  it("ignores dependencies from a previously viewed mod", async () => {
+    let releaseFirst!: (deps: IMod[]) => void;
+    getModDependencies
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          releaseFirst = resolve;
+        }),
+      )
+      .mockResolvedValue([mod({ id: "sodium-extra", name: "Sodium Extra" })]);
+
+    const { rerender } = renderPage({ mod: mod({}) });
+    rerender(
+      <ContentContext.Provider
+        value={{
+          back,
+          setSnackbar,
+          changeContent: () => {},
+          changePage: () => {},
+          setSnackbarNoState: () => {},
+        }}
+      >
+        <ModInstallPage mod={mod({ id: "iris", name: "Iris" })} />
+      </ContentContext.Provider>,
+    );
+    expect(await screen.findByTestId("mod-card")).toHaveTextContent(
+      "Sodium Extra",
+    );
+
+    // The first mod's response arriving late must not replace the current one.
+    releaseFirst([mod({ id: "fabric-api", name: "Fabric API" })]);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.queryByText("Fabric API")).toBeNull();
+    expect(screen.getByTestId("mod-card")).toHaveTextContent("Sodium Extra");
+  });
 });

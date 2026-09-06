@@ -49,6 +49,12 @@
 
   <releases>
 
+    <release date="2026-09-06" version="26.9.1-preview.0" type="development">
+      <description>
+        <p>Fixes from a source audit of the renderer, mod installation, account handling, and host settings</p>
+      </description>
+    </release>
+
     <release date="2026-08-24" version="26.9.0">
       <description>
         <p>Dependency updates</p>

@@ -47,12 +47,19 @@ import {
   orderResults,
 } from "./searchLogic";
 
-const CONTENT_TYPES: { type: ModType; labelKey: string; Icon: typeof MdSearch }[] =
-  [
-    { type: ModType.Mod, labelKey: "contentMods", Icon: MdExtension },
-    { type: ModType.ResourcePack, labelKey: "contentResourcePacks", Icon: MdGridView },
-    { type: ModType.ShaderPack, labelKey: "contentShaders", Icon: MdWbSunny },
-  ];
+const CONTENT_TYPES: {
+  type: ModType;
+  labelKey: string;
+  Icon: typeof MdSearch;
+}[] = [
+  { type: ModType.Mod, labelKey: "contentMods", Icon: MdExtension },
+  {
+    type: ModType.ResourcePack,
+    labelKey: "contentResourcePacks",
+    Icon: MdGridView,
+  },
+  { type: ModType.ShaderPack, labelKey: "contentShaders", Icon: MdWbSunny },
+];
 
 const SORT_OPTIONS: { value: string; labelKey: string }[] = [
   { value: "relevance", labelKey: "sortRelevance" },
@@ -79,7 +86,12 @@ interface SavedFilters {
   filtersCollapsed?: boolean;
 }
 
-const HEADER_ORDER = ["categories", "resolutions", "features", "performance impact"];
+const HEADER_ORDER = [
+  "categories",
+  "resolutions",
+  "features",
+  "performance impact",
+];
 const PILL_HEADERS = new Set(["resolutions", "performance impact"]);
 
 export default function SearchPage() {
@@ -121,6 +133,7 @@ export default function SearchPage() {
   const [categories, setCategories] = useState<MergedCategory[]>([]);
 
   const searchRequestRef = useRef(0);
+  const submittedQueryRef = useRef("");
   const resultsScrollRef = useRef<HTMLDivElement>(null);
   // Gate persistence until the saved filter blob has been loaded, so the
   // initial default state never overwrites what was previously stored.
@@ -208,19 +221,25 @@ export default function SearchPage() {
       setLoadingMore(true);
     } else {
       setSearching(true);
+      setLoadingMore(false);
+      setSliding(false);
       setPage(0);
       setNoMoreResults(false);
+      submittedQueryRef.current = searchQuery.trim().toLowerCase();
     }
 
     try {
-      const query = searchQuery.trim().toLowerCase();
+      const query = submittedQueryRef.current;
       const base = {
         query,
         modType: contentType.toString(),
         // Only auto-installable when there is a concrete install target: a
         // chosen modpack AND a concrete version (autoinstall reads the version
         // from config, so "Any version" has no unambiguous file to install).
-        filterOn: targetModpack !== "" && version !== "any",
+        filterOn:
+          targetModpackObj !== undefined &&
+          version === targetModpackObj.version &&
+          (!loaderVisible || loader === targetModpackObj.modLoader),
         gameVersion: version === "any" ? "" : version,
         modLoader: loaderVisible ? loader : "",
         openSource,
@@ -232,7 +251,8 @@ export default function SearchPage() {
       const providers: { source: ModSource; categories: string[] }[] = [];
       if (
         effCf &&
-        (!base.modLoader || loaderSupportsProvider(base.modLoader, ModSource.CurseForge))
+        (!base.modLoader ||
+          loaderSupportsProvider(base.modLoader, ModSource.CurseForge))
       ) {
         providers.push({
           source: ModSource.CurseForge,
@@ -241,7 +261,8 @@ export default function SearchPage() {
       }
       if (
         effMr &&
-        (!base.modLoader || loaderSupportsProvider(base.modLoader, ModSource.Modrinth))
+        (!base.modLoader ||
+          loaderSupportsProvider(base.modLoader, ModSource.Modrinth))
       ) {
         providers.push({
           source: ModSource.Modrinth,
@@ -307,24 +328,31 @@ export default function SearchPage() {
 
   // The "load more" arrow: slide it off to the right, then pull the next batch.
   const searchFurther = async () => {
-    if (loadingMore || sliding) return;
+    if (loadingMore || sliding || searching) return;
+    const requestId = searchRequestRef.current;
     setSliding(true);
     await new Promise((resolve) => setTimeout(resolve, 75));
+    if (requestId !== searchRequestRef.current) return;
     await runSearch(true);
-    setSliding(false);
+    if (requestId + 1 === searchRequestRef.current) setSliding(false);
   };
 
   // Initial load: config, versions, modpacks, and the last-used filter state.
   useEffect(() => {
     const boot = async () => {
-      const [availableVersions, availableModpacks, cfEnabled, mrEnabled, saved] =
-        await Promise.all([
-          getVersions(),
-          getModpacks(),
-          configStore.get<boolean>("curseforge"),
-          configStore.get<boolean>("modrinth"),
-          configStore.get<SavedFilters>("searchFilters"),
-        ]);
+      const [
+        availableVersions,
+        availableModpacks,
+        cfEnabled,
+        mrEnabled,
+        saved,
+      ] = await Promise.all([
+        getVersions(),
+        getModpacks(),
+        configStore.get<boolean>("curseforge"),
+        configStore.get<boolean>("modrinth"),
+        configStore.get<SavedFilters>("searchFilters"),
+      ]);
       setVersions(availableVersions);
       setModpacks(availableModpacks);
       setCurseforge(cfEnabled ?? true);
@@ -344,7 +372,9 @@ export default function SearchPage() {
         } else if (saved.matchModpack) {
           // Migrate the legacy "match current modpack" toggle: it targeted
           // whichever modpack was applied.
-          const applied = availableModpacks.find((modpack) => modpack.isApplied);
+          const applied = availableModpacks.find(
+            (modpack) => modpack.isApplied,
+          );
           if (applied) setTargetModpack(applied.name);
         }
         if (saved.filtersCollapsed !== undefined)
@@ -643,250 +673,256 @@ export default function SearchPage() {
                 transition={{ duration: 0.15 }}
                 className="w-79 bg-slate-800 rounded-[28px] flex flex-col min-h-0 h-full overflow-hidden"
               >
-            <div className="flex-none flex items-center justify-between px-6 pt-5 pb-3">
-              <div className="flex items-center gap-2">
-                <MdFilterAlt className="size-4.5 text-slate-200" />
-                <span className="text-[17px] font-extrabold tracking-tight">
-                  {t("filter")}
-                </span>
-                {chips.length > 0 && (
-                  <span className="min-w-5.5 h-5.5 px-1.75 rounded-full bg-blue-600 text-white text-xs font-extrabold inline-flex items-center justify-center">
-                    {chips.length}
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                {chips.length > 0 && (
-                  <button
-                    onClick={clearAll}
-                    className="text-slate-400 text-xs font-bold hover:text-red-400"
-                  >
-                    {t("clearAll")}
-                  </button>
-                )}
-                <button
-                  onClick={() => setFiltersCollapsed(true)}
-                  title={t("collapseFilters")}
-                  aria-label={t("collapseFilters")}
-                  className="text-slate-400 hover:text-slate-100 transition-colors"
-                >
-                  <MdChevronLeft className="size-5" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
-              {/* Source */}
-              <div className="mb-6">
-                <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
-                  {t("source")}
-                </div>
-                <div className="flex gap-2">
-                  <SourceToggle
-                    label="CurseForge"
-                    dot="#f16436"
-                    active={effCf}
-                    disabled={lock === "modrinth" || openSource}
-                    onToggle={() => toggleSource("cf")}
-                  />
-                  <SourceToggle
-                    label="Modrinth"
-                    dot="#1bd96a"
-                    active={effMr}
-                    disabled={lock === "cf"}
-                    onToggle={() => toggleSource("modrinth")}
-                  />
-                </div>
-                {lock && (
-                  <div className="mt-2.5 text-[11.5px] leading-snug text-amber-300 bg-amber-900/25 border border-amber-700/20 px-3 py-2 rounded-2xl">
-                    {t("sourceLockHint", {
-                      source: lock === "cf" ? "CurseForge" : "Modrinth",
-                    })}
+                <div className="flex-none flex items-center justify-between px-6 pt-5 pb-3">
+                  <div className="flex items-center gap-2">
+                    <MdFilterAlt className="size-4.5 text-slate-200" />
+                    <span className="text-[17px] font-extrabold tracking-tight">
+                      {t("filter")}
+                    </span>
+                    {chips.length > 0 && (
+                      <span className="min-w-5.5 h-5.5 px-1.75 rounded-full bg-blue-600 text-white text-xs font-extrabold inline-flex items-center justify-center">
+                        {chips.length}
+                      </span>
+                    )}
                   </div>
-                )}
-              </div>
-
-              {/* Content type */}
-              <div className="mb-6">
-                <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
-                  {t("contentType")}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {CONTENT_TYPES.map(({ type, labelKey, Icon }) => {
-                    const active = contentType === type;
-                    return (
+                  <div className="flex items-center gap-3">
+                    {chips.length > 0 && (
                       <button
-                        key={type}
-                        onClick={() => selectType(type)}
-                        className={
-                          "inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] font-bold transition-[filter] hover:brightness-110 " +
-                          (active
-                            ? "bg-blue-600 text-white"
-                            : "bg-slate-700 text-slate-200")
-                        }
+                        onClick={clearAll}
+                        className="text-slate-400 text-xs font-bold hover:text-red-400"
                       >
-                        <Icon className="w-4 h-4" />
-                        {t(labelKey)}
+                        {t("clearAll")}
                       </button>
-                    );
-                  })}
+                    )}
+                    <button
+                      onClick={() => setFiltersCollapsed(true)}
+                      title={t("collapseFilters")}
+                      aria-label={t("collapseFilters")}
+                      className="text-slate-400 hover:text-slate-100 transition-colors"
+                    >
+                      <MdChevronLeft className="size-5" />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* Install target: pick which local modpack a mod installs into.
+                <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
+                  {/* Source */}
+                  <div className="mb-6">
+                    <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
+                      {t("source")}
+                    </div>
+                    <div className="flex gap-2">
+                      <SourceToggle
+                        label="CurseForge"
+                        dot="#f16436"
+                        active={effCf}
+                        disabled={lock === "modrinth" || openSource}
+                        onToggle={() => toggleSource("cf")}
+                      />
+                      <SourceToggle
+                        label="Modrinth"
+                        dot="#1bd96a"
+                        active={effMr}
+                        disabled={lock === "cf"}
+                        onToggle={() => toggleSource("modrinth")}
+                      />
+                    </div>
+                    {lock && (
+                      <div className="mt-2.5 text-[11.5px] leading-snug text-amber-300 bg-amber-900/25 border border-amber-700/20 px-3 py-2 rounded-2xl">
+                        {t("sourceLockHint", {
+                          source: lock === "cf" ? "CurseForge" : "Modrinth",
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content type */}
+                  <div className="mb-6">
+                    <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
+                      {t("contentType")}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {CONTENT_TYPES.map(({ type, labelKey, Icon }) => {
+                        const active = contentType === type;
+                        return (
+                          <button
+                            key={type}
+                            onClick={() => selectType(type)}
+                            className={
+                              "inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] font-bold transition-[filter] hover:brightness-110 " +
+                              (active
+                                ? "bg-blue-600 text-white"
+                                : "bg-slate-700 text-slate-200")
+                            }
+                          >
+                            <Icon className="w-4 h-4" />
+                            {t(labelKey)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Install target: pick which local modpack a mod installs into.
                   The applied modpack is marked "(current)" so matching it stays
                   a one-click choice. */}
-              <div className="mb-6">
-                <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
-                  {t("installInto")}
-                </div>
-                <select
-                  value={targetModpack}
-                  onChange={(event) =>
-                    void selectTargetModpack(event.target.value)
-                  }
-                  disabled={modpacks.length === 0}
-                  className={
-                    "w-full h-11 px-4 rounded-full border-none text-sm font-bold outline-none " +
-                    (modpacks.length === 0
-                      ? "bg-slate-800 text-slate-600 cursor-not-allowed"
-                      : targetModpack
-                        ? "bg-blue-600 text-white cursor-pointer hover:brightness-110"
-                        : "bg-slate-700 text-slate-200 cursor-pointer hover:brightness-110")
-                  }
-                >
-                  <option value="">{t("noTargetModpack")}</option>
-                  {modpacks.map((modpack) => (
-                    <option key={modpack.name} value={modpack.name}>
-                      {modpack.name} · {modpack.modLoader} · {modpack.version}
-                      {modpack.isApplied ? ` (${t("currentModpack")})` : ""}
-                    </option>
-                  ))}
-                </select>
-                <div className="mt-1.5 text-[11.5px] text-slate-500 font-medium leading-snug text-center">
-                  {targetModpack
-                    ? t("installIntoHint")
-                    : t("noTargetModpackHint")}
-                </div>
-              </div>
-
-              {/* Minecraft version */}
-              <div className="mb-6">
-                <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
-                  {t("minecraftVersion")}
-                </div>
-                <select
-                  value={version}
-                  onChange={(event) => void changeVersion(event.target.value)}
-                  className="w-full h-11 px-4 rounded-full border-none bg-slate-700 text-slate-200 text-sm font-bold cursor-pointer outline-none hover:brightness-110"
-                >
-                  <option value="any">{t("anyVersion")}</option>
-                  {versions.map((entry) => (
-                    <option key={entry.version} value={entry.version}>
-                      {entry.version}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Loader */}
-              {loaderVisible && (
-                <div className="mb-6">
-                  <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
-                    {t("loader")}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {loaderOptions.map((option) => {
-                      const active = loader === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          onClick={() =>
-                            void changeLoader(active ? "" : (option.value as string))
-                          }
-                          className={
-                            "inline-flex items-center h-8 px-3.5 rounded-full text-[13px] font-bold transition-[filter] hover:brightness-110 " +
-                            (active
-                              ? "bg-blue-600 text-white"
-                              : "bg-slate-700 text-slate-200")
-                          }
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Dynamic facet sections */}
-              {sections.map((section) => {
-                const isCollapsed = collapsed.has(section.header);
-                return (
-                  <div
-                    key={section.header}
-                    className="border-t border-white/10 pt-4 mb-3.5"
-                  >
-                    <button
-                      onClick={() =>
-                        setCollapsed((previous) => {
-                          const next = new Set(previous);
-                          if (next.has(section.header)) next.delete(section.header);
-                          else next.add(section.header);
-                          return next;
-                        })
+                  <div className="mb-6">
+                    <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
+                      {t("installInto")}
+                    </div>
+                    <select
+                      value={targetModpack}
+                      onChange={(event) =>
+                        void selectTargetModpack(event.target.value)
                       }
-                      className="w-full flex items-center justify-between pb-3 text-slate-50"
+                      disabled={modpacks.length === 0}
+                      className={
+                        "w-full h-11 px-4 rounded-full border-none text-sm font-bold outline-none " +
+                        (modpacks.length === 0
+                          ? "bg-slate-800 text-slate-600 cursor-not-allowed"
+                          : targetModpack
+                            ? "bg-blue-600 text-white cursor-pointer hover:brightness-110"
+                            : "bg-slate-700 text-slate-200 cursor-pointer hover:brightness-110")
+                      }
                     >
-                      <span className="text-[15px] font-extrabold tracking-tight">
-                        {section.title}
-                      </span>
-                      <MdExpandMore
-                        className={
-                          "size-4.25 text-slate-400 transition-transform " +
-                          (isCollapsed ? "rotate-180" : "")
-                        }
-                      />
-                    </button>
-                    {!isCollapsed &&
-                      (section.pill ? (
-                        <div className="flex flex-wrap gap-1.5">
-                          {section.options.map((option) => (
-                            <PillOption
-                              key={option.key}
-                              category={option}
-                              selected={selected.has(option.key)}
-                              disabled={isDisabled(option)}
-                              onToggle={() => toggleCategory(option.key)}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-px">
-                          {section.options.map((option) => (
-                            <CheckOption
-                              key={option.key}
-                              category={option}
-                              selected={selected.has(option.key)}
-                              disabled={isDisabled(option)}
-                              onToggle={() => toggleCategory(option.key)}
-                            />
-                          ))}
-                        </div>
+                      <option value="">{t("noTargetModpack")}</option>
+                      {modpacks.map((modpack) => (
+                        <option key={modpack.name} value={modpack.name}>
+                          {modpack.name} · {modpack.modLoader} ·{" "}
+                          {modpack.version}
+                          {modpack.isApplied ? ` (${t("currentModpack")})` : ""}
+                        </option>
                       ))}
+                    </select>
+                    <div className="mt-1.5 text-[11.5px] text-slate-500 font-medium leading-snug text-center">
+                      {targetModpack
+                        ? t("installIntoHint")
+                        : t("noTargetModpackHint")}
+                    </div>
                   </div>
-                );
-              })}
 
-              {/* Global toggles */}
-              <div className="border-t border-white/10 pt-4 flex flex-col gap-4">
-                <SwitchRow
-                  label={t("openSourceOnly")}
-                  on={openSource}
-                  onToggle={toggleOpenSource}
-                />
-              </div>
-            </div>
+                  {/* Minecraft version */}
+                  <div className="mb-6">
+                    <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
+                      {t("minecraftVersion")}
+                    </div>
+                    <select
+                      value={version}
+                      onChange={(event) =>
+                        void changeVersion(event.target.value)
+                      }
+                      className="w-full h-11 px-4 rounded-full border-none bg-slate-700 text-slate-200 text-sm font-bold cursor-pointer outline-none hover:brightness-110"
+                    >
+                      <option value="any">{t("anyVersion")}</option>
+                      {versions.map((entry) => (
+                        <option key={entry.version} value={entry.version}>
+                          {entry.version}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Loader */}
+                  {loaderVisible && (
+                    <div className="mb-6">
+                      <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
+                        {t("loader")}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {loaderOptions.map((option) => {
+                          const active = loader === option.value;
+                          return (
+                            <button
+                              key={option.value}
+                              onClick={() =>
+                                void changeLoader(
+                                  active ? "" : (option.value as string),
+                                )
+                              }
+                              className={
+                                "inline-flex items-center h-8 px-3.5 rounded-full text-[13px] font-bold transition-[filter] hover:brightness-110 " +
+                                (active
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-slate-700 text-slate-200")
+                              }
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Dynamic facet sections */}
+                  {sections.map((section) => {
+                    const isCollapsed = collapsed.has(section.header);
+                    return (
+                      <div
+                        key={section.header}
+                        className="border-t border-white/10 pt-4 mb-3.5"
+                      >
+                        <button
+                          onClick={() =>
+                            setCollapsed((previous) => {
+                              const next = new Set(previous);
+                              if (next.has(section.header))
+                                next.delete(section.header);
+                              else next.add(section.header);
+                              return next;
+                            })
+                          }
+                          className="w-full flex items-center justify-between pb-3 text-slate-50"
+                        >
+                          <span className="text-[15px] font-extrabold tracking-tight">
+                            {section.title}
+                          </span>
+                          <MdExpandMore
+                            className={
+                              "size-4.25 text-slate-400 transition-transform " +
+                              (isCollapsed ? "rotate-180" : "")
+                            }
+                          />
+                        </button>
+                        {!isCollapsed &&
+                          (section.pill ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {section.options.map((option) => (
+                                <PillOption
+                                  key={option.key}
+                                  category={option}
+                                  selected={selected.has(option.key)}
+                                  disabled={isDisabled(option)}
+                                  onToggle={() => toggleCategory(option.key)}
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-px">
+                              {section.options.map((option) => (
+                                <CheckOption
+                                  key={option.key}
+                                  category={option}
+                                  selected={selected.has(option.key)}
+                                  disabled={isDisabled(option)}
+                                  onToggle={() => toggleCategory(option.key)}
+                                />
+                              ))}
+                            </div>
+                          ))}
+                      </div>
+                    );
+                  })}
+
+                  {/* Global toggles */}
+                  <div className="border-t border-white/10 pt-4 flex flex-col gap-4">
+                    <SwitchRow
+                      label={t("openSourceOnly")}
+                      on={openSource}
+                      onToggle={toggleOpenSource}
+                    />
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
@@ -1004,6 +1040,7 @@ export default function SearchPage() {
                       className=""
                       mod={mod}
                       modpack={undefined}
+                      installTarget={targetModpackObj}
                     />
                   ))}
 
@@ -1080,13 +1117,9 @@ export default function SearchPage() {
       </div>
     </motion.div>
   );
-
 }
 
-function headerTitle(
-  header: string,
-  t: (key: string) => string,
-): string {
+function headerTitle(header: string, t: (key: string) => string): string {
   switch (header) {
     case "categories":
       return t("categories");
@@ -1135,7 +1168,9 @@ function CheckOption({
       disabled={disabled}
       className={
         "flex items-center gap-2.5 w-full px-2 py-1.5 rounded-xl text-left " +
-        (disabled ? "opacity-55 cursor-not-allowed" : "cursor-pointer hover:bg-white/5")
+        (disabled
+          ? "opacity-55 cursor-not-allowed"
+          : "cursor-pointer hover:bg-white/5")
       }
     >
       <span
@@ -1153,7 +1188,11 @@ function CheckOption({
       <span
         className={
           "flex-1 text-[13.5px] font-medium " +
-          (disabled ? "text-slate-600" : selected ? "text-slate-50" : "text-slate-300")
+          (disabled
+            ? "text-slate-600"
+            : selected
+              ? "text-slate-50"
+              : "text-slate-300")
         }
       >
         {category.name}

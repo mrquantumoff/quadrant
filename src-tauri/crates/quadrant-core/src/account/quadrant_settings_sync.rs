@@ -9,7 +9,8 @@ use serde_json::{Value, json};
 use crate::{
     Result,
     account::{backend_base_url, send_with_token_refresh},
-    ports::{SecretStore, SettingsStore},
+    events::BackendEvent,
+    ports::{EventSink, SecretStore, SettingsStore},
 };
 
 /// Setting keys that currently participate in cloud settings sync.
@@ -36,6 +37,7 @@ pub async fn get_quadrant_settings(
     user_agent: &str,
     client_id: &str,
     client_secret: &str,
+    event_sink: &impl EventSink,
 ) -> Result<()> {
     log::debug!("Pulling settings from cloud");
     let json = send_with_token_refresh(
@@ -83,9 +85,16 @@ pub async fn get_quadrant_settings(
         {
             if SYNCED_KEYS.contains(&key.as_str()) {
                 settings_store.set_value(key, value.to_owned())?;
+                // Frontend subscribers only learn about changes through this
+                // event; without it a synced UI scale or theme sits unapplied
+                // until the next restart.
+                event_sink.publish(BackendEvent::ConfigChanged(key.clone()))?;
             }
         }
         settings_store.set_string("lastSettingsUpdated", sync_time.to_rfc3339())?;
+        event_sink.publish(BackendEvent::ConfigChanged(
+            "lastSettingsUpdated".to_string(),
+        ))?;
         return Ok(());
     }
 
@@ -147,13 +156,22 @@ mod tests {
     use super::{SYNCED_KEYS, get_quadrant_settings, submit_quadrant_settings};
     use crate::{
         Result,
-        ports::{SecretStore, SettingsStore},
+        events::BackendEvent,
+        ports::{EventSink, SecretStore, SettingsStore},
     };
     use httpmock::{
         Method::{GET, POST},
         MockServer,
     };
     use serde_json::Value;
+
+    struct NoopEvents;
+
+    impl EventSink for NoopEvents {
+        fn publish(&self, _event: BackendEvent) -> Result<()> {
+            Ok(())
+        }
+    }
 
     struct MemorySettingsStore;
 
@@ -263,9 +281,62 @@ mod tests {
             "test-agent",
             "test-client-id",
             "test-client-secret",
+            &NoopEvents,
         )
         .await
         .unwrap_err();
         assert!(error.to_string().contains("sync_date missing"));
+    }
+
+    #[tokio::test]
+    async fn get_quadrant_settings_notifies_each_applied_key() {
+        struct CollectingEvents(std::sync::Mutex<Vec<BackendEvent>>);
+
+        impl EventSink for CollectingEvents {
+            fn publish(&self, event: BackendEvent) -> Result<()> {
+                self.0.lock().unwrap().push(event);
+                Ok(())
+            }
+        }
+
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+        let _mock = server.mock(|when, then| {
+            when.method(GET)
+                .path("/quadrant/settings_sync/get")
+                .header("authorization", "Bearer token-123");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(
+                    r#"{"sync_date":"2025-01-01T00:00:00+00:00","settings":"{\"uiScale\":1.5,\"hardwareId\":\"other-machine\"}"}"#,
+                );
+        });
+
+        let events = CollectingEvents(Default::default());
+        get_quadrant_settings(
+            &MemorySettingsStore,
+            &MemorySecretStore,
+            "test-agent",
+            "test-client-id",
+            "test-client-secret",
+            &events,
+        )
+        .await
+        .unwrap();
+
+        let keys: Vec<String> = events
+            .0
+            .lock()
+            .unwrap()
+            .iter()
+            .map(|event| match event {
+                BackendEvent::ConfigChanged(key) => key.clone(),
+                other => panic!("unexpected event {other:?}"),
+            })
+            .collect();
+        assert_eq!(keys, ["uiScale", "lastSettingsUpdated"]);
     }
 }
