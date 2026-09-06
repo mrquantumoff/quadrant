@@ -162,6 +162,7 @@
   "cloudSyncDate": "Quadrant Sync version: {{date}}",
   "localSyncDate": "Local version: {{date}}",
   "sync": "Sync",
+  "quadrantSync": "Quadrant Sync",
   "modpackUpdated": "Modpack updated successfully",
   "areYouSure": "Are you sure that you want to delete your account?",
   "advancedSettings": "Advanced settings",

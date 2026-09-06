@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+/** @format */
+
+import { useEffect, useState } from "react";
 import { getMinecraftFolder, getModpacks } from "../../../tools";
 import { LocalModpack } from "../../../intefaces";
 import ModpackView from "../../shared/Pages/ModpackView";
@@ -7,36 +9,30 @@ import { joinPath, watch } from "../../../desktop";
 
 export default function CurrentModpackPage() {
   const [currentModpack, setCurrentModpack] = useState<LocalModpack>();
-  const mountedRef = useRef(true);
-
-  const updateModpack = async () => {
-    const newModpack = (await getModpacks(false)).filter(
-      (modpack) => modpack.isApplied,
-    )[0];
-    if (!mountedRef.current) {
-      return;
-    }
-    setCurrentModpack(newModpack);
-  };
-
   useEffect(() => {
-    mountedRef.current = true;
-    const effect = async () => {
-      const newModpack = (await getModpacks(false)).filter(
+    let cancelled = false;
+    let requestId = 0;
+    const updateModpack = async () => {
+      const currentRequest = ++requestId;
+      const newModpack = (await getModpacks(false)).find(
         (modpack) => modpack.isApplied,
-      )[0];
-
-      if (mountedRef.current) {
+      );
+      if (!cancelled && currentRequest === requestId) {
         setCurrentModpack(newModpack);
       }
+    };
+    const effect = async () => {
+      await updateModpack();
+      if (cancelled) return;
 
       const mcFolder = await joinPath(await getMinecraftFolder(false), "mods");
+      if (cancelled) return;
 
       const unwatchMods = await watch(
         mcFolder,
         () => {
-          if (mountedRef.current) {
-            void updateModpack();
+          if (!cancelled) {
+            void updateModpack().catch(console.error);
           }
         },
         {
@@ -51,7 +47,7 @@ export default function CurrentModpackPage() {
     effect()
       .then((result) => {
         if (result) {
-          if (mountedRef.current) {
+          if (!cancelled) {
             unwatch = result;
           } else {
             result();
@@ -61,7 +57,7 @@ export default function CurrentModpackPage() {
       .catch((error) => console.error(error));
 
     return () => {
-      mountedRef.current = false;
+      cancelled = true;
       if (unwatch) {
         unwatch();
       }

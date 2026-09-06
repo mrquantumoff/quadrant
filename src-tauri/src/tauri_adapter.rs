@@ -55,6 +55,9 @@ impl EventSink for TauriEventSink {
             BackendEvent::RecheckAccountToken => {
                 self.app.emit("recheckAccountToken", "")?;
             }
+            BackendEvent::ConfigChanged(key) => {
+                self.app.emit("configChanged", key)?;
+            }
         }
         Ok(())
     }

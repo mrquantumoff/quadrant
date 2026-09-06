@@ -147,3 +147,70 @@ describe("ApplyPage", () => {
     ).not.toThrow();
   });
 });
+
+import { fireEvent } from "@testing-library/react";
+import { ContentContext } from "../../../intefaces";
+import { exportModpack } from "../../../tools";
+
+describe("ApplyPage error handling and search", () => {
+  it("surfaces an export failure through the snackbar", async () => {
+    vi.mocked(exportModpack).mockRejectedValue("exportFailed");
+    getModpacks.mockResolvedValue([pack({ name: "Alpha Pack" })]);
+    const setSnackbar = vi.fn();
+    render(
+      <ContentContext.Provider
+        value={{
+          back: async () => {},
+          changeContent: () => {},
+          changePage: () => {},
+          setSnackbar,
+          setSnackbarNoState: () => {},
+        }}
+      >
+        <ApplyPage />
+      </ContentContext.Provider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByText("Alpha Pack")).toBeInTheDocument(),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /export/i }));
+
+    await waitFor(() => expect(setSnackbar).toHaveBeenCalledTimes(1));
+    expect(setSnackbar.mock.calls[0][0]).toMatchObject({
+      className: expect.stringContaining("bg-red-700"),
+    });
+  });
+
+  it("ignores a slow response for a superseded search query", async () => {
+    let resolveFirst!: (packs: ReturnType<typeof pack>[]) => void;
+    // Mount fetches more than once, so key the responses on the query.
+    getModpacks.mockImplementation(async (_hideFree: boolean, query: string) => {
+      if (query === "a") {
+        return new Promise((resolve) => {
+          resolveFirst = resolve;
+        });
+      }
+      if (query === "b") {
+        return [pack({ name: "Beta Match" })];
+      }
+      return [pack({ name: "Initial" })];
+    });
+    render(<ApplyPage />);
+    await waitFor(() => expect(screen.getByText("Initial")).toBeInTheDocument());
+
+    const input = screen.getByPlaceholderText(/search/i);
+    fireEvent.change(input, { target: { value: "a" } });
+    await waitFor(() => expect(getModpacks).toHaveBeenCalledWith(true, "a"));
+    fireEvent.change(input, { target: { value: "b" } });
+    await waitFor(() =>
+      expect(screen.getByText("Beta Match")).toBeInTheDocument(),
+    );
+
+    // The older request resolving last must not replace the newer results.
+    resolveFirst([pack({ name: "Alpha Stale" })]);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(screen.queryByText("Alpha Stale")).not.toBeInTheDocument();
+    expect(screen.getByText("Beta Match")).toBeInTheDocument();
+  });
+});

@@ -184,6 +184,10 @@ pub enum NotificationWsFrame {
     Error {
         error: String,
     },
+    /// Any event type this client does not understand. Callers should ignore
+    /// it rather than tearing down the connection.
+    #[serde(other)]
+    Unknown,
 }
 
 /// OAuth token response returned by the Quadrant backend.
@@ -331,6 +335,10 @@ pub async fn oauth2_login(
     {
         return Err(anyhow::anyhow!("Invalid scope"));
     }
+    // A new login can switch accounts. Remove the previous session's refresh
+    // token before replacing the access token, even when no replacement was
+    // issued, so a keyring failure cannot pair tokens from different accounts.
+    secret_store.delete_secret("refreshToken")?;
     set_secret(secret_store, "accountToken", &res.access_token)?;
     if let Some(refresh_token) = res.refresh_token {
         set_secret(secret_store, "refreshToken", &refresh_token)?;
@@ -516,10 +524,118 @@ mod tests {
     use super::{
         Notification, NotificationCursor, NotificationWsFrame,
         get_notification_history_all_since_with_refresh,
-        get_notification_history_page_with_refresh,
+        get_notification_history_page_with_refresh, oauth2_login, try_refresh_token,
     };
     use crate::{Result, ports::SecretStore};
-    use httpmock::{Method::GET, MockServer};
+    use httpmock::{
+        Method::{GET, POST},
+        MockServer,
+    };
+    use std::{collections::HashMap, sync::Mutex};
+
+    #[derive(Default)]
+    struct StatefulSecretStore {
+        values: Mutex<HashMap<String, String>>,
+    }
+
+    impl SecretStore for StatefulSecretStore {
+        fn get_secret(&self, key: &str) -> Result<Option<String>> {
+            Ok(self.values.lock().unwrap().get(key).cloned())
+        }
+
+        fn set_secret(&self, key: &str, value: &str) -> Result<()> {
+            self.values
+                .lock()
+                .unwrap()
+                .insert(key.to_string(), value.to_string());
+            Ok(())
+        }
+
+        fn delete_secret(&self, key: &str) -> Result<()> {
+            self.values.lock().unwrap().remove(key);
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn login_without_refresh_token_removes_previous_account_refresh_token() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+        let request = server.mock(|when, then| {
+            when.method(POST).path("/oauth2/token");
+            then.status(200).json_body(serde_json::json!({
+                "access_token": "new-account-access",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+                "scope": "profile:read sync:read notifications:read"
+            }));
+        });
+        let store = StatefulSecretStore::default();
+        store
+            .set_secret("accountToken", "old-account-access")
+            .unwrap();
+        store
+            .set_secret("refreshToken", "old-account-refresh")
+            .unwrap();
+
+        oauth2_login(
+            &store,
+            "test-agent",
+            "client-id",
+            "client-secret",
+            "authorization-code".to_string(),
+            "quadrant://login".to_string(),
+        )
+        .await
+        .unwrap();
+
+        request.assert();
+        assert_eq!(
+            store.get_secret("accountToken").unwrap().as_deref(),
+            Some("new-account-access")
+        );
+        assert_eq!(store.get_secret("refreshToken").unwrap(), None);
+        assert!(!crate::account::account_token_needs_refresh(&store).unwrap());
+    }
+
+    #[tokio::test]
+    async fn refresh_without_replacement_retains_current_account_refresh_token() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+        let request = server.mock(|when, then| {
+            when.method(POST).path("/oauth2/token");
+            then.status(200).json_body(serde_json::json!({
+                "access_token": "refreshed-access",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+                "scope": "profile:read sync:read notifications:read"
+            }));
+        });
+        let store = StatefulSecretStore::default();
+        store
+            .set_secret("refreshToken", "current-account-refresh")
+            .unwrap();
+
+        try_refresh_token(&store, "client-id", "client-secret", "test-agent")
+            .await
+            .unwrap();
+
+        request.assert();
+        assert_eq!(
+            store.get_secret("accountToken").unwrap().as_deref(),
+            Some("refreshed-access")
+        );
+        assert_eq!(
+            store.get_secret("refreshToken").unwrap().as_deref(),
+            Some("current-account-refresh")
+        );
+    }
 
     struct MemorySecretStore;
 
@@ -684,5 +800,20 @@ mod tests {
         let error: NotificationWsFrame =
             serde_json::from_str(r#"{"event":"error","error":"lagged"}"#).unwrap();
         assert!(matches!(error, NotificationWsFrame::Error { .. }));
+    }
+
+    #[test]
+    fn unknown_notification_frames_deserialize_without_error() {
+        let frame: NotificationWsFrame =
+            serde_json::from_str(r#"{"event":"heartbeat","server_time":"now"}"#).unwrap();
+        assert_eq!(frame, NotificationWsFrame::Unknown);
+        let known: NotificationWsFrame =
+            serde_json::from_str(r#"{"event":"connected","server_time":"now"}"#).unwrap();
+        assert_eq!(
+            known,
+            NotificationWsFrame::Connected {
+                server_time: "now".to_string()
+            }
+        );
     }
 }

@@ -184,11 +184,13 @@ export default function ApplyPage() {
     effect();
   }, [searchQuery]);
 
+  const modpackRequestRef = useRef(0);
   const updateModpacks = async () => {
-    // console.log(searchQuery);
+    // Each keystroke starts a request; only the newest may update the list,
+    // otherwise a slow older response overwrites results for the current query.
+    const requestId = ++modpackRequestRef.current;
     const newModpacks = await getModpacks(true, searchQueryRef.current);
-
-    if (newModpacks == modpacks) {
+    if (requestId !== modpackRequestRef.current) {
       return;
     }
 
@@ -402,7 +404,9 @@ export default function ApplyPage() {
                     <Button
                       onClick={async () => {
                         try {
-                          exportModpack(modpack.name);
+                          // Must be awaited, or a rejected export bypasses
+                          // the catch and the user never sees the error.
+                          await exportModpack(modpack.name);
                         } catch (e: any) {
                           console.error(e);
                           context.setSnackbar({

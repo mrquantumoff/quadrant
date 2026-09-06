@@ -1,7 +1,8 @@
 /** @format */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
 
 const getModpacks = vi.fn();
 const getMinecraftFolder = vi.fn();
@@ -18,7 +19,9 @@ vi.mock("../../../desktop", () => ({
 }));
 // ModpackView is heavy and independently tested; stub it to a marker.
 vi.mock("../../shared/Pages/ModpackView", () => ({
-  default: ({ name }: { name: string }) => <div data-testid="modpack-view">{name}</div>,
+  default: ({ name }: { name: string }) => (
+    <div data-testid="modpack-view">{name}</div>
+  ),
 }));
 
 import CurrentModpackPage from "./CurrentModpackPage";
@@ -74,11 +77,9 @@ describe("CurrentModpackPage", () => {
     getModpacks.mockResolvedValue([pack({})]);
     render(<CurrentModpackPage />);
     await waitFor(() => expect(watch).toHaveBeenCalledTimes(1));
-    expect(watch).toHaveBeenCalledWith(
-      "/mc/mods",
-      expect.any(Function),
-      { delayMs: 500 },
-    );
+    expect(watch).toHaveBeenCalledWith("/mc/mods", expect.any(Function), {
+      delayMs: 500,
+    });
   });
 
   it("tears down the watch on unmount", async () => {
@@ -90,5 +91,56 @@ describe("CurrentModpackPage", () => {
     await waitFor(() => expect(watch).toHaveBeenCalled());
     unmount();
     await waitFor(() => expect(unwatch).toHaveBeenCalled());
+  });
+
+  it("keeps the latest applied pack when watch refreshes resolve out of order", async () => {
+    getModpacks.mockResolvedValue([pack({})]);
+    render(<CurrentModpackPage />);
+    await waitFor(() => expect(watch).toHaveBeenCalled());
+    const refresh = watch.mock.calls[0][1];
+    let first!: (value: ReturnType<typeof pack>[]) => void;
+    let second!: (value: ReturnType<typeof pack>[]) => void;
+    getModpacks
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          first = resolve;
+        }),
+      )
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          second = resolve;
+        }),
+      );
+    refresh();
+    refresh();
+    await act(async () => second([pack({ name: "Latest Pack" })]));
+    await act(async () => first([pack({ name: "Stale Pack" })]));
+    expect(screen.getByTestId("modpack-view")).toHaveTextContent("Latest Pack");
+  });
+
+  it("does not resurrect an obsolete effect or leak its watch during StrictMode setup", async () => {
+    let first!: (value: ReturnType<typeof pack>[]) => void;
+    getModpacks
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          first = resolve;
+        }),
+      )
+      .mockResolvedValue([pack({ name: "Current Pack" })]);
+    const unwatch = vi.fn();
+    watch.mockResolvedValue(unwatch);
+    const { unmount } = render(
+      <StrictMode>
+        <CurrentModpackPage />
+      </StrictMode>,
+    );
+    await waitFor(() => expect(watch).toHaveBeenCalledTimes(1));
+    await act(async () => first([pack({ name: "Obsolete Pack" })]));
+    expect(screen.getByTestId("modpack-view")).toHaveTextContent(
+      "Current Pack",
+    );
+    expect(watch).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(unwatch).toHaveBeenCalledTimes(1);
   });
 });

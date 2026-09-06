@@ -173,26 +173,14 @@ impl JsonFileStore {
         }
 
         let raw = fs::read_to_string(path)?;
-        let parsed = serde_json::from_str::<Value>(&raw)
-            .map_err(|error| anyhow!("failed to parse {}: {error}", path.display()))?;
-        Ok(parsed
-            .as_object()
-            .cloned()
-            .unwrap_or_default()
-            .into_iter()
-            .collect::<HashMap<_, _>>())
+        serde_json::from_str::<HashMap<String, Value>>(&raw)
+            .map_err(|error| anyhow!("failed to parse {}: {error}", path.display()))
     }
 
     fn reload(&self, values: &mut HashMap<String, Value>) -> Result<()> {
-        match Self::read_values_from_disk(&self.path) {
-            Ok(updated_values) => *values = updated_values,
-            Err(error) => {
-                log::warn!(
-                    "Failed to reload settings store {}: {error}",
-                    self.path.display()
-                );
-            }
-        }
+        // Do not let a failed reload turn the next write into an overwrite of
+        // disk contents using a stale in-memory snapshot.
+        *values = Self::read_values_from_disk(&self.path)?;
         Ok(())
     }
 
@@ -376,6 +364,7 @@ impl EventSink for HostEventBridge {
                 Ok(())
             }
             BackendEvent::RecheckAccountToken => self.emit("recheckAccountToken", Value::Null),
+            BackendEvent::ConfigChanged(key) => self.emit("configChanged", key),
         }
     }
 }
@@ -969,6 +958,7 @@ impl QuadrantHost {
             &self.inner.options.user_agent,
             &self.inner.options.oauth_client_id,
             &self.inner.options.oauth_client_secret,
+            &self.inner.event_sink,
         )
         .await
     }
@@ -1588,6 +1578,11 @@ impl QuadrantHost {
                     self.bootstrap_notifications().await?;
                 }
                 return Err(anyhow!("notification websocket error frame: {error}"));
+            }
+            NotificationWsFrame::Unknown => {
+                // Newer backends may add event types; ignoring them keeps the
+                // socket alive instead of forcing a reconnect/re-bootstrap loop.
+                log::debug!("Ignoring unknown notification websocket frame: {payload}");
             }
         }
 
@@ -2345,7 +2340,7 @@ mod tests {
         ports::{EventSink, SettingsStore},
     };
     use serde_json::{Value, json};
-    use std::path::PathBuf;
+    use std::{fs, path::PathBuf};
     use tempfile::tempdir;
 
     fn notification(id: &str, unix: i64, read: bool) -> Notification {
@@ -2368,6 +2363,46 @@ mod tests {
         store.set_bool("modrinth", true).unwrap();
         let reloaded = JsonFileStore::new(temp_dir.path().join("config.json")).unwrap();
         assert_eq!(reloaded.get_bool("modrinth").unwrap(), Some(true));
+    }
+
+    #[test]
+    fn json_store_rejects_non_object_documents() {
+        let temp_dir = tempdir().unwrap();
+        let path = temp_dir.path().join("config.json");
+        for document in ["[]", "null", "true", "42", "\"settings\""] {
+            fs::write(&path, document).unwrap();
+            assert!(
+                JsonFileStore::new(path.clone()).is_err(),
+                "accepted {document}"
+            );
+            assert_eq!(fs::read_to_string(&path).unwrap(), document);
+        }
+    }
+
+    #[test]
+    fn json_store_preserves_invalid_disk_contents_on_mutation() {
+        let temp_dir = tempdir().unwrap();
+        let path = temp_dir.path().join("config.json");
+        let store = JsonFileStore::new(path.clone()).unwrap();
+        store.set_bool("modrinth", true).unwrap();
+
+        for document in ["{\"mcFolder\":", "[]"] {
+            fs::write(&path, document).unwrap();
+            assert!(store.set_bool("curseforge", false).is_err());
+            assert_eq!(fs::read_to_string(&path).unwrap(), document);
+            assert!(store.delete_key("modrinth").is_err());
+            assert_eq!(fs::read_to_string(&path).unwrap(), document);
+        }
+
+        fs::write(&path, r#"{"mcFolder":"/repaired/minecraft"}"#).unwrap();
+        store.set_bool("curseforge", false).unwrap();
+        let repaired = JsonFileStore::new(path).unwrap();
+        assert_eq!(
+            repaired.get_string("mcFolder").unwrap().as_deref(),
+            Some("/repaired/minecraft")
+        );
+        assert_eq!(repaired.get_bool("curseforge").unwrap(), Some(false));
+        assert_eq!(repaired.get_bool("modrinth").unwrap(), None);
     }
 
     #[test]
@@ -2541,5 +2576,19 @@ mod tests {
             host.get_config_value("mcFolder").unwrap(),
             Some(Value::String(mc_folder.to_string_lossy().to_string()))
         );
+    }
+
+    #[tokio::test]
+    async fn event_bridge_forwards_config_changes() {
+        let bridge = HostEventBridge::new();
+        let mut receiver = bridge.subscribe();
+
+        bridge
+            .publish(BackendEvent::ConfigChanged("uiScale".to_string()))
+            .unwrap();
+
+        let envelope = receiver.recv().await.unwrap();
+        assert_eq!(envelope.event, "configChanged");
+        assert_eq!(envelope.payload, json!("uiScale"));
     }
 }

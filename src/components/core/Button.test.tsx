@@ -8,7 +8,9 @@ import Button from "./Button";
 describe("Button", () => {
   it("renders its children", () => {
     render(<Button onClick={() => {}}>Click me</Button>);
-    expect(screen.getByRole("button", { name: "Click me" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Click me" }),
+    ).toBeInTheDocument();
   });
 
   it("fires onClick when pressed", async () => {
@@ -16,6 +18,19 @@ describe("Button", () => {
     render(<Button onClick={onClick}>Go</Button>);
     await userEvent.click(screen.getByRole("button", { name: "Go" }));
     expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
+  it("prevents clicks while disabled", async () => {
+    const onClick = vi.fn();
+    render(
+      <Button onClick={onClick} disabled>
+        Download
+      </Button>,
+    );
+    const button = screen.getByRole("button", { name: "Download" });
+    expect(button).toBeDisabled();
+    await userEvent.click(button);
+    expect(onClick).not.toHaveBeenCalled();
   });
 
   it("applies the caller's className and the full-round variant", () => {

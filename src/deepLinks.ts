@@ -72,40 +72,42 @@ export function resolveDeepLink(rawUrl: string): DeepLinkAction {
     case "curseforge:": {
       const action = (url.host || getQuadrantPathParts(url)[0] || "")
         .toLowerCase();
-      if (action !== "install") {
+      const modId = (url.searchParams.get("addonId") ?? "").trim();
+      if (action !== "install" || !modId) {
         return { kind: "unsupported" };
       }
       return {
         kind: "installMod",
         source: ModSource.CurseForge,
-        modId: url.searchParams.get("addonId") ?? "",
+        modId,
         fileId: url.searchParams.get("fileId") ?? undefined,
         stopAfter: false,
       };
     }
 
     case "modrinth:": {
-      const action = url.pathname.split("/")[2] ?? url.host ?? "";
-      if (
-        action.includes("mod") ||
-        action.includes("resourcepack") ||
-        action.includes("shader")
-      ) {
-        // This gets the slug, not the ID, but it doesn't matter for Modrinth
-        let modId = "";
-        url.pathname.split("/").forEach((val) => {
-          if (val !== "") {
-            modId = val;
-          }
-        });
-        return {
-          kind: "installMod",
-          source: ModSource.Modrinth,
-          modId,
-          stopAfter: true,
-        };
+      const parts = [url.host, ...getQuadrantPathParts(url)].filter(Boolean);
+      // Preserve links wrapping a website URL, such as
+      // modrinth://https://modrinth.com/mod/sodium.
+      if (parts[0]?.toLowerCase() === "https") {
+        parts.shift();
       }
-      return { kind: "unsupported" };
+      if (parts[0]?.toLowerCase() === "modrinth.com") {
+        parts.shift();
+      }
+      const [action, modId] = parts;
+      if (
+        !["mod", "resourcepack", "shader"].includes(action?.toLowerCase()) ||
+        !modId
+      ) {
+        return { kind: "unsupported" };
+      }
+      return {
+        kind: "installMod",
+        source: ModSource.Modrinth,
+        modId,
+        stopAfter: true,
+      };
     }
 
     case "quadrantnext:": {

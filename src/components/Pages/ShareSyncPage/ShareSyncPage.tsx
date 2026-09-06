@@ -170,7 +170,7 @@ export default function ShareSyncPage({ sharedCode }: ShareSyncPageProps) {
                   whileTap={{ scale: 0.9 }}
                   className="flex flex-col w-max hover:bg-blue-700 bg-slate-800 p-4 rounded-4xl mx-4 text-center data-selected:bg-blue-600 ease-linear duration-300"
                 >
-                  {t("Quadrant Sync")}
+                  {t("quadrantSync")}
                 </MotionTab>
               </TabList>
             </motion.div>

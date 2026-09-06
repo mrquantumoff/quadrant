@@ -17,6 +17,14 @@ function unsupported(command: string): never {
   );
 }
 
+const STORE_CHANGE_EVENT = "quadrant:store-changed";
+
+interface StoreChange {
+  storeName: string;
+  key: string;
+  value: unknown;
+}
+
 class BrowserStoreAdapter implements DesktopStoreAdapter {
   constructor(private readonly storeName: string) {}
 
@@ -30,17 +38,51 @@ class BrowserStoreAdapter implements DesktopStoreAdapter {
   }
 
   async set(key: string, value: unknown): Promise<void> {
-    window.localStorage.setItem(this.getStorageKey(key), JSON.stringify(value));
+    const serialized = JSON.stringify(value);
+    if (serialized === undefined) {
+      throw new TypeError("Settings values must be JSON-serializable");
+    }
+    window.localStorage.setItem(this.getStorageKey(key), serialized);
+    // The native storage event does not fire in the window that made the write.
+    // Share notifications across adapters, since DesktopStore resolves a new
+    // adapter for each operation.
+    window.dispatchEvent(
+      new CustomEvent<StoreChange>(STORE_CHANGE_EVENT, {
+        detail: {
+          storeName: this.storeName,
+          key,
+          value: JSON.parse(serialized),
+        },
+      }),
+    );
   }
 
   async save(): Promise<void> {}
 
-  async onChange(): Promise<UnlistenFn> {
-    return () => {};
+  private subscribe(listener: (change: StoreChange) => void): UnlistenFn {
+    const handleChange = (event: Event) => {
+      const change = (event as CustomEvent<StoreChange>).detail;
+      if (change.storeName === this.storeName) {
+        listener(change);
+      }
+    };
+    window.addEventListener(STORE_CHANGE_EVENT, handleChange);
+    return () => window.removeEventListener(STORE_CHANGE_EVENT, handleChange);
   }
 
-  async onKeyChange(): Promise<UnlistenFn> {
-    return () => {};
+  async onChange(listener: (key: string) => void): Promise<UnlistenFn> {
+    return this.subscribe((change) => listener(change.key));
+  }
+
+  async onKeyChange<T>(
+    key: string,
+    listener: (value: T | null) => void,
+  ): Promise<UnlistenFn> {
+    return this.subscribe((change) => {
+      if (change.key === key) {
+        listener((change.value as T | null) ?? null);
+      }
+    });
   }
 }
 

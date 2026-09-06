@@ -618,7 +618,9 @@ function App() {
                         className={
                           "text-center items-center justify-center flex flex-col align-center w-12 h-12 relative transition-colors duration-200 ease-linear font-extrabold my-1 " +
                           p.style +
-                          (page === p ? "bg-slate-700" : "bg-slate-800")
+                          // `page` holds an object from an earlier render's
+                          // `pages` array, so identity comparison never matches.
+                          (isSelected ? "bg-slate-700" : "bg-slate-800")
                         }
                         key={i}
                         onClick={async () => {
@@ -661,7 +663,10 @@ function App() {
                     className="font-extrabold mt-2 h-full w-full text-lg"
                   >
                     <p className=" bg-slate-700 my-2 p-1.5 rounded-4xl w-fit mx-4 px-4 ">
-                      {content.title}
+                      {/* `content` keeps the title translated at the time it
+                          was set; look it up again so locale changes apply. */}
+                      {pages.find((p) => p.name === content.name)?.title ??
+                        content.title}
                     </p>
                   </h1>
                   <div

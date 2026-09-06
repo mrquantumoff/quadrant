@@ -13,6 +13,7 @@ use anyhow::anyhow;
 use chrono::Utc;
 use futures::StreamExt;
 use std::{
+    collections::HashSet,
     io::Write,
     path::{Component, Path, PathBuf},
     sync::Arc,
@@ -20,7 +21,43 @@ use std::{
 use tokio::sync::Mutex;
 use zip::write::{ExtendedFileOptions, FileOptions};
 
-fn validate_modpack_name(name: &str) -> Result<()> {
+/// Writes `contents` through a sibling temp file and an atomic rename, so a
+/// crash mid-write never leaves a truncated manifest or metadata file behind.
+pub(crate) fn write_file_atomically(
+    path: impl AsRef<Path>,
+    contents: impl AsRef<[u8]>,
+) -> std::io::Result<()> {
+    static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let path = path.as_ref();
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty());
+    let parent = parent.ok_or_else(|| {
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no parent")
+    })?;
+    let file_name = path
+        .file_name()
+        .map(|name| name.to_string_lossy().to_string())
+        .unwrap_or_else(|| "file".to_string());
+    let temp_path = parent.join(format!(
+        ".{file_name}.{}.{}.tmp",
+        std::process::id(),
+        COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+    ));
+    let write = || -> std::io::Result<()> {
+        let mut file = std::fs::File::create(&temp_path)?;
+        file.write_all(contents.as_ref())?;
+        file.sync_all()?;
+        std::fs::rename(&temp_path, path)
+    };
+    let result = write();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&temp_path);
+    }
+    result
+}
+
+pub(crate) fn validate_modpack_name(name: &str) -> Result<()> {
     let mut components = Path::new(name).components();
     if name.is_empty()
         || !matches!(components.next(), Some(Component::Normal(_)))
@@ -31,7 +68,7 @@ fn validate_modpack_name(name: &str) -> Result<()> {
     Ok(())
 }
 
-fn safe_download_file_name(download_url: &str, source: &ModSource) -> Result<String> {
+pub(crate) fn safe_download_file_name(download_url: &str, source: &ModSource) -> Result<String> {
     let url = reqwest::Url::parse(download_url)?;
     let scheme_allowed = url.scheme() == "https"
         || cfg!(test) && url.scheme() == "http" && url.host_str() == Some("127.0.0.1");
@@ -91,7 +128,18 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
             continue;
         }
 
-        let file_amount = std::fs::read_dir(&path)?.count();
+        // One unreadable pack must not blank the whole listing: every
+        // pre-listing operation (delete, rename, install, share) depends on it.
+        let file_amount = match std::fs::read_dir(&path) {
+            Ok(entries) => entries.count(),
+            Err(error) => {
+                log::warn!(
+                    "Skipping unreadable modpack folder {}: {error}",
+                    path.display()
+                );
+                continue;
+            }
+        };
 
         let mut extra_files = 0;
         let modpack_config_v2 = path.join("modConfigV2.json");
@@ -130,11 +178,20 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
 
         if modpack_sync.exists() {
             extra_files += 1;
-            let sync_info = std::fs::File::open(modpack_sync)?;
-            let reader = std::io::BufReader::new(sync_info);
-            let sync_info: SyncInfo = serde_json::from_reader(reader)?;
-            last_synced = sync_info.last_synced * 1000;
-            modpack_id = sync_info.modpack_id;
+            // Sync metadata is advisory. A damaged file degrades to "never
+            // synced" instead of failing the listing.
+            match std::fs::read_to_string(&modpack_sync)
+                .map_err(anyhow::Error::from)
+                .and_then(|raw| serde_json::from_str::<SyncInfo>(&raw).map_err(Into::into))
+            {
+                Ok(sync_info) => {
+                    last_synced = sync_info.last_synced.saturating_mul(1000);
+                    modpack_id = sync_info.modpack_id;
+                }
+                Err(error) => {
+                    log::warn!("Ignoring damaged sync metadata for modpack \"{name}\": {error}");
+                }
+            }
         }
 
         let config_path = if has_v2 {
@@ -142,11 +199,14 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
         } else {
             &modpack_config_v1
         };
-        let config_file = std::fs::File::open(config_path)?;
-        let reader = std::io::BufReader::new(config_file);
-        let parsed: std::result::Result<InstalledModpack, serde_json::Error> =
-            serde_json::from_reader(reader);
-        if parsed.is_err() {
+        let parsed = std::fs::File::open(config_path)
+            .map_err(anyhow::Error::from)
+            .and_then(|config_file| {
+                serde_json::from_reader::<_, InstalledModpack>(std::io::BufReader::new(config_file))
+                    .map_err(Into::into)
+            });
+        if let Err(error) = &parsed {
+            log::warn!("Modpack \"{name}\" has an unreadable manifest: {error}");
             modpacks.push(LocalModpack::from((
                 InstalledModpack {
                     mod_config_version: String::new(),
@@ -193,7 +253,8 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
         }
 
         if needs_rewrite {
-            match std::fs::write(&modpack_config_v2, serde_json::to_string_pretty(&modpack)?) {
+            match write_file_atomically(&modpack_config_v2, serde_json::to_string_pretty(&modpack)?)
+            {
                 Ok(()) => {
                     if has_v1 && !has_v2 {
                         let _ = std::fs::remove_file(&modpack_config_v1);
@@ -278,7 +339,16 @@ pub fn create_modpack(
         return Err(anyhow!("Modpack exists"));
     }
     let modpack_folder = modpack_path(mc_folder, name);
-    std::fs::create_dir_all(&modpack_folder)?;
+    std::fs::create_dir_all(mc_folder.join("modpacks"))?;
+    // The caller's listing can be stale. Create exclusively so a concurrent
+    // creation cannot replace an existing pack's manifest.
+    std::fs::create_dir(&modpack_folder).map_err(|error| {
+        if error.kind() == std::io::ErrorKind::AlreadyExists {
+            anyhow!("Modpack exists")
+        } else {
+            error.into()
+        }
+    })?;
     let modpack = InstalledModpack {
         mod_config_version: "2".to_string(),
         quadrant_version: crate::models::quadrant_version(),
@@ -287,7 +357,7 @@ pub fn create_modpack(
         mod_loader,
         mods: Vec::new(),
     };
-    std::fs::write(
+    write_file_atomically(
         modpack_folder.join("modConfigV2.json"),
         serde_json::to_string_pretty(&modpack)?,
     )?;
@@ -318,6 +388,15 @@ pub fn update_modpack(
     let modpack_folder = modpack_path(mc_folder, modpack_source);
     let original_name = modpack.name.clone();
 
+    if let Some(name) = name.as_deref()
+        && name != modpack_source
+    {
+        let destination = modpack_path(mc_folder, name);
+        if destination.try_exists()? || destination.is_symlink() {
+            return Err(anyhow!("Modpack exists"));
+        }
+    }
+
     if let Some(name) = name.clone() {
         modpack.name = name;
     }
@@ -328,7 +407,7 @@ pub fn update_modpack(
         modpack.mod_loader = mod_loader;
     }
 
-    std::fs::write(
+    write_file_atomically(
         modpack_folder.join("modConfigV2.json"),
         serde_json::to_string_pretty(&InstalledModpack::from(modpack.clone()))?,
     )?;
@@ -408,7 +487,7 @@ pub async fn register_mod(
 
     modpack.mods.push(mod_);
 
-    std::fs::write(
+    write_file_atomically(
         modpack_path(mc_folder, modpack_name).join("modConfigV2.json"),
         serde_json::to_string_pretty(&InstalledModpack::from(modpack))?,
     )?;
@@ -441,15 +520,26 @@ pub fn delete_mod(
         return Err(anyhow!("No mods found"));
     }
 
+    // Entries whose download URL fails the current policy (legacy manifests,
+    // manually edited packs) must still be removable from the manifest; only
+    // their on-disk file is left alone.
     let to_delete_paths: Vec<_> = modpack
         .mods
         .iter()
         .filter(|mod_| mod_.id == mod_id)
-        .map(|mod_| {
-            safe_download_file_name(&mod_.download_url, &mod_.source)
-                .map(|name| modpack_folder.join(name))
-        })
-        .collect::<Result<Vec<_>>>()?;
+        .filter_map(
+            |mod_| match safe_download_file_name(&mod_.download_url, &mod_.source) {
+                Ok(name) => Some(modpack_folder.join(name)),
+                Err(error) => {
+                    log::warn!(
+                        "Removing mod {} from \"{modpack_name}\" without deleting its file: {error}",
+                        mod_.id
+                    );
+                    None
+                }
+            },
+        )
+        .collect();
     modpack
         .mods
         .retain(|mod_| !to_delete_ids.contains(&mod_.id));
@@ -460,7 +550,7 @@ pub fn delete_mod(
         }
     }
 
-    std::fs::write(
+    write_file_atomically(
         modpack_folder.join("modConfigV2.json"),
         serde_json::to_string_pretty(&InstalledModpack::from(modpack.clone()))?,
     )?;
@@ -475,7 +565,7 @@ pub fn set_modpack_sync_date(
     modpack_id: Option<&str>,
 ) -> Result<()> {
     validate_modpack_name(modpack)?;
-    std::fs::write(
+    write_file_atomically(
         modpack_path(mc_folder, modpack).join("quadrantSync.json"),
         serde_json::to_string_pretty(&SyncInfo {
             last_synced: time as i64,
@@ -500,11 +590,27 @@ pub async fn install_modpack(
         mod_config.name,
         mod_config.mods.len()
     );
-    let modpack_folder = modpack_path(mc_folder, &mod_config.name);
-    std::fs::create_dir_all(&modpack_folder)?;
-
     mod_config.mod_config_version = "2".to_string();
     mod_config.quadrant_version = crate::models::quadrant_version();
+
+    let expected_file_names = mod_config
+        .mods
+        .iter()
+        .map(|mod_| safe_download_file_name(&mod_.download_url, &mod_.source))
+        .collect::<Result<Vec<_>>>()?;
+    let mut unique_file_names = HashSet::new();
+    for name in &expected_file_names {
+        if !unique_file_names.insert(name) {
+            return Err(anyhow!("Duplicate download file name: {name}"));
+        }
+    }
+
+    let modpack_folder = modpack_path(mc_folder, &mod_config.name);
+    std::fs::create_dir_all(&modpack_folder)?;
+    let old_manifest = modpack_folder.join("modConfigV2.json");
+    let old_mod_config = std::fs::read_to_string(&old_manifest)
+        .ok()
+        .and_then(|raw| serde_json::from_str::<InstalledModpack>(&raw).ok());
 
     for mod_ in &mut mod_config.mods {
         if mod_.name.is_empty() && mod_.source != ModSource::Online {
@@ -521,11 +627,6 @@ pub async fn install_modpack(
     }
 
     let mods = mod_config.mods.clone();
-    let expected_file_names = mods
-        .iter()
-        .map(|mod_| safe_download_file_name(&mod_.download_url, &mod_.source))
-        .collect::<Result<Vec<_>>>()?;
-
     let staging = modpack_folder.join(format!(
         ".quadrant-install-{}",
         Utc::now().timestamp_nanos_opt().unwrap_or_default()
@@ -537,7 +638,17 @@ pub async fn install_modpack(
     let mut downloads = Vec::new();
     for (mod_, file_name) in mods.iter().cloned().zip(expected_file_names.iter()) {
         let final_path = modpack_folder.join(file_name);
-        if final_path.exists() {
+        // A version may keep its filename while changing its download URL.
+        // Reuse only a file recorded as the same download in the old manifest.
+        if final_path.is_file()
+            && old_mod_config.as_ref().is_some_and(|old| {
+                old.mods.iter().any(|old_mod| {
+                    old_mod.id == mod_.id
+                        && old_mod.source == mod_.source
+                        && old_mod.download_url == mod_.download_url
+                })
+            })
+        {
             continue;
         }
 
@@ -566,10 +677,7 @@ pub async fn install_modpack(
 
     // Only remove files tracked by the previous manifest. User files and sync
     // metadata are not part of an install transaction and must be preserved.
-    let old_manifest = modpack_folder.join("modConfigV2.json");
-    if let Ok(raw) = std::fs::read_to_string(&old_manifest)
-        && let Ok(old) = serde_json::from_str::<InstalledModpack>(&raw)
-    {
+    if let Some(old) = old_mod_config {
         for old_mod in old.mods {
             let old_name = safe_download_file_name(&old_mod.download_url, &old_mod.source)?;
             if !expected_file_names.contains(&old_name) {
@@ -581,7 +689,7 @@ pub async fn install_modpack(
         }
     }
 
-    std::fs::write(&old_manifest, serde_json::to_string_pretty(&mod_config)?)?;
+    write_file_atomically(&old_manifest, serde_json::to_string_pretty(&mod_config)?)?;
 
     event_sink.publish(BackendEvent::ModpackDownloadProgress(1.0))?;
     log::info!("Modpack installation complete");
@@ -603,46 +711,60 @@ pub fn export_modpack_to(
         destination.display()
     );
     let modpack_folder = modpack_path(mc_folder, modpack);
-    let destination = std::fs::File::create(destination)?;
-    let mut zip = zip::ZipWriter::new(destination);
+    // Only regular files belong in the archive. Subdirectories (for example a
+    // staging folder left by an interrupted install) must not abort the export.
+    let mut entries = std::fs::read_dir(&modpack_folder)?
+        .collect::<std::result::Result<Vec<_>, _>>()?
+        .into_iter()
+        .filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_file()))
+        .collect::<Vec<_>>();
+    entries.sort_by_key(|entry| entry.file_name());
+
+    // Build the archive beside the destination and rename it into place, so a
+    // failed export never leaves a truncated zip where the user asked for one.
+    let file_name = destination
+        .file_name()
+        .ok_or_else(|| anyhow!("Invalid export destination"))?
+        .to_string_lossy()
+        .to_string();
+    let partial_destination = destination.with_file_name(format!("{file_name}.part"));
+    let result = write_export_archive(&entries, &partial_destination, event_sink).and_then(|()| {
+        std::fs::rename(&partial_destination, destination).map_err(anyhow::Error::from)
+    });
+    if result.is_err() {
+        let _ = std::fs::remove_file(&partial_destination);
+        return result;
+    }
+
+    event_sink.publish(BackendEvent::QuadrantExportProgress(1.0))?;
+    log::info!("Modpack export complete");
+    Ok(())
+}
+
+fn write_export_archive(
+    entries: &[std::fs::DirEntry],
+    archive_path: &Path,
+    event_sink: &impl EventSink,
+) -> Result<()> {
+    let mut zip = zip::ZipWriter::new(std::fs::File::create(archive_path)?);
     let options: FileOptions<ExtendedFileOptions> = FileOptions::default()
         .compression_method(zip::CompressionMethod::Bzip2)
         .unix_permissions(0o755)
         .compression_level(Some(9))
         .large_file(true);
+    let total_files = entries.len();
 
-    let total_files = std::fs::read_dir(&modpack_folder)?
-        .filter_map(|entry| entry.ok())
-        .count();
-    let mut written_files = 0_usize;
-    let mut zip_issues = false;
-
-    for file in std::fs::read_dir(&modpack_folder)? {
-        let file = file?;
+    for (index, file) in entries.iter().enumerate() {
         let contents = std::fs::read(file.path())?;
         let file_name = file.file_name().to_string_lossy().to_string();
-
-        if zip.start_file(file_name.clone(), options.clone()).is_err() {
-            zip_issues = true;
-            continue;
-        }
-        if zip.write_all(&contents).is_err() {
-            zip_issues = true;
-            continue;
-        }
-
-        written_files += 1;
+        zip.start_file(file_name, options.clone())?;
+        zip.write_all(&contents)?;
         event_sink.publish(BackendEvent::QuadrantExportProgress(
-            written_files as f64 / total_files as f64,
+            (index + 1) as f64 / total_files as f64,
         ))?;
     }
 
-    if zip.finish().is_err() || zip_issues {
-        return Err(anyhow!("Failed to finish zip"));
-    }
-
-    event_sink.publish(BackendEvent::QuadrantExportProgress(1.0))?;
-    log::info!("Modpack export complete");
+    zip.finish()?;
     Ok(())
 }
 
@@ -907,6 +1029,124 @@ mod tests {
                 .events
                 .borrow()
                 .contains(&BackendEvent::ModpackDownloadProgress(1.0))
+        );
+    }
+
+    #[tokio::test]
+    async fn install_modpack_replaces_changed_download_with_same_file_name() {
+        let server = MockServer::start();
+        let download = server.mock(|when, then| {
+            when.method(GET).path("/v2/mod.jar");
+            then.status(200).body("new version");
+        });
+        let (_dir, mc_folder) = setup_mc_folder();
+        create_modpack(&mc_folder, &[], "alpha", "1.20.1", ModLoader::Fabric).unwrap();
+        let folder = modpack_path(&mc_folder, "alpha");
+        let mut pack: InstalledModpack =
+            serde_json::from_slice(&std::fs::read(folder.join("modConfigV2.json")).unwrap())
+                .unwrap();
+        pack.mods = vec![online_mod(
+            "mod",
+            format!("{}/v1/mod.jar", server.base_url()),
+        )];
+        std::fs::write(
+            folder.join("modConfigV2.json"),
+            serde_json::to_vec(&pack).unwrap(),
+        )
+        .unwrap();
+        std::fs::write(folder.join("mod.jar"), "old version").unwrap();
+        pack.mods[0].download_url = format!("{}/v2/mod.jar", server.base_url());
+
+        install_modpack(
+            &mc_folder,
+            pack.clone(),
+            &MemoryStore::default(),
+            &CollectingEvents::default(),
+        )
+        .await
+        .unwrap();
+
+        download.assert();
+        assert_eq!(
+            std::fs::read_to_string(folder.join("mod.jar")).unwrap(),
+            "new version"
+        );
+        let installed: InstalledModpack =
+            serde_json::from_slice(&std::fs::read(folder.join("modConfigV2.json")).unwrap())
+                .unwrap();
+        assert_eq!(installed.mods[0].download_url, pack.mods[0].download_url);
+    }
+
+    #[tokio::test]
+    async fn install_modpack_rejects_duplicate_file_names_before_writing() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        let result = install_modpack(
+            &mc_folder,
+            InstalledModpack {
+                mod_config_version: "2".to_string(),
+                quadrant_version: String::new(),
+                name: "alpha".to_string(),
+                version: "1.20.1".to_string(),
+                mod_loader: ModLoader::Fabric,
+                mods: vec![
+                    online_mod("one", "https://example.invalid/one/mod.jar".to_string()),
+                    online_mod("two", "https://example.invalid/two/mod.jar".to_string()),
+                ],
+            },
+            &MemoryStore::default(),
+            &CollectingEvents::default(),
+        )
+        .await;
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Duplicate download file name")
+        );
+        assert!(!modpack_path(&mc_folder, "alpha").exists());
+    }
+
+    #[test]
+    fn create_modpack_preserves_existing_manifest_with_stale_snapshot() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        create_modpack(&mc_folder, &[], "alpha", "1.20.1", ModLoader::Fabric).unwrap();
+        let manifest = modpack_path(&mc_folder, "alpha").join("modConfigV2.json");
+        let original = std::fs::read(&manifest).unwrap();
+
+        assert!(create_modpack(&mc_folder, &[], "alpha", "1.21", ModLoader::Forge).is_err());
+        assert_eq!(std::fs::read(&manifest).unwrap(), original);
+    }
+
+    #[tokio::test]
+    async fn update_modpack_rejects_existing_destination_before_changing_manifest() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        create_modpack(&mc_folder, &[], "alpha", "1.20.1", ModLoader::Fabric).unwrap();
+        let listed = get_modpacks(&mc_folder, false).await.unwrap();
+        let original_path = modpack_path(&mc_folder, "alpha");
+        let original = std::fs::read(original_path.join("modConfigV2.json")).unwrap();
+        // Even an empty destination created after listing belongs to the user.
+        std::fs::create_dir(modpack_path(&mc_folder, "beta")).unwrap();
+
+        assert!(
+            update_modpack(
+                &mc_folder,
+                &listed,
+                "alpha",
+                Some("beta".to_string()),
+                Some("1.21".to_string()),
+                None,
+            )
+            .is_err()
+        );
+        assert_eq!(
+            std::fs::read(original_path.join("modConfigV2.json")).unwrap(),
+            original
+        );
+        assert_eq!(
+            std::fs::read_dir(modpack_path(&mc_folder, "beta"))
+                .unwrap()
+                .count(),
+            0
         );
     }
 
@@ -1218,5 +1458,110 @@ mod tests {
         delete_modpack(&mc_folder, &listed, "alpha").unwrap();
         assert!(!mc_folder.join("mods").is_symlink());
         assert!(!modpack_path(&mc_folder, "alpha").exists());
+    }
+
+    #[tokio::test]
+    async fn get_modpacks_tolerates_damaged_sync_metadata() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        create_modpack(&mc_folder, &[], "alpha", "1.20.1", ModLoader::Fabric).unwrap();
+        create_modpack(&mc_folder, &[], "beta", "1.20.1", ModLoader::Fabric).unwrap();
+        std::fs::write(
+            modpack_path(&mc_folder, "alpha").join("quadrantSync.json"),
+            "{not json",
+        )
+        .unwrap();
+
+        let mut listed = get_modpacks(&mc_folder, false).await.unwrap();
+        listed.sort_by(|a, b| a.name.cmp(&b.name));
+        assert_eq!(
+            listed
+                .iter()
+                .map(|pack| pack.name.as_str())
+                .collect::<Vec<_>>(),
+            ["alpha", "beta"]
+        );
+        assert_eq!(listed[0].last_synced, 0);
+        assert_eq!(listed[0].version, "1.20.1");
+    }
+
+    #[test]
+    fn export_modpack_skips_directories_and_leaves_no_partial_archive_on_failure() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        create_modpack(&mc_folder, &[], "alpha", "1.20.1", ModLoader::Fabric).unwrap();
+        let folder = modpack_path(&mc_folder, "alpha");
+        std::fs::write(folder.join("sample.jar"), "jar").unwrap();
+        std::fs::create_dir(folder.join(".quadrant-install-1")).unwrap();
+        std::fs::write(folder.join(".quadrant-install-1").join("partial.jar"), "x").unwrap();
+
+        let destination = mc_folder.join("alpha.quadrantExport.zip");
+        export_modpack_to(
+            &mc_folder,
+            "alpha",
+            &destination,
+            &CollectingEvents::default(),
+        )
+        .unwrap();
+        let mut archive = zip::ZipArchive::new(std::fs::File::open(&destination).unwrap()).unwrap();
+        let mut names = Vec::new();
+        for index in 0..archive.len() {
+            names.push(archive.by_index(index).unwrap().name().to_string());
+        }
+        assert_eq!(names, ["modConfigV2.json", "sample.jar"]);
+        assert!(!mc_folder.join("alpha.quadrantExport.zip.part").exists());
+
+        let missing_parent = mc_folder.join("missing").join("alpha.quadrantExport.zip");
+        assert!(
+            export_modpack_to(
+                &mc_folder,
+                "alpha",
+                &missing_parent,
+                &CollectingEvents::default(),
+            )
+            .is_err()
+        );
+        assert!(!missing_parent.exists());
+        assert!(!mc_folder.join("missing").exists());
+    }
+
+    #[tokio::test]
+    async fn delete_mod_removes_manifest_entry_even_when_download_url_fails_policy() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        create_modpack(&mc_folder, &[], "alpha", "1.20.1", ModLoader::Fabric).unwrap();
+        let folder = modpack_path(&mc_folder, "alpha");
+        let mut pack: InstalledModpack =
+            serde_json::from_slice(&std::fs::read(folder.join("modConfigV2.json")).unwrap())
+                .unwrap();
+        pack.mods = vec![online_mod(
+            "legacy",
+            "http://example.invalid/legacy.jar".to_string(),
+        )];
+        std::fs::write(
+            folder.join("modConfigV2.json"),
+            serde_json::to_vec(&pack).unwrap(),
+        )
+        .unwrap();
+        std::fs::write(folder.join("legacy.jar"), "bytes").unwrap();
+
+        let listed = get_modpacks(&mc_folder, false).await.unwrap();
+        let updated = delete_mod(&mc_folder, &listed, "alpha", "legacy").unwrap();
+        assert!(updated.mods.is_empty());
+        let saved: InstalledModpack =
+            serde_json::from_slice(&std::fs::read(folder.join("modConfigV2.json")).unwrap())
+                .unwrap();
+        assert!(saved.mods.is_empty());
+        // The file stays because its name could not be validated.
+        assert!(folder.join("legacy.jar").exists());
+    }
+
+    #[test]
+    fn write_file_atomically_replaces_contents_and_cleans_temp_files() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("modConfigV2.json");
+        write_file_atomically(&path, b"first").unwrap();
+        write_file_atomically(&path, b"second").unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(), b"second");
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
+        assert!(write_file_atomically(dir.path().join("missing").join("x.json"), b"x").is_err());
+        assert_eq!(std::fs::read_dir(dir.path()).unwrap().count(), 1);
     }
 }

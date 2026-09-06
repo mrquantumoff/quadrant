@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import {
   ContentContext,
   IMod,
+  LocalModpack,
   ModLoader,
   ModpackViewContext,
   ModSource,
@@ -33,6 +34,7 @@ export interface IModProps {
   mod: IMod;
   modpack: string | undefined;
   className: string;
+  installTarget?: Pick<LocalModpack, "name" | "version" | "modLoader">;
 }
 
 /** Deterministic hue (0-359) from a string, for the gradient fallback tile. */
@@ -315,15 +317,17 @@ export default function Mod(props: IModProps) {
                       installInFlightRef.current = true;
                       setClickableDownload(false);
                       installRequestedRef.current = true;
-                      // Get last used api, modpack, and loader
-                      const config = createDesktopStore("config.json");
-                      const lastUsedAPI =
-                        await config.get<string>("lastUsedAPI");
-                      const lastUsedModpack =
-                        await config.get<string>("lastUsedModpack");
-                      const lastUsedVersion =
-                        await config.get<string>("lastUsedVersion");
                       try {
+                        const target = props.installTarget;
+                        const lastUsedAPI = target
+                          ? target.modLoader
+                          : await config.get<string>("lastUsedAPI");
+                        const lastUsedModpack = target
+                          ? target.name
+                          : await config.get<string>("lastUsedModpack");
+                        const lastUsedVersion = target
+                          ? target.version
+                          : await config.get<string>("lastUsedVersion");
                         await installMod(
                           mod.id,
                           lastUsedVersion ?? "",

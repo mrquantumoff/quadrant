@@ -58,63 +58,96 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   const [modInstallProgress, setModInstallProgress] = useState<number>(0);
   const [modDownloadProgress, setModDownloadProgress] = useState<number>(0);
   const [isInstalling, setIsInstalling] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const installInFlightRef = useRef(false);
   const configRef = useRef(createDesktopStore("config.json"));
   const config = configRef.current;
   useEffect(() => {
     let cancelled = false;
-    const unlisteners: Array<() => void | Promise<void>> = [];
+    setIsReady(false);
     const effect = async () => {
-      setVersions(await getVersions());
-      setModpacks(await getModpacks());
-      setVersion((await config.get<string>("lastUsedVersion")) ?? "");
-      setLoader((await config.get<string>("lastUsedAPI")) ?? "");
-      setModpack((await config.get<string>("lastUsedModpack")) ?? "");
-      const newOwners = await getModOwners(mod.source, mod.id);
-      const newDeps = await getModDependencies(mod.source, mod.id);
-      const roundIcons = await config.get<boolean>("clipIcons");
-      setClipIcons(roundIcons ?? true);
-      const newOwnersList: IModOwner[] = [];
-      for (const owner of newOwners) {
-        newOwnersList.push({
-          name: owner,
-          url: await getUserURL(owner, mod.source),
-        });
-      }
-      setDeps(newDeps);
-      setOwners(newOwnersList);
-      const listeners = await Promise.all([
-        listen<ModProgress>("modInstallProgress", (event) => {
-          if (!cancelled && event.payload.modId === mod.id) {
-            setModInstallProgress(event.payload.progress);
-          }
-        }),
-        listen<ModProgress>("modDownloadProgress", (event) => {
-          if (!cancelled && event.payload.modId === mod.id) {
-            setModDownloadProgress(event.payload.progress);
-          }
-        }),
+      const [
+        availableVersions,
+        availableModpacks,
+        savedVersion,
+        savedLoader,
+        savedModpack,
+      ] = await Promise.all([
+        getVersions(),
+        getModpacks(),
+        config.get<string>("lastUsedVersion"),
+        config.get<string>("lastUsedAPI"),
+        config.get<string>("lastUsedModpack"),
       ]);
-      if (cancelled) {
-        await Promise.all(listeners.map((unlisten) => unlisten()));
-      } else {
-        unlisteners.push(...listeners);
-      }
+      if (cancelled) return;
+      const target =
+        mod.modType === ModType.Mod
+          ? (availableModpacks.find((entry) => entry.name === savedModpack) ??
+            availableModpacks.find((entry) => entry.isApplied) ??
+            availableModpacks[0])
+          : undefined;
+      const initialVersion =
+        target?.version ??
+        availableVersions.find((entry) => entry.version === savedVersion)
+          ?.version ??
+        availableVersions[0]?.version ??
+        "";
+      setVersions(availableVersions);
+      setModpacks(availableModpacks);
+      setVersion(initialVersion);
+      setLoader(target?.modLoader ?? savedLoader ?? ModLoader.Unknown);
+      setModpack(target?.name ?? "");
+      setIsReady(true);
     };
     effect().catch(console.error);
+    return () => {
+      cancelled = true;
+    };
+  }, [config, mod.modType]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const unlisteners: Array<() => void | Promise<void>> = [];
+    setDeps([]);
+    setOwners([]);
+    const effect = async () => {
+      const [newOwners, newDeps, roundIcons] = await Promise.all([
+        getModOwners(mod.source, mod.id),
+        getModDependencies(mod.source, mod.id),
+        config.get<boolean>("clipIcons"),
+      ]);
+      const newOwnersList = await Promise.all(
+        newOwners.map(async (owner) => ({
+          name: owner,
+          url: await getUserURL(owner, mod.source),
+        })),
+      );
+      if (cancelled) return;
+      setClipIcons(roundIcons ?? true);
+      setDeps(newDeps);
+      setOwners(newOwnersList);
+    };
+    effect().catch(console.error);
+    for (const [eventName, setProgress] of [
+      ["modInstallProgress", setModInstallProgress],
+      ["modDownloadProgress", setModDownloadProgress],
+    ] as const) {
+      void listen<ModProgress>(eventName, (event) => {
+        if (!cancelled && event.payload.modId === mod.id) {
+          setProgress(event.payload.progress);
+        }
+      })
+        .then((unlisten) => {
+          if (cancelled) return unlisten();
+          unlisteners.push(unlisten);
+        })
+        .catch(console.error);
+    }
     return () => {
       cancelled = true;
       unlisteners.forEach((unlisten) => void unlisten());
     };
   }, [config, mod.id, mod.source]);
-
-  useEffect(() => {
-    const effect = async () => {
-      const newDeps = await getModDependencies(mod.source, mod.id);
-      setDeps(newDeps);
-    };
-    effect().catch(console.error);
-  }, [mod]);
 
   const modSource =
     mod.source === ModSource.CurseForge
@@ -265,6 +298,10 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 }}
                 value={version}
               >
+                {version &&
+                  !versions.some((entry) => entry.version === version) && (
+                    <option value={version}>{version}</option>
+                  )}
                 {versions.map((versionOption) => {
                   return (
                     <option
@@ -345,6 +382,12 @@ export default function ModInstallPage(props: IModInstallPageProps) {
             />
             <LinearProgress className="my-2" progress={modDownloadProgress} />
             <Button
+              disabled={
+                !isReady ||
+                isInstalling ||
+                (props.fileId === undefined && !version) ||
+                (mod.modType === ModType.Mod && !modpack)
+              }
               className={
                 "self-center flex w-full flex-1 h-full items-center mt-8 " +
                 (isInstalling
@@ -352,7 +395,12 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                   : "bg-emerald-600 hover:bg-emerald-700")
               }
               onClick={async () => {
-                if (installInFlightRef.current) {
+                if (
+                  !isReady ||
+                  installInFlightRef.current ||
+                  (props.fileId === undefined && !version) ||
+                  (mod.modType === ModType.Mod && !modpack)
+                ) {
                   return;
                 }
                 installInFlightRef.current = true;

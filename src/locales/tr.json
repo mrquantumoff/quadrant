@@ -162,6 +162,7 @@
   "cloudSyncDate": "Quadrant Sync'teki sürüm: {{date}}",
   "localSyncDate": "Yerel sürüm: {{date}}",
   "sync": "Senkronize et",
+  "quadrantSync": "Quadrant Sync",
   "modpackUpdated": "Mod paketi başarıyla güncellendi",
   "areYouSure": "Hesabınızı silmek istediğinizden emin misiniz?",
   "advancedSettings": "Gelişmiş ayarlar",

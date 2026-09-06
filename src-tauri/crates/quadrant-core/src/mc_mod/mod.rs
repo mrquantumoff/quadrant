@@ -317,7 +317,9 @@ pub async fn check_mod_updates(
 
     new_mod.show_previous_version = true;
     new_mod.deleteable = false;
-    new_mod.autoinstallable = true;
+    // Online mods cannot be re-downloaded through a provider, so never offer
+    // one-click install for them.
+    new_mod.autoinstallable = mod_to_update.source != ModSource::Online;
 
     match mod_to_update.source {
         ModSource::CurseForge => {
@@ -565,7 +567,9 @@ pub async fn install_mod(
             )
             .await?
         }
-        ModSource::Online => unimplemented!(),
+        // Online mods have no provider to resolve a file from. Fail cleanly so
+        // the caller's promise settles instead of panicking the command task.
+        ModSource::Online => return Err(anyhow!("unsupportedDownload")),
     };
 
     event_sink.publish(BackendEvent::ModInstallProgress(ModProgressPayload {
@@ -609,25 +613,36 @@ pub async fn get_file(
 ) -> Result<(PathBuf, String)> {
     if let Some(cached_file) = get_cache_index(file.sha1.clone()).await? {
         log::info!("Cache hit for mod {id} (sha1={})", file.sha1);
-        let cached_file_bytes = std::fs::read(&cached_file.file_name).map_err(|error| {
-            let _ = futures::executor::block_on(init_cache());
-            anyhow!(error)
-        })?;
-        if file_hash(&cached_file_bytes).eq_ignore_ascii_case(&file.sha1) {
-            let file_path = add_cache_index(
-                file.file_name.clone(),
-                cached_file_bytes.as_slice(),
-                file.sha1.clone(),
-            )
-            .await?;
-            event_sink.publish(BackendEvent::ModDownloadProgress(ModProgressPayload {
-                mod_id: id,
-                progress: 100,
-            }))?;
-            return Ok((file_path, file.download_url));
+        match std::fs::read(&cached_file.file_name) {
+            Ok(cached_file_bytes)
+                if file_hash(&cached_file_bytes).eq_ignore_ascii_case(&file.sha1) =>
+            {
+                let file_path = add_cache_index(
+                    file.file_name.clone(),
+                    cached_file_bytes.as_slice(),
+                    file.sha1.clone(),
+                )
+                .await?;
+                event_sink.publish(BackendEvent::ModDownloadProgress(ModProgressPayload {
+                    mod_id: id,
+                    progress: 100,
+                }))?;
+                return Ok((file_path, file.download_url));
+            }
+            Ok(_) => {
+                log::warn!("Discarding corrupt cache entry for sha1={}", file.sha1);
+                let _ = std::fs::remove_file(&cached_file.file_name);
+            }
+            Err(error) => {
+                // A missing or unreadable cached file is not fatal: prune the
+                // stale index entry and fall through to a fresh download.
+                log::warn!(
+                    "Cached file for sha1={} is unreadable ({error}); re-downloading",
+                    file.sha1
+                );
+            }
         }
-        log::warn!("Discarding corrupt cache entry for sha1={}", file.sha1);
-        let _ = std::fs::remove_file(cached_file.file_name);
+        // Never block the async worker here; the index lock is a tokio mutex.
         init_cache().await?;
     }
 
@@ -706,6 +721,7 @@ pub fn install_local_file(
     let (target_path, updated_modpack, manifest_path, old_file_path) = match mod_type {
         ModType::Mod => {
             let modpack_name = modpack.ok_or_else(|| anyhow!("modpackRequired"))?;
+            crate::modpacks::validate_modpack_name(&modpack_name)?;
             let manifest_path =
                 crate::models::modpack_path(mc_folder, &modpack_name).join("modConfigV2.json");
             // Re-read under a process-wide lock so concurrent downloads merge
@@ -771,7 +787,7 @@ pub fn install_local_file(
     std::fs::copy(file, &target_path)?;
     if let (Some(manifest_path), Some(updated_modpack)) = (manifest_path, updated_modpack.as_ref())
     {
-        std::fs::write(
+        crate::modpacks::write_file_atomically(
             manifest_path,
             serde_json::to_string_pretty(&InstalledModpack::from(updated_modpack.clone()))?,
         )?;
@@ -796,6 +812,9 @@ pub async fn install_remote_file(
     source: ModSource,
     id: String,
 ) -> Result<Option<LocalModpack>> {
+    // Apply the same URL policy that later delete/install-modpack paths
+    // enforce, so every manifest entry this creates can be removed again.
+    crate::modpacks::safe_download_file_name(&file.download_url, &source)?;
     let downloaded_file = get_file(file, id.clone(), event_sink).await?;
     let mod_to_install = enrich_installed_mod(InstalledMod::minimal(
         id.clone(),
@@ -851,6 +870,82 @@ pub async fn identify_modpack(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn install_local_file_rejects_modpack_path_traversal_before_writing() {
+        let dir = tempfile::tempdir().unwrap();
+        let mc_folder = dir.path().join("minecraft");
+        std::fs::create_dir_all(mc_folder.join("modpacks")).unwrap();
+        let outside = mc_folder.join("outside");
+        std::fs::create_dir(&outside).unwrap();
+        let manifest = serde_json::to_vec(&InstalledModpack {
+            mod_config_version: "2".to_string(),
+            quadrant_version: String::new(),
+            name: "outside".to_string(),
+            version: "1.20.1".to_string(),
+            mod_loader: ModLoader::Fabric,
+            mods: Vec::new(),
+        })
+        .unwrap();
+        std::fs::write(outside.join("modConfigV2.json"), &manifest).unwrap();
+        let source_file = dir.path().join("download.jar");
+        std::fs::write(&source_file, "mod bytes").unwrap();
+        let local_mod = InstalledMod::minimal(
+            "mod".to_string(),
+            ModSource::Online,
+            "https://example.invalid/mod.jar".to_string(),
+        );
+
+        for name in [
+            "../outside".to_string(),
+            outside.to_string_lossy().to_string(),
+        ] {
+            assert!(
+                install_local_file(
+                    &mc_folder,
+                    &[],
+                    source_file.clone(),
+                    local_mod.clone(),
+                    ModType::Mod,
+                    Some(name),
+                )
+                .is_err()
+            );
+            assert!(!outside.join("mod.jar").exists());
+            assert_eq!(
+                std::fs::read(outside.join("modConfigV2.json")).unwrap(),
+                manifest
+            );
+        }
+    }
+
+    #[test]
+    fn install_local_file_installs_into_valid_modpack() {
+        let dir = tempfile::tempdir().unwrap();
+        crate::modpacks::create_modpack(dir.path(), &[], "alpha", "1.20.1", ModLoader::Fabric)
+            .unwrap();
+        let source_file = dir.path().join("download.jar");
+        std::fs::write(&source_file, "mod bytes").unwrap();
+        let updated = install_local_file(
+            dir.path(),
+            &[],
+            source_file,
+            InstalledMod::minimal(
+                "mod".to_string(),
+                ModSource::Online,
+                "https://example.invalid/my%20mod.jar".to_string(),
+            ),
+            ModType::Mod,
+            Some("alpha".to_string()),
+        )
+        .unwrap()
+        .unwrap();
+        assert_eq!(updated.mods.len(), 1);
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("modpacks/alpha/my mod.jar")).unwrap(),
+            "mod bytes"
+        );
+    }
 
     #[test]
     fn mod_type_from_string_covers_aliases_and_fallback() {
@@ -976,5 +1071,136 @@ mod tests {
         let agent = get_user_agent();
         assert!(agent.starts_with("mrquantumoff/quadrant/v"));
         assert!(agent.contains(env!("CARGO_PKG_VERSION")));
+    }
+
+    struct NullSettings;
+
+    impl crate::ports::SettingsStore for NullSettings {
+        fn get_value(&self, _key: &str) -> Result<Option<serde_json::Value>> {
+            Ok(None)
+        }
+
+        fn set_value(&self, _key: &str, _value: serde_json::Value) -> Result<()> {
+            Ok(())
+        }
+
+        fn entries(&self) -> Result<Vec<(String, serde_json::Value)>> {
+            Ok(Vec::new())
+        }
+    }
+
+    #[derive(Default)]
+    struct CollectingEvents {
+        events: std::sync::Mutex<Vec<BackendEvent>>,
+    }
+
+    impl EventSink for CollectingEvents {
+        fn publish(&self, event: BackendEvent) -> Result<()> {
+            self.events.lock().unwrap().push(event);
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn install_mod_rejects_online_source_without_panicking() {
+        let dir = tempfile::tempdir().unwrap();
+        let error = install_mod(
+            dir.path(),
+            &[],
+            &NullSettings,
+            &CollectingEvents::default(),
+            "mod".to_string(),
+            "1.20.1".to_string(),
+            ModLoader::Fabric,
+            ModSource::Online,
+            Some("alpha".to_string()),
+            ModType::Mod,
+            None,
+        )
+        .await
+        .unwrap_err();
+        assert!(error.to_string().contains("unsupportedDownload"));
+    }
+
+    #[tokio::test]
+    async fn check_mod_updates_never_marks_online_mods_autoinstallable() {
+        let online = Mod {
+            name: "mod".to_string(),
+            id: "mod".to_string(),
+            download_count: 0,
+            version: String::new(),
+            date_modified: String::new(),
+            mod_type: ModType::Mod,
+            source: ModSource::Online,
+            slug: String::new(),
+            thumbnail_urls: Vec::new(),
+            url: String::new(),
+            description: String::new(),
+            license: String::new(),
+            mod_icon_url: String::new(),
+            downloadable: false,
+            show_previous_version: false,
+            new_version: None,
+            deleteable: false,
+            autoinstallable: true,
+            selectable: false,
+            modpack: None,
+            select_url: None,
+        };
+        let modpack = LocalModpack {
+            name: "alpha".to_string(),
+            version: "1.20.1".to_string(),
+            mod_loader: ModLoader::Fabric,
+            mods: Vec::new(),
+            unknown_mods: false,
+            is_applied: false,
+            last_synced: 0,
+            modpack_id: None,
+        };
+        let checked = check_mod_updates(
+            online,
+            "1.20.1".to_string(),
+            ModLoader::Fabric,
+            modpack,
+            true,
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        assert!(!checked.autoinstallable);
+    }
+
+    #[tokio::test]
+    async fn get_file_redownloads_when_cached_file_is_missing() {
+        let _guard = crate::mc_mod::cache::tests::set_cache_dir();
+        let server = httpmock::MockServer::start();
+        let download = server.mock(|when, then| {
+            when.method(httpmock::Method::GET).path("/mod.jar");
+            then.status(200).body("fresh bytes");
+        });
+        let bytes = b"fresh bytes";
+        let sha1 = crate::mc_mod::cache::file_hash(bytes);
+        let cached =
+            crate::mc_mod::cache::add_cache_index("mod.jar".to_string(), bytes, sha1.clone())
+                .await
+                .unwrap();
+        std::fs::remove_file(&cached).unwrap();
+
+        let (path, _) = get_file(
+            UniversalModFile {
+                id: None,
+                file_name: "mod.jar".to_string(),
+                download_url: format!("{}/mod.jar", server.base_url()),
+                sha1,
+                size: bytes.len() as u64,
+            },
+            "mod".to_string(),
+            &CollectingEvents::default(),
+        )
+        .await
+        .unwrap();
+
+        download.assert();
+        assert_eq!(std::fs::read(path).unwrap(), bytes);
     }
 }

@@ -162,6 +162,7 @@
   "cloudSyncDate": "Версія на Quadrant Sync: {{date}}",
   "localSyncDate": "Локальна версія: {{date}}",
   "sync": "Синхронізувати",
+  "quadrantSync": "Quadrant Sync",
   "modpackUpdated": "Модпак успішно оновлено",
   "areYouSure": "Чи ви впевнені, що хочете видалити свій обліковий запис?",
   "advancedSettings": "Просунуті налаштування",
