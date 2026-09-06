@@ -36,7 +36,7 @@ src/                     React renderer (shared between browser + Tauri)
     core/                Primitives: Button, CircularProgress, LinearProgress
     shared/              Mod, Notifications, LoaderOption
     Pages/               One dir per screen: ApplyPage, CurrentModpackPage, SearchPage,
-                         ModInstallPage, AccountPage, ShareSyncPage, SettingsPage
+                         ModInstallPage, AccountPage, SettingsPage
   locales/               i18n JSON: en, tr (Turkish), uk (Ukrainian)
 src-tauri/               Tauri desktop shell (Rust)
   src/                   Thin Tauri layer: ~56 #[tauri::command]s that delegate into the crates

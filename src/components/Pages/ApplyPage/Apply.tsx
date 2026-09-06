@@ -1,59 +1,53 @@
 /** @format */
 
-import { useContext, useEffect, useRef, useState } from "react";
-import { LocalModpack, MinecraftVersion, ModLoader } from "../../../intefaces";
+import { useContext, useEffect, useState } from "react";
+import {
+  LocalModpack,
+  MinecraftVersion,
+  ModLoader,
+  SyncContext,
+} from "../../../intefaces";
 import {
   applyModpack,
   createModpack,
   deleteModpack,
-  exportModpack,
   getMinecraftFolder,
   getModpacks,
+  getQuadrantShareModpack,
   getVersions,
   openModpacksFolder,
-  shareModpack,
-  syncModpack,
-  updateModpack,
 } from "../../../tools";
 import { useTranslation } from "react-i18next";
-import quadrantLocale from "../../../i18n";
 import Button from "../../core/Button";
 import { AnimatePresence, motion } from "motion/react";
-import {
-  Description,
-  Dialog,
-  DialogBackdrop,
-  DialogPanel,
-  DialogTitle,
-  Field,
-  Fieldset,
-  Input,
-  Label,
-  Select,
-} from "@headlessui/react";
 import "./Apply.css";
-import {
-  MdArchive,
-  MdCheck,
-  MdClear,
-  MdCreate,
-  MdDelete,
-  MdEdit,
-  MdFolder,
-  MdInfo,
-  MdShare,
-  MdSync,
-} from "react-icons/md";
-import LoaderOptions from "../../shared/LoaderOption";
+import { MdAdd, MdCheck, MdClear, MdFolder } from "react-icons/md";
 import { ContentContext } from "../../../intefaces";
-import ModpackView from "../../shared/Pages/ModpackView";
+import LocalModpackCard from "./LocalModpackCard";
+import ModpackEditDialog from "./ModpackEditDialog";
 import { createDesktopStore, joinPath, listen, watch } from "../../../desktop";
 import {
   loaderProvidersFromSettings,
   ModLoaderProvider,
 } from "../../../modLoaders";
+import { parseShareCode } from "../../../deepLinks";
+import SharedModpackView from "./SharedModpackView";
+import SyncedModpackComponent from "./SyncedModpack";
+import { useSyncedModpacks } from "./useSyncedModpacks";
+import { mergeModpacks } from "./mergeModpacks";
+
+const toolbarActionClass =
+  "flex shrink-0 items-center justify-center gap-2 h-10 px-4 rounded-full text-sm text-white whitespace-nowrap";
+const toolbarIconClass =
+  "flex shrink-0 items-center justify-center w-10 h-10 rounded-full bg-slate-700 text-slate-200 hover:text-white";
+
 export default function ApplyPage() {
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
+  const {
+    accountInfo,
+    syncedModpacks,
+    refresh: refreshSyncedModpacks,
+  } = useSyncedModpacks();
 
   const { t } = useTranslation();
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
@@ -80,7 +74,7 @@ export default function ApplyPage() {
   const [originalModpackName, setOriginalModpackName] = useState("free");
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const searchQueryRef = useRef("");
+  const [isResolvingShareCode, setIsResolvingShareCode] = useState(false);
   const [loaderProviders, setLoaderProviders] = useState<ModLoaderProvider[]>(
     loaderProvidersFromSettings(true, true),
   );
@@ -119,22 +113,47 @@ export default function ApplyPage() {
         unknownMods: false,
       });
 
-      const unwatch = await watch(
-        await joinPath(await getMinecraftFolder(false)),
-        async () => {
-          if (!isUnmounted) {
-            await updateModpacks();
-          }
-        },
-        {
-          delayMs: 50,
-        },
-      );
-      if (isUnmounted) {
-        unwatch();
-      } else {
-        cleanupFns.push(unwatch);
+      // The Minecraft folder itself (the `mods` link flips on apply) plus the
+      // modpacks tree, where installs and sync metadata land several levels
+      // deep and would be invisible to a non-recursive watch.
+      const minecraftFolder = await getMinecraftFolder(false);
+      let treeWatchAttached = false;
+      const watchTree = async () => {
+        if (treeWatchAttached || isUnmounted) return;
+        treeWatchAttached = true;
+        try {
+          const unwatch = await watch(
+            await joinPath(minecraftFolder, "modpacks"),
+            () => {
+              if (!isUnmounted) void updateModpacks().catch(console.error);
+            },
+            { delayMs: 50, recursive: true },
+          );
+          if (isUnmounted) unwatch();
+          else cleanupFns.push(unwatch);
+        } catch (error) {
+          // The tree may not exist until the first local pack is created.
+          treeWatchAttached = false;
+          console.error(error);
+        }
+      };
+      try {
+        const unwatch = await watch(
+          await joinPath(minecraftFolder),
+          async () => {
+            if (!isUnmounted) {
+              await watchTree();
+              await updateModpacks().catch(console.error);
+            }
+          },
+          { delayMs: 50 },
+        );
+        if (isUnmounted) unwatch();
+        else cleanupFns.push(unwatch);
+      } catch (error) {
+        console.error(error);
       }
+      await watchTree();
 
       const unlisten = await listen(
         "quadrantShareSubmission",
@@ -177,24 +196,41 @@ export default function ApplyPage() {
     };
   }, []);
 
-  useEffect(() => {
-    const effect = async () => {
-      await updateModpacks();
-    };
-    effect();
-  }, [searchQuery]);
-
-  const modpackRequestRef = useRef(0);
   const updateModpacks = async () => {
-    // Each keystroke starts a request; only the newest may update the list,
-    // otherwise a slow older response overwrites results for the current query.
-    const requestId = ++modpackRequestRef.current;
-    const newModpacks = await getModpacks(true, searchQueryRef.current);
-    if (requestId !== modpackRequestRef.current) {
-      return;
-    }
+    const newModpacks = await getModpacks();
 
     setModpacks(newModpacks);
+  };
+
+  const shareCode = parseShareCode(searchQuery);
+  const rows = mergeModpacks(modpacks, syncedModpacks, searchQuery);
+
+  const openSharedModpack = async () => {
+    if (shareCode === null || isResolvingShareCode) {
+      return;
+    }
+    setIsResolvingShareCode(true);
+    try {
+      const resolved = await getQuadrantShareModpack(shareCode);
+      const randomString = Math.random().toString(36).substring(2, 10);
+      context.changeContent({
+        name: shareCode + randomString,
+        title: resolved.name,
+        style: "",
+        main: false,
+        icon: <></>,
+        content: <SharedModpackView modpack={resolved} />,
+      });
+    } catch (e: any) {
+      console.error(e);
+      context.setSnackbar({
+        message: t("unsupportedDownload"),
+        className: "bg-red-700 rounded-4xl",
+        timeout: 5000,
+      });
+    } finally {
+      setIsResolvingShareCode(false);
+    }
   };
 
   return (
@@ -205,28 +241,29 @@ export default function ApplyPage() {
         exit={{ y: 24, opacity: 0 }}
         className="flex flex-1 flex-col w-full transform-gpu backface-hidden will-change-[transform,opacity]"
       >
-        <input
-          placeholder={t("search")}
-          className="p-2 input w-[95.5%] bg-slate-700 h-11 rounded-full self-center mx-8 my-4 text-center"
-          onChange={(event) => {
-            const query = event.target.value.toLowerCase().trim();
-            searchQueryRef.current = query;
-            setSearchQuery(query);
-          }}
-          autoComplete="off"
-          value={searchQuery}
-        ></input>
-        <div className="flex flex-row flex-wrap justify-center w-fit self-center bg-slate-700 rounded-4xl my-2 p-1.5">
+        <div className="flex flex-row items-center gap-2 mx-8 my-4">
+          <input
+            placeholder={t("searchModpacksPlaceholder")}
+            className="input min-w-0 flex-1 h-10 px-4 rounded-full bg-slate-700 text-sm font-bold text-slate-100 placeholder:font-normal placeholder:text-slate-400 outline-none focus:bg-slate-600"
+            onChange={(event) => {
+              const query = event.target.value.toLowerCase().trim();
+              setSearchQuery(query);
+            }}
+            autoComplete="off"
+            value={searchQuery}
+          ></input>
           <Button
             onClick={() => {
               setIsDialogToCreate(true);
               setIsUpdateDialogOpen(true);
               setModpackToUpdate(defaultModpack);
             }}
-            className="bg-emerald-600 mx-2 flex items-center align-middle w-fit hover:bg-emerald-700 px-4 rounded-4xl "
+            className={
+              toolbarActionClass + " bg-emerald-600 hover:bg-emerald-700"
+            }
           >
+            <MdAdd aria-hidden="true" className="w-5 h-5" />
             {t("createModpack")}
-            <MdCreate className="w-5 h-5 mx-2" />
           </Button>
           <Button
             onClick={async () => {
@@ -243,440 +280,82 @@ export default function ApplyPage() {
               await applyModpack("free");
               await updateModpacks();
             }}
-            className="bg-slate-800 flex items-center align-middle mx-2 w-fit hover:bg-red-700 px-4 rounded-4xl "
+            className={toolbarIconClass + " hover:bg-red-700"}
+            title={t("clear")}
+            aria-label={t("clear")}
           >
-            {t("clear")}
-            <MdClear className="w-5 h-5 mx-2" />
+            <MdClear aria-hidden="true" className="w-5 h-5" />
           </Button>
           <Button
             onClick={async () => {
               await openModpacksFolder();
             }}
-            className="bg-slate-800 flex items-center align-middle mx-2 w-fit hover:bg-slate-700 px-4 rounded-4xl "
+            className={toolbarIconClass + " hover:bg-slate-600"}
+            title={t("openModpacksFolder")}
+            aria-label={t("openModpacksFolder")}
           >
-            {t("openModpacksFolder")}
-            <MdFolder className="w-5 h-5 mx-2" />
+            <MdFolder aria-hidden="true" className="w-5 h-5" />
           </Button>
         </div>
-        <div className="bg-slate-800 rounded-4xl mx-6 mb-8">
-          <AnimatePresence>
-            {modpacks?.map((modpack, index) => {
-              const date = new Date(modpack.lastSynced);
-
-              const formattedDate = new Intl.DateTimeFormat(
-                quadrantLocale.language,
-                {
-                  weekday: "long",
-                  day: "2-digit",
-                  month: "2-digit",
-                  year: "2-digit",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: false,
-                },
-              ).format(date);
-              const dateString = t("localSyncDate", { date: formattedDate });
-              return (
-                <motion.div
-                  initial={{ opacity: 0, y: 24 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  whileHover={{ y: -5 }}
-                  transition={{ duration: 0.15, ease: "linear" }}
-                  exit={{
-                    opacity: 0,
-                    y: -24,
-                  }}
-                  key={index}
-                  className="flex flex-col bg-slate-900 hover:bg-slate-950 p-4 rounded-4xl mx-5 my-5 h-max hover:shadow-lg hover:shadow-slate-950 transform-gpu backface-hidden will-change-[transform,opacity]"
-                >
-                  <h1 className="text-2xl font-extrabold max-w-full w-fit">
-                    {modpack.name}
-                  </h1>
-                  <p className="text-md text-slate-400 ">
-                    {modpack.version} | {modpack.modLoader} |{" "}
-                    {t("modCount", { amount: modpack.mods.length })}{" "}
-                    {modpack.lastSynced !== 0 && <span>| {dateString}</span>}
-                  </p>
-                  <div className="my-2 flex overflow-x-auto flex-wrap h-max flex-row items-center text-sm justify-start text-center w-full">
-                    <Button
-                      onClick={async () => {
-                        if (modpack.isApplied) {
-                          return;
-                        }
-                        try {
-                          await applyModpack(modpack.name);
-                          await updateModpacks();
-                          context.setSnackbar({
-                            message: (
-                              <span className="flex">
-                                <MdCheck className="w-5 h-5 mx-2" />
-                                {t("setModpackSuccess")}
-                              </span>
-                            ),
-                            className: "bg-emerald-600 rounded-4xl",
-                            timeout: 5000,
-                          });
-                        } catch (e: any) {
-                          console.error(e);
-                          context.setSnackbar({
-                            message: t("setModpackFailed"),
-                            className: "bg-red-700 rounded-4xl",
-                            timeout: 5000,
-                          });
-                        }
-                      }}
-                      className={
-                        modpack.isApplied
-                          ? "flex items-center self-center bg-emerald-900 cursor-default w-max px-4 h-10 justify-center m-2"
-                          : "flex items-center self-center bg-emerald-600 hover:bg-emerald-700 px-4 w-max h-10 justify-center m-2"
-                      }
-                    >
-                      {modpack.isApplied ? t("applied") : t("apply")}
-                      <MdCheck className="w-5 h-5 mx-2" />
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        try {
-                          await shareModpack(modpack.name);
-                        } catch (e: any) {
-                          console.error(e);
-                          context.setSnackbar({
-                            message: t(e),
-                            className: "bg-red-700 rounded-4xl",
-                            timeout: 5000,
-                          });
-                        }
-                      }}
-                      className={
-                        "flex items-center self-center bg-blue-600 hover:bg-blue-700 px-4 m-2 w-max h-10 justify-center"
-                      }
-                    >
-                      {t("share")}
-                      <MdShare className="w-5 h-5 mx-2" />
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        try {
-                          await syncModpack(modpack, true);
-                          context.setSnackbar({
-                            message: (
-                              <span className="flex">
-                                <MdCheck className="w-5 h-5 mx-2" />
-                                {t("modpackUpdated")}
-                              </span>
-                            ),
-                            className: "bg-emerald-600 rounded-4xl",
-                            timeout: 5000,
-                          });
-                          await updateModpacks();
-                        } catch (e: any) {
-                          console.error(e);
-                          context.setSnackbar({
-                            message: t(e),
-                            className: "bg-red-700 rounded-4xl",
-                            timeout: 5000,
-                          });
-                        }
-                      }}
-                      className={
-                        "flex items-center px-4 self-center bg-emerald-600 hover:bg-emerald-700 m-2 w-max h-10 justify-center"
-                      }
-                    >
-                      {t("sync")}
-                      <MdSync className="w-5 h-5 ml-2" />
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        setIsUpdateDialogOpen(true);
-                        setIsDialogToCreate(false);
-                        setOriginalModpackName(
-                          JSON.parse(JSON.stringify(modpack.name)),
-                        );
-                        setModpackToUpdate(modpack);
-                      }}
-                      className={
-                        "flex items-center self-center bg-blue-600 hover:bg-blue-700 px-4 m-2 w-max h-10 justify-center"
-                      }
-                    >
-                      {t("update")}
-                      <MdEdit className="w-5 h-5 mx-2" />
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        try {
-                          // Must be awaited, or a rejected export bypasses
-                          // the catch and the user never sees the error.
-                          await exportModpack(modpack.name);
-                        } catch (e: any) {
-                          console.error(e);
-                          context.setSnackbar({
-                            message: t(e),
-                            className: "bg-red-700 rounded-4xl",
-                            timeout: 5000,
-                          });
-                        }
-                      }}
-                      className={
-                        "flex items-center self-center px-4 bg-slate-800 hover:bg-slate-700 m-2 w-max h-10 justify-center"
-                      }
-                    >
-                      {t("export")}
-                      <MdArchive className="w-5 h-5 mx-2" />
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        try {
-                          await deleteModpack(modpack.name);
-                          await updateModpacks();
-                          context.setSnackbar({
-                            message: <MdDelete className="w-5 h-5 mx-2" />,
-                            className: "bg-emerald-600 rounded-4xl",
-                            timeout: 5000,
-                          });
-                        } catch (e: any) {
-                          console.error(e);
-                          context.setSnackbar({
-                            message: t("unknown"),
-                            className: "bg-red-700 rounded-4xl",
-                            timeout: 5000,
-                          });
-                        }
-                      }}
-                      className={
-                        "flex items-center self-center bg-slate-800 hover:bg-red-700 px-4  w-max h-10 m-2 justify-center"
-                      }
-                    >
-                      {t("delete")}
-                      <MdDelete className="w-5 h-5 mx-2" />
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        const randomString = Math.random()
-                          .toString(36)
-                          .substring(2, 10);
-                        context.changeContent({
-                          name: modpack.name + randomString,
-                          title: modpack.name,
-                          style: "",
-                          main: false,
-                          icon: <></>,
-                          content: (
-                            <ModpackView
-                              name={modpack.name}
-                              isApplied={modpack.isApplied}
-                              lastSynced={modpack.lastSynced}
-                              modLoader={modpack.modLoader}
-                              mods={modpack.mods}
-                              version={modpack.version}
-                              unknownMods={modpack.unknownMods}
-                            ></ModpackView>
-                          ),
-                        });
-                      }}
-                      className={
-                        "flex items-center self-center bg-slate-800 hover:bg-slate-700 px-4 w-max m-2 h-10 justify-center"
-                      }
-                    >
-                      {t("details")}
-                      <MdInfo className="w-5 h-5 mx-2" />
-                    </Button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        </div>
-        <Dialog
+        {shareCode !== null && (
+          <div className="bg-slate-800 rounded-4xl mx-8 mb-2 p-4 flex flex-col items-center font-bold">
+            <p>{t("shareCodeDetected", { code: shareCode })}</p>
+            <Button
+              className={
+                "mt-4 w-full " +
+                (isResolvingShareCode
+                  ? "bg-slate-700 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700")
+              }
+              onClick={openSharedModpack}
+            >
+              {isResolvingShareCode ? t("loadingMore") : t("download")}
+            </Button>
+          </div>
+        )}
+        <SyncContext.Provider value={{ refreshSyncedModpacks }}>
+          <div className="bg-slate-800 rounded-4xl mx-6 my-4">
+            <AnimatePresence>
+              {rows.map(({ local, synced }) =>
+                local ? (
+                  <LocalModpackCard
+                    key={"local:" + local.name}
+                    modpack={local}
+                    synced={synced}
+                    accountInfo={accountInfo}
+                    onChanged={updateModpacks}
+                    onEdit={(target) => {
+                      setIsUpdateDialogOpen(true);
+                      setIsDialogToCreate(false);
+                      setOriginalModpackName(
+                        JSON.parse(JSON.stringify(target.name)),
+                      );
+                      setModpackToUpdate(target);
+                    }}
+                  />
+                ) : (
+                  synced && (
+                    <SyncedModpackComponent
+                      key={"cloud:" + synced.modpack_id}
+                      modpack={synced}
+                      accountInfo={accountInfo}
+                    />
+                  )
+                ),
+              )}
+            </AnimatePresence>
+          </div>
+        </SyncContext.Provider>
+        <ModpackEditDialog
           open={isUpdateDialogOpen}
           onClose={() => setIsUpdateDialogOpen(false)}
-          className="relative z-50"
-        >
-          <DialogBackdrop className="fixed inset-0 bg-slate-950/30 " />
-          <AnimatePresence>
-            <motion.div
-              initial={{ opacity: 0, y: -24, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.98 }}
-              className="fixed inset-0 flex w-screen items-center justify-center p-4"
-            >
-              <DialogPanel className="max-w-xl space-y-4 rounded-4xl bg-slate-800 p-8">
-                <DialogTitle className="font-black text-xl">
-                  {isDialogToCreate ? t("createModpack") : t("update")}
-                </DialogTitle>
-                <Description>
-                  {isDialogToCreate
-                    ? t("createModpack")
-                    : t("updateModpackDetails")}
-                </Description>
-                <Fieldset>
-                  <Field>
-                    <Label className="block my-2 font-bold">
-                      {t("chooseVersion")}
-                    </Label>
-                    <Select
-                      className="bg-slate-700 w-full p-2 rounded-4xl font-semibold hover:bg-slate-600"
-                      name="version"
-                      value={modpackToUpdate.version}
-                      onChange={(newValue) => {
-                        const modpack: LocalModpack = JSON.parse(
-                          JSON.stringify(modpackToUpdate),
-                        );
-                        modpack.version = newValue.target.value;
-                        setModpackToUpdate(modpack);
-                      }}
-                    >
-                      <option
-                        value={""}
-                        defaultChecked={"" == modpackToUpdate.version}
-                        className="rounded-4xl font-semibold"
-                        key={""}
-                      >
-                        -
-                      </option>
-                      {versions.map((version) => {
-                        return (
-                          <option
-                            value={version.version}
-                            defaultChecked={
-                              version.version == modpackToUpdate.version
-                            }
-                            className="rounded-4xl font-semibold"
-                            key={version.version}
-                          >
-                            {version.version}
-                          </option>
-                        );
-                      })}
-                    </Select>
-                  </Field>
-                  <Field>
-                    <Label className="block my-2 font-bold">
-                      {t("choosePreferredAPI")}
-                    </Label>
-                    <Select
-                      className="bg-slate-700 w-full p-2 rounded-4xl font-semibold hover:bg-slate-600"
-                      name="modLoader"
-                      value={modpackToUpdate.modLoader}
-                      onChange={(newValue) => {
-                        const modpack: LocalModpack = JSON.parse(
-                          JSON.stringify(modpackToUpdate),
-                        );
-                        modpack.modLoader = newValue.target.value as ModLoader;
-                        setModpackToUpdate(modpack);
-                      }}
-                    >
-                      <LoaderOptions
-                        loader={modpackToUpdate.modLoader}
-                        providers={loaderProviders}
-                      />
-                    </Select>
-                  </Field>
-                  <Field>
-                    <Label className="block my-2 font-bold">
-                      {isDialogToCreate ? t("name") : t("chooseModpack")}
-                    </Label>
-                    <Input
-                      className="bg-slate-700 focus:bg-slate-600 focus: focus:border-2 focus:border-slate-500 w-full p-2 rounded-4xl font-semibold hover:bg-slate-600"
-                      name="modLoader"
-                      type="text"
-                      value={modpackToUpdate.name}
-                      autoComplete="off"
-                      onChange={(newValue) => {
-                        // Deep copy modpackToUpdate
-                        const modpack: LocalModpack = JSON.parse(
-                          JSON.stringify(modpackToUpdate),
-                        );
-                        const newName = newValue.target.value.replace(
-                          /[<>:"/\\|?*]/g,
-                          "",
-                        );
-
-                        modpack.name = newName;
-                        setModpackToUpdate(modpack);
-                      }}
-                    ></Input>
-                  </Field>
-                </Fieldset>
-                <div className="flex gap-4">
-                  <Button
-                    className="bg-emerald-600 hover:bg-emerald-700"
-                    onClick={async () => {
-                      if (isDialogToCreate) {
-                        if (modpackToUpdate.name.trim().length === 0) {
-                          setIsUpdateDialogOpen(false);
-                          return;
-                        }
-                        if (modpackToUpdate.modLoader === ModLoader.Unknown) {
-                          setIsUpdateDialogOpen(false);
-                          return;
-                        }
-                        try {
-                          await createModpack(
-                            modpackToUpdate.name,
-                            modpackToUpdate.version,
-                            modpackToUpdate.modLoader,
-                          );
-                          context.setSnackbar({
-                            message:
-                              modpackToUpdate.name +
-                              " | " +
-                              modpackToUpdate.version +
-                              " | " +
-                              modpackToUpdate.modLoader,
-                            className: "bg-emerald-600 rounded-4xl",
-                            timeout: 5000,
-                          });
-                          await updateModpacks();
-                        } catch (e: any) {
-                          console.error(e);
-                          context.setSnackbar({
-                            message: t("invalidData"),
-                            className: "bg-red-700 rounded-4xl",
-                            timeout: 5000,
-                          });
-                        }
-                      } else {
-                        try {
-                          await updateModpack(
-                            originalModpackName,
-                            modpackToUpdate,
-                          );
-                          await updateModpacks();
-                          context.setSnackbar({
-                            message:
-                              modpackToUpdate.name +
-                              " | " +
-                              modpackToUpdate.version +
-                              " | " +
-                              modpackToUpdate.modLoader,
-                            className: "bg-emerald-600 rounded-4xl",
-                            timeout: 5000,
-                          });
-                        } catch (e: any) {
-                          console.error(e);
-                          context.setSnackbar({
-                            message: t("invalidData"),
-                            className: "bg-red-700 rounded-4xl",
-                            timeout: 5000,
-                          });
-                        }
-                      }
-                      setIsUpdateDialogOpen(false);
-                    }}
-                  >
-                    {isDialogToCreate ? t("createModpack") : t("update")}
-                  </Button>
-                  <Button
-                    className="bg-slate-700 hover:bg-slate-600"
-                    onClick={() => setIsUpdateDialogOpen(false)}
-                  >
-                    {t("cancel")}
-                  </Button>
-                </div>
-              </DialogPanel>
-            </motion.div>
-          </AnimatePresence>
-        </Dialog>
+          isCreate={isDialogToCreate}
+          versions={versions}
+          loaderProviders={loaderProviders}
+          initial={modpackToUpdate}
+          originalName={originalModpackName}
+          onSaved={updateModpacks}
+        />
         <div className="h-1"></div>
       </motion.div>
     </>

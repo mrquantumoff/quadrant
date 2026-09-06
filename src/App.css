@@ -4,8 +4,8 @@
 
 html {
   font-family: "Inter";
-  /* Smaller root size keeps every rem-based Tailwind size/spacing compact. */
-  font-size: 14px;
+  /* Compact 100% baseline (old-scale 120%). Keep in sync with uiScale.ts. */
+  font-size: 16.8px;
   @apply bg-slate-900 text-slate-50 overflow-x-hidden font-normal rounded-4xl;
   font-synthesis: none !important;
 }

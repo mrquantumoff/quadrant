@@ -34,6 +34,29 @@ export function getQuadrantCode(url: URL): string {
   ).trim();
 }
 
+/** Parses a bare 7-digit Quadrant Share code or a usequadrant.dev/modpack/<code> URL. */
+export function parseShareCode(input: string): string | null {
+  const trimmed = input.trim();
+  if (/^\d{7}$/.test(trimmed)) {
+    return trimmed;
+  }
+  try {
+    const url = new URL(trimmed);
+    if (
+      url.hostname === "usequadrant.dev" ||
+      url.hostname === "www.usequadrant.dev"
+    ) {
+      const match = url.pathname.match(/^\/modpack\/(\d{7})\/?$/);
+      if (match) {
+        return match[1];
+      }
+    }
+  } catch {
+    // not a URL
+  }
+  return null;
+}
+
 export type DeepLinkAction =
   /**
    * Open the install page for a mod. `stopAfter` mirrors the historical
@@ -152,17 +175,8 @@ export function resolveDeepLink(rawUrl: string): DeepLinkAction {
     }
 
     case "https:": {
-      const host = url.host.toLowerCase();
-      if (host === "usequadrant.dev" || host === "www.usequadrant.dev") {
-        const pathParts = getQuadrantPathParts(url);
-        if (pathParts[0] === "modpack") {
-          const code = pathParts[1] ?? "";
-          if (code && /^\d{7}$/.test(code)) {
-            return { kind: "importModpack", code };
-          }
-        }
-      }
-      return { kind: "none" };
+      const code = parseShareCode(rawUrl);
+      return code ? { kind: "importModpack", code } : { kind: "none" };
     }
 
     default:

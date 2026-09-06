@@ -74,6 +74,7 @@ export default function Mod(props: IModProps) {
 
   const configRef = useRef(createDesktopStore("config.json"));
   const config = configRef.current;
+  const cardRef = useRef<HTMLDivElement>(null);
   const modpackViewContext = useContext(ModpackViewContext);
   const modId = mod.id;
   const isAutoinstallable = mod.autoinstallable;
@@ -84,14 +85,19 @@ export default function Mod(props: IModProps) {
     }
     // 8 character random string
     const randomString = Math.random().toString(36).substring(2, 10);
+    const originRect = cardRef.current?.getBoundingClientRect();
 
     context.changeContent({
       title: mod.name,
       icon: <img src={mod.modIconUrl ?? null}></img>,
-      content: <ModInstallPage mod={mod} />,
+      // Keyed so opening a dependency from an install page remounts the page.
+      content: (
+        <ModInstallPage key={mod.id} mod={mod} originRect={originRect} />
+      ),
       name: randomString, // This is for the back content function to work properly
       style: "",
       main: false,
+      ownTransition: originRect !== undefined,
     });
   };
 
@@ -191,6 +197,7 @@ export default function Mod(props: IModProps) {
     <>
       {visible && (
         <motion.div
+          ref={cardRef}
           initial={{ opacity: 0, y: 24 }}
           animate={{ y: 0, opacity: 1, x: 0 }}
           exit={{ opacity: 0, y: -24 }}

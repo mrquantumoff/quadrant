@@ -5,6 +5,7 @@ import { ModSource } from "./intefaces";
 import {
   getQuadrantCode,
   getQuadrantModId,
+  parseShareCode,
   resolveDeepLink,
 } from "./deepLinks";
 
@@ -182,5 +183,52 @@ describe("helper parsers", () => {
     expect(
       getQuadrantCode(new URL("quadrantnext://modpack?sharedCode=222")),
     ).toBe("222");
+  });
+});
+
+describe("parseShareCode", () => {
+  it("accepts a bare 7-digit code", () => {
+    expect(parseShareCode("1234567")).toBe("1234567");
+  });
+
+  it("accepts a share URL", () => {
+    expect(parseShareCode("https://usequadrant.dev/modpack/1234567")).toBe(
+      "1234567",
+    );
+  });
+
+  it("accepts the www host", () => {
+    expect(parseShareCode("https://www.usequadrant.dev/modpack/7654321")).toBe(
+      "7654321",
+    );
+  });
+
+  it("accepts a trailing slash", () => {
+    expect(parseShareCode("https://usequadrant.dev/modpack/1234567/")).toBe(
+      "1234567",
+    );
+  });
+
+  it("trims surrounding whitespace", () => {
+    expect(parseShareCode("  1234567  ")).toBe("1234567");
+    expect(
+      parseShareCode("  https://usequadrant.dev/modpack/1234567  "),
+    ).toBe("1234567");
+  });
+
+  it("rejects codes that are not exactly 7 digits", () => {
+    expect(parseShareCode("123456")).toBeNull();
+    expect(parseShareCode("12345678")).toBeNull();
+    expect(parseShareCode("https://usequadrant.dev/modpack/123456")).toBeNull();
+  });
+
+  it("rejects other hosts", () => {
+    expect(
+      parseShareCode("https://evil.example.com/modpack/1234567"),
+    ).toBeNull();
+  });
+
+  it("rejects non-URL junk", () => {
+    expect(parseShareCode("not a url")).toBeNull();
   });
 });

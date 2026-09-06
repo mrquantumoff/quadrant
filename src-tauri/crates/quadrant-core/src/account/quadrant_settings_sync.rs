@@ -23,6 +23,7 @@ pub const SYNCED_KEYS: &[&str] = &[
     "autoQuadrantSync",
     "showUnupgradeableMods",
     "lastPage",
+    "lastPageName",
     "uiScale",
     "experimentalFeatures",
     "cacheKeepAlive",
