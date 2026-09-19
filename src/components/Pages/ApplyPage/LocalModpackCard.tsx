@@ -252,6 +252,7 @@ export default function LocalModpackCard({
                   mods={modpack.mods}
                   version={modpack.version}
                   unknownMods={modpack.unknownMods}
+                  showBack
                 ></ModpackView>
               ),
             });

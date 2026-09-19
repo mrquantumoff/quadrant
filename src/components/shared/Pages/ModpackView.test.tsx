@@ -1,8 +1,15 @@
 /** @format */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, waitFor } from "@testing-library/react";
-import { IMod, ModLoader, ModSource, ModType } from "../../../intefaces";
+import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import {
+  ContentContext,
+  IMod,
+  ModLoader,
+  ModSource,
+  ModType,
+} from "../../../intefaces";
 
 const getMod = vi.fn();
 const identifyUnknownMods = vi.fn();
@@ -84,5 +91,36 @@ describe("ModpackView", () => {
       "lithium",
       "sodium",
     ]);
+  });
+  it("offers a back button that uses the live content context", async () => {
+    const back = vi.fn();
+    const pack = {
+      name: "Pack",
+      version: "1.20.1",
+      modLoader: ModLoader.Fabric,
+      isApplied: false,
+      lastSynced: 0,
+      unknownMods: false,
+      mods: [],
+    };
+    const withContext = (view: React.ReactNode) => (
+      <ContentContext.Provider
+        value={{
+          back,
+          changeContent: vi.fn(),
+          changePage: vi.fn(),
+          setSnackbar: vi.fn(),
+          setSnackbarNoState: vi.fn(),
+        }}
+      >
+        {view}
+      </ContentContext.Provider>
+    );
+    const { rerender } = render(withContext(<ModpackView {...pack} />));
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+
+    rerender(withContext(<ModpackView {...pack} showBack />));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(back).toHaveBeenCalledTimes(1);
   });
 });
