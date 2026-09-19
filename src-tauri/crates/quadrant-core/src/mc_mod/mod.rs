@@ -684,18 +684,13 @@ pub async fn get_file(
     Ok((file_path, file.download_url))
 }
 
-/// Installs an already-downloaded file into a modpack or game content folder.
-pub fn install_local_file(
-    mc_folder: &Path,
-    _existing_modpacks: &[LocalModpack],
-    file: PathBuf,
-    local_mod: InstalledMod,
-    mod_type: ModType,
-    modpack: Option<String>,
-) -> Result<Option<LocalModpack>> {
-    let id = local_mod.id.clone();
-    let source = local_mod.source.clone();
-    let target_file_name = reqwest::Url::parse(&local_mod.download_url)
+/// Resolves the file name a download URL installs as.
+///
+/// Lenient on purpose, unlike `crate::modpacks::safe_download_file_name`: an
+/// entry written under an older URL policy must still resolve to the jar it
+/// created, so it can be removed.
+fn download_file_name(download_url: &str) -> Option<String> {
+    reqwest::Url::parse(download_url)
         .ok()
         .and_then(|url| url.path_segments()?.next_back().map(ToOwned::to_owned))
         .and_then(|name| {
@@ -707,6 +702,20 @@ pub fn install_local_file(
             let mut components = Path::new(name).components();
             matches!(components.next(), Some(Component::Normal(_))) && components.next().is_none()
         })
+}
+
+/// Installs an already-downloaded file into a modpack or game content folder.
+pub fn install_local_file(
+    mc_folder: &Path,
+    _existing_modpacks: &[LocalModpack],
+    file: PathBuf,
+    local_mod: InstalledMod,
+    mod_type: ModType,
+    modpack: Option<String>,
+) -> Result<Option<LocalModpack>> {
+    let id = local_mod.id.clone();
+    let source = local_mod.source.clone();
+    let target_file_name = download_file_name(&local_mod.download_url)
         .ok_or_else(|| anyhow!("Invalid download file name"))?;
     let _manifest_guard = if mod_type == ModType::Mod {
         Some(
@@ -718,7 +727,7 @@ pub fn install_local_file(
         None
     };
 
-    let (target_path, updated_modpack, manifest_path, old_file_path) = match mod_type {
+    let (target_path, updated_modpack, manifest_path, old_file_paths) = match mod_type {
         ModType::Mod => {
             let modpack_name = modpack.ok_or_else(|| anyhow!("modpackRequired"))?;
             crate::modpacks::validate_modpack_name(&modpack_name)?;
@@ -730,46 +739,43 @@ pub fn install_local_file(
                 std::fs::File::open(&manifest_path).map_err(|_| anyhow!("Modpack not found"))?,
             )?;
             let mut modpack = LocalModpack::from((manifest, false, 0));
-            let old_file_path = modpack
+            // The same mod from a different provider ships a different id, so
+            // match on the slug too or both jars end up installed at once.
+            let is_replaced = |existing: &InstalledMod| {
+                existing.id == id
+                    || (existing.source != local_mod.source
+                        && !existing.slug.is_empty()
+                        && !local_mod.slug.is_empty()
+                        && existing.slug.eq_ignore_ascii_case(&local_mod.slug))
+            };
+            let old_file_paths: Vec<PathBuf> = modpack
                 .mods
                 .iter()
-                .find(|mod_| mod_.id == id)
-                .and_then(|mod_| reqwest::Url::parse(&mod_.download_url).ok())
-                .and_then(|url| url.path_segments()?.next_back().map(ToOwned::to_owned))
-                .and_then(|name| {
-                    urlencoding::decode(&name)
-                        .ok()
-                        .map(|name| name.into_owned())
-                })
-                .filter(|name| {
-                    let mut components = Path::new(name).components();
-                    matches!(components.next(), Some(Component::Normal(_)))
-                        && components.next().is_none()
-                })
-                .map(|name| crate::models::modpack_path(mc_folder, &modpack_name).join(name));
-            if modpack.mods.iter().any(|mod_| mod_.id == id) {
-                modpack.mods.retain(|mod_| mod_.id != id);
-            }
+                .filter(|existing| is_replaced(existing))
+                .filter_map(|existing| download_file_name(&existing.download_url))
+                .map(|name| crate::models::modpack_path(mc_folder, &modpack_name).join(name))
+                .collect();
+            modpack.mods.retain(|existing| !is_replaced(existing));
             modpack.mods.push(local_mod.clone());
 
             (
                 crate::models::modpack_path(mc_folder, &modpack_name).join(&target_file_name),
                 Some(modpack),
                 Some(manifest_path),
-                old_file_path,
+                old_file_paths,
             )
         }
         ModType::ResourcePack => (
             mc_folder.join("resourcepacks").join(&target_file_name),
             None,
             None,
-            None,
+            Vec::new(),
         ),
         ModType::ShaderPack => (
             mc_folder.join("shaderpacks").join(&target_file_name),
             None,
             None,
-            None,
+            Vec::new(),
         ),
         // Modpacks and data packs are browsable in search but are not installed
         // through the single-file mod path (modpacks use the import flow; data
@@ -792,11 +798,10 @@ pub fn install_local_file(
             serde_json::to_string_pretty(&InstalledModpack::from(updated_modpack.clone()))?,
         )?;
     }
-    if let Some(old_file_path) = old_file_path
-        && old_file_path != target_path
-        && old_file_path.is_file()
-    {
-        std::fs::remove_file(old_file_path)?;
+    for old_file_path in old_file_paths {
+        if old_file_path != target_path && old_file_path.is_file() {
+            std::fs::remove_file(old_file_path)?;
+        }
     }
     Ok(updated_modpack)
 }
@@ -945,6 +950,191 @@ mod tests {
             std::fs::read_to_string(dir.path().join("modpacks/alpha/my mod.jar")).unwrap(),
             "mod bytes"
         );
+    }
+
+    fn seed_modpack(mc_folder: &Path, name: &str, mods: Vec<InstalledMod>) {
+        crate::modpacks::create_modpack(mc_folder, &[], name, "1.20.1", ModLoader::Fabric).unwrap();
+        std::fs::write(
+            crate::models::modpack_path(mc_folder, name).join("modConfigV2.json"),
+            serde_json::to_vec(&InstalledModpack {
+                mod_config_version: "2".to_string(),
+                quadrant_version: String::new(),
+                name: name.to_string(),
+                version: "1.20.1".to_string(),
+                mod_loader: ModLoader::Fabric,
+                mods,
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    }
+
+    fn installed_jar(mc_folder: &Path, modpack: &str, file_name: &str) -> PathBuf {
+        let path = crate::models::modpack_path(mc_folder, modpack).join(file_name);
+        std::fs::write(&path, "old bytes").unwrap();
+        path
+    }
+
+    #[test]
+    fn install_local_file_replaces_same_mod_with_new_file_name() {
+        let dir = tempfile::tempdir().unwrap();
+        seed_modpack(
+            dir.path(),
+            "alpha",
+            vec![InstalledMod::minimal(
+                "sodium".to_string(),
+                ModSource::Modrinth,
+                "https://example.invalid/sodium-old.jar".to_string(),
+            )],
+        );
+        let old_jar = installed_jar(dir.path(), "alpha", "sodium-old.jar");
+        let source_file = dir.path().join("download.jar");
+        std::fs::write(&source_file, "new bytes").unwrap();
+
+        let updated = install_local_file(
+            dir.path(),
+            &[],
+            source_file,
+            InstalledMod::minimal(
+                "sodium".to_string(),
+                ModSource::Modrinth,
+                "https://example.invalid/sodium-new.jar".to_string(),
+            ),
+            ModType::Mod,
+            Some("alpha".to_string()),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(updated.mods.len(), 1);
+        assert!(!old_jar.exists());
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("modpacks/alpha/sodium-new.jar")).unwrap(),
+            "new bytes"
+        );
+    }
+
+    #[test]
+    fn install_local_file_overwrites_same_mod_with_same_file_name() {
+        let dir = tempfile::tempdir().unwrap();
+        seed_modpack(
+            dir.path(),
+            "alpha",
+            vec![InstalledMod::minimal(
+                "sodium".to_string(),
+                ModSource::Modrinth,
+                "https://example.invalid/sodium.jar".to_string(),
+            )],
+        );
+        let jar = installed_jar(dir.path(), "alpha", "sodium.jar");
+        let source_file = dir.path().join("download.jar");
+        std::fs::write(&source_file, "new bytes").unwrap();
+
+        let updated = install_local_file(
+            dir.path(),
+            &[],
+            source_file,
+            InstalledMod::minimal(
+                "sodium".to_string(),
+                ModSource::Modrinth,
+                "https://example.invalid/sodium.jar".to_string(),
+            ),
+            ModType::Mod,
+            Some("alpha".to_string()),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(updated.mods.len(), 1);
+        assert_eq!(std::fs::read_to_string(&jar).unwrap(), "new bytes");
+    }
+
+    #[test]
+    fn install_local_file_replaces_same_slug_from_other_provider() {
+        let dir = tempfile::tempdir().unwrap();
+        let existing = InstalledMod {
+            slug: "Sodium".to_string(),
+            ..InstalledMod::minimal(
+                "394468".to_string(),
+                ModSource::CurseForge,
+                "https://example.invalid/sodium-curseforge.jar".to_string(),
+            )
+        };
+        seed_modpack(dir.path(), "alpha", vec![existing]);
+        let old_jar = installed_jar(dir.path(), "alpha", "sodium-curseforge.jar");
+        let source_file = dir.path().join("download.jar");
+        std::fs::write(&source_file, "new bytes").unwrap();
+
+        let updated = install_local_file(
+            dir.path(),
+            &[],
+            source_file,
+            InstalledMod {
+                slug: "sodium".to_string(),
+                ..InstalledMod::minimal(
+                    "AANobbMI".to_string(),
+                    ModSource::Modrinth,
+                    "https://example.invalid/sodium-modrinth.jar".to_string(),
+                )
+            },
+            ModType::Mod,
+            Some("alpha".to_string()),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(updated.mods.len(), 1);
+        assert_eq!(updated.mods[0].id, "AANobbMI");
+        assert!(!old_jar.exists());
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("modpacks/alpha/sodium-modrinth.jar")).unwrap(),
+            "new bytes"
+        );
+    }
+
+    #[test]
+    fn install_local_file_keeps_other_mods_from_other_providers() {
+        let dir = tempfile::tempdir().unwrap();
+        let other_slug = InstalledMod {
+            slug: "lithium".to_string(),
+            ..InstalledMod::minimal(
+                "360438".to_string(),
+                ModSource::CurseForge,
+                "https://example.invalid/lithium.jar".to_string(),
+            )
+        };
+        let unknown_slug = InstalledMod::minimal(
+            "238222".to_string(),
+            ModSource::CurseForge,
+            "https://example.invalid/jei.jar".to_string(),
+        );
+        seed_modpack(dir.path(), "alpha", vec![other_slug, unknown_slug]);
+        let lithium_jar = installed_jar(dir.path(), "alpha", "lithium.jar");
+        let jei_jar = installed_jar(dir.path(), "alpha", "jei.jar");
+        let source_file = dir.path().join("download.jar");
+        std::fs::write(&source_file, "new bytes").unwrap();
+
+        let updated = install_local_file(
+            dir.path(),
+            &[],
+            source_file,
+            InstalledMod {
+                slug: "sodium".to_string(),
+                ..InstalledMod::minimal(
+                    "AANobbMI".to_string(),
+                    ModSource::Modrinth,
+                    "https://example.invalid/sodium-modrinth.jar".to_string(),
+                )
+            },
+            ModType::Mod,
+            Some("alpha".to_string()),
+        )
+        .unwrap()
+        .unwrap();
+
+        assert_eq!(updated.mods.len(), 3);
+        assert!(lithium_jar.is_file());
+        assert!(jei_jar.is_file());
     }
 
     #[test]
