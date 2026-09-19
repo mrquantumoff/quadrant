@@ -36,13 +36,13 @@ httpmock = "0.8.3"
 keyring-core = { version = "1.0.0" }
 log = "0.4.34"
 moka = { version = "0.12.16", features = ["future"] }
-napi = { version = "3.12.4", default-features = false, features = [
+napi = { version = "3.12.6", default-features = false, features = [
     "napi8",
     "tokio_rt",
     "serde-json",
 ] }
-napi-build = "2.4.2"
-napi-derive = "3.6.5"
+napi-build = "2.4.3"
+napi-derive = "3.6.7"
 once_cell = "1.21.4"
 open = "5.4.4"
 reqwest = { version = "0.13.5", features = [
@@ -66,7 +66,7 @@ tauri-plugin-clipboard-manager = "2.3.3"
 tauri-plugin-deep-link = "2.4.10"
 tauri-plugin-dialog = "2.7.3"
 tauri-plugin-fs = { version = "2.5.2", features = ["watch"] }
-tauri-plugin-http = "2.6.0"
+tauri-plugin-http = "2.6.1"
 tauri-plugin-notification = "2.4.0"
 tauri-plugin-oauth = "2.1.0"
 tauri-plugin-opener = "2.5.5"
