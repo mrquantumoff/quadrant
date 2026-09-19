@@ -4462,7 +4462,7 @@ checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
 
 [[package]]
 name = "quadrant-core"
-version = "26.9.1-preview.0"
+version = "26.9.1-preview.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -4489,7 +4489,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant-host"
-version = "26.9.1-preview.0"
+version = "26.9.1-preview.1"
 dependencies = [
  "anyhow",
  "apple-native-keyring-store",
@@ -4511,7 +4511,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant-napi"
-version = "26.9.1-preview.0"
+version = "26.9.1-preview.1"
 dependencies = [
  "anyhow",
  "napi",
@@ -4524,7 +4524,7 @@ dependencies = [
 
 [[package]]
 name = "quadrant_next"
-version = "26.9.1-preview.0"
+version = "26.9.1-preview.1"
 dependencies = [
  "anyhow",
  "apple-native-keyring-store",
