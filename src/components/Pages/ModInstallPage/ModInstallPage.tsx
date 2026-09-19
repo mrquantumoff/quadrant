@@ -41,7 +41,7 @@ import LoaderOptions from "../../shared/LoaderOption";
 import LinearProgress from "../../core/LinearProgress";
 import { createDesktopStore, listen } from "../../../desktop";
 import { loaderProvidersForSource } from "../../../modLoaders";
-import { isInstalledIn } from "../../../installedMods";
+import { findInstalledIn, isInstalledIn } from "../../../installedMods";
 import { useReportError } from "../../../useReportError";
 
 export interface IModInstallPageProps {
@@ -289,10 +289,13 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   }).format(mod.downloadCount);
   const pickTargets = props.fileId === undefined;
   const showProgress = isInstalling || modDownloadProgress > 0;
-  const alreadyInstalled = isInstalledIn(
-    mod,
-    modpacks.find((entry) => entry.name === modpack),
-  );
+  const selectedModpack = modpacks.find((entry) => entry.name === modpack);
+  const installedEntry = findInstalledIn(mod, selectedModpack);
+  const alreadyInstalled = installedEntry !== undefined;
+  // Matched by slug across providers: say whose copy goes, since a shared
+  // slug is strong but not certain evidence that it is the same mod.
+  const replacesOtherProvider =
+    installedEntry !== undefined && installedEntry.source !== mod.source;
 
   // Never submit an empty version or a pack that is not in the list.
   const canInstall =
@@ -457,6 +460,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                     mod={dependency}
                     modpack={undefined}
                     className="w-full"
+                    installed={isInstalledIn(dependency, selectedModpack)}
                     onInstalled={props.onInstalled}
                   />
                 ))}
@@ -554,7 +558,12 @@ export default function ModInstallPage(props: IModInstallPageProps) {
 
             {alreadyInstalled && (
               <div className="text-[11.5px] leading-snug text-amber-300 bg-amber-900/25 border border-amber-700/20 px-3 py-2 rounded-2xl">
-                {t("alreadyInstalledIn", { modpack })}
+                {replacesOtherProvider
+                  ? t("alreadyInstalledOtherProvider", {
+                      modpack,
+                      source: isCurseForge ? "Modrinth" : "CurseForge",
+                    })
+                  : t("alreadyInstalledIn", { modpack })}
               </div>
             )}
             {showProgress && (

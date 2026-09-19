@@ -42,8 +42,10 @@ vi.mock("../../../desktop", () => ({
 }));
 
 vi.mock("../../shared/Mod", () => ({
-  default: ({ mod }: { mod: IMod }) => (
-    <div data-testid="mod-card">{mod.name}</div>
+  default: ({ mod, installed }: { mod: IMod; installed?: boolean }) => (
+    <div data-testid="mod-card" data-installed={String(!!installed)}>
+      {mod.name}
+    </div>
   ),
 }));
 
@@ -342,6 +344,64 @@ describe("ModInstallPage", () => {
     expect(await screen.findByText(/Already installed in/)).toBeTruthy();
     expect(screen.getByRole("button", { name: /Reinstall/ })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Download" })).toBeNull();
+  });
+
+  it("says whose copy is removed when the pack has the mod from the other provider", async () => {
+    getModpacks.mockResolvedValue([
+      {
+        name: "Pack",
+        version: "1.20.1",
+        modLoader: ModLoader.Fabric,
+        mods: [
+          {
+            id: "394468",
+            downloadUrl: "https://example.com/sodium.jar",
+            source: ModSource.CurseForge,
+            slug: "sodium",
+          },
+        ],
+      },
+    ]);
+    renderPage({ mod: mod({ slug: "sodium" }) });
+
+    expect(
+      await screen.findByText(
+        "Pack already has this mod from CurseForge. Installing it here removes that copy.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("marks a dependency the pack already has", async () => {
+    getModpacks.mockResolvedValue([
+      {
+        name: "Pack",
+        version: "1.20.1",
+        modLoader: ModLoader.Fabric,
+        mods: [
+          {
+            id: "fabric-api",
+            downloadUrl: "https://example.com/fabric-api.jar",
+            source: ModSource.Modrinth,
+          },
+        ],
+      },
+    ]);
+    getModDependencies.mockResolvedValue([
+      mod({ id: "fabric-api", name: "Fabric API" }),
+      mod({ id: "cloth", name: "Cloth Config" }),
+    ]);
+    renderPage({ mod: mod({}) });
+
+    await waitFor(() =>
+      expect(screen.getByText("Fabric API")).toHaveAttribute(
+        "data-installed",
+        "true",
+      ),
+    );
+    expect(screen.getByText("Cloth Config")).toHaveAttribute(
+      "data-installed",
+      "false",
+    );
   });
 
   it("ignores dependencies from a previously viewed mod", async () => {

@@ -106,12 +106,7 @@ export default function LocalModpackCard({
                 timeout: 5000,
               });
             } catch (e: any) {
-              console.error(e);
-              context.setSnackbar({
-                message: t("setModpackFailed"),
-                className: "bg-red-700 rounded-4xl",
-                timeout: 5000,
-              });
+              reportError(e);
             }
           }}
           className={
@@ -206,12 +201,7 @@ export default function LocalModpackCard({
                 timeout: 5000,
               });
             } catch (e: any) {
-              console.error(e);
-              context.setSnackbar({
-                message: t("unknown"),
-                className: "bg-red-700 rounded-4xl",
-                timeout: 5000,
-              });
+              reportError(e);
             }
           }}
           className={

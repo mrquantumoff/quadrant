@@ -26,8 +26,6 @@ type ModpackViewProps = LocalModpack & {
 };
 
 export default function ModpackView({ showBack, ...modpack }: ModpackViewProps) {
-  // Read here, not in the opener: a back() captured before this view was
-  // pushed closes over a history that does not contain it yet.
   const context = useContext(ContentContext);
   const localMods = modpack.mods;
   const [mods, setMods] = useState<IMod[]>([]);
