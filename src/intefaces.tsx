@@ -48,6 +48,53 @@ export interface LocalModpack {
   unknownMods: boolean;
 }
 
+/** A Prism Launcher instance Quadrant can point at one of its modpacks. */
+export interface PrismInstance {
+  id: string;
+  name: string;
+  minecraftVersion: string | null;
+  modLoader: ModLoader;
+  modLoaderVersion: string | null;
+  /** Name of the Quadrant modpack this instance is currently linked to. */
+  appliedModpack: string | null;
+}
+
+/** One entry of a resource pack or shader pack folder. */
+export interface ContentFile {
+  fileName: string;
+  /** Bytes. Always 0 for a directory. */
+  size: number;
+  /** Milliseconds since the epoch, or 0 when the host couldn't read it. */
+  modified: number;
+  isDirectory: boolean;
+}
+
+/** One kind of pack a location holds, with the files it currently has. */
+export interface ContentSection {
+  modType: ModType;
+  /** Empty when the listing was asked for the locations alone. */
+  files: ContentFile[];
+}
+
+/** A folder Quadrant reads packs from: the Minecraft one, or a Prism instance. */
+export interface ContentLocation {
+  /** `"minecraft"`, or `"prism:<instanceId>"`. */
+  id: string;
+  kind: "minecraft" | "prism";
+  /** Empty for the Minecraft folder, which has no name of its own. */
+  name: string;
+  path: string;
+  /** Resource packs first, then shaders. */
+  sections: ContentSection[];
+}
+
+/** What applying a modpack would rewrite on one instance; `null` stays put. */
+export interface PrismSyncPlan {
+  instanceId: string;
+  minecraftVersion: string | null;
+  modLoader: ModLoader | null;
+}
+
 export interface ModpackOwner {
   username: string;
   admin: boolean;
@@ -97,7 +144,8 @@ export interface Page {
 export enum ModType {
   Mod = "Mod",
   ResourcePack = "ResourcePack",
-  ShaderPack = "Shader",
+  // The backend's spelling, so a shader it returns compares equal to this.
+  ShaderPack = "ShaderPack",
   Modpack = "Modpack",
   DataPack = "DataPack",
   Unknown = "Unknown",

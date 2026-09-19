@@ -8,11 +8,13 @@
 //! # Module Overview
 //!
 //! - [`config`]: config defaults, config bootstrap, and Minecraft path helpers
+//! - [`content`]: installed resource packs and shader packs per game directory
 //! - [`models`]: shared serialization-friendly types
 //! - [`error`]: stable error codes a host translates for the user
 //! - [`events`]: typed backend event payloads
 //! - [`ports`]: host-provided interfaces such as settings, secrets, and events
 //! - [`modpacks`]: local modpack filesystem flows
+//! - [`prism`]: Prism Launcher instance discovery and modpack application
 //! - [`mc_mod`]: mod provider integration, install flows, cache, and identify
 //! - [`account`]: account, sync, share, and settings-sync logic
 //! - [`rss`]: Quadrant news feed fetching
@@ -87,12 +89,14 @@
 //! - `docs/creating-a-quadrant-frontend.md`
 pub mod account;
 pub mod config;
+pub mod content;
 pub mod error;
 pub mod events;
 pub mod mc_mod;
 pub mod models;
 pub mod modpacks;
 pub mod ports;
+pub mod prism;
 pub mod rss;
 pub mod telemetry;
 

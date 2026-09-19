@@ -57,6 +57,15 @@ class BrowserStoreAdapter implements DesktopStoreAdapter {
     );
   }
 
+  async delete(key: string): Promise<void> {
+    window.localStorage.removeItem(this.getStorageKey(key));
+    window.dispatchEvent(
+      new CustomEvent<StoreChange>(STORE_CHANGE_EVENT, {
+        detail: { storeName: this.storeName, key, value: null },
+      }),
+    );
+  }
+
   async save(): Promise<void> {}
 
   private subscribe(listener: (change: StoreChange) => void): UnlistenFn {

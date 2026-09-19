@@ -23,6 +23,7 @@ import SettingsPage from "./components/Pages/SettingsPage/Settings";
 import quadrantLocale from "./i18n";
 import * as md from "react-icons/md";
 import CurrentModpackPage from "./components/Pages/CurrentModpackPage/CurrentModpackPage";
+import InstalledContentPage from "./components/Pages/InstalledContentPage/InstalledContentPage";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import SearchPage from "./components/Pages/SearchPage/SearchPage";
 import {
@@ -82,6 +83,14 @@ function App() {
       name: "search",
       icon: <md.MdSearch className="duration-0 w-6 h-6" />,
       style: " hover:bg-sky-400 data-[selected=true]:bg-sky-900 ",
+      main: true,
+    },
+    {
+      content: <InstalledContentPage />,
+      title: t("installedContent"),
+      name: "installedContent",
+      icon: <md.MdFolder className="duration-0 w-6 h-6" />,
+      style: " hover:bg-violet-400 data-[selected=true]:bg-violet-900 ",
       main: true,
     },
     {

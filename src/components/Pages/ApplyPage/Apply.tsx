@@ -5,6 +5,7 @@ import {
   LocalModpack,
   MinecraftVersion,
   ModLoader,
+  PrismInstance,
   SyncContext,
 } from "../../../intefaces";
 import {
@@ -13,6 +14,7 @@ import {
   deleteModpack,
   getMinecraftFolder,
   getModpacks,
+  getPrismInstances,
   getQuadrantShareModpack,
   getVersions,
   openModpacksFolder,
@@ -43,6 +45,7 @@ const toolbarIconClass =
 
 export default function ApplyPage() {
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
+  const [prismInstances, setPrismInstances] = useState<PrismInstance[]>([]);
   const {
     accountInfo,
     syncedModpacks,
@@ -93,6 +96,9 @@ export default function ApplyPage() {
           getModpacks(),
           configStore.get<boolean>("curseforge"),
           configStore.get<boolean>("modrinth"),
+          // The instance list only changes outside the watched folders, so it
+          // is loaded here and after a card acts, never on a watch event.
+          refreshPrismInstances(),
         ]);
       if (isUnmounted) {
         return;
@@ -195,6 +201,18 @@ export default function ApplyPage() {
       }
     };
   }, []);
+
+  // The backend gates this on the experimental flag and answers with an empty
+  // list while it is off, so the flag is never read here.
+  const refreshPrismInstances = async () => {
+    try {
+      setPrismInstances(await getPrismInstances());
+    } catch (error) {
+      console.error(error);
+      // Never keep offering instances the host can no longer enumerate.
+      setPrismInstances([]);
+    }
+  };
 
   const updateModpacks = async () => {
     const newModpacks = await getModpacks();
@@ -323,7 +341,11 @@ export default function ApplyPage() {
                     modpack={local}
                     synced={synced}
                     accountInfo={accountInfo}
-                    onChanged={updateModpacks}
+                    prismInstances={prismInstances}
+                    onChanged={async () => {
+                      await updateModpacks();
+                      await refreshPrismInstances();
+                    }}
                     onEdit={(target) => {
                       setIsUpdateDialogOpen(true);
                       setIsDialogToCreate(false);

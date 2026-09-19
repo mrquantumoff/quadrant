@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  ContentLocation,
   IMod,
   LocalModpack,
   MinecraftVersion,
@@ -11,9 +12,11 @@ import {
   SearchCategory,
 } from "../../../intefaces";
 import { isInstalledIn } from "../../../installedMods";
+import { isPackType, locationOptionLabel } from "../../../contentLocations";
 import { describeError } from "../../../errors";
 import {
   getCategories,
+  getInstalledContent,
   getModpacks,
   getVersions,
   searchMods,
@@ -122,6 +125,12 @@ export default function SearchPage() {
   // Name of the modpack chosen as the install target ("" = none). Selecting one
   // matches its version/loader and makes results auto-installable into it.
   const [targetModpack, setTargetModpack] = useState("");
+  // Where a quick-installed pack lands: a `ContentLocation.id`, or "" for the
+  // automatic placement. Deliberately not saved — it follows the content type.
+  const [installLocation, setInstallLocation] = useState("");
+  const [contentLocations, setContentLocations] = useState<ContentLocation[]>(
+    [],
+  );
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   const [page, setPage] = useState(0);
@@ -374,7 +383,12 @@ export default function SearchPage() {
       // Restore the previously persisted filters before enabling persistence,
       // so the first render's defaults never clobber the saved blob.
       if (saved) {
-        if (saved.contentType) setContentType(saved.contentType);
+        // Filters saved before the shader type was renamed hold "Shader".
+        const savedType =
+          (saved.contentType as string) === "Shader"
+            ? ModType.ShaderPack
+            : saved.contentType;
+        if (savedType) setContentType(savedType);
         if (saved.sortBy) setSortBy(saved.sortBy);
         if (saved.version) setVersion(saved.version);
         if (saved.loader !== undefined) setLoader(saved.loader);
@@ -427,6 +441,26 @@ export default function SearchPage() {
     targetModpack,
     filtersCollapsed,
   ]);
+
+  // Only a pack can be routed to a folder of the user's choosing, so the
+  // picker comes and goes with the content type and never outlives it.
+  useEffect(() => {
+    let cancelled = false;
+    setInstallLocation("");
+    setContentLocations([]);
+    if (isPackType(contentType)) {
+      // The picker only names the folders, so their files are left unlisted. A
+      // host that cannot list them costs the user the picker, not the install.
+      getInstalledContent(false)
+        .then((locations) => {
+          if (!cancelled) setContentLocations(locations);
+        })
+        .catch(console.error);
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [contentType]);
 
   // Fetch the facet taxonomy for the enabled sources whenever the content type
   // or source set changes. Skipping a disabled provider avoids a wasted request
@@ -814,6 +848,33 @@ export default function SearchPage() {
                     </div>
                   </div>
 
+                  {/* Which folder a quick-installed pack lands in. Only packs
+                  can be routed, and only when there is more than one folder. */}
+                  {contentLocations.length > 1 && (
+                    <div className="mb-6">
+                      <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
+                        {t("installedContentInstallTo")}
+                      </div>
+                      <select
+                        aria-label={t("installedContentInstallTo")}
+                        value={installLocation}
+                        onChange={(event) =>
+                          setInstallLocation(event.target.value)
+                        }
+                        className="w-full h-11 px-4 rounded-full border-none bg-slate-700 text-slate-200 text-sm font-bold cursor-pointer outline-none hover:brightness-110"
+                      >
+                        <option value="">
+                          {t("installedContentInstallAuto")}
+                        </option>
+                        {contentLocations.map((location) => (
+                          <option key={location.id} value={location.id}>
+                            {locationOptionLabel(location, t)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   {/* Minecraft version */}
                   <div className="mb-6">
                     <div className="text-[13px] font-extrabold text-slate-400 mb-2.5">
@@ -1054,6 +1115,7 @@ export default function SearchPage() {
                       mod={mod}
                       modpack={undefined}
                       installTarget={targetModpackObj}
+                      installLocation={installLocation || undefined}
                       installed={isInstalledIn(mod, targetModpackObj)}
                       onInstalled={refreshModpacks}
                     />

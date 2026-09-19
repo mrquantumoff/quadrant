@@ -3,6 +3,7 @@
 import {
   AccountInfo,
   Article,
+  ContentLocation,
   GetModArgs,
   GlobalSearchModsArgs,
   IdentifiedMod,
@@ -14,6 +15,8 @@ import {
   ModLoader,
   ModSource,
   ModType,
+  PrismInstance,
+  PrismSyncPlan,
   SearchCategory,
   SyncedModpack,
   UniversalModFile,
@@ -235,23 +238,41 @@ export async function openIn(url: string) {
   await openExternal(url);
 }
 
-export async function installMod(
-  id: string,
-  minecraft_version: string,
-  loader: ModLoader,
-  source: ModSource,
-  modType: ModType,
-  modpack: string,
-  fileId?: string,
-) {
+export interface InstallModOptions {
+  id: string;
+  minecraftVersion: string;
+  loader: ModLoader;
+  source: ModSource;
+  modType: ModType;
+  modpack: string;
+  fileId?: string;
+  /**
+   * A `ContentLocation.id` forcing where a resource pack or shader lands.
+   * Unset keeps the automatic behaviour, and mods ignore it entirely. The host
+   * rejects an empty string, so "automatic" is always the absent value.
+   */
+  contentLocation?: string;
+}
+
+export async function installMod({
+  id,
+  minecraftVersion,
+  loader,
+  source,
+  modType,
+  modpack,
+  fileId,
+  contentLocation,
+}: InstallModOptions) {
   await invoke("install_mod", {
     id: id,
-    minecraftVersion: minecraft_version,
+    minecraftVersion: minecraftVersion,
     modLoader: loader,
     source: source,
     modpack: modpack,
     modType: modType,
     fileId: fileId,
+    contentLocation: contentLocation,
   });
 }
 
@@ -415,3 +436,73 @@ export const identifyUnknownMods = async (
 export const registerMod = async (mod: LocalMod, modpack: string) => {
   await invoke("register_mod", { mod: mod, modpack: modpack });
 };
+
+/** Empty unless experimental features are on and Prism Launcher is installed. */
+export async function getPrismInstances(): Promise<PrismInstance[]> {
+  return await invoke<PrismInstance[]>("get_prism_instances");
+}
+
+export async function applyModpackToPrismInstance(
+  name: string,
+  instanceId: string,
+) {
+  await invoke("apply_modpack_to_prism_instance", { name, instanceId });
+}
+
+export async function detachPrismInstance(instanceId: string) {
+  await invoke("detach_prism_instance", { instanceId });
+}
+
+/**
+ * What applying `name` would rewrite on each instance, `null` meaning the
+ * instance keeps what it has. Empty unless experimental features are on.
+ */
+export async function getPrismSyncPlans(
+  name: string,
+): Promise<PrismSyncPlan[]> {
+  return await invoke<PrismSyncPlan[]>("get_prism_sync_plans", { name });
+}
+
+/**
+ * The Minecraft folder first, then one entry per Prism instance the host found.
+ * Pass `false` to name the locations only, leaving their pack lists empty.
+ */
+export async function getInstalledContent(
+  includeFiles = true,
+): Promise<ContentLocation[]> {
+  return await invoke<ContentLocation[]>("get_installed_content", {
+    includeFiles,
+  });
+}
+
+export async function openContentFolder(locationId: string, modType: ModType) {
+  await invoke("open_content_folder", { locationId, modType });
+}
+
+/** Copies packs between two locations, overwriting, and answers how many moved. */
+export async function copyContent(
+  fromLocation: string,
+  toLocation: string,
+  modType: ModType,
+  fileNames: string[],
+): Promise<number> {
+  return await invoke<number>("copy_content", {
+    fromLocation,
+    toLocation,
+    modType,
+    fileNames,
+  });
+}
+
+/** Permanently removes packs from a location, answering how many went. */
+export async function deleteContent(
+  location: string,
+  modType: ModType,
+  fileNames: string[],
+): Promise<number> {
+  return await invoke<number>("delete_content", {
+    location,
+    modType,
+    fileNames,
+  });
+}

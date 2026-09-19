@@ -54,3 +54,11 @@ pub fn set_config_value(
         .map_err(crate::command_error)?;
     app.emit("configChanged", key).map_err(tauri::Error::from)
 }
+
+#[tauri::command]
+pub fn remove_config_value(app: AppHandle, key: String) -> Result<(), tauri::Error> {
+    app.state::<QuadrantHost>()
+        .remove_config_value(&key)
+        .map_err(crate::command_error)?;
+    app.emit("configChanged", key)
+}

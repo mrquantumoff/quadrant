@@ -17,6 +17,7 @@ const getModOwners = vi.fn();
 const getModDependencies = vi.fn();
 const getUserURL = vi.fn();
 const installMod = vi.fn();
+const getInstalledContent = vi.fn();
 const openIn = vi.fn();
 const storeGet = vi.fn();
 const storeSet = vi.fn();
@@ -29,6 +30,7 @@ vi.mock("../../../tools", () => ({
   getModDependencies: (...a: unknown[]) => getModDependencies(...a),
   getUserURL: (...a: unknown[]) => getUserURL(...a),
   installMod: (...a: unknown[]) => installMod(...a),
+  getInstalledContent: (...a: unknown[]) => getInstalledContent(...a),
   openIn: (...a: unknown[]) => openIn(...a),
 }));
 
@@ -85,6 +87,7 @@ function renderPage(props: {
   mod: IMod;
   fileId?: string;
   installTarget?: { name: string };
+  installLocation?: string;
 }) {
   return render(
     <ContentContext.Provider
@@ -111,6 +114,7 @@ beforeEach(() => {
   getUserURL.mockResolvedValue("https://modrinth.com/user/jellysquid");
   getModDependencies.mockResolvedValue([]);
   installMod.mockResolvedValue(undefined);
+  getInstalledContent.mockResolvedValue([]);
   storeGet.mockImplementation(async (key: string) =>
     key === "lastUsedVersion"
       ? "1.21"
@@ -159,15 +163,16 @@ describe("ModInstallPage", () => {
     await userEvent.click(
       screen.getAllByRole("button", { name: /Download/ })[0],
     );
-    expect(installMod).toHaveBeenCalledWith(
-      "sodium",
-      "1.21",
-      ModLoader.Fabric,
-      ModSource.Modrinth,
-      ModType.Mod,
-      "Pack",
-      undefined,
-    );
+    expect(installMod).toHaveBeenCalledWith({
+      id: "sodium",
+      minecraftVersion: "1.21",
+      loader: ModLoader.Fabric,
+      source: ModSource.Modrinth,
+      modType: ModType.Mod,
+      modpack: "Pack",
+      fileId: undefined,
+      contentLocation: undefined,
+    });
   });
 
   it("hides version and loader pickers when a file is preselected", async () => {
@@ -222,15 +227,16 @@ describe("ModInstallPage", () => {
     await userEvent.click(
       screen.getAllByRole("button", { name: /Download/ })[0],
     );
-    expect(installMod).toHaveBeenCalledWith(
-      "sodium",
-      "1.20.1",
-      ModLoader.Fabric,
-      ModSource.Modrinth,
-      ModType.Mod,
-      "Pack",
-      undefined,
-    );
+    expect(installMod).toHaveBeenCalledWith({
+      id: "sodium",
+      minecraftVersion: "1.20.1",
+      loader: ModLoader.Fabric,
+      source: ModSource.Modrinth,
+      modType: ModType.Mod,
+      modpack: "Pack",
+      fileId: undefined,
+      contentLocation: undefined,
+    });
   });
 
   it("replaces a saved pack that no longer exists with an available one", async () => {
@@ -255,15 +261,16 @@ describe("ModInstallPage", () => {
     await userEvent.click(
       screen.getAllByRole("button", { name: /Download/ })[0],
     );
-    expect(installMod).toHaveBeenCalledWith(
-      "sodium",
-      "1.20.1",
-      ModLoader.Fabric,
-      ModSource.Modrinth,
-      ModType.Mod,
-      "Applied Pack",
-      undefined,
-    );
+    expect(installMod).toHaveBeenCalledWith({
+      id: "sodium",
+      minecraftVersion: "1.20.1",
+      loader: ModLoader.Fabric,
+      source: ModSource.Modrinth,
+      modType: ModType.Mod,
+      modpack: "Applied Pack",
+      fileId: undefined,
+      contentLocation: undefined,
+    });
   });
 
   it("blocks downloads until the install choices have loaded", async () => {
@@ -322,6 +329,239 @@ describe("ModInstallPage", () => {
     expect(
       screen.getByRole("combobox", { name: /Choose a Minecraft version/ }),
     ).toHaveValue("1.20.1");
+  });
+
+  it("routes a resource pack to the opener's modpack", async () => {
+    renderPage({
+      mod: mod({ modType: ModType.ResourcePack }),
+      installTarget: { name: "Pack" },
+    });
+
+    await screen.findByText("jellysquid");
+    await userEvent.click(
+      screen.getAllByRole("button", { name: /Download/ })[0],
+    );
+
+    expect(installMod).toHaveBeenCalledWith({
+      id: "sodium",
+      minecraftVersion: "1.20.1",
+      loader: ModLoader.Fabric,
+      source: ModSource.Modrinth,
+      modType: ModType.ResourcePack,
+      modpack: "Pack",
+      fileId: undefined,
+      contentLocation: undefined,
+    });
+  });
+
+  it("sends no modpack for a resource pack opened without a target", async () => {
+    // The saved lastUsedModpack must never route a resource pack; the backend
+    // decides where an untargeted one lands.
+    renderPage({ mod: mod({ modType: ModType.ResourcePack }) });
+
+    await screen.findByText("jellysquid");
+    await userEvent.click(
+      screen.getAllByRole("button", { name: /Download/ })[0],
+    );
+
+    expect(installMod).toHaveBeenCalledWith({
+      id: "sodium",
+      minecraftVersion: "1.21",
+      loader: ModLoader.Fabric,
+      source: ModSource.Modrinth,
+      modType: ModType.ResourcePack,
+      modpack: "",
+      fileId: undefined,
+      contentLocation: undefined,
+    });
+  });
+
+  describe("install location", () => {
+    // The picker asks for the names alone, so every section comes back empty.
+    const sections = [
+      { modType: ModType.ResourcePack, files: [] },
+      { modType: ModType.ShaderPack, files: [] },
+    ];
+    const folders = [
+      {
+        id: "minecraft",
+        kind: "minecraft",
+        name: "",
+        path: "/home/me/.minecraft",
+        sections,
+      },
+      {
+        id: "prism:1",
+        kind: "prism",
+        name: "Survival",
+        path: "/home/me/prism/Survival/.minecraft",
+        sections,
+      },
+    ];
+
+    it("never offers a mod a folder to install into", async () => {
+      getInstalledContent.mockResolvedValue(folders);
+      renderPage({ mod: mod({}), installTarget: { name: "Pack" } });
+
+      await screen.findByText("jellysquid");
+      expect(
+        screen.queryByRole("combobox", { name: /Install to/ }),
+      ).toBeNull();
+      expect(getInstalledContent).not.toHaveBeenCalled();
+    });
+
+    it("offers nothing when the Minecraft folder is the only place", async () => {
+      getInstalledContent.mockResolvedValue([folders[0]]);
+      renderPage({
+        mod: mod({ modType: ModType.ResourcePack }),
+        installTarget: { name: "Pack" },
+      });
+
+      await screen.findByText("jellysquid");
+      // The picker only needs the names, so the pack lists are left out.
+      await waitFor(() =>
+        expect(getInstalledContent).toHaveBeenCalledWith(false),
+      );
+      expect(
+        screen.queryByRole("combobox", { name: /Install to/ }),
+      ).toBeNull();
+      await userEvent.click(
+        screen.getAllByRole("button", { name: /Download/ })[0],
+      );
+      expect(installMod).toHaveBeenCalledWith({
+        id: "sodium",
+        minecraftVersion: "1.20.1",
+        loader: ModLoader.Fabric,
+        source: ModSource.Modrinth,
+        modType: ModType.ResourcePack,
+        modpack: "Pack",
+        fileId: undefined,
+        contentLocation: undefined,
+      });
+    });
+
+    it("follows the target pack until the user picks a folder", async () => {
+      getInstalledContent.mockResolvedValue(folders);
+      renderPage({
+        mod: mod({ modType: ModType.ShaderPack }),
+        installTarget: { name: "Pack" },
+      });
+
+      const picker = await screen.findByRole("combobox", {
+        name: /Install to/,
+      });
+      expect(picker).toHaveValue("");
+      expect(
+        screen.getByRole("option", { name: "Automatic (where Pack is applied)" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("option", { name: "Survival (Prism Launcher)" }),
+      ).toBeInTheDocument();
+
+      await userEvent.selectOptions(picker, "prism:1");
+      await userEvent.click(
+        screen.getAllByRole("button", { name: /Download/ })[0],
+      );
+      expect(installMod).toHaveBeenCalledWith({
+        id: "sodium",
+        minecraftVersion: "1.20.1",
+        loader: ModLoader.Fabric,
+        source: ModSource.Modrinth,
+        modType: ModType.ShaderPack,
+        modpack: "Pack",
+        fileId: undefined,
+        contentLocation: "prism:1",
+      });
+    });
+
+    it("defaults to the Minecraft folder when there is no target pack", async () => {
+      getInstalledContent.mockResolvedValue(folders);
+      renderPage({ mod: mod({ modType: ModType.ResourcePack }) });
+
+      const picker = await screen.findByRole("combobox", {
+        name: /Install to/,
+      });
+      expect(picker).toHaveValue("minecraft");
+      expect(screen.queryByRole("option", { name: /Automatic/ })).toBeNull();
+
+      await userEvent.click(
+        screen.getAllByRole("button", { name: /Download/ })[0],
+      );
+      expect(installMod).toHaveBeenCalledWith({
+        id: "sodium",
+        minecraftVersion: "1.21",
+        loader: ModLoader.Fabric,
+        source: ModSource.Modrinth,
+        modType: ModType.ResourcePack,
+        modpack: "",
+        fileId: undefined,
+        contentLocation: "minecraft",
+      });
+    });
+
+    it("installs as usual when the folders cannot be listed", async () => {
+      getInstalledContent.mockRejectedValue(new Error("boom"));
+      renderPage({ mod: mod({ modType: ModType.ResourcePack }) });
+
+      await screen.findByText("jellysquid");
+      expect(
+        screen.queryByRole("combobox", { name: /Install to/ }),
+      ).toBeNull();
+      await userEvent.click(
+        screen.getAllByRole("button", { name: /Download/ })[0],
+      );
+      expect(installMod).toHaveBeenCalledWith({
+        id: "sodium",
+        minecraftVersion: "1.21",
+        loader: ModLoader.Fabric,
+        source: ModSource.Modrinth,
+        modType: ModType.ResourcePack,
+        modpack: "",
+        fileId: undefined,
+        contentLocation: undefined,
+      });
+    });
+
+    it("starts on the folder the opener already chose", async () => {
+      getInstalledContent.mockResolvedValue(folders);
+      renderPage({
+        mod: mod({ modType: ModType.ResourcePack }),
+        installLocation: "prism:1",
+      });
+
+      const picker = await screen.findByRole("combobox", {
+        name: /Install to/,
+      });
+      expect(picker).toHaveValue("prism:1");
+
+      await userEvent.click(
+        screen.getAllByRole("button", { name: /Download/ })[0],
+      );
+      expect(installMod).toHaveBeenCalledWith({
+        id: "sodium",
+        minecraftVersion: "1.21",
+        loader: ModLoader.Fabric,
+        source: ModSource.Modrinth,
+        modType: ModType.ResourcePack,
+        modpack: "",
+        fileId: undefined,
+        contentLocation: "prism:1",
+      });
+    });
+
+    it("ignores a chosen folder this host no longer lists", async () => {
+      getInstalledContent.mockResolvedValue(folders);
+      renderPage({
+        mod: mod({ modType: ModType.ResourcePack }),
+        installLocation: "prism:9",
+      });
+
+      const picker = await screen.findByRole("combobox", {
+        name: /Install to/,
+      });
+      // Falls back to the default rather than submitting a folder that is gone.
+      expect(picker).toHaveValue("minecraft");
+    });
   });
 
   it("warns and offers a reinstall when the pack already has the mod", async () => {

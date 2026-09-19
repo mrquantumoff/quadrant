@@ -36,7 +36,7 @@ src/                     React renderer (shared between browser + Tauri)
     core/                Primitives: Button, CircularProgress, LinearProgress
     shared/              Mod, Notifications, LoaderOption
     Pages/               One dir per screen: ApplyPage, CurrentModpackPage, SearchPage,
-                         ModInstallPage, AccountPage, SettingsPage
+                         ModInstallPage, InstalledContentPage, AccountPage, SettingsPage
   locales/               i18n JSON: en, tr (Turkish), uk (Ukrainian)
 src-tauri/               Tauri desktop shell (Rust)
   src/                   Thin Tauri layer: ~56 #[tauri::command]s that delegate into the crates
@@ -64,7 +64,7 @@ scripts/quadrant-node/   Node app consuming the N-API addon (quadrant-napi)
 
 ### Rust workspace (`src-tauri/Cargo.toml`)
 Three crates, layered:
-- **`quadrant-core`** — Tauri-independent backend/domain logic. Owns config, `models`, `events`, `ports` (host-provided interfaces: `SettingsStore`, `SecretStore`, `EventSink`), `modpacks`, `mc_mod` (Modrinth + CurseForge providers, install, cache, fingerprint/identify), `account` (id/oauth, sync, share, settings-sync), `rss`, `telemetry`. Does **not** own windows, tray, dialogs, or transport.
+- **`quadrant-core`** — Tauri-independent backend/domain logic. Owns config, `models`, `events`, `ports` (host-provided interfaces: `SettingsStore`, `SecretStore`, `EventSink`), `modpacks`, `mc_mod` (Modrinth + CurseForge providers, install, cache, fingerprint/identify), `prism` (Prism Launcher instances), `content` (installed resource/shader packs), `account` (id/oauth, sync, share, settings-sync), `rss`, `telemetry`. Does **not** own windows, tray, dialogs, or transport.
 - **`quadrant-host`** — embeds `quadrant-core` and provides concrete host services (e.g. keyring-backed `SecretStore`, event forwarding). Reusable across the Tauri shell and the Node addon.
 - **`quadrant-napi`** — Node N-API bindings (`QuadrantHostAddon`) wrapping `quadrant-host`, consumed by `scripts/quadrant-node`.
 - **`src-tauri/src`** is a thin shell over `quadrant-host`/`quadrant-core`: commands mostly forward arguments. Business logic changes belong in the crates, not here.

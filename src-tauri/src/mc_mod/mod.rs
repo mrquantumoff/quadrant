@@ -7,6 +7,7 @@ pub use quadrant_core::mc_mod::{
 };
 pub use quadrant_core::models::{InstalledMod, ModSource};
 
+pub mod content;
 #[cfg(feature = "curseforge")]
 pub mod curseforge;
 pub mod modrinth;
@@ -65,6 +66,7 @@ pub async fn install_mod(
     modpack: Option<String>,
     mod_type: ModType,
     file_id: Option<String>,
+    content_location: Option<String>,
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
     app.state::<QuadrantHost>()
@@ -76,6 +78,7 @@ pub async fn install_mod(
             modpack,
             mod_type,
             file_id,
+            content_location,
         )
         .await
         .map_err(crate::command_error)

@@ -3,7 +3,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize, de::Error as DeError};
 use serde_json::Value;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::OnceLock;
 
 static QUADRANT_VERSION: OnceLock<String> = OnceLock::new();
@@ -365,6 +365,16 @@ pub struct Article {
 /// Returns the canonical filesystem path for a named modpack.
 pub fn modpack_path(mc_folder: &Path, modpack_name: &str) -> PathBuf {
     mc_folder.join("modpacks").join(modpack_name)
+}
+
+/// Whether `name` is a single normal path component, which is what a
+/// caller-supplied name must be before it is joined onto a Quadrant-owned
+/// folder. Each caller turns `false` into the error code its surface reports.
+pub(crate) fn is_single_path_component(name: &str) -> bool {
+    let mut components = Path::new(name).components();
+    !name.is_empty()
+        && matches!(components.next(), Some(Component::Normal(_)))
+        && components.next().is_none()
 }
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
 /** @format */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ModSource } from "./intefaces";
+import { ModLoader, ModSource, ModType } from "./intefaces";
 
 const invoke = vi.fn();
 const platform = vi.fn();
@@ -23,11 +23,20 @@ vi.mock("./desktop", () => ({
 // Imported after the mock is registered.
 import {
   applyModpack,
+  applyModpackToPrismInstance,
+  copyContent,
+  deleteContent,
+  detachPrismInstance,
   exportModpack,
+  getInstalledContent,
   getMod,
   getModDependencies,
   getModOwners,
   getModpacks,
+  getPrismInstances,
+  getPrismSyncPlans,
+  installMod,
+  openContentFolder,
   shareModpack,
   shuffle,
 } from "./tools";
@@ -184,6 +193,141 @@ describe("exportModpack", () => {
   });
 });
 
+describe("Prism Launcher instances", () => {
+  it("returns the instances the host reports", async () => {
+    const instances = [{ id: "1", name: "Survival" }];
+    invoke.mockResolvedValue(instances);
+    expect(await getPrismInstances()).toEqual(instances);
+    expect(invoke).toHaveBeenCalledWith("get_prism_instances");
+  });
+
+  it("invokes apply with the modpack name and the instance id", async () => {
+    invoke.mockResolvedValue(undefined);
+    await applyModpackToPrismInstance("pack", "instance-1");
+    expect(invoke).toHaveBeenCalledWith("apply_modpack_to_prism_instance", {
+      name: "pack",
+      instanceId: "instance-1",
+    });
+  });
+
+  it("invokes detach with the instance id", async () => {
+    invoke.mockResolvedValue(undefined);
+    await detachPrismInstance("instance-1");
+    expect(invoke).toHaveBeenCalledWith("detach_prism_instance", {
+      instanceId: "instance-1",
+    });
+  });
+
+  it("asks what applying a named modpack would rewrite", async () => {
+    const plans = [
+      { instanceId: "instance-1", minecraftVersion: "1.20.1", modLoader: null },
+    ];
+    invoke.mockResolvedValue(plans);
+    expect(await getPrismSyncPlans("pack")).toEqual(plans);
+    expect(invoke).toHaveBeenCalledWith("get_prism_sync_plans", {
+      name: "pack",
+    });
+  });
+});
+
+describe("installed content", () => {
+  it("returns the locations the host reports, with their files", async () => {
+    const locations = [{ id: "minecraft", kind: "minecraft" }];
+    invoke.mockResolvedValue(locations);
+    expect(await getInstalledContent()).toEqual(locations);
+    expect(invoke).toHaveBeenCalledWith("get_installed_content", {
+      includeFiles: true,
+    });
+  });
+
+  it("asks for the locations alone when the files are not wanted", async () => {
+    invoke.mockResolvedValue([]);
+    await getInstalledContent(false);
+    expect(invoke).toHaveBeenCalledWith("get_installed_content", {
+      includeFiles: false,
+    });
+  });
+
+  it("invokes open with the location id and the mod type", async () => {
+    invoke.mockResolvedValue(undefined);
+    await openContentFolder("prism:1", ModType.ShaderPack);
+    expect(invoke).toHaveBeenCalledWith("open_content_folder", {
+      locationId: "prism:1",
+      modType: ModType.ShaderPack,
+    });
+  });
+
+  it("copies the named packs between two locations and answers the count", async () => {
+    invoke.mockResolvedValue(2);
+    const copied = await copyContent(
+      "minecraft",
+      "prism:1",
+      ModType.ResourcePack,
+      ["Faithful.zip", "Alpha.zip"],
+    );
+    expect(copied).toBe(2);
+    expect(invoke).toHaveBeenCalledWith("copy_content", {
+      fromLocation: "minecraft",
+      toLocation: "prism:1",
+      modType: ModType.ResourcePack,
+      fileNames: ["Faithful.zip", "Alpha.zip"],
+    });
+  });
+
+  it("deletes the named packs from one location and answers the count", async () => {
+    invoke.mockResolvedValue(1);
+    const removed = await deleteContent("prism:1", ModType.ShaderPack, [
+      "BSL.zip",
+    ]);
+    expect(removed).toBe(1);
+    expect(invoke).toHaveBeenCalledWith("delete_content", {
+      location: "prism:1",
+      modType: ModType.ShaderPack,
+      fileNames: ["BSL.zip"],
+    });
+  });
+});
+
+describe("installMod", () => {
+  const options = {
+    id: "sodium",
+    minecraftVersion: "1.21",
+    loader: ModLoader.Fabric,
+    source: ModSource.Modrinth,
+    modType: ModType.ResourcePack,
+    modpack: "Pack",
+  };
+
+  it("forwards the chosen content location", async () => {
+    invoke.mockResolvedValue(undefined);
+    await installMod({ ...options, contentLocation: "prism:1" });
+    expect(invoke).toHaveBeenCalledWith("install_mod", {
+      id: "sodium",
+      minecraftVersion: "1.21",
+      modLoader: ModLoader.Fabric,
+      source: ModSource.Modrinth,
+      modpack: "Pack",
+      modType: ModType.ResourcePack,
+      fileId: undefined,
+      contentLocation: "prism:1",
+    });
+  });
+
+  it("sends no content location when none was chosen", async () => {
+    invoke.mockResolvedValue(undefined);
+    await installMod(options);
+    expect(invoke).toHaveBeenCalledWith("install_mod", {
+      id: "sodium",
+      minecraftVersion: "1.21",
+      modLoader: ModLoader.Fabric,
+      source: ModSource.Modrinth,
+      modpack: "Pack",
+      modType: ModType.ResourcePack,
+      fileId: undefined,
+    });
+  });
+});
+
 describe("shuffle", () => {
   it("permutes in place, preserving the multiset of elements", () => {
     const arr = Array.from({ length: 50 }, (_, i) => i);
@@ -191,5 +335,22 @@ describe("shuffle", () => {
     shuffle(arr);
     expect(arr).toHaveLength(copy.length);
     expect([...arr].sort((a, b) => a - b)).toEqual(copy);
+  });
+});
+
+describe("ModType", () => {
+  it("spells every type the way the backend serializes it", () => {
+    // A search result's `modType` is compared against this enum, so a
+    // different spelling silently disables anything keyed on the type.
+    expect(Object.values(ModType).sort()).toEqual(
+      [
+        "DataPack",
+        "Mod",
+        "Modpack",
+        "ResourcePack",
+        "ShaderPack",
+        "Unknown",
+      ].sort(),
+    );
   });
 });

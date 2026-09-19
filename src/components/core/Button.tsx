@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 
 export interface IButtonProps {
   onClick: () => void;
+  onBlur?: () => void;
   className?: string;
   children?: React.ReactNode;
   fullRound?: boolean;
@@ -14,6 +15,7 @@ export interface IButtonProps {
 }
 export default function Button({
   onClick,
+  onBlur,
   children,
   className,
   fullRound,
@@ -26,6 +28,7 @@ export default function Button({
   return (
     <motion.button
       onClick={onClick}
+      onBlur={onBlur}
       disabled={disabled}
       title={title}
       aria-label={ariaLabel}

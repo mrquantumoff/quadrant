@@ -103,14 +103,106 @@ describe("Mod", () => {
       />,
     );
     await userEvent.click(screen.getByRole("button", { name: "Download" }));
-    expect(mocks.installMod).toHaveBeenCalledWith(
-      mod.id,
-      "1.21.1",
-      ModLoader.Fabric,
-      mod.source,
-      mod.modType,
-      "Selected Pack",
+    expect(mocks.installMod).toHaveBeenCalledWith({
+      id: mod.id,
+      minecraftVersion: "1.21.1",
+      loader: ModLoader.Fabric,
+      source: mod.source,
+      modType: mod.modType,
+      modpack: "Selected Pack",
+    });
+  });
+
+  it("quick installs a resource pack into its explicit target", async () => {
+    render(
+      <Mod
+        mod={{ ...mod, modType: ModType.ResourcePack }}
+        modpack={undefined}
+        className=""
+        installTarget={{
+          name: "Selected Pack",
+          version: "1.21.1",
+          modLoader: ModLoader.Fabric,
+        }}
+      />,
     );
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    expect(mocks.installMod).toHaveBeenCalledWith({
+      id: mod.id,
+      minecraftVersion: "1.21.1",
+      loader: ModLoader.Fabric,
+      source: mod.source,
+      modType: ModType.ResourcePack,
+      modpack: "Selected Pack",
+    });
+  });
+
+  it("quick installs a pack into the folder the search page chose", async () => {
+    render(
+      <Mod
+        mod={{ ...mod, modType: ModType.ShaderPack }}
+        modpack={undefined}
+        className=""
+        installLocation="prism:1"
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
+    expect(mocks.installMod).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modType: ModType.ShaderPack,
+        contentLocation: "prism:1",
+      }),
+    );
+  });
+
+  it("never routes a mod to a folder, whatever the search page chose", async () => {
+    // A mod always follows its modpack; the host rejects a folder for one.
+    render(
+      <Mod
+        mod={mod}
+        modpack={undefined}
+        className=""
+        installLocation="prism:1"
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
+    expect(mocks.installMod.mock.calls[0][0].contentLocation).toBeUndefined();
+  });
+
+  it("sends no modpack for an untargeted resource pack rather than the saved one", async () => {
+    render(
+      <Mod
+        mod={{ ...mod, modType: ModType.ResourcePack }}
+        modpack={undefined}
+        className=""
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
+    expect(mocks.installMod).toHaveBeenCalledWith({
+      id: mod.id,
+      minecraftVersion: "1.12.2",
+      loader: ModLoader.Forge,
+      source: mod.source,
+      modType: ModType.ResourcePack,
+      modpack: "",
+    });
+  });
+
+  it("still falls back to the saved modpack for an untargeted mod", async () => {
+    render(<Mod mod={mod} modpack={undefined} className="" />);
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
+    expect(mocks.installMod).toHaveBeenCalledWith({
+      id: mod.id,
+      minecraftVersion: "1.12.2",
+      loader: ModLoader.Forge,
+      source: mod.source,
+      modType: ModType.Mod,
+      modpack: "Different Pack",
+    });
   });
 
   it("allows retrying a download after reading saved settings fails", async () => {

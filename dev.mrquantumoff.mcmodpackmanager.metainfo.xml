@@ -49,6 +49,13 @@
 
   <releases>
 
+    <release date="2026-09-19" version="26.9.1-preview.1" type="development">
+      <description>
+        <p>As a part of the experimental features, you can now apply modpacks to Prism Launcher instances</p>
+        <p>Added a page to view, copy and delete installed resource packs and shaders</p>
+      </description>
+    </release>
+
     <release date="2026-09-06" version="26.9.1-preview.0" type="development">
       <description>
         <p>Fixes from a source audit of the renderer, mod installation, account handling, and host settings</p>

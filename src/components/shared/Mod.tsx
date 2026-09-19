@@ -29,6 +29,7 @@ import ModInstallPage from "../Pages/ModInstallPage/ModInstallPage";
 import Button from "../core/Button";
 import "./Mod.css";
 import { createDesktopStore, listen } from "../../desktop";
+import { isPackType } from "../../contentLocations";
 import { useReportError } from "../../useReportError";
 
 export interface IModProps {
@@ -36,6 +37,8 @@ export interface IModProps {
   modpack: string | undefined;
   className: string;
   installTarget?: Pick<LocalModpack, "name" | "version" | "modLoader">;
+  /** A `ContentLocation.id` a pack installs into; mods ignore it entirely. */
+  installLocation?: string;
   installed?: boolean;
   /** Called after this card (or the mod page it opens) installs something. */
   onInstalled?: () => void;
@@ -111,6 +114,7 @@ export default function Mod(props: IModProps) {
           mod={mod}
           originRect={originRect}
           installTarget={props.installTarget}
+          installLocation={props.installLocation}
           onInstalled={props.onInstalled}
         />
       ),
@@ -363,20 +367,29 @@ export default function Mod(props: IModProps) {
                         const lastUsedAPI = target
                           ? target.modLoader
                           : await config.get<string>("lastUsedAPI");
-                        const lastUsedModpack = target
-                          ? target.name
-                          : await config.get<string>("lastUsedModpack");
                         const lastUsedVersion = target
                           ? target.version
                           : await config.get<string>("lastUsedVersion");
-                        await installMod(
-                          mod.id,
-                          lastUsedVersion ?? "",
-                          (lastUsedAPI as ModLoader) ?? ModLoader.Unknown,
-                          mod.source,
-                          mod.modType,
-                          lastUsedModpack ?? "free",
-                        );
+                        // Resource packs and shaders go to the pack the search
+                        // was scoped to, never to a saved or guessed one.
+                        const installModpack =
+                          mod.modType === ModType.Mod
+                            ? ((target?.name ??
+                                (await config.get<string>("lastUsedModpack"))) ??
+                              "free")
+                            : (target?.name ?? "");
+                        await installMod({
+                          id: mod.id,
+                          minecraftVersion: lastUsedVersion ?? "",
+                          loader:
+                            (lastUsedAPI as ModLoader) ?? ModLoader.Unknown,
+                          source: mod.source,
+                          modType: mod.modType,
+                          modpack: installModpack,
+                          contentLocation: isPackType(mod.modType)
+                            ? props.installLocation
+                            : undefined,
+                        });
                         props.onInstalled?.();
                       } catch (e) {
                         failInstall(e);

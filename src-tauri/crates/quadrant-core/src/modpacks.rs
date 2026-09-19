@@ -5,7 +5,8 @@ use crate::{
     events::BackendEvent,
     mc_mod::enrich_installed_mod,
     models::{
-        InstalledMod, InstalledModpack, LocalModpack, ModLoader, ModSource, SyncInfo, modpack_path,
+        InstalledMod, InstalledModpack, LocalModpack, ModLoader, ModSource, SyncInfo,
+        is_single_path_component, modpack_path,
     },
     ports::{EventSink, SettingsStore},
 };
@@ -27,8 +28,18 @@ pub(crate) fn write_file_atomically(
     path: impl AsRef<Path>,
     contents: impl AsRef<[u8]>,
 ) -> std::io::Result<()> {
+    write_atomically(path.as_ref(), |file| file.write_all(contents.as_ref()))
+}
+
+/// Fills a sibling temp file with `write` and renames it over `path`, so the
+/// destination is either the old file or the whole new one. Streaming callers
+/// use this instead of [`write_file_atomically`] to avoid holding the contents
+/// in memory.
+pub(crate) fn write_atomically(
+    path: &Path,
+    write: impl FnOnce(&mut std::fs::File) -> std::io::Result<()>,
+) -> std::io::Result<()> {
     static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let path = path.as_ref();
     let parent = path
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty());
@@ -44,13 +55,13 @@ pub(crate) fn write_file_atomically(
         std::process::id(),
         COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     ));
-    let write = || -> std::io::Result<()> {
+    let fill = || -> std::io::Result<()> {
         let mut file = std::fs::File::create(&temp_path)?;
-        file.write_all(contents.as_ref())?;
+        write(&mut file)?;
         file.sync_all()?;
         std::fs::rename(&temp_path, path)
     };
-    let result = write();
+    let result = fill();
     if result.is_err() {
         let _ = std::fs::remove_file(&temp_path);
     }
@@ -58,11 +69,7 @@ pub(crate) fn write_file_atomically(
 }
 
 pub(crate) fn validate_modpack_name(name: &str) -> Result<()> {
-    let mut components = Path::new(name).components();
-    if name.is_empty()
-        || !matches!(components.next(), Some(Component::Normal(_)))
-        || components.next().is_some()
-    {
+    if !is_single_path_component(name) {
         return Err(anyhow::Error::from(
             crate::error::ErrorCode::InvalidModpackName,
         ));
@@ -155,11 +162,7 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
             continue;
         }
 
-        let is_applied = mods_folder
-            .is_symlink()
-            .then(|| mods_folder.read_link().ok())
-            .flatten()
-            .is_some_and(|mods_path| mods_path == path);
+        let is_applied = mods_link_target(&mods_folder).is_some_and(|mods_path| mods_path == path);
 
         let has_v2 = modpack_config_v2.exists();
         let has_v1 = modpack_config_v1.exists();
@@ -288,43 +291,101 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
     Ok(modpacks)
 }
 
-/// Applies the named modpack by making `<mcFolder>/mods` point at it.
-pub fn apply_modpack(mc_folder: &Path, name: &str) -> Result<()> {
-    validate_modpack_name(name)?;
-    log::info!("Applying modpack \"{name}\"");
-    let modpack_dir = modpack_path(mc_folder, name);
-    let mods_path = mc_folder.join("mods");
-    if !modpack_dir.exists() {
-        return Err(anyhow::Error::from(crate::error::ErrorCode::ModpackMissing));
-    }
+/// Name prefix of the folder a real `mods` directory is set aside under, shared
+/// with whoever has to find that backup again.
+pub(crate) const MODS_BACKUP_PREFIX: &str = "mods-backup-";
+
+/// What a game directory's `mods` folder links to, or `None` when it is a real
+/// directory. The single place a modpack/game-directory pairing is read from.
+pub(crate) fn mods_link_target(mods_path: &Path) -> Option<PathBuf> {
+    mods_path
+        .is_symlink()
+        .then(|| mods_path.read_link().ok())
+        .flatten()
+}
+
+/// Makes `mods_path` a symlink to `target`, preserving whatever was there.
+///
+/// A timestamped backup of a real `mods` directory is created inside
+/// `backup_parent`.
+pub(crate) fn link_mods_folder(
+    mods_path: &Path,
+    target: &Path,
+    backup_parent: &Path,
+) -> Result<()> {
+    let mut backup = None;
     if mods_path.is_symlink() {
         // An existing `mods` symlink. This may be dangling if the modpack it
         // pointed at was deleted as a directory outside of Quadrant, in which
         // case `exists()` is false (it follows the link) but the broken link
         // still occupies the path and would make symlink creation fail with
         // `AlreadyExists`. Remove it either way before re-linking.
-        std::fs::remove_dir_all(&mods_path)?;
+        std::fs::remove_dir_all(mods_path)?;
     } else if mods_path.exists() {
         // A real, non-symlink `mods` directory — back it up rather than delete.
-        std::fs::rename(
-            &mods_path,
-            mc_folder.join("modpacks").join(format!(
-                "mods-backup-{}",
-                Utc::now().format("%Y%m%d-%H%M%S")
-            )),
-        )?;
+        let path = backup_parent.join(format!(
+            "{MODS_BACKUP_PREFIX}{}",
+            Utc::now().format("%Y%m%d-%H%M%S")
+        ));
+        std::fs::rename(mods_path, &path)?;
+        backup = Some(path);
     }
 
-    #[cfg(target_os = "windows")]
-    {
-        std::os::windows::fs::symlink_dir(modpack_dir, &mods_path)?;
-    }
+    restore_backup_on_error(
+        create_mods_link(target, mods_path),
+        backup.as_deref(),
+        mods_path,
+    )
+}
 
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
+#[cfg(target_os = "windows")]
+fn create_mods_link(target: &Path, mods_path: &Path) -> std::io::Result<()> {
+    std::os::windows::fs::symlink_dir(target, mods_path)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn create_mods_link(target: &Path, mods_path: &Path) -> std::io::Result<()> {
+    std::os::unix::fs::symlink(target, mods_path)
+}
+
+/// Puts a backed-up `mods` directory back when creating the link failed, and
+/// reports the original failure.
+///
+/// Creating a symlink needs a privilege Windows does not grant by default, and
+/// without this the jars are left under a backup name with no `mods` folder at
+/// all.
+fn restore_backup_on_error(
+    linked: std::io::Result<()>,
+    backup: Option<&Path>,
+    mods_path: &Path,
+) -> Result<()> {
+    let Err(error) = linked else {
+        return Ok(());
+    };
+    if let Some(backup) = backup
+        && let Err(restore_error) = std::fs::rename(backup, mods_path)
     {
-        std::os::unix::fs::symlink(modpack_dir, mods_path)?;
+        log::error!(
+            "Failed to restore \"{}\" after linking failed: {restore_error}",
+            backup.display()
+        );
     }
-    Ok(())
+    Err(error.into())
+}
+
+/// Applies the named modpack by making `<mcFolder>/mods` point at it.
+pub fn apply_modpack(mc_folder: &Path, name: &str) -> Result<()> {
+    validate_modpack_name(name)?;
+    log::info!("Applying modpack \"{name}\"");
+    let modpack_dir = modpack_path(mc_folder, name);
+    if !modpack_dir.exists() {
+        return Err(anyhow::Error::from(crate::error::ErrorCode::ModpackMissing));
+    }
+    link_mods_folder(
+        &mc_folder.join("mods"),
+        &modpack_dir,
+        &mc_folder.join("modpacks"),
+    )
 }
 
 /// Creates a new modpack folder and manifest.
@@ -857,6 +918,33 @@ mod tests {
         let mc_folder = dir.path().join(".minecraft");
         std::fs::create_dir_all(mc_folder.join("modpacks")).unwrap();
         (dir, mc_folder)
+    }
+
+    #[test]
+    fn a_failed_link_gives_the_mods_folder_back() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        let mods_path = mc_folder.join("mods");
+        let backup = mc_folder
+            .join("modpacks")
+            .join("mods-backup-20260101-000000");
+        std::fs::create_dir_all(&backup).unwrap();
+        std::fs::write(backup.join("loose.jar"), "jar").unwrap();
+        let failure = || {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                "a privilege is not held",
+            ))
+        };
+
+        assert!(restore_backup_on_error(failure(), Some(&backup), &mods_path).is_err());
+
+        assert!(!backup.exists());
+        assert!(mods_path.join("loose.jar").exists());
+        // Nothing was set aside, so there is nothing to put back.
+        assert!(restore_backup_on_error(failure(), None, &mods_path).is_err());
+        assert!(mods_path.join("loose.jar").exists());
+        assert!(restore_backup_on_error(Ok(()), Some(&backup), &mods_path).is_ok());
+        assert!(mods_path.join("loose.jar").exists());
     }
 
     fn online_mod(id: &str, download_url: String) -> InstalledMod {

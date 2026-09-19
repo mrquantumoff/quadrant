@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     fs,
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex, Once, OnceLock},
     time::Duration,
 };
@@ -29,6 +29,11 @@ use quadrant_core::{
         set_secret,
     },
     config::{ensure_default_app_config, get_mc_folder},
+    content::{
+        ContentLocation, ContentLocationKind, LocationRef, MINECRAFT_LOCATION_ID, content_location,
+        content_location_header, content_subfolder, copy_content_files, delete_content_files,
+        parse_location_id, prism_location_id,
+    },
     events::BackendEvent,
     mc_mod::{
         GetModArgs, GlobalSearchModsArgs, IdentifiedMod, MinecraftVersion, Mod, ModType,
@@ -41,6 +46,7 @@ use quadrant_core::{
         install_modpack, register_mod, set_modpack_sync_date, update_modpack,
     },
     ports::{EventSink, SecretStore, SettingsStore},
+    prism::{self, PrismInstance, PrismSyncPlan},
     telemetry::{AppInfo, get_telemetry_info, remove_telemetry, send_telemetry},
 };
 use serde::{Deserialize, Deserializer, Serialize, de::DeserializeOwned, de::Error as DeError};
@@ -65,6 +71,10 @@ pub use quadrant_core::mc_mod::modrinth::{
     get_mod_deps_modrinth, get_mod_modrinth, get_mod_owners_modrinth,
 };
 pub use quadrant_core::mc_mod::{get_mod_url, get_user_url};
+
+/// How a game directory is turned into a listing entry, which is either with
+/// its installed files or without reading them.
+type DescribeLocation = fn(&str, ContentLocationKind, &str, &Path) -> ContentLocation;
 
 const NOTIFICATION_CURSOR_CREATED_AT_KEY: &str = "notificationCursorCreatedAt";
 const NOTIFICATION_CURSOR_NOTIFICATION_ID_KEY: &str = "notificationCursorNotificationId";
@@ -483,6 +493,12 @@ impl QuadrantHost {
         self.inner.config_store.set_value(key, value)
     }
 
+    /// Drops a config key entirely, so a later read falls back to the default
+    /// rather than seeing a stored `null`.
+    pub fn remove_config_value(&self, key: &str) -> Result<()> {
+        self.inner.config_store.delete_key(key)
+    }
+
     pub fn get_minecraft_folder(&self) -> Result<PathBuf> {
         self.inner
             .config_store
@@ -504,6 +520,292 @@ impl QuadrantHost {
         apply_modpack(&self.get_minecraft_folder()?, &name)
     }
 
+    fn experimental_features(&self) -> Result<bool> {
+        Ok(self
+            .inner
+            .config_store
+            .get_bool("experimentalFeatures")?
+            .unwrap_or(false))
+    }
+
+    /// Resolves the Prism instances folder without the experimental gate, for
+    /// keeping links Quadrant already made from going stale. A modpack renamed
+    /// or deleted while the feature is off must still not leave an instance
+    /// pointing at a folder that is not there.
+    fn prism_instances_dir_for_maintenance(&self) -> Result<Option<PathBuf>> {
+        let override_dir = self
+            .inner
+            .config_store
+            .get_string("prismLauncherFolder")?
+            .filter(|folder| !folder.trim().is_empty())
+            .map(PathBuf::from);
+        Ok(prism::find_data_dir(override_dir).map(|data_dir| prism::instances_dir(&data_dir)))
+    }
+
+    /// The Prism instances folder for callers that list, or `None` when the
+    /// feature is off or Prism is not installed where Quadrant can see it. The
+    /// single gate every read-only Prism path goes through.
+    fn prism_instances_dir(&self) -> Result<Option<PathBuf>> {
+        if !self.experimental_features()? {
+            return Ok(None);
+        }
+        self.prism_instances_dir_for_maintenance()
+    }
+
+    /// The Prism instances folder for callers that act on one instance, which
+    /// have to tell a disabled feature apart from a missing Prism install.
+    fn require_prism_instances_dir(&self) -> Result<PathBuf> {
+        if !self.experimental_features()? {
+            return Err(anyhow::Error::from(ErrorCode::Forbidden));
+        }
+        self.prism_instances_dir_for_maintenance()?
+            .ok_or_else(|| anyhow::Error::from(ErrorCode::PrismInstanceMissing))
+    }
+
+    /// Lists Prism instances, or nothing when the feature is off or Prism is
+    /// not installed.
+    pub fn get_prism_instances(&self) -> Result<Vec<PrismInstance>> {
+        let Some(instances_dir) = self.prism_instances_dir()? else {
+            return Ok(Vec::new());
+        };
+        prism::list_instances(&instances_dir, &self.get_minecraft_folder()?)
+    }
+
+    /// The named modpack from the on-disk listing, which is where the version
+    /// and loader an instance is synced to come from.
+    async fn require_modpack(&self, name: &str) -> Result<LocalModpack> {
+        self.get_modpacks(false)
+            .await?
+            .into_iter()
+            .find(|modpack| modpack.name == name)
+            .ok_or_else(|| anyhow::Error::from(ErrorCode::ModpackMissing))
+    }
+
+    pub async fn apply_modpack_to_prism_instance(
+        &self,
+        name: String,
+        instance_id: String,
+    ) -> Result<()> {
+        let instances_dir = self.require_prism_instances_dir()?;
+        let modpack = self.require_modpack(&name).await?;
+
+        let instance_dir = prism::resolve_instance_dir(&instances_dir, &instance_id)?;
+        let pack = prism::read_pack_manifest(&instance_dir)?;
+        let plan = prism::plan_sync(&pack, &modpack.version, modpack.mod_loader)?;
+        let loader_version = if plan.needs_loader_version {
+            Some(prism::resolve_loader_version(modpack.mod_loader, &modpack.version).await?)
+        } else {
+            None
+        };
+
+        prism::apply_modpack_to_instance(
+            &self.get_minecraft_folder()?,
+            &instance_dir,
+            pack,
+            &modpack,
+            loader_version.as_deref(),
+        )
+    }
+
+    /// What applying the named modpack would change about each listed
+    /// instance's components, so a frontend can show the move without knowing
+    /// the component rules. Nothing while the feature is off, and no network.
+    pub async fn get_prism_sync_plans(&self, name: String) -> Result<Vec<PrismSyncPlan>> {
+        let Some(instances_dir) = self.prism_instances_dir()? else {
+            return Ok(Vec::new());
+        };
+        let modpack = self.require_modpack(&name).await?;
+
+        let mut plans = Vec::new();
+        for instance in prism::list_instances(&instances_dir, &self.get_minecraft_folder()?)? {
+            let planned = prism::resolve_instance_dir(&instances_dir, &instance.id)
+                .and_then(|instance_dir| prism::read_pack_manifest(&instance_dir))
+                .and_then(|pack| prism::plan_sync(&pack, &modpack.version, modpack.mod_loader));
+            match planned {
+                Ok(plan) => plans.push(PrismSyncPlan {
+                    instance_id: instance.id,
+                    minecraft_version: plan.minecraft_version,
+                    mod_loader: plan.mod_loader,
+                }),
+                // One unreadable manifest must not cost the user the plans for
+                // the instances Quadrant can read.
+                Err(error) => log::warn!(
+                    "Skipping Prism instance \"{}\" while planning: {error}",
+                    instance.id
+                ),
+            }
+        }
+        Ok(plans)
+    }
+
+    pub fn detach_prism_instance(&self, instance_id: String) -> Result<()> {
+        let instances_dir = self.require_prism_instances_dir()?;
+        prism::detach_instance(&prism::resolve_instance_dir(&instances_dir, &instance_id)?)
+    }
+
+    /// The instance folders whose `mods` folder links to the named modpack,
+    /// gate or no gate. Empty when Prism is not installed, and a Prism folder
+    /// that cannot be read is not worth failing a modpack operation over.
+    fn prism_instances_linked_to(&self, mc_folder: &Path, modpack: &str) -> Vec<PathBuf> {
+        match self.prism_instances_dir_for_maintenance() {
+            Ok(Some(instances_dir)) => {
+                prism::instances_linked_to(&instances_dir, mc_folder, modpack)
+                    .into_iter()
+                    .map(|id| instances_dir.join(id))
+                    .collect()
+            }
+            Ok(None) => Vec::new(),
+            Err(error) => {
+                log::warn!("Ignoring Prism instances linked to \"{modpack}\": {error}");
+                Vec::new()
+            }
+        }
+    }
+
+    /// Gives every instance linked to the modpack its own `mods` folder and
+    /// components back, before the modpack they point at stops existing.
+    fn detach_prism_instances_linked_to(&self, mc_folder: &Path, modpack: &str) {
+        for instance_dir in self.prism_instances_linked_to(mc_folder, modpack) {
+            if let Err(error) = prism::detach_instance(&instance_dir) {
+                log::warn!(
+                    "Failed to unlink Prism instance \"{}\": {error}",
+                    instance_dir.display()
+                );
+            }
+        }
+    }
+
+    /// Points instances that were linked to a renamed modpack at its new
+    /// folder. A link Quadrant cannot repair is worth a warning, not a failed
+    /// rename the user would have to undo by hand.
+    fn relink_prism_instances(&self, mc_folder: &Path, instance_dirs: &[PathBuf], modpack: &str) {
+        for instance_dir in instance_dirs {
+            if let Err(error) = prism::relink_instance(instance_dir, mc_folder, modpack) {
+                log::warn!(
+                    "Failed to relink Prism instance \"{}\" to \"{modpack}\": {error}",
+                    instance_dir.display()
+                );
+            }
+        }
+    }
+
+    /// Every place installed resource packs and shader packs can live: the
+    /// Minecraft folder, plus one location per Prism instance while the
+    /// experimental feature is on.
+    ///
+    /// With `include_files` false the pack folders are never read, which is
+    /// what a caller that only needs the ids and names of the locations pays
+    /// for.
+    pub fn get_installed_content(&self, include_files: bool) -> Result<Vec<ContentLocation>> {
+        let describe = if include_files {
+            content_location
+        } else {
+            content_location_header
+        };
+        let mut locations = vec![describe(
+            MINECRAFT_LOCATION_ID,
+            ContentLocationKind::Minecraft,
+            "",
+            &self.get_minecraft_folder()?,
+        )];
+        // An unreadable Prism folder must not cost the user the Minecraft
+        // listing, which is the one every install has.
+        match self.prism_content_locations(describe) {
+            Ok(prism_locations) => locations.extend(prism_locations),
+            Err(error) => log::warn!("Ignoring Prism instances while listing content: {error}"),
+        }
+        Ok(locations)
+    }
+
+    fn prism_content_locations(&self, describe: DescribeLocation) -> Result<Vec<ContentLocation>> {
+        let Some(instances_dir) = self.prism_instances_dir()? else {
+            return Ok(Vec::new());
+        };
+        Ok(
+            prism::list_instances(&instances_dir, &self.get_minecraft_folder()?)?
+                .into_iter()
+                .map(|instance| {
+                    describe(
+                        &prism_location_id(&instance.id),
+                        ContentLocationKind::Prism,
+                        &instance.name,
+                        &prism::game_dir(&instances_dir.join(&instance.id)),
+                    )
+                })
+                .collect(),
+        )
+    }
+
+    /// The game directory a content location id points at.
+    ///
+    /// Takes a location id from [`Self::get_installed_content`] rather than a
+    /// path, so a frontend never names a folder for itself.
+    fn content_game_dir(&self, location_id: &str) -> Result<PathBuf> {
+        match parse_location_id(location_id).ok_or(ErrorCode::InvalidRequest)? {
+            LocationRef::Minecraft => self.get_minecraft_folder(),
+            LocationRef::Prism(instance_id) => {
+                let instances_dir = self.require_prism_instances_dir()?;
+                Ok(prism::game_dir(&prism::resolve_instance_dir(
+                    &instances_dir,
+                    instance_id,
+                )?))
+            }
+        }
+    }
+
+    /// The folder `mod_type` is installed into for one content location.
+    pub fn content_folder(&self, location_id: &str, mod_type: ModType) -> Result<PathBuf> {
+        let subfolder = content_subfolder(mod_type).ok_or(ErrorCode::InvalidRequest)?;
+        Ok(self.content_game_dir(location_id)?.join(subfolder))
+    }
+
+    /// Copies installed packs from one content location into another, returning
+    /// how many were copied.
+    pub fn copy_content(
+        &self,
+        from_location: &str,
+        to_location: &str,
+        mod_type: ModType,
+        file_names: Vec<String>,
+    ) -> Result<usize> {
+        copy_content_files(
+            &self.content_folder(from_location, mod_type)?,
+            &self.content_folder(to_location, mod_type)?,
+            &file_names,
+        )
+    }
+
+    /// Permanently removes installed packs from one content location,
+    /// returning how many were removed.
+    pub fn delete_content(
+        &self,
+        location: &str,
+        mod_type: ModType,
+        file_names: Vec<String>,
+    ) -> Result<usize> {
+        delete_content_files(&self.content_folder(location, mod_type)?, &file_names)
+    }
+
+    /// Where a single install of `mod_type` should land, with the content
+    /// location a caller named resolved to a game directory first.
+    fn install_roots(
+        &self,
+        mod_type: ModType,
+        modpack: Option<&str>,
+        content_location: Option<&str>,
+    ) -> Result<Vec<PathBuf>> {
+        let explicit_game_dir = content_location
+            .map(|location_id| self.content_game_dir(location_id))
+            .transpose()?;
+        Ok(prism::install_roots(
+            &self.get_minecraft_folder()?,
+            self.prism_instances_dir()?.as_deref(),
+            mod_type,
+            modpack,
+            explicit_game_dir,
+        ))
+    }
+
     pub async fn delete_mod(&self, modpack_name: String, mod_id: String) -> Result<()> {
         let modpack = delete_mod(
             &self.get_minecraft_folder()?,
@@ -521,14 +823,24 @@ impl QuadrantHost {
         version: Option<String>,
         mod_loader: Option<ModLoader>,
     ) -> Result<()> {
+        let mc_folder = self.get_minecraft_folder()?;
+        // Collected before the rename, while the links still name the old
+        // folder and can still be read back.
+        let linked = match name.as_deref() {
+            Some(name) if name != modpack_source => {
+                self.prism_instances_linked_to(&mc_folder, &modpack_source)
+            }
+            _ => Vec::new(),
+        };
         let modpack = update_modpack(
-            &self.get_minecraft_folder()?,
+            &mc_folder,
             &self.get_modpacks(false).await?,
             &modpack_source,
             name,
             version,
             mod_loader,
         )?;
+        self.relink_prism_instances(&mc_folder, &linked, &modpack.name);
         self.maybe_auto_sync_updated_modpack(Some(modpack)).await
     }
 
@@ -548,11 +860,12 @@ impl QuadrantHost {
     }
 
     pub async fn delete_modpack(&self, name: String) -> Result<()> {
-        delete_modpack(
-            &self.get_minecraft_folder()?,
-            &self.get_modpacks(false).await?,
-            &name,
-        )
+        let mc_folder = self.get_minecraft_folder()?;
+        let modpacks = self.get_modpacks(false).await?;
+        // Unlinked first: once the folder is gone an instance links to nothing,
+        // has no mods, and reports no modpack to unlink it from.
+        self.detach_prism_instances_linked_to(&mc_folder, &name);
+        delete_modpack(&mc_folder, &modpacks, &name)
     }
 
     pub async fn register_mod(&self, mod_: InstalledMod, modpack: String) -> Result<()> {
@@ -652,9 +965,12 @@ impl QuadrantHost {
         modpack: Option<String>,
         mod_type: ModType,
         file_id: Option<String>,
+        content_location: Option<String>,
     ) -> Result<()> {
+        let install_roots =
+            self.install_roots(mod_type, modpack.as_deref(), content_location.as_deref())?;
         let updated_modpack = install_mod(
-            &self.get_minecraft_folder()?,
+            &install_roots,
             &self.inner.config_store,
             &self.inner.event_sink,
             id,
@@ -677,8 +993,9 @@ impl QuadrantHost {
         source: ModSource,
         id: String,
     ) -> Result<()> {
+        let install_roots = self.install_roots(mod_type, modpack.as_deref(), None)?;
         let updated_modpack = install_remote_file(
-            &self.get_minecraft_folder()?,
+            &install_roots,
             &self.inner.event_sink,
             file,
             mod_type,
@@ -1010,6 +1327,13 @@ impl QuadrantHost {
         &[
             "get_modpacks",
             "frontend_apply_modpack",
+            "get_prism_instances",
+            "get_prism_sync_plans",
+            "apply_modpack_to_prism_instance",
+            "detach_prism_instance",
+            "get_installed_content",
+            "copy_content",
+            "delete_content",
             "delete_mod",
             "update_modpack",
             "create_modpack",
@@ -1024,6 +1348,7 @@ impl QuadrantHost {
             "init_config",
             "get_config_value",
             "set_config_value",
+            "remove_config_value",
             "search_mods",
             "get_categories",
             "get_versions",
@@ -1074,6 +1399,41 @@ impl QuadrantHost {
                 let args: NameArgs = from_value(payload)?;
                 self.frontend_apply_modpack(args.name)?;
                 Ok(Value::Null)
+            }
+            "get_prism_instances" => to_value(self.get_prism_instances()?),
+            "get_prism_sync_plans" => {
+                let args: NameArgs = from_value(payload)?;
+                to_value(self.get_prism_sync_plans(args.name).await?)
+            }
+            "apply_modpack_to_prism_instance" => {
+                let args: PrismApplyArgs = from_value(payload)?;
+                self.apply_modpack_to_prism_instance(args.name, args.instance_id)
+                    .await?;
+                Ok(Value::Null)
+            }
+            "detach_prism_instance" => {
+                let args: PrismInstanceArgs = from_value(payload)?;
+                self.detach_prism_instance(args.instance_id)?;
+                Ok(Value::Null)
+            }
+            "get_installed_content" => {
+                // A caller that wants the files sends no payload at all, which
+                // is a JSON null rather than an object.
+                let args: GetInstalledContentArgs = from_value(payload).unwrap_or_default();
+                to_value(self.get_installed_content(args.include_files.unwrap_or(true))?)
+            }
+            "copy_content" => {
+                let args: CopyContentArgs = from_value(payload)?;
+                to_value(self.copy_content(
+                    &args.from_location,
+                    &args.to_location,
+                    args.mod_type,
+                    args.file_names,
+                )?)
+            }
+            "delete_content" => {
+                let args: DeleteContentArgs = from_value(payload)?;
+                to_value(self.delete_content(&args.location, args.mod_type, args.file_names)?)
             }
             "delete_mod" => {
                 let args: DeleteModArgs = from_value(payload)?;
@@ -1139,6 +1499,11 @@ impl QuadrantHost {
                 self.set_config_value(&args.key, args.value)?;
                 Ok(Value::Null)
             }
+            "remove_config_value" => {
+                let args: ConfigKeyArgs = from_value(payload)?;
+                self.remove_config_value(&args.key)?;
+                Ok(Value::Null)
+            }
             "search_mods" => {
                 let args: SearchModsCompatArgs = from_value(payload)?;
                 to_value(self.search_mods(args.args).await?)
@@ -1162,6 +1527,7 @@ impl QuadrantHost {
                     args.modpack,
                     args.mod_type,
                     args.file_id,
+                    args.content_location,
                 )
                 .await?;
                 Ok(Value::Null)
@@ -2109,6 +2475,19 @@ struct NameArgs {
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
+struct PrismApplyArgs {
+    name: String,
+    instance_id: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PrismInstanceArgs {
+    instance_id: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct DeleteModArgs {
     modpack_name: String,
     mod_id: String,
@@ -2188,6 +2567,8 @@ struct InstallModArgs {
     modpack: Option<String>,
     mod_type: ModType,
     file_id: Option<String>,
+    #[serde(default)]
+    content_location: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -2198,6 +2579,30 @@ struct InstallRemoteFileArgs {
     modpack: Option<String>,
     source: ModSource,
     id: String,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct GetInstalledContentArgs {
+    /// Absent means true: a caller that does not ask gets the pack listings.
+    include_files: Option<bool>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CopyContentArgs {
+    from_location: String,
+    to_location: String,
+    mod_type: ModType,
+    file_names: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct DeleteContentArgs {
+    location: String,
+    mod_type: ModType,
+    file_names: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -2335,11 +2740,18 @@ mod tests {
     };
     use quadrant_core::{
         account::KEYRING_SERVICE,
+        content::{ContentLocation, ContentLocationKind, PACK_TYPES},
         events::{BackendEvent, ModProgressPayload},
+        mc_mod::ModType,
+        models::{ModLoader, modpack_path},
         ports::{EventSink, SettingsStore},
+        prism::PrismSyncPlan,
     };
     use serde_json::{Value, json};
-    use std::{fs, path::PathBuf};
+    use std::{
+        fs,
+        path::{Path, PathBuf},
+    };
     use tempfile::tempdir;
 
     fn notification(id: &str, unix: i64, read: bool) -> Notification {
@@ -2466,6 +2878,601 @@ mod tests {
         assert_eq!(
             host.get_config_value("custom").unwrap(),
             Some(Value::String("value".to_string()))
+        );
+    }
+
+    fn prism_host(temp_dir: &std::path::Path) -> (QuadrantHost, PathBuf, PathBuf) {
+        let mc_folder = temp_dir.join(".minecraft");
+        let prism_dir = temp_dir.join("PrismLauncher");
+        fs::create_dir_all(mc_folder.join("modpacks").join("pack")).unwrap();
+        fs::create_dir_all(prism_dir.join("instances")).unwrap();
+
+        let host = QuadrantHost::new(QuadrantHostOptions::new(
+            temp_dir.join("data"),
+            "client",
+            "secret",
+            "api-key",
+        ))
+        .unwrap();
+        host.set_config_value("mcFolder", json!(mc_folder)).unwrap();
+        host.set_config_value("prismLauncherFolder", json!(prism_dir))
+            .unwrap();
+        (host, mc_folder, prism_dir)
+    }
+
+    fn write_prism_instance(prism_dir: &Path, id: &str, name: &str) -> PathBuf {
+        let instance = prism_dir.join("instances").join(id);
+        fs::create_dir_all(instance.join("minecraft")).unwrap();
+        fs::write(instance.join("instance.cfg"), format!("name={name}\n")).unwrap();
+        fs::write(
+            instance.join("mmc-pack.json"),
+            json!({
+                "formatVersion": 1,
+                "components": [{ "uid": "net.minecraft", "version": "1.21.1" }]
+            })
+            .to_string(),
+        )
+        .unwrap();
+        instance
+    }
+
+    fn write_pack_manifest(instance: &Path, components: Value) {
+        fs::write(
+            instance.join("mmc-pack.json"),
+            json!({ "formatVersion": 1, "components": components }).to_string(),
+        )
+        .unwrap();
+    }
+
+    /// A modpack manifest, so the listing reports a version and loader to sync
+    /// an instance to.
+    fn write_modpack_manifest(mc_folder: &Path, name: &str, version: &str, mod_loader: &str) {
+        fs::create_dir_all(modpack_path(mc_folder, name)).unwrap();
+        fs::write(
+            modpack_path(mc_folder, name).join("modConfigV2.json"),
+            json!({
+                "modConfigVersion": "2",
+                "quadrantVersion": "26.9.1",
+                "name": name,
+                "version": version,
+                "modLoader": mod_loader,
+                "mods": []
+            })
+            .to_string(),
+        )
+        .unwrap();
+    }
+
+    /// What one content type holds in a listed location.
+    fn pack_names(location: &ContentLocation, mod_type: ModType) -> Vec<&str> {
+        location
+            .sections
+            .iter()
+            .find(|section| section.mod_type == mod_type)
+            .map(|section| {
+                section
+                    .files
+                    .iter()
+                    .map(|file| file.file_name.as_str())
+                    .collect()
+            })
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn removing_the_prism_folder_override_falls_back_to_discovery() {
+        let temp_dir = tempdir().unwrap();
+        let (host, _mc_folder, prism_dir) = prism_host(temp_dir.path());
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+
+        assert_eq!(
+            host.prism_instances_dir().unwrap(),
+            Some(prism_dir.join("instances"))
+        );
+
+        host.remove_config_value("prismLauncherFolder").unwrap();
+
+        assert_eq!(host.get_config_value("prismLauncherFolder").unwrap(), None);
+        // Falls back to platform discovery, which finds nothing under a temp dir.
+        assert_ne!(
+            host.prism_instances_dir().unwrap(),
+            Some(prism_dir.join("instances"))
+        );
+    }
+
+    /// Older configs can still hold the JSON null the frontend used to write to
+    /// clear a key, and that has to read as no override rather than as a path.
+    #[test]
+    fn a_stored_null_prism_folder_is_treated_as_no_override() {
+        let temp_dir = tempdir().unwrap();
+        let (host, _mc_folder, prism_dir) = prism_host(temp_dir.path());
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+
+        host.set_config_value("prismLauncherFolder", Value::Null)
+            .unwrap();
+
+        assert_eq!(
+            host.get_config_value("prismLauncherFolder").unwrap(),
+            Some(Value::Null)
+        );
+        assert_ne!(
+            host.prism_instances_dir().unwrap(),
+            Some(prism_dir.join("instances"))
+        );
+    }
+
+    #[test]
+    fn prism_locations_are_listed_without_reading_the_pack_folders() {
+        let temp_dir = tempdir().unwrap();
+        let (host, mc_folder, prism_dir) = prism_host(temp_dir.path());
+        fs::create_dir_all(mc_folder.join("resourcepacks")).unwrap();
+        fs::write(mc_folder.join("resourcepacks").join("Faithful.zip"), "pack").unwrap();
+        let game_dir = write_prism_instance(&prism_dir, "alpha", "Alpha").join("minecraft");
+        fs::create_dir_all(game_dir.join("shaderpacks")).unwrap();
+        fs::write(game_dir.join("shaderpacks").join("Bliss.zip"), "shader").unwrap();
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+
+        let locations = host.get_installed_content(false).unwrap();
+
+        assert_eq!(locations.len(), 2);
+        assert_eq!(locations[1].id, "prism:alpha");
+        assert_eq!(locations[1].name, "Alpha");
+        assert_eq!(locations[1].path, game_dir.to_string_lossy());
+        for location in &locations {
+            assert_eq!(location.sections.len(), PACK_TYPES.len(), "{}", location.id);
+            assert!(
+                location
+                    .sections
+                    .iter()
+                    .all(|section| section.files.is_empty()),
+                "{}",
+                location.id
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn prism_instances_are_hidden_while_the_feature_is_off() {
+        let temp_dir = tempdir().unwrap();
+        let (host, _mc_folder, prism_dir) = prism_host(temp_dir.path());
+        write_prism_instance(&prism_dir, "alpha", "Alpha");
+
+        assert!(host.get_prism_instances().unwrap().is_empty());
+        assert!(
+            host.get_prism_sync_plans("pack".to_string())
+                .await
+                .unwrap()
+                .is_empty()
+        );
+        for error in [
+            host.apply_modpack_to_prism_instance("pack".to_string(), "alpha".to_string())
+                .await
+                .unwrap_err(),
+            // Unlinking is behind the flag like everything else Prism: a user
+            // who wants it back turns the feature on again.
+            host.detach_prism_instance("alpha".to_string()).unwrap_err(),
+        ] {
+            assert!(error.to_string().contains("errorForbidden"), "{error}");
+        }
+    }
+
+    #[tokio::test]
+    async fn sync_plans_report_the_move_each_instance_would_make() {
+        let temp_dir = tempdir().unwrap();
+        let (host, mc_folder, prism_dir) = prism_host(temp_dir.path());
+        write_pack_manifest(
+            &write_prism_instance(&prism_dir, "alpha", "Alpha"),
+            json!([
+                { "uid": "net.minecraft", "version": "1.21.1" },
+                { "uid": "net.fabricmc.fabric-loader", "version": "0.16.9" }
+            ]),
+        );
+        write_pack_manifest(
+            &write_prism_instance(&prism_dir, "beta", "Beta"),
+            json!([{ "uid": "net.minecraft", "version": "1.20.1" }]),
+        );
+        write_modpack_manifest(&mc_folder, "pack", "1.21.1", "Fabric");
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+
+        let plans = host.get_prism_sync_plans("pack".to_string()).await.unwrap();
+
+        assert_eq!(
+            plans,
+            [
+                // Already on 1.21.1, and Fabric needs no build of its own.
+                PrismSyncPlan {
+                    instance_id: "alpha".to_string(),
+                    minecraft_version: None,
+                    mod_loader: None,
+                },
+                PrismSyncPlan {
+                    instance_id: "beta".to_string(),
+                    minecraft_version: Some("1.21.1".to_string()),
+                    mod_loader: Some(ModLoader::Fabric),
+                },
+            ]
+        );
+        assert!(
+            host.get_prism_sync_plans("ghost".to_string())
+                .await
+                .unwrap_err()
+                .to_string()
+                .contains("errorModpackMissing")
+        );
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[tokio::test]
+    async fn resource_packs_follow_a_modpack_into_its_prism_instances() {
+        let temp_dir = tempdir().unwrap();
+        let (host, mc_folder, prism_dir) = prism_host(temp_dir.path());
+        let instance = write_prism_instance(&prism_dir, "alpha", "Alpha");
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+
+        // "pack" has no manifest, so it reports version "-" and no loader
+        // version lookup is attempted.
+        host.apply_modpack_to_prism_instance("pack".to_string(), "alpha".to_string())
+            .await
+            .unwrap();
+
+        let instances = host.get_prism_instances().unwrap();
+        assert_eq!(instances.len(), 1);
+        assert_eq!(instances[0].applied_modpack.as_deref(), Some("pack"));
+        assert_eq!(
+            host.install_roots(ModType::ResourcePack, Some("pack"), None)
+                .unwrap(),
+            [instance.join("minecraft")]
+        );
+        // Mods still install into the Minecraft folder, whose own `mods` link is
+        // what decides the modpack folder they land in.
+        assert_eq!(
+            host.install_roots(ModType::Mod, Some("pack"), None)
+                .unwrap(),
+            [mc_folder.clone()]
+        );
+
+        host.set_config_value("experimentalFeatures", json!(false))
+            .unwrap();
+        assert_eq!(
+            host.install_roots(ModType::ResourcePack, Some("pack"), None)
+                .unwrap(),
+            [mc_folder]
+        );
+
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+        host.detach_prism_instance("alpha".to_string()).unwrap();
+        assert_eq!(host.get_prism_instances().unwrap()[0].applied_modpack, None);
+    }
+
+    #[test]
+    fn installed_content_covers_the_minecraft_folder_and_every_prism_instance() {
+        let temp_dir = tempdir().unwrap();
+        let (host, mc_folder, prism_dir) = prism_host(temp_dir.path());
+        fs::create_dir_all(mc_folder.join("resourcepacks")).unwrap();
+        fs::write(mc_folder.join("resourcepacks").join("Faithful.zip"), "pack").unwrap();
+        let game_dir = write_prism_instance(&prism_dir, "alpha", "Alpha").join("minecraft");
+        fs::create_dir_all(game_dir.join("shaderpacks")).unwrap();
+        fs::write(game_dir.join("shaderpacks").join("Bliss.zip"), "shader").unwrap();
+
+        let locations = host.get_installed_content(true).unwrap();
+        assert_eq!(locations.len(), 1);
+        assert_eq!(locations[0].id, "minecraft");
+        assert_eq!(locations[0].kind, ContentLocationKind::Minecraft);
+        assert_eq!(locations[0].name, "");
+        assert_eq!(locations[0].path, mc_folder.to_string_lossy());
+        assert_eq!(
+            pack_names(&locations[0], ModType::ResourcePack),
+            ["Faithful.zip"]
+        );
+        assert!(pack_names(&locations[0], ModType::ShaderPack).is_empty());
+
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+        let locations = host.get_installed_content(true).unwrap();
+        assert_eq!(locations.len(), 2);
+        assert_eq!(locations[1].id, "prism:alpha");
+        assert_eq!(locations[1].kind, ContentLocationKind::Prism);
+        assert_eq!(locations[1].name, "Alpha");
+        assert_eq!(locations[1].path, game_dir.to_string_lossy());
+        assert_eq!(
+            pack_names(&locations[1], ModType::ShaderPack),
+            ["Bliss.zip"]
+        );
+        assert!(pack_names(&locations[1], ModType::ResourcePack).is_empty());
+    }
+
+    #[test]
+    fn content_folder_resolves_only_known_locations_and_pack_types() {
+        let temp_dir = tempdir().unwrap();
+        let (host, mc_folder, prism_dir) = prism_host(temp_dir.path());
+        let game_dir = write_prism_instance(&prism_dir, "alpha", "Alpha").join("minecraft");
+
+        assert_eq!(
+            host.content_folder("minecraft", ModType::ResourcePack)
+                .unwrap(),
+            mc_folder.join("resourcepacks")
+        );
+        assert_eq!(
+            host.content_folder("minecraft", ModType::ShaderPack)
+                .unwrap(),
+            mc_folder.join("shaderpacks")
+        );
+        for (location_id, mod_type, expected) in [
+            ("minecraft", ModType::Mod, "errorInvalidRequest"),
+            ("nowhere", ModType::ResourcePack, "errorInvalidRequest"),
+            // Prism locations stay closed while the feature is off.
+            ("prism:alpha", ModType::ResourcePack, "errorForbidden"),
+        ] {
+            assert!(
+                host.content_folder(location_id, mod_type)
+                    .unwrap_err()
+                    .to_string()
+                    .contains(expected),
+                "{location_id:?}"
+            );
+        }
+
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+        assert_eq!(
+            host.content_folder("prism:alpha", ModType::ShaderPack)
+                .unwrap(),
+            game_dir.join("shaderpacks")
+        );
+        for (location_id, expected) in [
+            ("prism:ghost", "errorPrismInstanceMissing"),
+            ("prism:../alpha", "errorInvalidRequest"),
+            ("prism:", "errorInvalidRequest"),
+        ] {
+            assert!(
+                host.content_folder(location_id, ModType::ResourcePack)
+                    .unwrap_err()
+                    .to_string()
+                    .contains(expected),
+                "{location_id:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn install_roots_resolve_a_named_content_location_and_stay_gated() {
+        let temp_dir = tempdir().unwrap();
+        let (host, mc_folder, prism_dir) = prism_host(temp_dir.path());
+        let game_dir = write_prism_instance(&prism_dir, "alpha", "Alpha").join("minecraft");
+        let minecraft_only = vec![mc_folder];
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+
+        assert_eq!(
+            host.install_roots(ModType::ResourcePack, Some("pack"), Some("prism:alpha"))
+                .unwrap(),
+            [game_dir]
+        );
+        assert_eq!(
+            host.install_roots(ModType::ShaderPack, None, Some("minecraft"))
+                .unwrap(),
+            minecraft_only
+        );
+        // No location falls back to following the modpack, which is applied
+        // nowhere here.
+        assert_eq!(
+            host.install_roots(ModType::ResourcePack, Some("pack"), None)
+                .unwrap(),
+            minecraft_only
+        );
+
+        for (location_id, expected) in [
+            ("nowhere", "errorInvalidRequest"),
+            // The automatic placement is an absent location, not an empty one.
+            ("", "errorInvalidRequest"),
+            ("prism:ghost", "errorPrismInstanceMissing"),
+        ] {
+            assert!(
+                host.install_roots(ModType::ResourcePack, None, Some(location_id))
+                    .unwrap_err()
+                    .to_string()
+                    .contains(expected),
+                "{location_id:?}"
+            );
+        }
+
+        host.set_config_value("experimentalFeatures", json!(false))
+            .unwrap();
+        assert!(
+            host.install_roots(ModType::ResourcePack, None, Some("prism:alpha"))
+                .unwrap_err()
+                .to_string()
+                .contains("errorForbidden")
+        );
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[tokio::test]
+    async fn deleting_a_modpack_gives_its_prism_instances_their_mods_back() {
+        let temp_dir = tempdir().unwrap();
+        let (host, mc_folder, prism_dir) = prism_host(temp_dir.path());
+        let instance = write_prism_instance(&prism_dir, "alpha", "Alpha");
+        // "pack" has no manifest, so it reports version "-" and applying it
+        // syncs no components and resolves no loader build.
+        let mods_path = instance.join("minecraft").join("mods");
+        fs::create_dir_all(&mods_path).unwrap();
+        fs::write(mods_path.join("loose.jar"), "jar").unwrap();
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+        host.apply_modpack_to_prism_instance("pack".to_string(), "alpha".to_string())
+            .await
+            .unwrap();
+        // Unlinking is maintenance, so it happens with the feature off too.
+        host.set_config_value("experimentalFeatures", json!(false))
+            .unwrap();
+
+        host.delete_modpack("pack".to_string()).await.unwrap();
+
+        assert!(!mods_path.is_symlink());
+        assert!(mods_path.join("loose.jar").exists());
+        assert!(
+            !instance
+                .join(quadrant_core::prism::PACK_MANIFEST_BACKUP)
+                .exists()
+        );
+        assert!(!modpack_path(&mc_folder, "pack").exists());
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[tokio::test]
+    async fn renaming_a_modpack_follows_it_in_every_prism_instance() {
+        let temp_dir = tempdir().unwrap();
+        let (host, mc_folder, prism_dir) = prism_host(temp_dir.path());
+        let instance = write_prism_instance(&prism_dir, "alpha", "Alpha");
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+        host.apply_modpack_to_prism_instance("pack".to_string(), "alpha".to_string())
+            .await
+            .unwrap();
+        host.set_config_value("experimentalFeatures", json!(false))
+            .unwrap();
+
+        host.update_modpack("pack".to_string(), Some("renamed".to_string()), None, None)
+            .await
+            .unwrap();
+
+        let mods_path = instance.join("minecraft").join("mods");
+        assert_eq!(
+            mods_path.read_link().unwrap(),
+            modpack_path(&mc_folder, "renamed")
+        );
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+        assert_eq!(
+            host.get_prism_instances().unwrap()[0]
+                .applied_modpack
+                .as_deref(),
+            Some("renamed")
+        );
+    }
+
+    #[tokio::test]
+    async fn modpack_lifecycle_link_maintenance_is_a_no_op_without_prism() {
+        let temp_dir = tempdir().unwrap();
+        let (host, mc_folder, _prism_dir) = prism_host(temp_dir.path());
+        host.set_config_value("prismLauncherFolder", json!(temp_dir.path().join("gone")))
+            .unwrap();
+
+        host.update_modpack("pack".to_string(), Some("renamed".to_string()), None, None)
+            .await
+            .unwrap();
+        host.delete_modpack("renamed".to_string()).await.unwrap();
+
+        assert!(!modpack_path(&mc_folder, "renamed").exists());
+    }
+
+    #[test]
+    fn copy_content_copies_packs_between_locations_both_ways() {
+        let temp_dir = tempdir().unwrap();
+        let (host, mc_folder, prism_dir) = prism_host(temp_dir.path());
+        let game_dir = write_prism_instance(&prism_dir, "alpha", "Alpha").join("minecraft");
+        fs::create_dir_all(mc_folder.join("resourcepacks")).unwrap();
+        fs::write(mc_folder.join("resourcepacks").join("Faithful.zip"), "pack").unwrap();
+
+        assert!(
+            host.copy_content(
+                "minecraft",
+                "prism:alpha",
+                ModType::ResourcePack,
+                vec!["Faithful.zip".to_string()],
+            )
+            .unwrap_err()
+            .to_string()
+            .contains("errorForbidden")
+        );
+
+        host.set_config_value("experimentalFeatures", json!(true))
+            .unwrap();
+        assert_eq!(
+            host.copy_content(
+                "minecraft",
+                "prism:alpha",
+                ModType::ResourcePack,
+                vec!["Faithful.zip".to_string()],
+            )
+            .unwrap(),
+            1
+        );
+        assert_eq!(
+            fs::read_to_string(game_dir.join("resourcepacks").join("Faithful.zip")).unwrap(),
+            "pack"
+        );
+
+        fs::write(game_dir.join("resourcepacks").join("Bliss.zip"), "other").unwrap();
+        assert_eq!(
+            host.copy_content(
+                "prism:alpha",
+                "minecraft",
+                ModType::ResourcePack,
+                vec!["Bliss.zip".to_string()],
+            )
+            .unwrap(),
+            1
+        );
+        assert_eq!(
+            pack_names(
+                &host.get_installed_content(true).unwrap()[0],
+                ModType::ResourcePack
+            ),
+            ["Bliss.zip", "Faithful.zip"]
+        );
+    }
+
+    #[test]
+    fn delete_content_removes_packs_only_from_locations_it_can_reach() {
+        let temp_dir = tempdir().unwrap();
+        let (host, mc_folder, prism_dir) = prism_host(temp_dir.path());
+        let game_dir = write_prism_instance(&prism_dir, "alpha", "Alpha").join("minecraft");
+        fs::create_dir_all(mc_folder.join("resourcepacks")).unwrap();
+        fs::write(mc_folder.join("resourcepacks").join("Faithful.zip"), "pack").unwrap();
+        fs::write(mc_folder.join("resourcepacks").join("Keep.zip"), "kept").unwrap();
+        fs::create_dir_all(game_dir.join("resourcepacks")).unwrap();
+        fs::write(game_dir.join("resourcepacks").join("Bliss.zip"), "other").unwrap();
+
+        assert!(
+            host.delete_content(
+                "prism:alpha",
+                ModType::ResourcePack,
+                vec!["Bliss.zip".to_string()],
+            )
+            .unwrap_err()
+            .to_string()
+            .contains("errorForbidden")
+        );
+        assert!(
+            host.delete_content("minecraft", ModType::Mod, vec!["Faithful.zip".to_string()])
+                .unwrap_err()
+                .to_string()
+                .contains("errorInvalidRequest")
+        );
+        assert!(game_dir.join("resourcepacks").join("Bliss.zip").is_file());
+
+        assert_eq!(
+            host.delete_content(
+                "minecraft",
+                ModType::ResourcePack,
+                vec!["Faithful.zip".to_string()],
+            )
+            .unwrap(),
+            1
+        );
+        assert_eq!(
+            pack_names(
+                &host.get_installed_content(true).unwrap()[0],
+                ModType::ResourcePack
+            ),
+            ["Keep.zip"]
         );
     }
 

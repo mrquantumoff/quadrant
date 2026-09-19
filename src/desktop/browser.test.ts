@@ -65,6 +65,44 @@ describe("browser settings subscriptions", () => {
     expect(onKeyChange).not.toHaveBeenCalled();
   });
 
+  it("forgets a deleted key, so a later read finds nothing", async () => {
+    const store = createDesktopStore("config.json");
+    await store.set("uiScale", 150);
+
+    await store.delete("uiScale");
+
+    expect(await store.get("uiScale")).toBeUndefined();
+  });
+
+  it("tells both kinds of subscriber that a key was deleted", async () => {
+    const store = createDesktopStore("config.json");
+    await store.set("uiScale", 150);
+    const onChange = vi.fn();
+    const onScaleChange = vi.fn();
+    const onLanguageChange = vi.fn();
+    subscriptions.push(await store.onChange(onChange));
+    subscriptions.push(await store.onKeyChange("uiScale", onScaleChange));
+    subscriptions.push(await store.onKeyChange("language", onLanguageChange));
+
+    await store.delete("uiScale");
+
+    expect(onChange).toHaveBeenCalledExactlyOnceWith("uiScale");
+    // A removed key reads back as null, the same as one written null.
+    expect(onScaleChange).toHaveBeenCalledExactlyOnceWith(null);
+    expect(onLanguageChange).not.toHaveBeenCalled();
+  });
+
+  it("deletes within one store, leaving the same key in another alone", async () => {
+    const config = createDesktopStore("config.json");
+    const other = createDesktopStore("other.json");
+    await config.set("uiScale", 150);
+    await other.set("uiScale", 200);
+
+    await config.delete("uiScale");
+
+    expect(await other.get("uiScale")).toBe(200);
+  });
+
   it("preserves the previous value when a write cannot be serialized", async () => {
     const store = createDesktopStore("config.json");
     await store.set("uiScale", 150);

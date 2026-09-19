@@ -54,6 +54,8 @@ export default function SettingsPage() {
   const [experimentalFeatures, setExperimentalFeatures] = useState(false);
   const [syncSettings, setSyncSettings] = useState(false);
   const [mcFolder, setMcFolder] = useState("");
+  // null means no override is stored, so the backend detects the folder itself.
+  const [prismFolder, setPrismFolder] = useState<string | null>(null);
   const [currentVersion, setCurrentVersion] = useState("");
   const [currentRuntimeName, setCurrentRuntimeName] = useState("");
   const [currentRuntimeVersion, setCurrentRuntimeVersion] = useState("");
@@ -101,6 +103,7 @@ export default function SettingsPage() {
         (await box.get("showUnupgradeableMods")) ?? false,
       );
       setExperimentalFeatures((await box.get("experimentalFeatures")) || false);
+      setPrismFolder((await box.get<string>("prismLauncherFolder")) ?? null);
       console.log("Minecraft folder: " + (await getMinecraftFolder(false)));
       setMcFolder(await getMinecraftFolder(false));
       setSyncSettings((await box.get("syncSettings")) || false);
@@ -527,6 +530,51 @@ export default function SettingsPage() {
         </Switch>
         <Label className="ml-4">{t("experimentalFeatures")}</Label>
       </Field>
+      {experimentalFeatures && (
+        <div className="flex flex-row flex-wrap items-center gap-4 w-full p-4 my-4 bg-slate-800 rounded-4xl">
+          <span className="font-extrabold">{t("prismLauncherFolder")}</span>
+          <span className="grow min-w-0 break-all bg-slate-700 rounded-4xl px-4 py-2">
+            {prismFolder ?? t("prismLauncherFolderAuto")}
+          </span>
+          <Button
+            className="bg-slate-700 hover:bg-slate-600"
+            onClick={async () => {
+              const newFolder = await openDialog({
+                multiple: false,
+                directory: true,
+                recursive: true,
+                title: t("prismLauncherFolder"),
+              });
+              if (typeof newFolder !== "string" || newFolder.length === 0) {
+                return;
+              }
+              try {
+                await box.set("prismLauncherFolder", newFolder);
+                await box.save();
+                setPrismFolder(newFolder);
+              } catch (e) {
+                reportError(e);
+              }
+            }}
+          >
+            {t("choosePrismLauncherFolder")}
+          </Button>
+          <Button
+            className="bg-slate-700 hover:bg-slate-600"
+            onClick={async () => {
+              try {
+                await box.delete("prismLauncherFolder");
+                await box.save();
+                setPrismFolder(null);
+              } catch (e) {
+                reportError(e);
+              }
+            }}
+          >
+            {t("resetPrismLauncherFolder")}
+          </Button>
+        </div>
+      )}
       <Field className="flex items-center font-bold my-4">
         <Switch
           className={

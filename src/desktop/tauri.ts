@@ -114,6 +114,10 @@ class TauriStoreAdapter implements DesktopStoreAdapter {
     await tauriInvoke("set_config_value", { key, value });
   }
 
+  async delete(key: string): Promise<void> {
+    await tauriInvoke("remove_config_value", { key });
+  }
+
   async save(): Promise<void> {
     // Writes are persisted immediately by the host store; nothing to flush.
   }

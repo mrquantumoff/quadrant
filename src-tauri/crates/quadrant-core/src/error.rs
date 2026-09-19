@@ -25,16 +25,21 @@ pub enum ErrorCode {
     ModpackExists,
     InvalidModpackName,
     ModAlreadyRegistered,
+    ContentMissing,
     FileAccess,
     FileInUse,
     DiskFull,
     NoMinecraftFolder,
     SignedOut,
     Busy,
+    PrismInstanceMissing,
+    PrismInstanceUnreadable,
+    PrismLoaderVersionRequired,
+    PrismLoaderVersionNotFound,
 }
 
 impl ErrorCode {
-    pub const ALL: [ErrorCode; 23] = [
+    pub const ALL: [ErrorCode; 28] = [
         Self::ThirdPartyDownloadDisabled,
         Self::DownloadRefused,
         Self::InvalidRequest,
@@ -52,12 +57,17 @@ impl ErrorCode {
         Self::ModpackExists,
         Self::InvalidModpackName,
         Self::ModAlreadyRegistered,
+        Self::ContentMissing,
         Self::FileAccess,
         Self::FileInUse,
         Self::DiskFull,
         Self::NoMinecraftFolder,
         Self::SignedOut,
         Self::Busy,
+        Self::PrismInstanceMissing,
+        Self::PrismInstanceUnreadable,
+        Self::PrismLoaderVersionRequired,
+        Self::PrismLoaderVersionNotFound,
     ];
 
     pub const fn key(self) -> &'static str {
@@ -79,12 +89,17 @@ impl ErrorCode {
             Self::ModpackExists => "errorModpackExists",
             Self::InvalidModpackName => "errorInvalidModpackName",
             Self::ModAlreadyRegistered => "errorModAlreadyRegistered",
+            Self::ContentMissing => "errorContentMissing",
             Self::FileAccess => "errorFileAccess",
             Self::FileInUse => "errorFileInUse",
             Self::DiskFull => "errorDiskFull",
             Self::NoMinecraftFolder => "errorNoMinecraftFolder",
             Self::SignedOut => "errorSignedOut",
             Self::Busy => "errorBusy",
+            Self::PrismInstanceMissing => "errorPrismInstanceMissing",
+            Self::PrismInstanceUnreadable => "errorPrismInstanceUnreadable",
+            Self::PrismLoaderVersionRequired => "errorPrismLoaderVersionRequired",
+            Self::PrismLoaderVersionNotFound => "errorPrismLoaderVersionNotFound",
         }
     }
 
