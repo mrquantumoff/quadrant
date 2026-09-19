@@ -162,11 +162,8 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
             continue;
         }
 
-        let is_applied = mods_folder
-            .is_symlink()
-            .then(|| mods_folder.read_link().ok())
-            .flatten()
-            .is_some_and(|mods_path| mods_path == path);
+        let is_applied =
+            mods_link_target(&mods_folder).is_some_and(|mods_path| mods_path == path);
 
         let has_v2 = modpack_config_v2.exists();
         let has_v1 = modpack_config_v1.exists();
@@ -295,6 +292,19 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
     Ok(modpacks)
 }
 
+/// Name prefix of the folder a real `mods` directory is set aside under, shared
+/// with whoever has to find that backup again.
+pub(crate) const MODS_BACKUP_PREFIX: &str = "mods-backup-";
+
+/// What a game directory's `mods` folder links to, or `None` when it is a real
+/// directory. The single place a modpack/game-directory pairing is read from.
+pub(crate) fn mods_link_target(mods_path: &Path) -> Option<PathBuf> {
+    mods_path
+        .is_symlink()
+        .then(|| mods_path.read_link().ok())
+        .flatten()
+}
+
 /// Makes `mods_path` a symlink to `target`, preserving whatever was there.
 ///
 /// A timestamped backup of a real `mods` directory is created inside
@@ -316,7 +326,7 @@ pub(crate) fn link_mods_folder(
         std::fs::rename(
             mods_path,
             backup_parent.join(format!(
-                "mods-backup-{}",
+                "{MODS_BACKUP_PREFIX}{}",
                 Utc::now().format("%Y%m%d-%H%M%S")
             )),
         )?;

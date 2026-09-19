@@ -40,8 +40,8 @@ pub mod modrinth;
 pub enum ModType {
     Mod,
     ResourcePack,
-    /// The frontend's own enum spells this variant `Shader`, so both labels
-    /// have to arrive as a shader pack.
+    /// Older frontends and N-API consumers send `Shader`, so both labels have
+    /// to arrive as a shader pack.
     #[serde(alias = "Shader")]
     ShaderPack,
     Modpack,
@@ -527,12 +527,17 @@ pub async fn enrich_installed_mod(mod_: InstalledMod) -> Result<InstalledMod> {
     })
 }
 
-/// Downloads and installs a provider-backed mod into the requested target.
+/// Downloads and installs a provider-backed mod into every requested root.
+///
+/// The file is resolved and enriched once and then placed into each root, so a
+/// resource pack that follows a modpack into several game directories costs one
+/// download and one run of progress events. An empty `install_roots` is
+/// [`ErrorCode::InvalidRequest`](crate::error::ErrorCode::InvalidRequest).
 ///
 /// Progress is emitted through [`BackendEvent::ModDownloadProgress`] and
 /// [`BackendEvent::ModInstallProgress`].
 pub async fn install_mod(
-    mc_folder: &Path,
+    install_roots: &[PathBuf],
     settings: &impl SettingsStore,
     event_sink: &impl EventSink,
     id: String,
@@ -543,6 +548,9 @@ pub async fn install_mod(
     mod_type: ModType,
     #[allow(unused_variables)] file_id: Option<String>,
 ) -> Result<Option<LocalModpack>> {
+    if install_roots.is_empty() {
+        return Err(anyhow::Error::from(crate::error::ErrorCode::InvalidRequest));
+    }
     log::info!("Installing mod {id} from {source:?} (type={mod_type:?})");
     let download_path = match source {
         ModSource::CurseForge => {

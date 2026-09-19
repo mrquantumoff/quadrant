@@ -10,7 +10,10 @@ use crate::{
     error::ErrorCode,
     mc_mod::http::provider_cached_client,
     models::{LocalModpack, ModLoader, is_single_path_component, modpack_path},
-    modpacks::{link_mods_folder, validate_modpack_name, write_file_atomically},
+    modpacks::{
+        MODS_BACKUP_PREFIX, link_mods_folder, mods_link_target, validate_modpack_name,
+        write_file_atomically,
+    },
 };
 use chrono::{DateTime, FixedOffset};
 use serde::{Deserialize, Serialize};
@@ -148,17 +151,12 @@ pub fn game_dir(instance_dir: &Path) -> PathBuf {
     instance_dir.join("minecraft")
 }
 
-fn validate_instance_id(id: &str) -> Result<()> {
-    if !is_single_path_component(id) {
-        return Err(anyhow::Error::from(ErrorCode::InvalidRequest));
-    }
-    Ok(())
-}
-
 /// Resolves an existing instance's folder, rejecting an id that is not a single
 /// path component.
 pub fn resolve_instance_dir(instances_dir: &Path, instance_id: &str) -> Result<PathBuf> {
-    validate_instance_id(instance_id)?;
+    if !is_single_path_component(instance_id) {
+        return Err(anyhow::Error::from(ErrorCode::InvalidRequest));
+    }
     let dir = instances_dir.join(instance_id);
     if !dir.join("mmc-pack.json").is_file() {
         return Err(anyhow::Error::from(ErrorCode::PrismInstanceMissing));
@@ -221,10 +219,7 @@ fn read_instance(dir: &Path, id: String, mc_folder: &Path) -> Result<PrismInstan
 
     let mods_path = game_dir(dir).join("mods");
     let modpacks_folder = mc_folder.join("modpacks");
-    let applied_modpack = mods_path
-        .is_symlink()
-        .then(|| mods_path.read_link().ok())
-        .flatten()
+    let applied_modpack = mods_link_target(&mods_path)
         // A link left behind by a deleted modpack names a pack that no longer
         // exists, so it counts as not applied.
         .filter(|target| target.parent() == Some(modpacks_folder.as_path()) && target.is_dir())
@@ -458,7 +453,7 @@ pub fn detach_instance(instances_dir: &Path, instance_id: &str) -> Result<()> {
             path.is_dir()
                 && path
                     .file_name()
-                    .is_some_and(|name| name.to_string_lossy().starts_with("mods-backup-"))
+                    .is_some_and(|name| name.to_string_lossy().starts_with(MODS_BACKUP_PREFIX))
         })
         .max();
     match newest_backup {
@@ -483,11 +478,7 @@ pub fn content_roots(
     }
 
     let mut roots = Vec::new();
-    let mods_path = mc_folder.join("mods");
-    if mods_path
-        .is_symlink()
-        .then(|| mods_path.read_link().ok())
-        .flatten()
+    if mods_link_target(&mc_folder.join("mods"))
         .is_some_and(|target| target == modpack_path(mc_folder, modpack))
     {
         roots.push(mc_folder.to_path_buf());
