@@ -806,9 +806,15 @@ pub fn install_local_file(
             serde_json::to_string_pretty(&InstalledModpack::from(updated_modpack.clone()))?,
         )?;
     }
+    // Compare resolved paths: on a case-insensitive filesystem `Sodium.jar`
+    // and `sodium.jar` are the jar that was just written.
+    let installed_path = std::fs::canonicalize(&target_path)?;
     for old_file_path in old_file_paths {
-        if old_file_path != target_path && old_file_path.is_file() {
-            std::fs::remove_file(old_file_path)?;
+        if let Ok(old_path) = std::fs::canonicalize(&old_file_path)
+            && old_path != installed_path
+            && old_path.is_file()
+        {
+            std::fs::remove_file(old_path)?;
         }
     }
     Ok(updated_modpack)
@@ -1055,6 +1061,35 @@ mod tests {
 
         assert_eq!(updated.mods.len(), 1);
         assert_eq!(std::fs::read_to_string(&jar).unwrap(), "new bytes");
+    }
+
+    // On a case-insensitive filesystem both names are one file, and deleting
+    // the "old" jar would delete the one just installed.
+    #[test]
+    fn install_local_file_keeps_the_new_jar_when_names_differ_only_by_case() {
+        let dir = tempfile::tempdir().unwrap();
+        seed_modpack(
+            dir.path(),
+            "alpha",
+            vec![mod_entry(
+                "394468",
+                ModSource::CurseForge,
+                "sodium",
+                "Sodium.jar",
+            )],
+        );
+        installed_jar(dir.path(), "alpha", "Sodium.jar");
+
+        let updated = install_into_alpha(
+            dir.path(),
+            mod_entry("AANobbMI", ModSource::Modrinth, "sodium", "sodium.jar"),
+        );
+
+        assert_eq!(updated.mods.len(), 1);
+        assert_eq!(
+            std::fs::read_to_string(dir.path().join("modpacks/alpha/sodium.jar")).unwrap(),
+            "new bytes"
+        );
     }
 
     #[test]

@@ -96,28 +96,33 @@ impl ErrorCode {
         }
     }
 
-    fn from_reqwest(error: &reqwest::Error) -> Self {
+    fn from_reqwest(error: &reqwest::Error) -> Option<Self> {
         if error.is_builder() {
-            Self::InvalidRequest
+            Some(Self::InvalidRequest)
         } else if error.is_timeout() {
-            Self::Timeout
-        } else if let Some(code) = error.status().and_then(Self::from_status) {
-            code
+            Some(Self::Timeout)
+        } else if let Some(status) = error.status() {
+            // The server answered, so an unmapped status is not a network
+            // failure; leave it readable instead.
+            Self::from_status(status)
         } else if error.is_decode() {
-            Self::BadResponse
+            Some(Self::BadResponse)
         } else {
-            Self::Network
+            Some(Self::Network)
         }
     }
 
     fn from_io(error: &std::io::Error) -> Option<Self> {
-        // 32 is Windows' sharing violation; 28 and 112 are "disk full" on
-        // Unix and Windows.
-        match (error.kind(), error.raw_os_error()) {
-            (_, Some(32)) => Some(Self::FileInUse),
-            (_, Some(28 | 112)) => Some(Self::DiskFull),
-            (std::io::ErrorKind::PermissionDenied, _) => Some(Self::FileAccess),
-            (std::io::ErrorKind::TimedOut, _) => Some(Self::Timeout),
+        // Raw OS codes mean different things per platform, so only Windows'
+        // sharing violation (no `ErrorKind` of its own) is read from one.
+        #[cfg(windows)]
+        if error.raw_os_error() == Some(32) {
+            return Some(Self::FileInUse);
+        }
+        match error.kind() {
+            std::io::ErrorKind::StorageFull => Some(Self::DiskFull),
+            std::io::ErrorKind::PermissionDenied => Some(Self::FileAccess),
+            std::io::ErrorKind::TimedOut => Some(Self::Timeout),
             _ => None,
         }
     }
@@ -127,7 +132,7 @@ impl ErrorCode {
             if let Some(code) = cause.downcast_ref::<Self>() {
                 Some(*code)
             } else if let Some(error) = cause.downcast_ref::<reqwest::Error>() {
-                Some(Self::from_reqwest(error))
+                Self::from_reqwest(error)
             } else {
                 cause
                     .downcast_ref::<std::io::Error>()
@@ -199,21 +204,25 @@ mod tests {
     }
 
     #[test]
-    fn io_errors_are_classified_by_kind_and_os_code() {
+    fn io_errors_are_classified_by_kind() {
         let cases = [
             (
                 std::io::Error::from(std::io::ErrorKind::PermissionDenied),
                 Some("errorFileAccess"),
             ),
             (
-                std::io::Error::from_raw_os_error(32),
-                Some("errorFileInUse"),
-            ),
-            (
-                std::io::Error::from_raw_os_error(112),
+                std::io::Error::from(std::io::ErrorKind::StorageFull),
                 Some("errorDiskFull"),
             ),
             (std::io::Error::from(std::io::ErrorKind::NotFound), None),
+            // EPIPE on Linux, a sharing violation on Windows.
+            #[cfg(not(windows))]
+            (std::io::Error::from_raw_os_error(32), None),
+            #[cfg(windows)]
+            (
+                std::io::Error::from_raw_os_error(32),
+                Some("errorFileInUse"),
+            ),
         ];
         for (io_error, expected) in cases {
             let raw = io_error.to_string();
