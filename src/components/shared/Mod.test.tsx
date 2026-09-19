@@ -3,7 +3,13 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ModLoader, ModSource, ModType, type IMod } from "../../intefaces";
+import {
+  ContentContext,
+  ModLoader,
+  ModSource,
+  ModType,
+  type IMod,
+} from "../../intefaces";
 
 const mocks = vi.hoisted(() => ({ get: vi.fn(), installMod: vi.fn() }));
 vi.mock("../../tools", () => ({
@@ -45,6 +51,22 @@ const mod: IMod = {
   modpack: null,
   selectUrl: null,
 };
+
+const context = {
+  changePage: vi.fn(),
+  changeContent: vi.fn(),
+  back: vi.fn(),
+  setSnackbar: vi.fn(),
+  setSnackbarNoState: vi.fn(),
+};
+
+function renderCard(installed: boolean) {
+  return render(
+    <ContentContext.Provider value={context}>
+      <Mod mod={mod} modpack={undefined} className="" installed={installed} />
+    </ContentContext.Provider>,
+  );
+}
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -96,6 +118,19 @@ describe("Mod", () => {
     render(<Mod mod={mod} modpack={undefined} className="" />);
     await userEvent.click(screen.getByRole("button", { name: "download" }));
     expect(mocks.installMod).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "download" }));
+    await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
+  });
+
+  it("opens the install page instead of installing when the mod is already in the pack", async () => {
+    renderCard(true);
+    await userEvent.click(screen.getByRole("button", { name: "installed" }));
+    expect(context.changeContent).toHaveBeenCalled();
+    expect(mocks.installMod).not.toHaveBeenCalled();
+  });
+
+  it("installs directly when the same mod is not in the pack", async () => {
+    renderCard(false);
     await userEvent.click(screen.getByRole("button", { name: "download" }));
     await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
   });

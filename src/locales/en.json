@@ -202,6 +202,8 @@
   "sourceCurseforge": "Source (Curseforge)",
   "filterBySelectedModpack": "Filter by the currently selected modpack",
   "installed": "Installed",
+  "alreadyInstalledIn": "Already installed in {{modpack}}. Installing again replaces the existing file.",
+  "reinstall": "Reinstall",
   "failedToDelete": "Failed to delete your mod ({{reason}})",
   "clearCache": "Clear cache",
   "cacheStorageLimit": "Maximum cache age",

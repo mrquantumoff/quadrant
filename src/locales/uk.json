@@ -202,6 +202,8 @@
   "sourceCurseforge": "Джерело (Curseforge)",
   "filterBySelectedModpack": "Фільтрувати за обраним модпаком",
   "installed": "Встановлено",
+  "alreadyInstalledIn": "Вже встановлено у модпаку {{modpack}}. Повторне встановлення замінить наявний файл.",
+  "reinstall": "Перевстановити",
   "failedToDelete": "Помилка при видаленні вашого мода ({{reason}})",
   "clearCache": "Очистити кеш",
   "cacheStorageLimit": "Час життя кешу",

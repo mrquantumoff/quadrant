@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ModSource, ModType, type IMod } from "../../../intefaces";
+import { ModLoader, ModSource, ModType, type IMod } from "../../../intefaces";
 
 const getVersions = vi.fn();
 const getModpacks = vi.fn();
@@ -27,13 +27,16 @@ vi.mock("../../../desktop", () => ({
     set: (...a: unknown[]) => storeSet(...a),
     save: (...a: unknown[]) => storeSave(...a),
   }),
+  listen: async () => () => {},
 }));
 
 // The Mod card is heavy and independently tested; stub it to render just the
 // mod name so result ordering/identity is observable.
 vi.mock("../../shared/Mod", () => ({
-  default: ({ mod }: { mod: IMod }) => (
-    <div data-testid="mod-card">{mod.name}</div>
+  default: ({ mod, installed }: { mod: IMod; installed?: boolean }) => (
+    <div data-testid="mod-card" data-installed={String(!!installed)}>
+      {mod.name}
+    </div>
   ),
 }));
 
@@ -245,6 +248,61 @@ describe("SearchPage", () => {
     );
     expect(restoredRequests.every(([args]) => args.filterOn === false)).toBe(
       true,
+    );
+  });
+
+  it("marks only the results already present in the target modpack", async () => {
+    getModpacks.mockResolvedValue([
+      {
+        name: "alpha",
+        version: "1.20.1",
+        modLoader: ModLoader.Fabric,
+        isApplied: false,
+        lastSynced: 0,
+        unknownMods: false,
+        mods: [
+          {
+            id: "sodium",
+            downloadUrl: "https://example.com/sodium.jar",
+            source: ModSource.Modrinth,
+            slug: "sodium",
+          },
+        ],
+      },
+    ]);
+    storeGet.mockImplementation(async (key: string) => {
+      if (key === "curseforge") return false;
+      if (key === "modrinth") return true;
+      if (key === "searchFilters")
+        return { targetModpack: "alpha", version: "1.20.1" };
+      return undefined;
+    });
+    searchMods.mockResolvedValue([
+      mod({ name: "Sodium", id: "sodium", slug: "sodium" }),
+      mod({ name: "Iris", id: "iris", slug: "iris" }),
+    ]);
+
+    render(<SearchPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Sodium")).toHaveAttribute(
+        "data-installed",
+        "true",
+      ),
+    );
+    expect(screen.getByText("Iris")).toHaveAttribute("data-installed", "false");
+  });
+
+  it("marks nothing installed while no modpack is targeted", async () => {
+    searchMods.mockResolvedValue([
+      mod({ name: "Sodium", id: "sodium", slug: "sodium" }),
+    ]);
+
+    render(<SearchPage />);
+
+    expect(await screen.findByText("Sodium")).toHaveAttribute(
+      "data-installed",
+      "false",
     );
   });
 });

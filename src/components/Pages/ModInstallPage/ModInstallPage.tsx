@@ -41,6 +41,7 @@ import LoaderOptions from "../../shared/LoaderOption";
 import LinearProgress from "../../core/LinearProgress";
 import { createDesktopStore, listen } from "../../../desktop";
 import { loaderProvidersForSource } from "../../../modLoaders";
+import { isInstalledIn } from "../../../installedMods";
 
 export interface IModInstallPageProps {
   mod: IMod;
@@ -272,6 +273,10 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   }).format(mod.downloadCount);
   const pickTargets = props.fileId === undefined;
   const showProgress = isInstalling || modDownloadProgress > 0;
+  const alreadyInstalled = isInstalledIn(
+    mod,
+    modpacks.find((entry) => entry.name === modpack),
+  );
 
   // Never submit an empty version or a pack that is not in the list.
   const canInstall =
@@ -296,6 +301,12 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         modpack,
         props.fileId,
       );
+      // Nested so a failed reload never surfaces as an install failure.
+      try {
+        setModpacks(await getModpacks());
+      } catch (refreshError) {
+        console.error(refreshError);
+      }
     } catch (e: any) {
       console.error(t(e));
       context.setSnackbar({
@@ -323,7 +334,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         }
       >
         <MdDownload className="size-5" />
-        {t("download")}
+        {t(alreadyInstalled ? "reinstall" : "download")}
       </Button>
       <Button
         onClick={() => void openIn(mod.url)}
@@ -531,6 +542,11 @@ export default function ModInstallPage(props: IModInstallPageProps) {
               </label>
             )}
 
+            {alreadyInstalled && (
+              <div className="text-[11.5px] leading-snug text-amber-300 bg-amber-900/25 border border-amber-700/20 px-3 py-2 rounded-2xl">
+                {t("alreadyInstalledIn", { modpack })}
+              </div>
+            )}
             {showProgress && (
               <div className="flex flex-col gap-1.5">
                 <LinearProgress progress={modDownloadProgress} />

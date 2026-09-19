@@ -99,7 +99,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   getVersions.mockResolvedValue([{ version: "1.21" }, { version: "1.20.1" }]);
   getModpacks.mockResolvedValue([
-    { name: "Pack", version: "1.20.1", modLoader: ModLoader.Fabric },
+    { name: "Pack", version: "1.20.1", modLoader: ModLoader.Fabric, mods: [] },
   ]);
   getModOwners.mockResolvedValue(["jellysquid"]);
   getUserURL.mockResolvedValue("https://modrinth.com/user/jellysquid");
@@ -229,7 +229,13 @@ describe("ModInstallPage", () => {
 
   it("replaces a saved pack that no longer exists with an available one", async () => {
     getModpacks.mockResolvedValue([
-      { name: "Applied Pack", version: "1.20.1", modLoader: ModLoader.Fabric, isApplied: true },
+      {
+        name: "Applied Pack",
+        version: "1.20.1",
+        modLoader: ModLoader.Fabric,
+        isApplied: true,
+        mods: [],
+      },
     ]);
     storeGet.mockImplementation(async (key: string) =>
       key === "lastUsedModpack" ? "Deleted Pack" : undefined,
@@ -269,7 +275,12 @@ describe("ModInstallPage", () => {
     expect(installMod).not.toHaveBeenCalled();
 
     releaseModpacks([
-      { name: "Pack", version: "1.20.1", modLoader: ModLoader.Fabric },
+      {
+        name: "Pack",
+        version: "1.20.1",
+        modLoader: ModLoader.Fabric,
+        mods: [],
+      },
     ]);
     await waitFor(() => expect(download).not.toBeDisabled());
   });
@@ -284,6 +295,28 @@ describe("ModInstallPage", () => {
     expect(download).toBeDisabled();
     await userEvent.click(download);
     expect(installMod).not.toHaveBeenCalled();
+  });
+
+  it("warns and offers a reinstall when the pack already has the mod", async () => {
+    getModpacks.mockResolvedValue([
+      {
+        name: "Pack",
+        version: "1.20.1",
+        modLoader: ModLoader.Fabric,
+        mods: [
+          {
+            id: "sodium",
+            downloadUrl: "https://example.com/sodium.jar",
+            source: ModSource.Modrinth,
+          },
+        ],
+      },
+    ]);
+    renderPage({ mod: mod({}) });
+
+    expect(await screen.findByText("alreadyInstalledIn")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /reinstall/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "download" })).toBeNull();
   });
 
   it("ignores dependencies from a previously viewed mod", async () => {

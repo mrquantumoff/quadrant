@@ -35,6 +35,7 @@ export interface IModProps {
   modpack: string | undefined;
   className: string;
   installTarget?: Pick<LocalModpack, "name" | "version" | "modLoader">;
+  installed?: boolean;
 }
 
 /** Deterministic hue (0-359) from a string, for the gradient fallback tile. */
@@ -253,6 +254,15 @@ export default function Mod(props: IModProps) {
                     </span>
                   </>
                 )}
+                {props.installed && (
+                  <>
+                    <span className="text-slate-600">·</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/15 text-emerald-400">
+                      <MdCheck className="w-3 h-3" />
+                      {t("installed")}
+                    </span>
+                  </>
+                )}
               </div>
               <p className="text-xs leading-4.5 text-slate-400 line-clamp-2 overflow-hidden m-0 h-9">
                 {description}
@@ -275,7 +285,18 @@ export default function Mod(props: IModProps) {
                 <MdDelete className="w-5 h-5" />
               </Button>
             )}
-            {mod.downloadable && installable && progress !== 100 ? (
+            {props.installed && mod.downloadable && installable ? (
+              <Button
+                animate
+                onClick={() => void openModDownload()}
+                className={
+                  actionButtonClass + " bg-slate-800 hover:bg-slate-700"
+                }
+              >
+                {t("installed")}
+                <MdCheck className="w-5 h-5" />
+              </Button>
+            ) : mod.downloadable && installable && progress !== 100 ? (
               mod.newVersion !== undefined && mod.showPreviousVersion ? (
                 <Button
                   animate
