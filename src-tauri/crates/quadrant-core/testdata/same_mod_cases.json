@@ -1,0 +1,38 @@
+[
+  {
+    "name": "same id and source",
+    "a": { "id": "sodium", "source": "ModSource.modRinth", "slug": "sodium" },
+    "b": { "id": "sodium", "source": "ModSource.modRinth", "slug": "sodium" },
+    "same": true
+  },
+  {
+    "name": "same id from the other source, no slugs",
+    "a": { "id": "sodium", "source": "ModSource.modRinth", "slug": "" },
+    "b": { "id": "sodium", "source": "ModSource.curseForge", "slug": "" },
+    "same": true
+  },
+  {
+    "name": "same slug from the other source, ignoring case and padding",
+    "a": { "id": "AANobbMI", "source": "ModSource.modRinth", "slug": "sodium" },
+    "b": { "id": "394468", "source": "ModSource.curseForge", "slug": " Sodium " },
+    "same": true
+  },
+  {
+    "name": "same slug within one source is a different mod",
+    "a": { "id": "sodium-fork", "source": "ModSource.modRinth", "slug": "sodium" },
+    "b": { "id": "sodium", "source": "ModSource.modRinth", "slug": "sodium" },
+    "same": false
+  },
+  {
+    "name": "empty slugs never match",
+    "a": { "id": "iris", "source": "ModSource.modRinth", "slug": "" },
+    "b": { "id": "394468", "source": "ModSource.curseForge", "slug": "" },
+    "same": false
+  },
+  {
+    "name": "different slug from the other source",
+    "a": { "id": "AANobbMI", "source": "ModSource.modRinth", "slug": "sodium" },
+    "b": { "id": "360438", "source": "ModSource.curseForge", "slug": "lithium" },
+    "same": false
+  }
+]

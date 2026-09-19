@@ -12,6 +12,8 @@ export default defineConfig([
   {
     ignores: [
       ".claude/**",
+      ".delta/**",
+      ".review/**",
       ".ds-sync/**",
       "dist/**",
       "ds-bundle/**",

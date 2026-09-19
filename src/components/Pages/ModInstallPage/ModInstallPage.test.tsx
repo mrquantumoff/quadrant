@@ -42,8 +42,10 @@ vi.mock("../../../desktop", () => ({
 }));
 
 vi.mock("../../shared/Mod", () => ({
-  default: ({ mod }: { mod: IMod }) => (
-    <div data-testid="mod-card">{mod.name}</div>
+  default: ({ mod, installed }: { mod: IMod; installed?: boolean }) => (
+    <div data-testid="mod-card" data-installed={String(!!installed)}>
+      {mod.name}
+    </div>
   ),
 }));
 
@@ -79,7 +81,11 @@ function mod(over: Partial<IMod>): IMod {
 const back = vi.fn();
 const setSnackbar = vi.fn();
 
-function renderPage(props: { mod: IMod; fileId?: string }) {
+function renderPage(props: {
+  mod: IMod;
+  fileId?: string;
+  installTarget?: { name: string };
+}) {
   return render(
     <ContentContext.Provider
       value={{
@@ -99,7 +105,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   getVersions.mockResolvedValue([{ version: "1.21" }, { version: "1.20.1" }]);
   getModpacks.mockResolvedValue([
-    { name: "Pack", version: "1.20.1", modLoader: ModLoader.Fabric },
+    { name: "Pack", version: "1.20.1", modLoader: ModLoader.Fabric, mods: [] },
   ]);
   getModOwners.mockResolvedValue(["jellysquid"]);
   getUserURL.mockResolvedValue("https://modrinth.com/user/jellysquid");
@@ -121,7 +127,7 @@ describe("ModInstallPage", () => {
     renderPage({ mod: mod({}) });
     expect(screen.getByRole("heading", { name: "Sodium" })).toBeTruthy();
     expect(screen.getByText("12.4M")).toBeTruthy();
-    expect(screen.getByText("licensedUnder")).toBeTruthy();
+    expect(screen.getByText(/Licensed under/)).toBeTruthy();
     expect(await screen.findByText("jellysquid")).toBeTruthy();
     expect(screen.queryByText("dependencies")).toBeNull();
   });
@@ -147,11 +153,11 @@ describe("ModInstallPage", () => {
     renderPage({ mod: mod({}) });
     await waitFor(() =>
       expect(
-        screen.getByRole("combobox", { name: /chooseVersion/ }),
+        screen.getByRole("combobox", { name: /Choose a Minecraft version/ }),
       ).toHaveValue("1.21"),
     );
     await userEvent.click(
-      screen.getAllByRole("button", { name: /download/ })[0],
+      screen.getAllByRole("button", { name: /Download/ })[0],
     );
     expect(installMod).toHaveBeenCalledWith(
       "sodium",
@@ -168,33 +174,33 @@ describe("ModInstallPage", () => {
     renderPage({ mod: mod({}), fileId: "abc" });
     await screen.findByText("jellysquid");
     expect(
-      screen.queryByRole("combobox", { name: /chooseVersion/ }),
+      screen.queryByRole("combobox", { name: /Choose a Minecraft version/ }),
     ).toBeNull();
     expect(
       screen.queryByRole("combobox", { name: /choosePreferredAPI/ }),
     ).toBeNull();
     expect(
-      screen.getByRole("combobox", { name: /chooseModpack/ }),
+      screen.getByRole("combobox", { name: /Choose a modpack/ }),
     ).toBeTruthy();
   });
 
   it("picking a modpack adopts its version and loader", async () => {
     renderPage({ mod: mod({}) });
     const picker = await screen.findByRole("combobox", {
-      name: /chooseModpack/,
+      name: /Choose a modpack/,
     });
     await userEvent.selectOptions(picker, "Pack");
     await waitFor(() =>
       expect(storeSet).toHaveBeenCalledWith("lastUsedVersion", "1.20.1"),
     );
-    expect(screen.getByRole("combobox", { name: /chooseVersion/ })).toHaveValue(
-      "1.20.1",
-    );
+    expect(
+      screen.getByRole("combobox", { name: /Choose a Minecraft version/ }),
+    ).toHaveValue("1.20.1");
   });
 
   it("goes back on cancel", async () => {
     renderPage({ mod: mod({}) });
-    await userEvent.click(screen.getByRole("button", { name: /cancel/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Cancel/ }));
     expect(back).toHaveBeenCalled();
   });
 
@@ -210,11 +216,11 @@ describe("ModInstallPage", () => {
     renderPage({ mod: mod({}) });
 
     const picker = await screen.findByRole("combobox", {
-      name: /chooseVersion/,
+      name: /Choose a Minecraft version/,
     });
     await waitFor(() => expect(picker).toHaveValue("1.20.1"));
     await userEvent.click(
-      screen.getAllByRole("button", { name: /download/ })[0],
+      screen.getAllByRole("button", { name: /Download/ })[0],
     );
     expect(installMod).toHaveBeenCalledWith(
       "sodium",
@@ -229,7 +235,13 @@ describe("ModInstallPage", () => {
 
   it("replaces a saved pack that no longer exists with an available one", async () => {
     getModpacks.mockResolvedValue([
-      { name: "Applied Pack", version: "1.20.1", modLoader: ModLoader.Fabric, isApplied: true },
+      {
+        name: "Applied Pack",
+        version: "1.20.1",
+        modLoader: ModLoader.Fabric,
+        isApplied: true,
+        mods: [],
+      },
     ]);
     storeGet.mockImplementation(async (key: string) =>
       key === "lastUsedModpack" ? "Deleted Pack" : undefined,
@@ -237,11 +249,11 @@ describe("ModInstallPage", () => {
     renderPage({ mod: mod({}) });
 
     const picker = await screen.findByRole("combobox", {
-      name: /chooseModpack/,
+      name: /Choose a modpack/,
     });
     await waitFor(() => expect(picker).toHaveValue("Applied Pack"));
     await userEvent.click(
-      screen.getAllByRole("button", { name: /download/ })[0],
+      screen.getAllByRole("button", { name: /Download/ })[0],
     );
     expect(installMod).toHaveBeenCalledWith(
       "sodium",
@@ -263,13 +275,18 @@ describe("ModInstallPage", () => {
     );
     renderPage({ mod: mod({}) });
 
-    const download = screen.getAllByRole("button", { name: /download/ })[0];
+    const download = screen.getAllByRole("button", { name: /Download/ })[0];
     expect(download).toBeDisabled();
     await userEvent.click(download);
     expect(installMod).not.toHaveBeenCalled();
 
     releaseModpacks([
-      { name: "Pack", version: "1.20.1", modLoader: ModLoader.Fabric },
+      {
+        name: "Pack",
+        version: "1.20.1",
+        modLoader: ModLoader.Fabric,
+        mods: [],
+      },
     ]);
     await waitFor(() => expect(download).not.toBeDisabled());
   });
@@ -280,10 +297,111 @@ describe("ModInstallPage", () => {
     renderPage({ mod: mod({}) });
 
     await screen.findByText("jellysquid");
-    const download = screen.getAllByRole("button", { name: /download/ })[0];
+    const download = screen.getAllByRole("button", { name: /Download/ })[0];
     expect(download).toBeDisabled();
     await userEvent.click(download);
     expect(installMod).not.toHaveBeenCalled();
+  });
+
+  it("targets the opener's modpack over the last used one", async () => {
+    getModpacks.mockResolvedValue([
+      { name: "Pack", version: "1.21", modLoader: ModLoader.Fabric, mods: [] },
+      { name: "Other", version: "1.20.1", modLoader: ModLoader.Forge, mods: [] },
+    ]);
+    getVersions.mockResolvedValue([
+      { version: "1.21", versionType: "release" },
+      { version: "1.20.1", versionType: "release" },
+    ]);
+    renderPage({ mod: mod({}), installTarget: { name: "Other" } });
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("combobox", { name: /Choose a modpack/ }),
+      ).toHaveValue("Other"),
+    );
+    expect(
+      screen.getByRole("combobox", { name: /Choose a Minecraft version/ }),
+    ).toHaveValue("1.20.1");
+  });
+
+  it("warns and offers a reinstall when the pack already has the mod", async () => {
+    getModpacks.mockResolvedValue([
+      {
+        name: "Pack",
+        version: "1.20.1",
+        modLoader: ModLoader.Fabric,
+        mods: [
+          {
+            id: "sodium",
+            downloadUrl: "https://example.com/sodium.jar",
+            source: ModSource.Modrinth,
+          },
+        ],
+      },
+    ]);
+    renderPage({ mod: mod({}) });
+
+    expect(await screen.findByText(/Already installed in/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Reinstall/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Download" })).toBeNull();
+  });
+
+  it("says whose copy is removed when the pack has the mod from the other provider", async () => {
+    getModpacks.mockResolvedValue([
+      {
+        name: "Pack",
+        version: "1.20.1",
+        modLoader: ModLoader.Fabric,
+        mods: [
+          {
+            id: "394468",
+            downloadUrl: "https://example.com/sodium.jar",
+            source: ModSource.CurseForge,
+            slug: "sodium",
+          },
+        ],
+      },
+    ]);
+    renderPage({ mod: mod({ slug: "sodium" }) });
+
+    expect(
+      await screen.findByText(
+        "Pack already has this mod from CurseForge. Installing it here removes that copy.",
+      ),
+    ).toBeTruthy();
+  });
+
+  it("marks a dependency the pack already has", async () => {
+    getModpacks.mockResolvedValue([
+      {
+        name: "Pack",
+        version: "1.20.1",
+        modLoader: ModLoader.Fabric,
+        mods: [
+          {
+            id: "fabric-api",
+            downloadUrl: "https://example.com/fabric-api.jar",
+            source: ModSource.Modrinth,
+          },
+        ],
+      },
+    ]);
+    getModDependencies.mockResolvedValue([
+      mod({ id: "fabric-api", name: "Fabric API" }),
+      mod({ id: "cloth", name: "Cloth Config" }),
+    ]);
+    renderPage({ mod: mod({}) });
+
+    await waitFor(() =>
+      expect(screen.getByText("Fabric API")).toHaveAttribute(
+        "data-installed",
+        "true",
+      ),
+    );
+    expect(screen.getByText("Cloth Config")).toHaveAttribute(
+      "data-installed",
+      "false",
+    );
   });
 
   it("ignores dependencies from a previously viewed mod", async () => {

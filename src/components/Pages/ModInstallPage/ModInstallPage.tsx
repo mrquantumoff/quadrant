@@ -41,12 +41,17 @@ import LoaderOptions from "../../shared/LoaderOption";
 import LinearProgress from "../../core/LinearProgress";
 import { createDesktopStore, listen } from "../../../desktop";
 import { loaderProvidersForSource } from "../../../modLoaders";
+import { findInstalledIn, isInstalledIn } from "../../../installedMods";
+import { useReportError } from "../../../useReportError";
 
 export interface IModInstallPageProps {
   mod: IMod;
   fileId?: string;
   /** Screen rect of the card that opened this page; the details card grows out of it. */
   originRect?: DOMRect;
+  /** The modpack the opener is installing into; wins over saved choices. */
+  installTarget?: Pick<LocalModpack, "name">;
+  onInstalled?: () => void;
 }
 
 interface IModOwner {
@@ -96,6 +101,8 @@ export default function ModInstallPage(props: IModInstallPageProps) {
 
   const context = useContext(ContentContext);
   const { t, i18n } = useTranslation();
+  const reportError = useReportError();
+  const installTargetName = props.installTarget?.name;
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
   const [version, setVersion] = useState<string>("");
@@ -185,16 +192,21 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       if (cancelled) return;
       // Reconcile the saved choices with what actually exists: a deleted pack
       // or an unavailable version must never reach the install call.
+      const explicitTarget = availableModpacks.find(
+        (entry) => entry.name === installTargetName,
+      );
       const target =
         mod.modType === ModType.Mod
-          ? (availableModpacks.find((entry) => entry.name === savedModpack) ??
+          ? (explicitTarget ??
+            availableModpacks.find((entry) => entry.name === savedModpack) ??
             availableModpacks.find((entry) => entry.isApplied) ??
             availableModpacks[0])
           : undefined;
       // Keep a saved choice while it is still offered; otherwise fall back to
       // the target pack, so the install never submits an unavailable value.
+      const wantedVersion = explicitTarget?.version ?? savedVersion;
       const initialVersion =
-        availableVersions.find((entry) => entry.version === savedVersion)
+        availableVersions.find((entry) => entry.version === wantedVersion)
           ?.version ??
         target?.version ??
         availableVersions[0]?.version ??
@@ -202,7 +214,12 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       setVersions(availableVersions);
       setModpacks(availableModpacks);
       setVersion(initialVersion);
-      setLoader(savedLoader || target?.modLoader || ModLoader.Unknown);
+      setLoader(
+        explicitTarget?.modLoader ||
+          savedLoader ||
+          target?.modLoader ||
+          ModLoader.Unknown,
+      );
       setModpack(target?.name ?? "");
       setIsReady(true);
     };
@@ -210,7 +227,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [config, mod.modType]);
+  }, [config, mod.modType, installTargetName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -272,6 +289,13 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   }).format(mod.downloadCount);
   const pickTargets = props.fileId === undefined;
   const showProgress = isInstalling || modDownloadProgress > 0;
+  const selectedModpack = modpacks.find((entry) => entry.name === modpack);
+  const installedEntry = findInstalledIn(mod, selectedModpack);
+  const alreadyInstalled = installedEntry !== undefined;
+  // Matched by slug across providers: say whose copy goes, since a shared
+  // slug is strong but not certain evidence that it is the same mod.
+  const replacesOtherProvider =
+    installedEntry !== undefined && installedEntry.source !== mod.source;
 
   // Never submit an empty version or a pack that is not in the list.
   const canInstall =
@@ -296,13 +320,12 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         modpack,
         props.fileId,
       );
+      // Not awaited: a slow or failed reload must not hold the button or
+      // surface as an install failure.
+      getModpacks().then(setModpacks).catch(console.error);
+      props.onInstalled?.();
     } catch (e: any) {
-      console.error(t(e));
-      context.setSnackbar({
-        message: t(e),
-        className: "bg-red-700 rounded-4xl",
-        timeout: 5000,
-      });
+      reportError(e);
     } finally {
       installInFlightRef.current = false;
       setIsInstalling(false);
@@ -323,7 +346,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         }
       >
         <MdDownload className="size-5" />
-        {t("download")}
+        {t(alreadyInstalled ? "reinstall" : "download")}
       </Button>
       <Button
         onClick={() => void openIn(mod.url)}
@@ -437,6 +460,8 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                     mod={dependency}
                     modpack={undefined}
                     className="w-full"
+                    installed={isInstalledIn(dependency, selectedModpack)}
+                    onInstalled={props.onInstalled}
                   />
                 ))}
               </div>
@@ -531,6 +556,16 @@ export default function ModInstallPage(props: IModInstallPageProps) {
               </label>
             )}
 
+            {alreadyInstalled && (
+              <div className="text-[11.5px] leading-snug text-amber-300 bg-amber-900/25 border border-amber-700/20 px-3 py-2 rounded-2xl">
+                {replacesOtherProvider
+                  ? t("alreadyInstalledOtherProvider", {
+                      modpack,
+                      source: isCurseForge ? "Modrinth" : "CurseForge",
+                    })
+                  : t("alreadyInstalledIn", { modpack })}
+              </div>
+            )}
             {showProgress && (
               <div className="flex flex-col gap-1.5">
                 <LinearProgress progress={modDownloadProgress} />

@@ -4473,6 +4473,7 @@ dependencies = [
 name = "quadrant-napi"
 version = "26.9.1-preview.0"
 dependencies = [
+ "anyhow",
  "napi",
  "napi-build",
  "napi-derive",

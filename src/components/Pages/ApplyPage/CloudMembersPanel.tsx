@@ -35,6 +35,7 @@ import { invoke } from "../../../desktop";
 import Button from "../../core/Button";
 import CancelButton from "../../core/CancelButton";
 import { useModpackInstall } from "./useModpackInstall";
+import { useReportError } from "../../../useReportError";
 
 export interface CloudMembersPanelProps {
   modpack: SyncedModpack;
@@ -56,6 +57,7 @@ export default function CloudMembersPanel({
   localName,
 }: CloudMembersPanelProps) {
   const { t } = useTranslation();
+  const reportError = useReportError();
   const syncContext = useContext(SyncContext);
   const contentContext = useContext(ContentContext);
 
@@ -179,12 +181,7 @@ export default function CloudMembersPanel({
                           });
                           syncContext.refreshSyncedModpacks();
                         } catch (e: any) {
-                          console.error(e);
-                          contentContext.setSnackbar({
-                            message: t(e),
-                            className: "bg-red-700 rounded-4xl",
-                            timeout: 5000,
-                          });
+                          reportError(e);
                         }
                       }}
                     >
@@ -262,11 +259,7 @@ export default function CloudMembersPanel({
                               timeout: 5000,
                             });
                           } catch (e: any) {
-                            contentContext.setSnackbar({
-                              className: "bg-red-700 font-bold",
-                              message: t(e),
-                              timeout: 5000,
-                            });
+                            reportError(e);
                           }
                           closeInviteDialog();
                         }}

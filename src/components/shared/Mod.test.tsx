@@ -3,9 +3,19 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ModLoader, ModSource, ModType, type IMod } from "../../intefaces";
+import {
+  ContentContext,
+  ModLoader,
+  ModSource,
+  ModType,
+  type IMod,
+} from "../../intefaces";
 
-const mocks = vi.hoisted(() => ({ get: vi.fn(), installMod: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  get: vi.fn(),
+  installMod: vi.fn(),
+  installPage: vi.fn(),
+}));
 vi.mock("../../tools", () => ({
   installMod: mocks.installMod,
   deleteMod: vi.fn(),
@@ -18,7 +28,10 @@ vi.mock("../../desktop", () => ({
   listen: vi.fn(async () => vi.fn()),
 }));
 vi.mock("../Pages/ModInstallPage/ModInstallPage", () => ({
-  default: () => null,
+  default: (props: unknown) => {
+    mocks.installPage(props);
+    return null;
+  },
 }));
 import Mod from "./Mod";
 
@@ -45,6 +58,22 @@ const mod: IMod = {
   modpack: null,
   selectUrl: null,
 };
+
+const context = {
+  changePage: vi.fn(),
+  changeContent: vi.fn(),
+  back: vi.fn(),
+  setSnackbar: vi.fn(),
+  setSnackbarNoState: vi.fn(),
+};
+
+function renderCard(installed: boolean) {
+  return render(
+    <ContentContext.Provider value={context}>
+      <Mod mod={mod} modpack={undefined} className="" installed={installed} />
+    </ContentContext.Provider>,
+  );
+}
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -73,7 +102,7 @@ describe("Mod", () => {
         }}
       />,
     );
-    await userEvent.click(screen.getByRole("button", { name: "download" }));
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
     expect(mocks.installMod).toHaveBeenCalledWith(
       mod.id,
       "1.21.1",
@@ -94,9 +123,89 @@ describe("Mod", () => {
       return undefined;
     });
     render(<Mod mod={mod} modpack={undefined} className="" />);
-    await userEvent.click(screen.getByRole("button", { name: "download" }));
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
     expect(mocks.installMod).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("button", { name: "download" }));
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
     await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
+  });
+
+  it("opens the install page instead of installing when the mod is already in the pack", async () => {
+    renderCard(true);
+    await userEvent.click(screen.getByRole("button", { name: "Installed" }));
+    expect(context.changeContent).toHaveBeenCalled();
+    expect(mocks.installMod).not.toHaveBeenCalled();
+  });
+
+  it("opens the install page on the card's own target modpack", async () => {
+    const target = {
+      name: "Selected Pack",
+      version: "1.21.1",
+      modLoader: ModLoader.Fabric,
+    };
+    render(
+      <ContentContext.Provider value={context}>
+        <Mod
+          mod={mod}
+          modpack={undefined}
+          className=""
+          installed
+          installTarget={target}
+        />
+      </ContentContext.Provider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Installed" }));
+    render(context.changeContent.mock.calls[0][0].content);
+    expect(mocks.installPage).toHaveBeenCalledWith(
+      expect.objectContaining({ installTarget: target }),
+    );
+  });
+
+  it("installs directly when the same mod is not in the pack", async () => {
+    renderCard(false);
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
+  });
+
+  it("reports a finished one-click install through onInstalled", async () => {
+    const onInstalled = vi.fn();
+    render(
+      <Mod mod={mod} modpack={undefined} className="" onInstalled={onInstalled} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(onInstalled).toHaveBeenCalledTimes(1));
+  });
+
+  it("does not report an install that failed", async () => {
+    mocks.installMod.mockRejectedValue("noVersion");
+    const onInstalled = vi.fn();
+    render(
+      <ContentContext.Provider value={context}>
+        <Mod
+          mod={mod}
+          modpack={undefined}
+          className=""
+          onInstalled={onInstalled}
+        />
+      </ContentContext.Provider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(context.setSnackbar).toHaveBeenCalled());
+    expect(onInstalled).not.toHaveBeenCalled();
+  });
+
+  it("explains a blocked third-party download instead of echoing the key", async () => {
+    mocks.installMod.mockRejectedValue("thirdPartyDownloadDisabled");
+    renderCard(false);
+
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+
+    await waitFor(() =>
+      expect(context.setSnackbar).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message:
+            "This mod's author doesn't allow downloads from third-party apps. Open it in the browser to download it manually.",
+        }),
+      ),
+    );
   });
 });

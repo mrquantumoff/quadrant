@@ -65,7 +65,7 @@ describe("SharedModpackView", () => {
     expect(heading).toBeVisible();
     expect(screen.getByRole("status")).toBeVisible();
     const download = within(heading.closest("section")!).getByRole("button", {
-      name: "download",
+      name: "Download",
     });
     expect(download).toBeVisible();
     await userEvent.click(download);
@@ -78,7 +78,7 @@ describe("SharedModpackView", () => {
     await act(async () => second.resolve({ id: "iris", name: "Iris" }));
     expect(screen.getByText("Iris")).toBeVisible();
     expect(screen.queryByRole("status")).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "download" }));
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
     expect(installModpack).toHaveBeenCalledWith(pack);
   });
 
@@ -97,7 +97,7 @@ describe("SharedModpackView", () => {
         <SharedModpackView modpack={pack} />
       </ContentContext.Provider>,
     );
-    await userEvent.click(screen.getByRole("button", { name: "cancel" }));
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(back).toHaveBeenCalledOnce();
   });
 
@@ -122,7 +122,7 @@ describe("SharedModpackView", () => {
     render(<SharedModpackView modpack={pack} />);
     expect(await screen.findByText("Iris")).toBeVisible();
     expect(screen.queryByRole("status")).toBeNull();
-    expect(screen.getByRole("button", { name: "download" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Download" })).toBeVisible();
     error.mockRestore();
   });
 });

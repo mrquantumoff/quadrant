@@ -10,6 +10,12 @@ import {
   type SnackbarHistoryItem,
   type SnackbarState,
 } from "./intefaces";
+import {
+  type PageWithScroll,
+  popContent,
+  pushContent,
+  pushPage,
+} from "./contentHistory";
 import "./App.css";
 import { I18nextProvider, useTranslation } from "react-i18next";
 import ApplyPage from "./components/Pages/ApplyPage/Apply";
@@ -50,12 +56,6 @@ import {
 } from "./uiScale";
 import { resolveDeepLink } from "./deepLinks";
 import { appendSnackbarHistory } from "./snackbar";
-
-interface PageWithScroll {
-  scrollPositionX: number;
-  scrollPositionY: number;
-  page: Page;
-}
 
 function App() {
   const { t } = useTranslation();
@@ -106,7 +106,9 @@ function App() {
   const [updateDownloadProgress, setUpdateDownloadProgress] = useState(0);
   const configRef = useRef(createDesktopStore("config.json"));
   const config = configRef.current;
-  const [contentHistory, setContentHistory] = useState<PageWithScroll[]>([]);
+  // A ref, not state: nothing renders from it, and every navigation must see
+  // the latest history even when called from an older render's closure.
+  const contentHistoryRef = useRef<PageWithScroll[]>([]);
   const isLinuxRef = useRef(false);
   const [nativeDecorations, setNativeDecorations] = useState(false);
 
@@ -269,13 +271,13 @@ function App() {
         await currentWindow.setDecorations(resolvedNativeDecorations);
         setPage(initialPage);
         setContent(initialPage);
-        setContentHistory([
+        contentHistoryRef.current = [
           {
             page: initialPage,
             scrollPositionX: 0,
             scrollPositionY: 0,
           },
-        ]);
+        ];
       }
 
       const nativeDecorationsUnlisten = await config.onKeyChange<boolean>(
@@ -488,23 +490,16 @@ function App() {
 
   const contextFunctions: IContentContext = {
     back: async () => {
-      // If there's no previous history, do nothing.
-      if (contentHistory.length < 2) return;
+      const popped = popContent(contentHistoryRef.current);
+      if (!popped) return;
+      const previousEntry = popped.entry;
+      contentHistoryRef.current = popped.history;
 
-      // Create a copy of the history and remove the current entry.
-      const newHistory = [...contentHistory];
-      newHistory.pop();
-
-      // The new last item is the previous page.
-      const previousEntry = newHistory[newHistory.length - 1];
-
-      // Update state with the previous page.
       const leaving = currentContentRef.current;
       currentContentRef.current = previousEntry.page;
       updateContentWithTransition(() => {
         setContent(previousEntry.page);
       }, leaving.ownTransition === true);
-      setContentHistory(newHistory);
 
       // Wait a short time to ensure the new content is rendered before scrolling.
       setTimeout(() => {
@@ -519,31 +514,12 @@ function App() {
       const scrollPositionX = contentRef.current?.scrollLeft ?? 0;
       const scrollPositionY = contentRef.current?.scrollTop ?? 0;
       console.log(component);
-      setContentHistory((previousHistory) => {
-        const newHistory =
-          previousHistory.length > 0
-            ? [...previousHistory]
-            : [
-                {
-                  page: currentContentRef.current,
-                  scrollPositionX,
-                  scrollPositionY,
-                },
-              ];
-        const previousEntryIndex = newHistory.length - 1;
-        newHistory[previousEntryIndex] = {
-          ...newHistory[previousEntryIndex],
-          scrollPositionX,
-          scrollPositionY,
-        };
-        newHistory.push({
-          page: component,
-          scrollPositionX: 0,
-          scrollPositionY: 0,
-        });
-        console.log(newHistory);
-        return newHistory;
-      });
+      contentHistoryRef.current = pushContent(
+        contentHistoryRef.current,
+        currentContentRef.current,
+        component,
+        { x: scrollPositionX, y: scrollPositionY },
+      );
       contentRef.current?.scrollTo({
         top: 0,
         left: 0,
@@ -563,13 +539,10 @@ function App() {
         setPage(newPage[0]);
         setContent(newPage[0]);
       });
-      const newHistory = [...contentHistory];
-      newHistory.push({
-        page: newPage[0],
-        scrollPositionX: 0,
-        scrollPositionY: 0,
-      });
-      setContentHistory(newHistory);
+      contentHistoryRef.current = pushPage(
+        contentHistoryRef.current,
+        newPage[0],
+      );
       contentRef.current?.scrollTo({
         top: 0,
         left: 0,
@@ -638,7 +611,7 @@ function App() {
                           await config.save();
                           setPage(p);
                           setContent(p);
-                          setContentHistory([
+                          contentHistoryRef.current = [
                             {
                               page: p,
                               scrollPositionX:
@@ -646,7 +619,7 @@ function App() {
                               scrollPositionY:
                                 contentRef.current?.scrollTop ?? 0,
                             },
-                          ]);
+                          ];
                           contentRef.current?.scrollTo({
                             top: 0,
                             left: 0,
@@ -786,7 +759,7 @@ function App() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 16 }}
                     className={
-                      "bottom-8 left-8 fixed w-max h-max p-4 rounded-4xl flex flex-col items-center justify-center font-bold text-slate-50 transform-gpu backface-hidden will-change-[transform,opacity] " +
+                      "bottom-8 left-8 fixed w-max max-w-[min(36rem,calc(100vw-4rem))] h-max p-4 rounded-4xl flex flex-col items-center justify-center font-bold text-slate-50 transform-gpu backface-hidden will-change-[transform,opacity] " +
                       snackbarState.className
                     }
                   >
@@ -794,7 +767,7 @@ function App() {
                       <p>{snackbarState.message}</p>
                       <Button
                         fullRound
-                        className="bg-slate-900/50 hover:bg-slate-900/70"
+                        className="bg-slate-900/50 hover:bg-slate-900/70 shrink-0"
                         onClick={() => {
                           setSnackbarEnabled(false);
                         }}

@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ContentContext, InstalledModpack } from "../../../intefaces";
 import { installModpack } from "../../../tools";
 import { invoke, listen } from "../../../desktop";
+import { useReportError } from "../../../useReportError";
 
 // Progress events have no request id. Run these installs one at a time, even
 // across page changes, and suppress duplicate writes to the same local folder.
@@ -34,6 +35,7 @@ export function useModpackInstall(
   syncTarget?: ModpackSyncTarget,
 ): ModpackInstallState {
   const { t } = useTranslation();
+  const reportError = useReportError();
   const context = useContext(ContentContext);
   const [progress, setProgress] = useState(1);
   const requestedRef = useRef(false);
@@ -94,11 +96,7 @@ export function useModpackInstall(
           timeout: 5000,
         });
       } catch (e: any) {
-        context.setSnackbar({
-          className: "bg-red-700",
-          message: t(e),
-          timeout: 5000,
-        });
+        reportError(e);
       } finally {
         activeRef.current = false;
         requestedRef.current = false;

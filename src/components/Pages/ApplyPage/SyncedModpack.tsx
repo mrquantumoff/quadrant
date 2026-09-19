@@ -17,6 +17,7 @@ import ModpackBadges from "./ModpackBadges";
 import SharedModpackView from "./SharedModpackView";
 import { formatSyncDate } from "./syncDates";
 import { useModpackInstall } from "./useModpackInstall";
+import { useReportError } from "../../../useReportError";
 
 export interface SyncedModpackProps {
   modpack: SyncedModpack;
@@ -29,6 +30,7 @@ export default function SyncedModpackComponent({
   accountInfo,
 }: SyncedModpackProps) {
   const { t } = useTranslation();
+  const reportError = useReportError();
   const contentContext = useContext(ContentContext);
 
   const modConfigObject: InstalledModpack = {
@@ -98,12 +100,7 @@ export default function SyncedModpackComponent({
             try {
               await shareModpackRaw(modConfigObject);
             } catch (e: any) {
-              console.error(e);
-              contentContext.setSnackbar({
-                message: t(e),
-                className: "bg-red-700 rounded-4xl",
-                timeout: 5000,
-              });
+              reportError(e);
             }
           }}
         >

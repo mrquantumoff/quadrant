@@ -430,7 +430,7 @@ pub async fn identify_modpack_modrinth(
         .filter(|existing| existing.name == modpack)
         .collect();
     if existing_modpack.is_empty() {
-        return Err(anyhow::anyhow!("Modpack doesn't exist"));
+        return Err(anyhow::Error::from(crate::error::ErrorCode::ModpackMissing));
     }
     let existing_modpack = existing_modpack.first().unwrap();
     let existing_files: Vec<String> = existing_modpack

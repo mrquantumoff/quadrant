@@ -204,7 +204,7 @@ impl RuntimeState for TauriRuntimeState {
         let state = self.app.state::<Mutex<AppState>>();
         let state = state
             .try_lock()
-            .map_err(|_| anyhow!("runtime state is busy"))?;
+            .map_err(|_| anyhow::Error::from(quadrant_core::error::ErrorCode::Busy))?;
         match key {
             "is_update_enabled" => Ok(Some(Value::Bool(state.is_update_enabled))),
             "updated_modpacks" => Ok(Some(serde_json::to_value(&state.updated_modpacks)?)),
@@ -216,7 +216,7 @@ impl RuntimeState for TauriRuntimeState {
         let state = self.app.state::<Mutex<AppState>>();
         let mut state = state
             .try_lock()
-            .map_err(|_| anyhow!("runtime state is busy"))?;
+            .map_err(|_| anyhow::Error::from(quadrant_core::error::ErrorCode::Busy))?;
         match key {
             "is_update_enabled" => {
                 state.is_update_enabled = value.as_bool().unwrap_or(false);

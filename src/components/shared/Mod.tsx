@@ -29,12 +29,16 @@ import ModInstallPage from "../Pages/ModInstallPage/ModInstallPage";
 import Button from "../core/Button";
 import "./Mod.css";
 import { createDesktopStore, listen } from "../../desktop";
+import { useReportError } from "../../useReportError";
 
 export interface IModProps {
   mod: IMod;
   modpack: string | undefined;
   className: string;
   installTarget?: Pick<LocalModpack, "name" | "version" | "modLoader">;
+  installed?: boolean;
+  /** Called after this card (or the mod page it opens) installs something. */
+  onInstalled?: () => void;
 }
 
 /** Deterministic hue (0-359) from a string, for the gradient fallback tile. */
@@ -49,6 +53,7 @@ function hashHue(value: string): number {
 export default function Mod(props: IModProps) {
   const mod = props.mod;
   const { t, i18n } = useTranslation();
+  const reportError = useReportError();
   const isCurseForge = mod.source === ModSource.CurseForge;
   const isModrinth = mod.source === ModSource.Modrinth;
   const sourceLabel = isCurseForge
@@ -79,8 +84,17 @@ export default function Mod(props: IModProps) {
   const modId = mod.id;
   const isAutoinstallable = mod.autoinstallable;
 
+  const canDownload = mod.downloadable && installable;
+
+  const failInstall = (e: unknown) => {
+    installRequestedRef.current = false;
+    installInFlightRef.current = false;
+    setClickableDownload(true);
+    reportError(e);
+  };
+
   const openModDownload = async () => {
-    if (!mod.downloadable || !installable) {
+    if (!canDownload) {
       return;
     }
     // 8 character random string
@@ -92,7 +106,13 @@ export default function Mod(props: IModProps) {
       icon: <img src={mod.modIconUrl ?? null}></img>,
       // Keyed so opening a dependency from an install page remounts the page.
       content: (
-        <ModInstallPage key={mod.id} mod={mod} originRect={originRect} />
+        <ModInstallPage
+          key={mod.id}
+          mod={mod}
+          originRect={originRect}
+          installTarget={props.installTarget}
+          onInstalled={props.onInstalled}
+        />
       ),
       name: randomString, // This is for the back content function to work properly
       style: "",
@@ -253,6 +273,15 @@ export default function Mod(props: IModProps) {
                     </span>
                   </>
                 )}
+                {props.installed && (
+                  <>
+                    <span className="text-slate-600">·</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/15 text-emerald-400">
+                      <MdCheck className="w-3 h-3" />
+                      {t("installed")}
+                    </span>
+                  </>
+                )}
               </div>
               <p className="text-xs leading-4.5 text-slate-400 line-clamp-2 overflow-hidden m-0 h-9">
                 {description}
@@ -275,7 +304,18 @@ export default function Mod(props: IModProps) {
                 <MdDelete className="w-5 h-5" />
               </Button>
             )}
-            {mod.downloadable && installable && progress !== 100 ? (
+            {props.installed && canDownload ? (
+              <Button
+                animate
+                onClick={() => void openModDownload()}
+                className={
+                  actionButtonClass + " bg-slate-800 hover:bg-slate-700"
+                }
+              >
+                {t("installed")}
+                <MdCheck className="w-5 h-5" />
+              </Button>
+            ) : canDownload && progress !== 100 ? (
               mod.newVersion !== undefined && mod.showPreviousVersion ? (
                 <Button
                   animate
@@ -294,15 +334,9 @@ export default function Mod(props: IModProps) {
                         mod.source,
                         mod.id,
                       );
-                    } catch (e: any) {
-                      installRequestedRef.current = false;
-                      installInFlightRef.current = false;
-                      setClickableDownload(true);
-                      context.setSnackbar({
-                        message: t(e),
-                        className: "bg-red-700",
-                        timeout: 3000,
-                      });
+                      props.onInstalled?.();
+                    } catch (e) {
+                      failInstall(e);
                     }
                   }}
                   className={
@@ -343,15 +377,9 @@ export default function Mod(props: IModProps) {
                           mod.modType,
                           lastUsedModpack ?? "free",
                         );
-                      } catch (e: any) {
-                        installRequestedRef.current = false;
-                        installInFlightRef.current = false;
-                        setClickableDownload(true);
-                        context.setSnackbar({
-                          message: t(e),
-                          className: "bg-red-700",
-                          timeout: 3000,
-                        });
+                        props.onInstalled?.();
+                      } catch (e) {
+                        failInstall(e);
                       }
                       return;
                     }

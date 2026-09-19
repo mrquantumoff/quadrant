@@ -2,6 +2,7 @@
 
 import quadrantLocale from "../../../i18n";
 import {
+  ContentContext,
   FetchedIdentifiedMod,
   IMod,
   LocalModpack,
@@ -9,16 +10,23 @@ import {
   ModSource,
   ModType,
 } from "../../../intefaces";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { getMod, getModUpdate, identifyUnknownMods } from "../../../tools";
 import Mod from "../Mod";
 import { useTranslation } from "react-i18next";
 import CircularProgress from "../../core/CircularProgress";
 
 import Button from "../../core/Button";
+import CancelButton from "../../core/CancelButton";
 import { MdPermIdentity, MdUpdate } from "react-icons/md";
 
-export default function ModpackView(modpack: LocalModpack) {
+type ModpackViewProps = LocalModpack & {
+  /** Set by openers that pushed this view, so there is a page to return to. */
+  showBack?: boolean;
+};
+
+export default function ModpackView({ showBack, ...modpack }: ModpackViewProps) {
+  const context = useContext(ContentContext);
   const localMods = modpack.mods;
   const [mods, setMods] = useState<IMod[]>([]);
   const [updates, setUpdates] = useState<IMod[]>([]);
@@ -236,53 +244,61 @@ export default function ModpackView(modpack: LocalModpack) {
         }}
       >
         <div className="bg-slate-700 p-4 flex align-middle rounded-4xl mt-2 mb-5 w-full font-bold items-center justify-center ">
-          <p className="text-center ">
-            {modpack.name} | {modpack.modLoader} | {modpack.version} |{" "}
-            {t("modCount", { amount: modCount })}{" "}
-            {modpack.lastSynced > 0 && (
-              <>
-                |{" "}
-                {t("localSyncDate", {
-                  date: new Intl.DateTimeFormat(quadrantLocale.language, {
-                    weekday: "short",
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  }).format(new Date(modpack.lastSynced)),
-                })}
-              </>
-            )}
-          </p>
-          <Button
-            onClick={async () => {
-              if (showUpdates) {
-                setShowUpdates(false);
-                return;
-              }
-              setShowUpdates(true);
-              await checkForUpdates();
-            }}
-            className="bg-blue-600 hover:bg-blue-700 ml-4 w-fit px-4 flex items-center "
-          >
-            {t("update")}
-            <MdUpdate className="w-6 ml-2 h-6"></MdUpdate>
-          </Button>
-          {modpack.unknownMods && (
+          {showBack && (
+            <CancelButton
+              onClick={() => void context.back()}
+              className="self-center!"
+            />
+          )}
+          <div className="flex items-center justify-center mx-auto">
+            <p className="text-center ">
+              {modpack.name} | {modpack.modLoader} | {modpack.version} |{" "}
+              {t("modCount", { amount: modCount })}{" "}
+              {modpack.lastSynced > 0 && (
+                <>
+                  |{" "}
+                  {t("localSyncDate", {
+                    date: new Intl.DateTimeFormat(quadrantLocale.language, {
+                      weekday: "short",
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    }).format(new Date(modpack.lastSynced)),
+                  })}
+                </>
+              )}
+            </p>
             <Button
               onClick={async () => {
-                // The [showIdentify] effect runs identification; calling it
-                // here too fingerprinted every unknown jar twice.
-                setShowIdentify(!showIdentify);
+                if (showUpdates) {
+                  setShowUpdates(false);
+                  return;
+                }
+                setShowUpdates(true);
+                await checkForUpdates();
               }}
-              className="bg-slate-800 px-4 hover:bg-slate-600 mx-2 w-fit flex items-center "
+              className="bg-blue-600 hover:bg-blue-700 ml-4 w-fit px-4 flex items-center "
             >
-              {t("identifyUnknownMods")}
-              <MdPermIdentity className="w-6 ml-2 h-6"></MdPermIdentity>
+              {t("update")}
+              <MdUpdate className="w-6 ml-2 h-6"></MdUpdate>
             </Button>
-          )}
+            {modpack.unknownMods && (
+              <Button
+                onClick={async () => {
+                  // The [showIdentify] effect runs identification; calling it
+                  // here too fingerprinted every unknown jar twice.
+                  setShowIdentify(!showIdentify);
+                }}
+                className="bg-slate-800 px-4 hover:bg-slate-600 mx-2 w-fit flex items-center "
+              >
+                {t("identifyUnknownMods")}
+                <MdPermIdentity className="w-6 ml-2 h-6"></MdPermIdentity>
+              </Button>
+            )}
+          </div>
         </div>
 
         {showIdentify ? (

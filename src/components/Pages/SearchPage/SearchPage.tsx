@@ -10,6 +10,8 @@ import {
   ModType,
   SearchCategory,
 } from "../../../intefaces";
+import { isInstalledIn } from "../../../installedMods";
+import { describeError } from "../../../errors";
 import {
   getCategories,
   getModpacks,
@@ -133,6 +135,7 @@ export default function SearchPage() {
   const [categories, setCategories] = useState<MergedCategory[]>([]);
 
   const searchRequestRef = useRef(0);
+  const modpacksRequestRef = useRef(0);
   const submittedQueryRef = useRef("");
   const resultsScrollRef = useRef<HTMLDivElement>(null);
   // Gate persistence until the saved filter blob has been loaded, so the
@@ -209,6 +212,17 @@ export default function SearchPage() {
       if (id) ids.push(id);
     }
     return ids;
+  };
+
+  // Installs can finish close together and `getModpacks` does not answer in
+  // request order, so only the newest reload may land or a badge would revert.
+  const refreshModpacks = () => {
+    const requestId = ++modpacksRequestRef.current;
+    getModpacks()
+      .then((refreshed) => {
+        if (requestId === modpacksRequestRef.current) setModpacks(refreshed);
+      })
+      .catch(console.error);
   };
 
   // `append` fetches the next page from each provider (via an offset) and
@@ -312,11 +326,10 @@ export default function SearchPage() {
         setRawLists(lists);
       }
     } catch (error) {
+      console.error(error);
       if (requestId === searchRequestRef.current && !append) {
-        setSearchError(String(error));
+        setSearchError(describeError(error, t));
         setRawLists([]);
-      } else if (append) {
-        console.error(error);
       }
     } finally {
       if (requestId === searchRequestRef.current) {
@@ -1041,6 +1054,8 @@ export default function SearchPage() {
                       mod={mod}
                       modpack={undefined}
                       installTarget={targetModpackObj}
+                      installed={isInstalledIn(mod, targetModpackObj)}
+                      onInstalled={refreshModpacks}
                     />
                   ))}
 

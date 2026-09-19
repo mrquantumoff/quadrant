@@ -16,7 +16,7 @@ pub async fn get_versions(app: AppHandle) -> Result<Vec<MinecraftVersion>, tauri
     app.state::<QuadrantHost>()
         .get_versions()
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -30,7 +30,7 @@ pub async fn check_mod_updates(
     app.state::<QuadrantHost>()
         .check_mod_updates(mod_to_update, minecraft_version, mod_loader, modpack_name)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -41,7 +41,7 @@ pub async fn search_mods(
     app.state::<QuadrantHost>()
         .search_mods(args)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -53,7 +53,7 @@ pub async fn get_categories(
     app.state::<QuadrantHost>()
         .get_categories(source, mod_type)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -78,7 +78,7 @@ pub async fn install_mod(
             file_id,
         )
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -93,7 +93,7 @@ pub async fn install_remote_file(
     app.state::<QuadrantHost>()
         .install_remote_file(file, mod_type, modpack, source, id)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -104,7 +104,7 @@ pub async fn identify_modpack(
     app.state::<QuadrantHost>()
         .identify_modpack(modpack)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]

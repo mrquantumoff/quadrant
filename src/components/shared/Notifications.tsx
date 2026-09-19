@@ -31,6 +31,7 @@ import {
   readNotification,
 } from "../../tools";
 import { createDesktopStore, listen } from "../../desktop";
+import { describeError } from "../../errors";
 
 type NotificationsProps = {
   snackBarHistory: SnackbarHistoryItem[];
@@ -89,7 +90,7 @@ function Notifications({
       await action();
     } catch (error) {
       console.error("Notification action failed", error);
-      setNotificationError(String(error));
+      setNotificationError(describeError(error, t));
     }
   };
 

@@ -463,12 +463,11 @@ async fn parse_json_response<T: serde::de::DeserializeOwned>(
     let response_raw = response.text().await?;
     if !status.is_success() {
         let body_preview = response_preview(&response_raw);
-        return Err(anyhow::anyhow!(
-            "{} with {}: {}",
-            error_prefix,
-            status,
-            body_preview
-        ));
+        let error = anyhow::anyhow!("{} with {}: {}", error_prefix, status, body_preview);
+        return Err(match crate::error::ErrorCode::from_status(status) {
+            Some(code) => error.context(code),
+            None => error,
+        });
     }
 
     let trimmed = response_raw.trim();

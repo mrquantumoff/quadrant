@@ -10,7 +10,7 @@ pub async fn get_mod_modrinth(args: GetModArgs, app: AppHandle) -> Result<Mod, t
     app.state::<QuadrantHost>()
         .get_mod_modrinth(args)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -21,7 +21,7 @@ pub async fn get_mod_owners_modrinth(
     app.state::<QuadrantHost>()
         .get_mod_owners_modrinth(id)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -29,5 +29,5 @@ pub async fn get_mod_deps_modrinth(id: String, app: AppHandle) -> Result<Vec<Mod
     app.state::<QuadrantHost>()
         .get_mod_deps_modrinth(id)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }

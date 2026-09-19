@@ -80,6 +80,7 @@ export interface LocalMod {
   id: string;
   downloadUrl: string;
   source: ModSource;
+  slug?: string;
 }
 
 export interface Page {

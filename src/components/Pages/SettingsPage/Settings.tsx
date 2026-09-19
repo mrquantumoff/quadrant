@@ -10,7 +10,7 @@ import {
 } from "../../../tools";
 import { Field, Label, Select, Switch } from "@headlessui/react";
 import quadrantLocale from "../../../i18n";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./SettingsPage.css";
 import { motion } from "motion/react";
 import {
@@ -22,7 +22,6 @@ import {
   isAutoupdateEnabled,
   openDialog,
 } from "../../../desktop";
-import { ContentContext } from "../../../intefaces";
 import { MdAdd, MdRemove } from "react-icons/md";
 import {
   clampUiScale,
@@ -31,12 +30,13 @@ import {
   UI_SCALE_KEY,
   UI_SCALE_STEP,
 } from "../../../uiScale";
+import { useReportError } from "../../../useReportError";
 
 export default function SettingsPage() {
   const { t } = useTranslation();
+  const reportError = useReportError();
   const boxRef = useRef(createDesktopStore("config.json"));
   const box = boxRef.current;
-  const contentContext = useContext(ContentContext);
 
   const [currentLocale, setCurrentLocale] = useState("en");
   const [updateChannel, setUpdateChannel] = useState("stable");
@@ -74,12 +74,7 @@ export default function SettingsPage() {
     try {
       await invoke(enabled ? "send_telemetry" : "remove_telemetry");
     } catch (error) {
-      console.error(error);
-      contentContext.setSnackbar({
-        message: t(typeof error === "string" ? error : "unknown"),
-        className: "bg-red-700 rounded-4xl",
-        timeout: 5000,
-      });
+      reportError(error);
     }
   };
 

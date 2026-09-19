@@ -13,7 +13,7 @@ pub async fn share_modpack(
     app.state::<QuadrantHost>()
         .share_modpack(modpack_name)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -24,7 +24,7 @@ pub async fn share_modpack_raw(
     app.state::<QuadrantHost>()
         .share_modpack_raw(mod_config)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -35,5 +35,5 @@ pub async fn get_quadrant_share_modpack(
     app.state::<QuadrantHost>()
         .get_quadrant_share_modpack(code)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }

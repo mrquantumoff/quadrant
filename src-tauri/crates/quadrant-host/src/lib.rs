@@ -56,6 +56,7 @@ use tokio_tungstenite::{
 use url::Url;
 use uuid::Uuid;
 
+pub use quadrant_core::error::{ErrorCode, user_facing};
 #[cfg(feature = "curseforge")]
 pub use quadrant_core::mc_mod::curseforge::{
     get_mod_curseforge, get_mod_deps_curseforge, get_mod_owners_curseforge,
@@ -188,7 +189,7 @@ impl JsonFileStore {
         let mut values = self
             .values
             .lock()
-            .map_err(|_| anyhow!("settings store is busy"))?;
+            .map_err(|_| anyhow::Error::from(quadrant_core::error::ErrorCode::Busy))?;
         self.reload(&mut values)?;
         values.remove(key);
         self.persist(&values)
@@ -213,7 +214,7 @@ impl SettingsStore for JsonFileStore {
         let mut values = self
             .values
             .lock()
-            .map_err(|_| anyhow!("settings store is busy"))?;
+            .map_err(|_| anyhow::Error::from(quadrant_core::error::ErrorCode::Busy))?;
         self.reload(&mut values)?;
         Ok(values.get(key).cloned())
     }
@@ -222,7 +223,7 @@ impl SettingsStore for JsonFileStore {
         let mut values = self
             .values
             .lock()
-            .map_err(|_| anyhow!("settings store is busy"))?;
+            .map_err(|_| anyhow::Error::from(quadrant_core::error::ErrorCode::Busy))?;
         self.reload(&mut values)?;
         values.insert(key.to_string(), value);
         self.persist(&values)
@@ -232,7 +233,7 @@ impl SettingsStore for JsonFileStore {
         let mut values = self
             .values
             .lock()
-            .map_err(|_| anyhow!("settings store is busy"))?;
+            .map_err(|_| anyhow::Error::from(quadrant_core::error::ErrorCode::Busy))?;
         self.reload(&mut values)?;
         Ok(values
             .iter()
@@ -488,7 +489,7 @@ impl QuadrantHost {
             .get_string("mcFolder")?
             .map(PathBuf::from)
             .or_else(|| get_mc_folder().ok().flatten())
-            .ok_or_else(|| anyhow!("mcFolder is not configured"))
+            .ok_or_else(|| anyhow::Error::from(quadrant_core::error::ErrorCode::NoMinecraftFolder))
     }
 
     pub fn get_modpacks_folder(&self) -> Result<PathBuf> {
@@ -625,7 +626,7 @@ impl QuadrantHost {
             .await?
             .into_iter()
             .find(|modpack| modpack.name == modpack_name)
-            .ok_or_else(|| anyhow!("Modpack not found"))?;
+            .ok_or_else(|| anyhow::Error::from(quadrant_core::error::ErrorCode::ModpackMissing))?;
         let show_unupgradeable_mods = self
             .inner
             .config_store
@@ -654,7 +655,6 @@ impl QuadrantHost {
     ) -> Result<()> {
         let updated_modpack = install_mod(
             &self.get_minecraft_folder()?,
-            &self.get_modpacks(false).await?,
             &self.inner.config_store,
             &self.inner.event_sink,
             id,
@@ -679,7 +679,6 @@ impl QuadrantHost {
     ) -> Result<()> {
         let updated_modpack = install_remote_file(
             &self.get_minecraft_folder()?,
-            &self.get_modpacks(false).await?,
             &self.inner.event_sink,
             file,
             mod_type,
@@ -911,7 +910,7 @@ impl QuadrantHost {
             .await?
             .into_iter()
             .find(|modpack| modpack.name == modpack_name)
-            .ok_or_else(|| anyhow!("Modpack not found"))?;
+            .ok_or_else(|| anyhow::Error::from(quadrant_core::error::ErrorCode::ModpackMissing))?;
         self.share_modpack_raw(modpack.into()).await
     }
 

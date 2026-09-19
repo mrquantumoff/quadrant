@@ -15,6 +15,7 @@ proprietary = ["curseforge", "telemetry", "quadrant_id"]
 crate-type = ["cdylib"]
 
 [dependencies]
+anyhow = { workspace = true }
 napi = { workspace = true }
 napi-derive = { workspace = true }
 quadrant-host = { path = "../quadrant-host" }

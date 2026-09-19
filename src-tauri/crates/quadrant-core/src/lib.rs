@@ -9,6 +9,7 @@
 //!
 //! - [`config`]: config defaults, config bootstrap, and Minecraft path helpers
 //! - [`models`]: shared serialization-friendly types
+//! - [`error`]: stable error codes a host translates for the user
 //! - [`events`]: typed backend event payloads
 //! - [`ports`]: host-provided interfaces such as settings, secrets, and events
 //! - [`modpacks`]: local modpack filesystem flows
@@ -86,6 +87,7 @@
 //! - `docs/creating-a-quadrant-frontend.md`
 pub mod account;
 pub mod config;
+pub mod error;
 pub mod events;
 pub mod mc_mod;
 pub mod models;

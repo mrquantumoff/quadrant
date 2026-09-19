@@ -3,7 +3,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ModSource, ModType, type IMod } from "../../../intefaces";
+import {
+  ModLoader,
+  ModSource,
+  ModType,
+  type IMod,
+  type LocalModpack,
+} from "../../../intefaces";
 
 const getVersions = vi.fn();
 const getModpacks = vi.fn();
@@ -30,10 +36,25 @@ vi.mock("../../../desktop", () => ({
 }));
 
 // The Mod card is heavy and independently tested; stub it to render just the
-// mod name so result ordering/identity is observable.
+// mod name so result ordering/identity is observable. Clicking it stands in
+// for a finished install.
 vi.mock("../../shared/Mod", () => ({
-  default: ({ mod }: { mod: IMod }) => (
-    <div data-testid="mod-card">{mod.name}</div>
+  default: ({
+    mod,
+    installed,
+    onInstalled,
+  }: {
+    mod: IMod;
+    installed?: boolean;
+    onInstalled?: () => void;
+  }) => (
+    <div
+      data-testid="mod-card"
+      data-installed={String(!!installed)}
+      onClick={() => onInstalled?.()}
+    >
+      {mod.name}
+    </div>
   ),
 }));
 
@@ -189,7 +210,7 @@ describe("SearchPage", () => {
     await userEvent.type(screen.getByRole("textbox"), "unsubmitted");
     searchMods.mockClear();
     await userEvent.click(
-      screen.getByRole("button", { name: "searchFurther" }),
+      screen.getByRole("button", { name: "Search further" }),
     );
     await waitFor(() =>
       expect(searchMods).toHaveBeenCalledWith(
@@ -209,7 +230,7 @@ describe("SearchPage", () => {
     render(<SearchPage />);
     await screen.findByText("Initial result");
     await userEvent.click(
-      screen.getByRole("button", { name: "searchFurther" }),
+      screen.getByRole("button", { name: "Search further" }),
     );
     await waitFor(() =>
       expect(searchMods).toHaveBeenCalledWith(
@@ -218,12 +239,12 @@ describe("SearchPage", () => {
     );
     await userEvent.type(screen.getByRole("textbox"), "new{Enter}");
     await screen.findByText("New result");
-    expect(screen.getByRole("button", { name: "searchFurther" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Search further" })).toBeEnabled();
     await act(async () =>
       pending.resolve([mod({ name: "Stale appended result" })]),
     );
     expect(screen.queryByText("Stale appended result")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "searchFurther" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Search further" })).toBeEnabled();
   });
 
   it("does not mark results auto-installable when their saved target no longer exists", async () => {
@@ -246,5 +267,132 @@ describe("SearchPage", () => {
     expect(restoredRequests.every(([args]) => args.filterOn === false)).toBe(
       true,
     );
+  });
+
+  const alpha = (modIds: string[]): LocalModpack => ({
+    name: "alpha",
+    version: "1.20.1",
+    modLoader: ModLoader.Fabric,
+    isApplied: false,
+    lastSynced: 0,
+    unknownMods: false,
+    mods: modIds.map((id) => ({
+      id,
+      downloadUrl: `https://example.com/${id}.jar`,
+      source: ModSource.Modrinth,
+      slug: id,
+    })),
+  });
+
+  const targetAlpha = () =>
+    storeGet.mockImplementation(async (key: string) => {
+      if (key === "curseforge") return false;
+      if (key === "modrinth") return true;
+      if (key === "searchFilters")
+        return { targetModpack: "alpha", version: "1.20.1" };
+      return undefined;
+    });
+
+  it("flips a card to installed once its install reports back", async () => {
+    getModpacks.mockResolvedValue([alpha([])]);
+    targetAlpha();
+    searchMods.mockResolvedValue([
+      mod({ name: "Iris", id: "iris", slug: "iris" }),
+    ]);
+
+    render(<SearchPage />);
+    const card = await screen.findByText("Iris");
+    expect(card).toHaveAttribute("data-installed", "false");
+
+    getModpacks.mockResolvedValue([alpha(["iris"])]);
+    await userEvent.click(card);
+
+    await waitFor(() =>
+      expect(screen.getByText("Iris")).toHaveAttribute(
+        "data-installed",
+        "true",
+      ),
+    );
+  });
+
+  it("keeps the newest reload when two installs answer out of order", async () => {
+    getModpacks.mockResolvedValue([alpha([])]);
+    targetAlpha();
+    searchMods.mockResolvedValue([
+      mod({ name: "Iris", id: "iris", slug: "iris" }),
+      mod({ name: "Sodium", id: "sodium", slug: "sodium" }),
+    ]);
+
+    render(<SearchPage />);
+    const iris = await screen.findByText("Iris");
+
+    const afterFirst = deferred<LocalModpack[]>();
+    const afterSecond = deferred<LocalModpack[]>();
+    getModpacks
+      .mockReturnValueOnce(afterFirst.promise)
+      .mockReturnValueOnce(afterSecond.promise);
+    await userEvent.click(iris);
+    await userEvent.click(screen.getByText("Sodium"));
+
+    afterSecond.resolve([alpha(["iris", "sodium"])]);
+    await waitFor(() =>
+      expect(screen.getByText("Sodium")).toHaveAttribute(
+        "data-installed",
+        "true",
+      ),
+    );
+
+    afterFirst.resolve([alpha(["iris"])]);
+    await act(async () => {
+      await afterFirst.promise;
+    });
+    expect(screen.getByText("Sodium")).toHaveAttribute(
+      "data-installed",
+      "true",
+    );
+  });
+
+  it("marks only the results already present in the target modpack", async () => {
+    getModpacks.mockResolvedValue([alpha(["sodium"])]);
+    targetAlpha();
+    searchMods.mockResolvedValue([
+      mod({ name: "Sodium", id: "sodium", slug: "sodium" }),
+      mod({ name: "Iris", id: "iris", slug: "iris" }),
+    ]);
+
+    render(<SearchPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Sodium")).toHaveAttribute(
+        "data-installed",
+        "true",
+      ),
+    );
+    expect(screen.getByText("Iris")).toHaveAttribute("data-installed", "false");
+  });
+
+  it("marks nothing installed while no modpack is targeted", async () => {
+    searchMods.mockResolvedValue([
+      mod({ name: "Sodium", id: "sodium", slug: "sodium" }),
+    ]);
+
+    render(<SearchPage />);
+
+    expect(await screen.findByText("Sodium")).toHaveAttribute(
+      "data-installed",
+      "false",
+    );
+  });
+
+  it("translates the error code a failed search comes back with", async () => {
+    searchMods.mockRejectedValue("errorNetwork");
+
+    render(<SearchPage />);
+
+    expect(
+      await screen.findByText(
+        "Couldn't reach the server. Check your internet connection and try again.",
+      ),
+    ).toBeInTheDocument();
   });
 });

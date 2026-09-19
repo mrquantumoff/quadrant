@@ -6,7 +6,7 @@ pub async fn get_quadrant_settings(app: AppHandle) -> Result<(), tauri::Error> {
     app.state::<QuadrantHost>()
         .get_quadrant_settings()
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -14,5 +14,5 @@ pub async fn submit_quadrant_settings(app: AppHandle) -> Result<(), tauri::Error
     app.state::<QuadrantHost>()
         .submit_quadrant_settings()
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
