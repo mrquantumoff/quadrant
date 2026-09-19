@@ -611,6 +611,12 @@ pub async fn get_file(
     id: String,
     event_sink: &impl EventSink,
 ) -> Result<(PathBuf, String)> {
+    // CurseForge returns a null downloadUrl when the author opted out of
+    // third-party distribution, which arrives here as an empty string.
+    if file.download_url.trim().is_empty() {
+        return Err(anyhow!("thirdPartyDownloadDisabled"));
+    }
+
     if let Some(cached_file) = get_cache_index(file.sha1.clone()).await? {
         log::info!("Cache hit for mod {id} (sha1={})", file.sha1);
         match std::fs::read(&cached_file.file_name) {
@@ -1392,5 +1398,33 @@ mod tests {
 
         download.assert();
         assert_eq!(std::fs::read(path).unwrap(), bytes);
+    }
+
+    #[tokio::test]
+    async fn get_file_rejects_a_file_without_a_download_url() {
+        let server = httpmock::MockServer::start();
+        let anything = server.mock(|when, then| {
+            when.any_request();
+            then.status(200).body("must never be served");
+        });
+        let events = CollectingEvents::default();
+
+        let error = get_file(
+            UniversalModFile {
+                id: None,
+                file_name: "mod.jar".to_string(),
+                download_url: String::new(),
+                sha1: String::new(),
+                size: 0,
+            },
+            "mod".to_string(),
+            &events,
+        )
+        .await
+        .unwrap_err();
+
+        assert_eq!(error.to_string(), "thirdPartyDownloadDisabled");
+        assert_eq!(anything.calls(), 0);
+        assert!(events.events.lock().unwrap().is_empty());
     }
 }
