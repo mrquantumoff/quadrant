@@ -5,7 +5,8 @@ use crate::{
     events::BackendEvent,
     mc_mod::enrich_installed_mod,
     models::{
-        InstalledMod, InstalledModpack, LocalModpack, ModLoader, ModSource, SyncInfo, modpack_path,
+        InstalledMod, InstalledModpack, LocalModpack, ModLoader, ModSource, SyncInfo,
+        is_single_path_component, modpack_path,
     },
     ports::{EventSink, SettingsStore},
 };
@@ -27,8 +28,18 @@ pub(crate) fn write_file_atomically(
     path: impl AsRef<Path>,
     contents: impl AsRef<[u8]>,
 ) -> std::io::Result<()> {
+    write_atomically(path.as_ref(), |file| file.write_all(contents.as_ref()))
+}
+
+/// Fills a sibling temp file with `write` and renames it over `path`, so the
+/// destination is either the old file or the whole new one. Streaming callers
+/// use this instead of [`write_file_atomically`] to avoid holding the contents
+/// in memory.
+pub(crate) fn write_atomically(
+    path: &Path,
+    write: impl FnOnce(&mut std::fs::File) -> std::io::Result<()>,
+) -> std::io::Result<()> {
     static COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
-    let path = path.as_ref();
     let parent = path
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty());
@@ -44,13 +55,13 @@ pub(crate) fn write_file_atomically(
         std::process::id(),
         COUNTER.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     ));
-    let write = || -> std::io::Result<()> {
+    let fill = || -> std::io::Result<()> {
         let mut file = std::fs::File::create(&temp_path)?;
-        file.write_all(contents.as_ref())?;
+        write(&mut file)?;
         file.sync_all()?;
         std::fs::rename(&temp_path, path)
     };
-    let result = write();
+    let result = fill();
     if result.is_err() {
         let _ = std::fs::remove_file(&temp_path);
     }
@@ -58,11 +69,7 @@ pub(crate) fn write_file_atomically(
 }
 
 pub(crate) fn validate_modpack_name(name: &str) -> Result<()> {
-    let mut components = Path::new(name).components();
-    if name.is_empty()
-        || !matches!(components.next(), Some(Component::Normal(_)))
-        || components.next().is_some()
-    {
+    if !is_single_path_component(name) {
         return Err(anyhow::Error::from(
             crate::error::ErrorCode::InvalidModpackName,
         ));
@@ -288,27 +295,27 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
     Ok(modpacks)
 }
 
-/// Applies the named modpack by making `<mcFolder>/mods` point at it.
-pub fn apply_modpack(mc_folder: &Path, name: &str) -> Result<()> {
-    validate_modpack_name(name)?;
-    log::info!("Applying modpack \"{name}\"");
-    let modpack_dir = modpack_path(mc_folder, name);
-    let mods_path = mc_folder.join("mods");
-    if !modpack_dir.exists() {
-        return Err(anyhow::Error::from(crate::error::ErrorCode::ModpackMissing));
-    }
+/// Makes `mods_path` a symlink to `target`, preserving whatever was there.
+///
+/// A timestamped backup of a real `mods` directory is created inside
+/// `backup_parent`.
+pub(crate) fn link_mods_folder(
+    mods_path: &Path,
+    target: &Path,
+    backup_parent: &Path,
+) -> Result<()> {
     if mods_path.is_symlink() {
         // An existing `mods` symlink. This may be dangling if the modpack it
         // pointed at was deleted as a directory outside of Quadrant, in which
         // case `exists()` is false (it follows the link) but the broken link
         // still occupies the path and would make symlink creation fail with
         // `AlreadyExists`. Remove it either way before re-linking.
-        std::fs::remove_dir_all(&mods_path)?;
+        std::fs::remove_dir_all(mods_path)?;
     } else if mods_path.exists() {
         // A real, non-symlink `mods` directory — back it up rather than delete.
         std::fs::rename(
-            &mods_path,
-            mc_folder.join("modpacks").join(format!(
+            mods_path,
+            backup_parent.join(format!(
                 "mods-backup-{}",
                 Utc::now().format("%Y%m%d-%H%M%S")
             )),
@@ -317,14 +324,29 @@ pub fn apply_modpack(mc_folder: &Path, name: &str) -> Result<()> {
 
     #[cfg(target_os = "windows")]
     {
-        std::os::windows::fs::symlink_dir(modpack_dir, &mods_path)?;
+        std::os::windows::fs::symlink_dir(target, mods_path)?;
     }
 
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
-        std::os::unix::fs::symlink(modpack_dir, mods_path)?;
+        std::os::unix::fs::symlink(target, mods_path)?;
     }
     Ok(())
+}
+
+/// Applies the named modpack by making `<mcFolder>/mods` point at it.
+pub fn apply_modpack(mc_folder: &Path, name: &str) -> Result<()> {
+    validate_modpack_name(name)?;
+    log::info!("Applying modpack \"{name}\"");
+    let modpack_dir = modpack_path(mc_folder, name);
+    if !modpack_dir.exists() {
+        return Err(anyhow::Error::from(crate::error::ErrorCode::ModpackMissing));
+    }
+    link_mods_folder(
+        &mc_folder.join("mods"),
+        &modpack_dir,
+        &mc_folder.join("modpacks"),
+    )
 }
 
 /// Creates a new modpack folder and manifest.

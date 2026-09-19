@@ -40,6 +40,9 @@ pub mod modrinth;
 pub enum ModType {
     Mod,
     ResourcePack,
+    /// The frontend's own enum spells this variant `Shader`, so both labels
+    /// have to arrive as a shader pack.
+    #[serde(alias = "Shader")]
     ShaderPack,
     Modpack,
     DataPack,
@@ -897,6 +900,28 @@ pub async fn identify_modpack(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mod_type_reads_every_label_a_frontend_sends() {
+        for (label, expected) in [
+            ("\"Mod\"", ModType::Mod),
+            ("\"ResourcePack\"", ModType::ResourcePack),
+            ("\"ShaderPack\"", ModType::ShaderPack),
+            ("\"Shader\"", ModType::ShaderPack),
+            ("\"DataPack\"", ModType::DataPack),
+            ("\"Unknown\"", ModType::Unknown),
+        ] {
+            assert_eq!(
+                serde_json::from_str::<ModType>(label).unwrap(),
+                expected,
+                "{label}"
+            );
+        }
+        assert_eq!(
+            serde_json::to_string(&ModType::ShaderPack).unwrap(),
+            "\"ShaderPack\""
+        );
+    }
 
     #[test]
     fn install_local_file_rejects_modpack_path_traversal_before_writing() {
