@@ -113,6 +113,64 @@ describe("Mod", () => {
     );
   });
 
+  it("quick installs a resource pack into its explicit target", async () => {
+    render(
+      <Mod
+        mod={{ ...mod, modType: ModType.ResourcePack }}
+        modpack={undefined}
+        className=""
+        installTarget={{
+          name: "Selected Pack",
+          version: "1.21.1",
+          modLoader: ModLoader.Fabric,
+        }}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    expect(mocks.installMod).toHaveBeenCalledWith(
+      mod.id,
+      "1.21.1",
+      ModLoader.Fabric,
+      mod.source,
+      ModType.ResourcePack,
+      "Selected Pack",
+    );
+  });
+
+  it("sends no modpack for an untargeted resource pack rather than the saved one", async () => {
+    render(
+      <Mod
+        mod={{ ...mod, modType: ModType.ResourcePack }}
+        modpack={undefined}
+        className=""
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
+    expect(mocks.installMod).toHaveBeenCalledWith(
+      mod.id,
+      "1.12.2",
+      ModLoader.Forge,
+      mod.source,
+      ModType.ResourcePack,
+      "",
+    );
+  });
+
+  it("still falls back to the saved modpack for an untargeted mod", async () => {
+    render(<Mod mod={mod} modpack={undefined} className="" />);
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
+    expect(mocks.installMod).toHaveBeenCalledWith(
+      mod.id,
+      "1.12.2",
+      ModLoader.Forge,
+      mod.source,
+      ModType.Mod,
+      "Different Pack",
+    );
+  });
+
   it("allows retrying a download after reading saved settings fails", async () => {
     let failed = false;
     mocks.get.mockImplementation(async (key: string) => {

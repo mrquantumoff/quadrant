@@ -363,19 +363,24 @@ export default function Mod(props: IModProps) {
                         const lastUsedAPI = target
                           ? target.modLoader
                           : await config.get<string>("lastUsedAPI");
-                        const lastUsedModpack = target
-                          ? target.name
-                          : await config.get<string>("lastUsedModpack");
                         const lastUsedVersion = target
                           ? target.version
                           : await config.get<string>("lastUsedVersion");
+                        // Resource packs and shaders go to the pack the search
+                        // was scoped to, never to a saved or guessed one.
+                        const installModpack =
+                          mod.modType === ModType.Mod
+                            ? ((target?.name ??
+                                (await config.get<string>("lastUsedModpack"))) ??
+                              "free")
+                            : (target?.name ?? "");
                         await installMod(
                           mod.id,
                           lastUsedVersion ?? "",
                           (lastUsedAPI as ModLoader) ?? ModLoader.Unknown,
                           mod.source,
                           mod.modType,
-                          lastUsedModpack ?? "free",
+                          installModpack,
                         );
                         props.onInstalled?.();
                       } catch (e) {

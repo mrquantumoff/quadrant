@@ -374,7 +374,12 @@ export default function SearchPage() {
       // Restore the previously persisted filters before enabling persistence,
       // so the first render's defaults never clobber the saved blob.
       if (saved) {
-        if (saved.contentType) setContentType(saved.contentType);
+        // Filters saved before the shader type was renamed hold "Shader".
+        const savedType =
+          (saved.contentType as string) === "Shader"
+            ? ModType.ShaderPack
+            : saved.contentType;
+        if (savedType) setContentType(savedType);
         if (saved.sortBy) setSortBy(saved.sortBy);
         if (saved.version) setVersion(saved.version);
         if (saved.loader !== undefined) setLoader(saved.loader);

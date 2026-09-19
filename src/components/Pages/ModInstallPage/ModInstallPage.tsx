@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
   ContentContext,
+  ContentLocation,
   IMod,
   LocalModpack,
   MinecraftVersion,
@@ -28,6 +29,7 @@ import {
 import { animate, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import {
+  getInstalledContent,
   getModDependencies,
   getModOwners,
   getModpacks,
@@ -105,6 +107,11 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   const installTargetName = props.installTarget?.name;
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
+  const [contentLocations, setContentLocations] = useState<ContentLocation[]>(
+    [],
+  );
+  /** A `ContentLocation.id`, or `""` for the automatic placement. */
+  const [contentLocation, setContentLocation] = useState<string>("");
   const [version, setVersion] = useState<string>("");
   const [modpack, setModpack] = useState<string>("");
   const [loader, setLoader] = useState<string>("");
@@ -176,18 +183,32 @@ export default function ModInstallPage(props: IModInstallPageProps) {
     let cancelled = false;
     setIsReady(false);
     const effect = async () => {
+      // Only packs can be routed to a folder of the user's choosing; a mod
+      // always follows its modpack.
+      const placeable =
+        mod.modType === ModType.ResourcePack ||
+        mod.modType === ModType.ShaderPack;
       const [
         availableVersions,
         availableModpacks,
         savedVersion,
         savedLoader,
         savedModpack,
+        availableLocations,
       ] = await Promise.all([
         getVersions(),
         getModpacks(),
         config.get<string>("lastUsedVersion"),
         config.get<string>("lastUsedAPI"),
         config.get<string>("lastUsedModpack"),
+        // A host that cannot list its folders costs the user the picker, not
+        // the install, so this branch settles rather than rejects.
+        placeable
+          ? getInstalledContent().catch((error) => {
+              console.error(error);
+              return [] as ContentLocation[];
+            })
+          : Promise.resolve([] as ContentLocation[]),
       ]);
       if (cancelled) return;
       // Reconcile the saved choices with what actually exists: a deleted pack
@@ -195,13 +216,15 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       const explicitTarget = availableModpacks.find(
         (entry) => entry.name === installTargetName,
       );
+      // Resource packs and shaders are routed by the pack the opener scoped the
+      // search to, never by a saved or guessed one.
       const target =
         mod.modType === ModType.Mod
           ? (explicitTarget ??
             availableModpacks.find((entry) => entry.name === savedModpack) ??
             availableModpacks.find((entry) => entry.isApplied) ??
             availableModpacks[0])
-          : undefined;
+          : explicitTarget;
       // Keep a saved choice while it is still offered; otherwise fall back to
       // the target pack, so the install never submits an unavailable value.
       const wantedVersion = explicitTarget?.version ?? savedVersion;
@@ -221,6 +244,14 @@ export default function ModInstallPage(props: IModInstallPageProps) {
           ModLoader.Unknown,
       );
       setModpack(target?.name ?? "");
+      setContentLocations(availableLocations);
+      // A single location is not a choice, so it is never sent. With a target
+      // pack, following it stays the default and the user opts out of it.
+      setContentLocation(
+        availableLocations.length > 1 && explicitTarget === undefined
+          ? availableLocations[0].id
+          : "",
+      );
       setIsReady(true);
     };
     effect().catch(console.error);
@@ -290,6 +321,10 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   const pickTargets = props.fileId === undefined;
   const showProgress = isInstalling || modDownloadProgress > 0;
   const selectedModpack = modpacks.find((entry) => entry.name === modpack);
+  // Only a target that really exists can be followed automatically.
+  const hasInstallTarget = modpacks.some(
+    (entry) => entry.name === installTargetName,
+  );
   const installedEntry = findInstalledIn(mod, selectedModpack);
   const alreadyInstalled = installedEntry !== undefined;
   // Matched by slug across providers: say whose copy goes, since a shared
@@ -319,6 +354,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         mod.modType,
         modpack,
         props.fileId,
+        contentLocation === "" ? undefined : contentLocation,
       );
       // Not awaited: a slow or failed reload must not hold the button or
       // surface as an install failure.
@@ -350,7 +386,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       </Button>
       <Button
         onClick={() => void openIn(mod.url)}
-        className={actionClass + " bg-slate-700 hover:bg-slate-600"}
+        className={actionClass + " flex-1 bg-slate-700 hover:bg-slate-600"}
       >
         <MdOpenInNew className="size-5" />
         {t("openInTheWeb")}
@@ -556,6 +592,38 @@ export default function ModInstallPage(props: IModInstallPageProps) {
               </label>
             )}
 
+            {contentLocations.length > 1 && (
+              <label>
+                <span className={labelClass}>
+                  {t("installedContentInstallTo")}
+                </span>
+                <select
+                  className={selectClass}
+                  name="contentLocation"
+                  autoComplete="off"
+                  value={contentLocation}
+                  onChange={(e) => setContentLocation(e.target.value)}
+                >
+                  {hasInstallTarget && (
+                    <option value="">
+                      {t("installedContentInstallAutomatic", {
+                        modpack: installTargetName,
+                      })}
+                    </option>
+                  )}
+                  {contentLocations.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.kind === "minecraft"
+                        ? t("installedContentMinecraft")
+                        : t("installedContentPrismOption", {
+                            name: option.name,
+                          })}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
             {alreadyInstalled && (
               <div className="text-[11.5px] leading-snug text-amber-300 bg-amber-900/25 border border-amber-700/20 px-3 py-2 rounded-2xl">
                 {replacesOtherProvider
@@ -572,7 +640,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                 <LinearProgress progress={modInstallProgress} />
               </div>
             )}
-            <div className="flex gap-2 mt-1">{actions}</div>
+            <div className="flex flex-wrap gap-2 mt-1">{actions}</div>
           </section>
         </div>
       </div>
