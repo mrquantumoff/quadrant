@@ -83,7 +83,7 @@ describe("useModpackInstall", () => {
     });
     expect(result.current.progress).toBe(1);
     expect(setSnackbar).toHaveBeenCalledExactlyOnceWith(
-      expect.objectContaining({ message: "downloadSuccess" }),
+      expect.objectContaining({ message: "Mod(s) installed successfully" }),
     );
   });
 

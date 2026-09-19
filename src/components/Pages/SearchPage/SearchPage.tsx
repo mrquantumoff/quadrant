@@ -12,6 +12,7 @@ import {
   SearchCategory,
 } from "../../../intefaces";
 import { isInstalledIn } from "../../../installedMods";
+import { describeError } from "../../../errors";
 import {
   getCategories,
   getModpacks,
@@ -314,11 +315,10 @@ export default function SearchPage() {
         setRawLists(lists);
       }
     } catch (error) {
+      console.error(error);
       if (requestId === searchRequestRef.current && !append) {
-        setSearchError(String(error));
+        setSearchError(describeError(error, t));
         setRawLists([]);
-      } else if (append) {
-        console.error(error);
       }
     } finally {
       if (requestId === searchRequestRef.current) {

@@ -35,6 +35,7 @@ import { invoke } from "../../../desktop";
 import Button from "../../core/Button";
 import CancelButton from "../../core/CancelButton";
 import { useModpackInstall } from "./useModpackInstall";
+import { describeError } from "../../../errors";
 
 export interface CloudMembersPanelProps {
   modpack: SyncedModpack;
@@ -181,7 +182,7 @@ export default function CloudMembersPanel({
                         } catch (e: any) {
                           console.error(e);
                           contentContext.setSnackbar({
-                            message: t(e),
+                            message: describeError(e, t),
                             className: "bg-red-700 rounded-4xl",
                             timeout: 5000,
                           });
@@ -262,9 +263,10 @@ export default function CloudMembersPanel({
                               timeout: 5000,
                             });
                           } catch (e: any) {
+                            console.error(e);
                             contentContext.setSnackbar({
                               className: "bg-red-700 font-bold",
-                              message: t(e),
+                              message: describeError(e, t),
                               timeout: 5000,
                             });
                           }

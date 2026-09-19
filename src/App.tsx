@@ -786,7 +786,7 @@ function App() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 16 }}
                     className={
-                      "bottom-8 left-8 fixed w-max h-max p-4 rounded-4xl flex flex-col items-center justify-center font-bold text-slate-50 transform-gpu backface-hidden will-change-[transform,opacity] " +
+                      "bottom-8 left-8 fixed w-max max-w-[min(36rem,calc(100vw-4rem))] h-max p-4 rounded-4xl flex flex-col items-center justify-center font-bold text-slate-50 transform-gpu backface-hidden will-change-[transform,opacity] " +
                       snackbarState.className
                     }
                   >
@@ -794,7 +794,7 @@ function App() {
                       <p>{snackbarState.message}</p>
                       <Button
                         fullRound
-                        className="bg-slate-900/50 hover:bg-slate-900/70"
+                        className="bg-slate-900/50 hover:bg-slate-900/70 shrink-0"
                         onClick={() => {
                           setSnackbarEnabled(false);
                         }}

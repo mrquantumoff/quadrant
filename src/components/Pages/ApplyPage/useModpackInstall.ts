@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ContentContext, InstalledModpack } from "../../../intefaces";
 import { installModpack } from "../../../tools";
 import { invoke, listen } from "../../../desktop";
+import { describeError } from "../../../errors";
 
 // Progress events have no request id. Run these installs one at a time, even
 // across page changes, and suppress duplicate writes to the same local folder.
@@ -94,9 +95,10 @@ export function useModpackInstall(
           timeout: 5000,
         });
       } catch (e: any) {
+        console.error(e);
         context.setSnackbar({
           className: "bg-red-700",
-          message: t(e),
+          message: describeError(e, t),
           timeout: 5000,
         });
       } finally {

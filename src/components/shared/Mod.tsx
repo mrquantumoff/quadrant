@@ -29,6 +29,7 @@ import ModInstallPage from "../Pages/ModInstallPage/ModInstallPage";
 import Button from "../core/Button";
 import "./Mod.css";
 import { createDesktopStore, listen } from "../../desktop";
+import { describeError } from "../../errors";
 
 export interface IModProps {
   mod: IMod;
@@ -316,11 +317,12 @@ export default function Mod(props: IModProps) {
                         mod.id,
                       );
                     } catch (e: any) {
+                      console.error(e);
                       installRequestedRef.current = false;
                       installInFlightRef.current = false;
                       setClickableDownload(true);
                       context.setSnackbar({
-                        message: t(e),
+                        message: describeError(e, t),
                         className: "bg-red-700",
                         timeout: 3000,
                       });
@@ -365,11 +367,12 @@ export default function Mod(props: IModProps) {
                           lastUsedModpack ?? "free",
                         );
                       } catch (e: any) {
+                        console.error(e);
                         installRequestedRef.current = false;
                         installInFlightRef.current = false;
                         setClickableDownload(true);
                         context.setSnackbar({
-                          message: t(e),
+                          message: describeError(e, t),
                           className: "bg-red-700",
                           timeout: 3000,
                         });

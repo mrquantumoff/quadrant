@@ -17,6 +17,7 @@ import ModpackBadges from "./ModpackBadges";
 import SharedModpackView from "./SharedModpackView";
 import { formatSyncDate } from "./syncDates";
 import { useModpackInstall } from "./useModpackInstall";
+import { describeError } from "../../../errors";
 
 export interface SyncedModpackProps {
   modpack: SyncedModpack;
@@ -100,7 +101,7 @@ export default function SyncedModpackComponent({
             } catch (e: any) {
               console.error(e);
               contentContext.setSnackbar({
-                message: t(e),
+                message: describeError(e, t),
                 className: "bg-red-700 rounded-4xl",
                 timeout: 5000,
               });

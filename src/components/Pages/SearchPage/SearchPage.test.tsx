@@ -192,7 +192,7 @@ describe("SearchPage", () => {
     await userEvent.type(screen.getByRole("textbox"), "unsubmitted");
     searchMods.mockClear();
     await userEvent.click(
-      screen.getByRole("button", { name: "searchFurther" }),
+      screen.getByRole("button", { name: "Search further" }),
     );
     await waitFor(() =>
       expect(searchMods).toHaveBeenCalledWith(
@@ -212,7 +212,7 @@ describe("SearchPage", () => {
     render(<SearchPage />);
     await screen.findByText("Initial result");
     await userEvent.click(
-      screen.getByRole("button", { name: "searchFurther" }),
+      screen.getByRole("button", { name: "Search further" }),
     );
     await waitFor(() =>
       expect(searchMods).toHaveBeenCalledWith(
@@ -221,12 +221,12 @@ describe("SearchPage", () => {
     );
     await userEvent.type(screen.getByRole("textbox"), "new{Enter}");
     await screen.findByText("New result");
-    expect(screen.getByRole("button", { name: "searchFurther" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Search further" })).toBeEnabled();
     await act(async () =>
       pending.resolve([mod({ name: "Stale appended result" })]),
     );
     expect(screen.queryByText("Stale appended result")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "searchFurther" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Search further" })).toBeEnabled();
   });
 
   it("does not mark results auto-installable when their saved target no longer exists", async () => {
@@ -304,5 +304,19 @@ describe("SearchPage", () => {
       "data-installed",
       "false",
     );
+  });
+
+  it("explains a failed search instead of showing the transport error", async () => {
+    searchMods.mockRejectedValue(
+      "error sending request for url (https://api.modrinth.com/v2/search)",
+    );
+
+    render(<SearchPage />);
+
+    expect(
+      await screen.findByText(
+        "Couldn't reach the server. Check your internet connection and try again.",
+      ),
+    ).toBeInTheDocument();
   });
 });

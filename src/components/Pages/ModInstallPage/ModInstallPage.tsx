@@ -42,6 +42,7 @@ import LinearProgress from "../../core/LinearProgress";
 import { createDesktopStore, listen } from "../../../desktop";
 import { loaderProvidersForSource } from "../../../modLoaders";
 import { isInstalledIn } from "../../../installedMods";
+import { describeError } from "../../../errors";
 
 export interface IModInstallPageProps {
   mod: IMod;
@@ -308,9 +309,9 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         console.error(refreshError);
       }
     } catch (e: any) {
-      console.error(t(e));
+      console.error(e);
       context.setSnackbar({
-        message: t(e),
+        message: describeError(e, t),
         className: "bg-red-700 rounded-4xl",
         timeout: 5000,
       });

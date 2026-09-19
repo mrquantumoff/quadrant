@@ -31,6 +31,7 @@ import {
   UI_SCALE_KEY,
   UI_SCALE_STEP,
 } from "../../../uiScale";
+import { describeError } from "../../../errors";
 
 export default function SettingsPage() {
   const { t } = useTranslation();
@@ -76,7 +77,7 @@ export default function SettingsPage() {
     } catch (error) {
       console.error(error);
       contentContext.setSnackbar({
-        message: t(typeof error === "string" ? error : "unknown"),
+        message: describeError(error, t),
         className: "bg-red-700 rounded-4xl",
         timeout: 5000,
       });

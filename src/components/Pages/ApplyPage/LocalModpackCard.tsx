@@ -31,6 +31,7 @@ import ModpackView from "../../shared/Pages/ModpackView";
 import CloudMembersPanel from "./CloudMembersPanel";
 import ModpackBadges from "./ModpackBadges";
 import { formatSyncDate } from "./syncDates";
+import { describeError } from "../../../errors";
 
 export interface LocalModpackCardProps {
   modpack: LocalModpack;
@@ -128,7 +129,7 @@ export default function LocalModpackCard({
             } catch (e: any) {
               console.error(e);
               context.setSnackbar({
-                message: t(e),
+                message: describeError(e, t),
                 className: "bg-red-700 rounded-4xl",
                 timeout: 5000,
               });
@@ -162,7 +163,7 @@ export default function LocalModpackCard({
             } catch (e: any) {
               console.error(e);
               context.setSnackbar({
-                message: t(e),
+                message: describeError(e, t),
                 className: "bg-red-700 rounded-4xl",
                 timeout: 5000,
               });
@@ -195,7 +196,7 @@ export default function LocalModpackCard({
             } catch (e: any) {
               console.error(e);
               context.setSnackbar({
-                message: t(e),
+                message: describeError(e, t),
                 className: "bg-red-700 rounded-4xl",
                 timeout: 5000,
               });

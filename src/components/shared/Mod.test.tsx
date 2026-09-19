@@ -95,7 +95,7 @@ describe("Mod", () => {
         }}
       />,
     );
-    await userEvent.click(screen.getByRole("button", { name: "download" }));
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
     expect(mocks.installMod).toHaveBeenCalledWith(
       mod.id,
       "1.21.1",
@@ -116,22 +116,38 @@ describe("Mod", () => {
       return undefined;
     });
     render(<Mod mod={mod} modpack={undefined} className="" />);
-    await userEvent.click(screen.getByRole("button", { name: "download" }));
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
     expect(mocks.installMod).not.toHaveBeenCalled();
-    await userEvent.click(screen.getByRole("button", { name: "download" }));
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
     await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
   });
 
   it("opens the install page instead of installing when the mod is already in the pack", async () => {
     renderCard(true);
-    await userEvent.click(screen.getByRole("button", { name: "installed" }));
+    await userEvent.click(screen.getByRole("button", { name: "Installed" }));
     expect(context.changeContent).toHaveBeenCalled();
     expect(mocks.installMod).not.toHaveBeenCalled();
   });
 
   it("installs directly when the same mod is not in the pack", async () => {
     renderCard(false);
-    await userEvent.click(screen.getByRole("button", { name: "download" }));
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
     await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
+  });
+
+  it("explains a blocked third-party download instead of echoing the key", async () => {
+    mocks.installMod.mockRejectedValue("thirdPartyDownloadDisabled");
+    renderCard(false);
+
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+
+    await waitFor(() =>
+      expect(context.setSnackbar).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message:
+            "This mod's author doesn't allow downloads from third-party apps. Open it in the browser to download it manually.",
+        }),
+      ),
+    );
   });
 });

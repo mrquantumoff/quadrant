@@ -121,7 +121,7 @@ describe("ModInstallPage", () => {
     renderPage({ mod: mod({}) });
     expect(screen.getByRole("heading", { name: "Sodium" })).toBeTruthy();
     expect(screen.getByText("12.4M")).toBeTruthy();
-    expect(screen.getByText("licensedUnder")).toBeTruthy();
+    expect(screen.getByText(/Licensed under/)).toBeTruthy();
     expect(await screen.findByText("jellysquid")).toBeTruthy();
     expect(screen.queryByText("dependencies")).toBeNull();
   });
@@ -147,11 +147,11 @@ describe("ModInstallPage", () => {
     renderPage({ mod: mod({}) });
     await waitFor(() =>
       expect(
-        screen.getByRole("combobox", { name: /chooseVersion/ }),
+        screen.getByRole("combobox", { name: /Choose a Minecraft version/ }),
       ).toHaveValue("1.21"),
     );
     await userEvent.click(
-      screen.getAllByRole("button", { name: /download/ })[0],
+      screen.getAllByRole("button", { name: /Download/ })[0],
     );
     expect(installMod).toHaveBeenCalledWith(
       "sodium",
@@ -168,33 +168,33 @@ describe("ModInstallPage", () => {
     renderPage({ mod: mod({}), fileId: "abc" });
     await screen.findByText("jellysquid");
     expect(
-      screen.queryByRole("combobox", { name: /chooseVersion/ }),
+      screen.queryByRole("combobox", { name: /Choose a Minecraft version/ }),
     ).toBeNull();
     expect(
       screen.queryByRole("combobox", { name: /choosePreferredAPI/ }),
     ).toBeNull();
     expect(
-      screen.getByRole("combobox", { name: /chooseModpack/ }),
+      screen.getByRole("combobox", { name: /Choose a modpack/ }),
     ).toBeTruthy();
   });
 
   it("picking a modpack adopts its version and loader", async () => {
     renderPage({ mod: mod({}) });
     const picker = await screen.findByRole("combobox", {
-      name: /chooseModpack/,
+      name: /Choose a modpack/,
     });
     await userEvent.selectOptions(picker, "Pack");
     await waitFor(() =>
       expect(storeSet).toHaveBeenCalledWith("lastUsedVersion", "1.20.1"),
     );
-    expect(screen.getByRole("combobox", { name: /chooseVersion/ })).toHaveValue(
-      "1.20.1",
-    );
+    expect(
+      screen.getByRole("combobox", { name: /Choose a Minecraft version/ }),
+    ).toHaveValue("1.20.1");
   });
 
   it("goes back on cancel", async () => {
     renderPage({ mod: mod({}) });
-    await userEvent.click(screen.getByRole("button", { name: /cancel/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Cancel/ }));
     expect(back).toHaveBeenCalled();
   });
 
@@ -210,11 +210,11 @@ describe("ModInstallPage", () => {
     renderPage({ mod: mod({}) });
 
     const picker = await screen.findByRole("combobox", {
-      name: /chooseVersion/,
+      name: /Choose a Minecraft version/,
     });
     await waitFor(() => expect(picker).toHaveValue("1.20.1"));
     await userEvent.click(
-      screen.getAllByRole("button", { name: /download/ })[0],
+      screen.getAllByRole("button", { name: /Download/ })[0],
     );
     expect(installMod).toHaveBeenCalledWith(
       "sodium",
@@ -243,11 +243,11 @@ describe("ModInstallPage", () => {
     renderPage({ mod: mod({}) });
 
     const picker = await screen.findByRole("combobox", {
-      name: /chooseModpack/,
+      name: /Choose a modpack/,
     });
     await waitFor(() => expect(picker).toHaveValue("Applied Pack"));
     await userEvent.click(
-      screen.getAllByRole("button", { name: /download/ })[0],
+      screen.getAllByRole("button", { name: /Download/ })[0],
     );
     expect(installMod).toHaveBeenCalledWith(
       "sodium",
@@ -269,7 +269,7 @@ describe("ModInstallPage", () => {
     );
     renderPage({ mod: mod({}) });
 
-    const download = screen.getAllByRole("button", { name: /download/ })[0];
+    const download = screen.getAllByRole("button", { name: /Download/ })[0];
     expect(download).toBeDisabled();
     await userEvent.click(download);
     expect(installMod).not.toHaveBeenCalled();
@@ -291,7 +291,7 @@ describe("ModInstallPage", () => {
     renderPage({ mod: mod({}) });
 
     await screen.findByText("jellysquid");
-    const download = screen.getAllByRole("button", { name: /download/ })[0];
+    const download = screen.getAllByRole("button", { name: /Download/ })[0];
     expect(download).toBeDisabled();
     await userEvent.click(download);
     expect(installMod).not.toHaveBeenCalled();
@@ -314,9 +314,9 @@ describe("ModInstallPage", () => {
     ]);
     renderPage({ mod: mod({}) });
 
-    expect(await screen.findByText("alreadyInstalledIn")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /reinstall/ })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "download" })).toBeNull();
+    expect(await screen.findByText(/Already installed in/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Reinstall/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Download" })).toBeNull();
   });
 
   it("ignores dependencies from a previously viewed mod", async () => {
