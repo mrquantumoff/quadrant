@@ -224,8 +224,8 @@ Operational note:
 - `get_versions()`
 - `search_mods(args, settings)`
 - `check_mod_updates(mod_to_update, minecraft_version, mod_loader, modpack, show_unupgradeable_mods)`
-- `install_mod(mc_folder, existing_modpacks, settings, event_sink, ...)`
-- `install_remote_file(mc_folder, existing_modpacks, event_sink, ...)`
+- `install_mod(mc_folder, settings, event_sink, ...)`
+- `install_remote_file(mc_folder, event_sink, ...)`
 - `identify_modpack(mc_folder, modpack, curseforge_enabled, modrinth_enabled)`
 - `get_mod_url(slug, mod_type, source)`
 - `get_user_url(username, source)`

@@ -336,7 +336,11 @@ pub async fn check_mod_updates(
                 {
                     // A file the author barred from third-party download is
                     // not an update the user can install.
-                    new_mod.new_version = latest_file.try_into().ok();
+                    match UniversalModFile::try_from(latest_file) {
+                        Ok(file) => new_mod.new_version = Some(file),
+                        Err(_) if !show_unupgradeable_mods => return Ok(None),
+                        Err(_) => {}
+                    }
                 }
             }
             #[cfg(not(feature = "curseforge"))]
@@ -526,7 +530,6 @@ pub async fn enrich_installed_mod(mod_: InstalledMod) -> Result<InstalledMod> {
 /// [`BackendEvent::ModInstallProgress`].
 pub async fn install_mod(
     mc_folder: &Path,
-    existing_modpacks: &[LocalModpack],
     settings: &impl SettingsStore,
     event_sink: &impl EventSink,
     id: String,
@@ -594,7 +597,6 @@ pub async fn install_mod(
 
     let updated_modpack = install_local_file(
         mc_folder,
-        existing_modpacks,
         download_path.0,
         mod_to_install,
         mod_type,
@@ -669,7 +671,13 @@ pub async fn get_file(
     let response = provider_http_client()
         .execute(request)
         .await?
-        .error_for_status()?;
+        .error_for_status()
+        .map_err(|error| match error.status().map(|status| status.as_u16()) {
+            Some(401 | 403) => {
+                anyhow::Error::from(error).context(crate::error::ErrorCode::DownloadRefused)
+            }
+            _ => error.into(),
+        })?;
     let mut body = response.bytes_stream();
     let mut file_bytes = Vec::new();
     while let Some(next) = body.next().await {
@@ -722,7 +730,6 @@ fn download_file_name(download_url: &str) -> Option<String> {
 /// Installs an already-downloaded file into a modpack or game content folder.
 pub fn install_local_file(
     mc_folder: &Path,
-    _existing_modpacks: &[LocalModpack],
     file: PathBuf,
     local_mod: InstalledMod,
     mod_type: ModType,
@@ -799,16 +806,11 @@ pub fn install_local_file(
     }
     log::info!("Installed mod {id} ({mod_type:?}) from {source:?}");
     std::fs::copy(file, &target_path)?;
-    if let (Some(manifest_path), Some(updated_modpack)) = (manifest_path, updated_modpack.as_ref())
-    {
-        crate::modpacks::write_file_atomically(
-            manifest_path,
-            serde_json::to_string_pretty(&InstalledModpack::from(updated_modpack.clone()))?,
-        )?;
-    }
     // Compare resolved paths: on a case-insensitive filesystem `Sodium.jar`
     // and `sodium.jar` are the jar that was just written.
     let installed_path = std::fs::canonicalize(&target_path)?;
+    // Old jars go before the manifest is committed: if one is locked (the
+    // game is running), its entry survives and a retry still finds the jar.
     for old_file_path in old_file_paths {
         if let Ok(old_path) = std::fs::canonicalize(&old_file_path)
             && old_path != installed_path
@@ -817,13 +819,19 @@ pub fn install_local_file(
             std::fs::remove_file(old_path)?;
         }
     }
+    if let (Some(manifest_path), Some(updated_modpack)) = (manifest_path, updated_modpack.as_ref())
+    {
+        crate::modpacks::write_file_atomically(
+            manifest_path,
+            serde_json::to_string_pretty(&InstalledModpack::from(updated_modpack.clone()))?,
+        )?;
+    }
     Ok(updated_modpack)
 }
 
 /// Downloads a remote file and installs it into the requested target.
 pub async fn install_remote_file(
     mc_folder: &Path,
-    existing_modpacks: &[LocalModpack],
     event_sink: &impl EventSink,
     file: UniversalModFile,
     mod_type: ModType,
@@ -848,7 +856,6 @@ pub async fn install_remote_file(
     });
     install_local_file(
         mc_folder,
-        existing_modpacks,
         downloaded_file.0,
         mod_to_install,
         mod_type,
@@ -923,7 +930,6 @@ mod tests {
             assert!(
                 install_local_file(
                     &mc_folder,
-                    &[],
                     source_file.clone(),
                     local_mod.clone(),
                     ModType::Mod,
@@ -948,7 +954,6 @@ mod tests {
         std::fs::write(&source_file, "mod bytes").unwrap();
         let updated = install_local_file(
             dir.path(),
-            &[],
             source_file,
             InstalledMod::minimal(
                 "mod".to_string(),
@@ -1006,7 +1011,6 @@ mod tests {
         std::fs::write(&source_file, "new bytes").unwrap();
         install_local_file(
             mc_folder,
-            &[],
             source_file,
             mod_,
             ModType::Mod,
@@ -1090,6 +1094,60 @@ mod tests {
             std::fs::read_to_string(dir.path().join("modpacks/alpha/sodium.jar")).unwrap(),
             "new bytes"
         );
+    }
+
+    // A jar the game holds open cannot be deleted on Windows. Its manifest
+    // entry must survive so the next install still knows to remove it.
+    #[cfg(windows)]
+    #[test]
+    fn install_local_file_keeps_the_entry_of_a_jar_it_could_not_delete() {
+        use std::os::windows::fs::OpenOptionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        seed_modpack(
+            dir.path(),
+            "alpha",
+            vec![mod_entry(
+                "394468",
+                ModSource::CurseForge,
+                "sodium",
+                "sodium-curseforge.jar",
+            )],
+        );
+        let locked_jar = installed_jar(dir.path(), "alpha", "sodium-curseforge.jar");
+        let lock = std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(0)
+            .open(&locked_jar)
+            .unwrap();
+        let source_file = dir.path().join("download.jar");
+        std::fs::write(&source_file, "new bytes").unwrap();
+        let install = || {
+            install_local_file(
+                dir.path(),
+                source_file.clone(),
+                mod_entry(
+                    "AANobbMI",
+                    ModSource::Modrinth,
+                    "sodium",
+                    "sodium-modrinth.jar",
+                ),
+                ModType::Mod,
+                Some("alpha".to_string()),
+            )
+        };
+
+        assert!(install().is_err());
+        let manifest: InstalledModpack = serde_json::from_reader(
+            std::fs::File::open(dir.path().join("modpacks/alpha/modConfigV2.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(manifest.mods[0].id, "394468");
+
+        drop(lock);
+        let updated = install().unwrap().unwrap();
+        assert_eq!(updated.mods.len(), 1);
+        assert!(!locked_jar.exists());
     }
 
     #[test]
@@ -1315,7 +1373,6 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let error = install_mod(
             dir.path(),
-            &[],
             &NullSettings,
             &CollectingEvents::default(),
             "mod".to_string(),
@@ -1411,6 +1468,35 @@ mod tests {
 
         download.assert();
         assert_eq!(std::fs::read(path).unwrap(), bytes);
+    }
+
+    #[tokio::test]
+    async fn get_file_reports_a_refused_download_without_blaming_sign_in() {
+        let _guard = crate::mc_mod::cache::tests::set_cache_dir();
+        let server = httpmock::MockServer::start();
+        server.mock(|when, then| {
+            when.method(httpmock::Method::GET).path("/refused.jar");
+            then.status(403);
+        });
+
+        let error = get_file(
+            UniversalModFile {
+                id: None,
+                file_name: "refused.jar".to_string(),
+                download_url: format!("{}/refused.jar", server.base_url()),
+                sha1: "0000000000000000000000000000000000000000".to_string(),
+                size: 1,
+            },
+            "mod".to_string(),
+            &CollectingEvents::default(),
+        )
+        .await
+        .unwrap_err();
+
+        assert_eq!(
+            crate::error::user_facing(error).to_string(),
+            "errorDownloadRefused"
+        );
     }
 
     #[tokio::test]

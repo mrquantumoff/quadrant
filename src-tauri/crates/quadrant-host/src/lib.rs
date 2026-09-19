@@ -655,7 +655,6 @@ impl QuadrantHost {
     ) -> Result<()> {
         let updated_modpack = install_mod(
             &self.get_minecraft_folder()?,
-            &self.get_modpacks(false).await?,
             &self.inner.config_store,
             &self.inner.event_sink,
             id,
@@ -680,7 +679,6 @@ impl QuadrantHost {
     ) -> Result<()> {
         let updated_modpack = install_remote_file(
             &self.get_minecraft_folder()?,
-            &self.get_modpacks(false).await?,
             &self.inner.event_sink,
             file,
             mod_type,

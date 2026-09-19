@@ -9,6 +9,7 @@ use std::fmt;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorCode {
     ThirdPartyDownloadDisabled,
+    DownloadRefused,
     InvalidRequest,
     Timeout,
     RateLimited,
@@ -33,8 +34,9 @@ pub enum ErrorCode {
 }
 
 impl ErrorCode {
-    pub const ALL: [ErrorCode; 22] = [
+    pub const ALL: [ErrorCode; 23] = [
         Self::ThirdPartyDownloadDisabled,
+        Self::DownloadRefused,
         Self::InvalidRequest,
         Self::Timeout,
         Self::RateLimited,
@@ -61,6 +63,7 @@ impl ErrorCode {
     pub const fn key(self) -> &'static str {
         match self {
             Self::ThirdPartyDownloadDisabled => "thirdPartyDownloadDisabled",
+            Self::DownloadRefused => "errorDownloadRefused",
             Self::InvalidRequest => "errorInvalidRequest",
             Self::Timeout => "errorTimeout",
             Self::RateLimited => "errorRateLimited",
@@ -128,6 +131,11 @@ impl ErrorCode {
     }
 
     fn classify(error: &anyhow::Error) -> Option<Self> {
+        // A code attached with `.context(code)` is only reachable through
+        // anyhow's own downcast, not through the `chain()` of causes.
+        if let Some(code) = error.downcast_ref::<Self>() {
+            return Some(*code);
+        }
         error.chain().find_map(|cause| {
             if let Some(code) = cause.downcast_ref::<Self>() {
                 Some(*code)
@@ -195,6 +203,13 @@ mod tests {
         keys.sort_unstable();
         keys.dedup();
         assert_eq!(keys.len(), ErrorCode::ALL.len());
+    }
+
+    #[test]
+    fn a_code_added_as_context_wins_over_the_error_it_wraps() {
+        let io_error = std::io::Error::from(std::io::ErrorKind::PermissionDenied);
+        let error = anyhow::Error::from(io_error).context(ErrorCode::DownloadRefused);
+        assert_eq!(user_facing(error).to_string(), "errorDownloadRefused");
     }
 
     #[test]

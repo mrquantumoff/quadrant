@@ -115,6 +115,12 @@ pub struct ExactMatch {
     pub file: ModFile,
 }
 
+/// Whether the author lets third-party apps download this project. When
+/// they do not, every file's `downloadUrl` is null.
+fn allows_distribution(mod_data: &serde_json::Value) -> bool {
+    mod_data["allowModDistribution"].as_bool().unwrap_or(true)
+}
+
 fn fingerprint_cache_key(fingerprints: &[u32]) -> String {
     let mut fingerprints = fingerprints.to_vec();
     fingerprints.sort_unstable();
@@ -175,7 +181,7 @@ pub async fn get_mod_curseforge(args: GetModArgs) -> Result<Mod> {
             .to_string(),
         license: "Unknown".to_string(),
         mod_icon_url: logo,
-        downloadable: args.downloadable,
+        downloadable: args.downloadable && allows_distribution(res_data),
         show_previous_version: args.show_previous_version,
         new_version: None,
         deleteable: args.deletable,
@@ -366,11 +372,11 @@ pub async fn search_mods_curseforge(args: SearchModsArgs) -> Result<Vec<Mod>> {
                     .as_str()
                     .unwrap_or_default()
                     .to_string(),
-                downloadable: true,
+                downloadable: allows_distribution(mod_data),
                 show_previous_version: false,
                 new_version: None,
                 deleteable: false,
-                autoinstallable: args.filter_on,
+                autoinstallable: args.filter_on && allows_distribution(mod_data),
                 selectable: false,
                 select_url: None,
                 modpack: None,
@@ -479,7 +485,15 @@ pub async fn get_latest_mod_version_curseforge(
             let date_b = DateTime::parse_from_rfc3339(&b.file_date).ok();
             date_b.cmp(&date_a)
         });
-        data.first().cloned()
+        // An author can bar third-party downloads per file, so take the
+        // newest file that has a URL. With none, keep the newest so the
+        // caller reports why it cannot be installed.
+        let has_url = |file: &&ModFile| {
+            file.download_url
+                .as_deref()
+                .is_some_and(|url| !url.trim().is_empty())
+        };
+        data.iter().find(has_url).or(data.first()).cloned()
     })
 }
 
@@ -629,6 +643,20 @@ pub(crate) async fn clear_curseforge_fingerprint_cache() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_project_is_distributable_unless_the_author_says_otherwise() {
+        assert!(allows_distribution(
+            &json!({ "allowModDistribution": true })
+        ));
+        assert!(allows_distribution(&json!({})));
+        assert!(allows_distribution(
+            &json!({ "allowModDistribution": null })
+        ));
+        assert!(!allows_distribution(
+            &json!({ "allowModDistribution": false })
+        ));
+    }
 
     #[test]
     fn file_without_a_download_url_is_not_installable() {
@@ -977,6 +1005,64 @@ mod tests {
         files.assert();
         assert_eq!(file.id, 2);
         assert_eq!(file.file_name, "new.jar");
+
+        unsafe {
+            std::env::remove_var("QUADRANT_TEST_CURSEFORGE_API_BASE");
+        }
+        clear_provider_http_cache().await;
+    }
+
+    #[tokio::test]
+    async fn get_latest_mod_version_curseforge_prefers_a_downloadable_file() {
+        let _guard = PROVIDER_HTTP_TEST_MUTEX.lock().await;
+        clear_provider_http_cache().await;
+
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_TEST_CURSEFORGE_API_BASE", server.base_url());
+        }
+
+        let file = |id: u64, date: &str, download_url: serde_json::Value| {
+            json!({
+                "id": id,
+                "gameId": 432,
+                "modId": 78,
+                "isAvailable": true,
+                "fileName": format!("{id}.jar"),
+                "hashes": [],
+                "fileDate": date,
+                "fileLength": 1,
+                "downloadUrl": download_url
+            })
+        };
+        server.mock(|when, then| {
+            when.method(GET).path("/v1/mods/78/files");
+            then.status(200).json_body(json!({
+                "data": [
+                    file(1, "2024-01-01T00:00:00+00:00", json!("https://example.invalid/1.jar")),
+                    file(2, "2024-06-01T00:00:00+00:00", serde_json::Value::Null)
+                ]
+            }));
+        });
+        server.mock(|when, then| {
+            when.method(GET).path("/v1/mods/79/files");
+            then.status(200).json_body(json!({
+                "data": [file(3, "2024-06-01T00:00:00+00:00", serde_json::Value::Null)]
+            }));
+        });
+
+        let latest = |id: &str| {
+            get_latest_mod_version_curseforge(
+                id.to_string(),
+                "1.20.1".to_string(),
+                ModLoader::Forge,
+                ModType::Mod,
+                None,
+            )
+        };
+        assert_eq!(latest("78").await.unwrap().unwrap().id, 1);
+        // Nothing downloadable: keep the file so the caller can say why.
+        assert_eq!(latest("79").await.unwrap().unwrap().id, 3);
 
         unsafe {
             std::env::remove_var("QUADRANT_TEST_CURSEFORGE_API_BASE");
