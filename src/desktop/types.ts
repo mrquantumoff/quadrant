@@ -62,6 +62,7 @@ export const HOST_COMMANDS = [
   "get_prism_instances",
   "apply_modpack_to_prism_instance",
   "detach_prism_instance",
+  "get_prism_sync_plans",
   "get_installed_content",
   "open_content_folder",
   "copy_content",

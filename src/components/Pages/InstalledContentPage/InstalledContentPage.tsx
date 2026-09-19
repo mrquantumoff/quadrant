@@ -1,6 +1,6 @@
 /** @format */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Disclosure,
   DisclosureButton,
@@ -10,28 +10,38 @@ import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { MdDelete, MdExpandMore, MdFolder, MdRefresh } from "react-icons/md";
-import { ContentFile, ContentLocation, ModType } from "../../../intefaces";
+import {
+  ContentFile,
+  ContentLocation,
+  ContentSection,
+} from "../../../intefaces";
 import {
   copyContent,
   deleteContent,
   getInstalledContent,
   openContentFolder,
 } from "../../../tools";
+import { locationTitle, sectionTitle } from "../../../contentLocations";
 import quadrantLocale from "../../../i18n";
 import Button from "../../core/Button";
 import CircularProgress from "../../core/CircularProgress";
+import BulkCopyMenu from "./BulkCopyMenu";
 import CopyToMenu from "./CopyToMenu";
 import {
-  ContentSelection,
   controlKey,
+  copyAllControlKey,
   copyTargets,
-  filesOf,
+  countFiles,
   FileNameIndex,
+  groupBySection,
   indexFileNames,
-  locationTitle,
   pruneSelection,
+  SectionFiles,
+  SectionRef,
+  selectAllIn,
   selectedIn,
-  selectionKey,
+  SelectedFile,
+  selectionControlKey,
   toggleSelection,
 } from "./contentActions";
 import { useReportError } from "../../../useReportError";
@@ -122,42 +132,19 @@ function describeFile(file: ContentFile, t: TFunction): string {
   return parts.join(" · ");
 }
 
-interface ContentSection {
-  titleKey: string;
-  modType: ModType;
-  files: ContentFile[];
-}
-
-function sectionsOf(location: ContentLocation): ContentSection[] {
-  return [
-    {
-      titleKey: "contentResourcePacks",
-      modType: ModType.ResourcePack,
-      files: filesOf(location, ModType.ResourcePack),
-    },
-    {
-      titleKey: "contentShaders",
-      modType: ModType.ShaderPack,
-      files: filesOf(location, ModType.ShaderPack),
-    },
-  ];
-}
-
 interface CopyRequest {
-  /** The control the copy was started from, per `controlKey`. */
+  /** The control the copy was started from. */
   key: string;
-  from: ContentLocation;
   to: ContentLocation;
-  modType: ModType;
-  fileNames: string[];
+  /** One `copyContent` each, run in order. */
+  groups: SectionFiles[];
 }
 
 interface DeleteRequest {
-  /** The control the delete was started from, per `controlKey`. */
+  /** The control the delete was started from. */
   key: string;
-  location: ContentLocation;
-  modType: ModType;
-  fileNames: string[];
+  /** One `deleteContent` each, run in order. */
+  groups: SectionFiles[];
 }
 
 interface ContentActions {
@@ -168,12 +155,12 @@ interface ContentActions {
   pending: string | null;
   /** The delete control waiting for its confirming click, or null. */
   armedKey: string | null;
-  selection: ContentSelection | null;
+  selection: SelectedFile[];
   copy: (request: CopyRequest) => void;
   /** Arms the control, or runs the delete when it is already armed. */
   askDelete: (request: DeleteRequest) => void;
   disarm: () => void;
-  select: (next: ContentSelection | null) => void;
+  select: (next: SelectedFile[]) => void;
 }
 
 interface DeleteButtonProps {
@@ -226,22 +213,21 @@ function DeleteButton({
 }
 
 interface ContentFileRowProps {
-  location: ContentLocation;
-  modType: ModType;
+  section: SectionRef;
   file: ContentFile;
   actions: ContentActions;
   selected: boolean;
 }
 
 function ContentFileRow({
-  location,
-  modType,
+  section,
   file,
   actions,
   selected,
 }: ContentFileRowProps) {
   const { t } = useTranslation();
-  const rowKey = controlKey(location.id, modType, file.fileName);
+  const rowKey = controlKey(section, file.fileName);
+  const entry: SelectedFile = { ...section, fileName: file.fileName };
 
   return (
     <li className="bg-slate-900 rounded-4xl px-4 py-2 my-1 flex items-center gap-3">
@@ -251,14 +237,7 @@ function ContentFileRow({
         checked={selected}
         disabled={actions.pending !== null}
         onChange={() =>
-          actions.select(
-            toggleSelection(
-              actions.selection,
-              location.id,
-              modType,
-              file.fileName,
-            ),
-          )
+          actions.select(toggleSelection(actions.selection, entry))
         }
         className="shrink-0 w-5 h-5 accent-emerald-600 hover:cursor-pointer disabled:cursor-default"
       />
@@ -271,27 +250,22 @@ function ContentFileRow({
           label={t("installedContentCopyFileLabel", { file: file.fileName })}
           busy={actions.pending === rowKey}
           disabled={actions.pending !== null}
-          targets={copyTargets(
-            actions.locations,
-            actions.nameIndex,
-            location.id,
-            modType,
-            [file.fileName],
-          )}
+          targets={copyTargets(actions.locations, actions.nameIndex, [entry])}
           optionLabel={(target) => locationTitle(target.location, t)}
           onPick={(target) =>
             actions.copy({
               key: rowKey,
-              from: location,
               to: target.location,
-              modType,
-              fileNames: target.missing,
+              groups: target.groups,
             })
           }
         />
       )}
       <DeleteButton
-        request={{ key: rowKey, location, modType, fileNames: [file.fileName] }}
+        request={{
+          key: rowKey,
+          groups: [{ ...section, fileNames: [file.fileName] }],
+        }}
         actions={actions}
         label={t("installedContentDeleteLabel", { file: file.fileName })}
         armedLabel={t("installedContentDeleteConfirmLabel", {
@@ -304,92 +278,55 @@ function ContentFileRow({
 }
 
 interface SelectionBarProps {
-  location: ContentLocation;
-  section: ContentSection;
   actions: ContentActions;
-  selected: string[];
 }
 
-function SelectionBar({
-  location,
-  section,
-  actions,
-  selected,
-}: SelectionBarProps) {
+/**
+ * One bar for the whole page: a tick made anywhere counts towards it, so a
+ * selection spanning two sections or two locations acts as one.
+ */
+function SelectionBar({ actions }: SelectionBarProps) {
   const { t } = useTranslation();
-  const key = selectionKey(location.id, section.modType);
-  const targets = copyTargets(
-    actions.locations,
-    actions.nameIndex,
-    location.id,
-    section.modType,
-    selected,
-  );
+  const groups = groupBySection(actions.selection);
 
   return (
-    <div className="flex flex-wrap items-center gap-2 mt-3">
+    <div className="sticky top-0 z-20 flex flex-wrap items-center gap-2 bg-slate-900 rounded-4xl px-4 py-3 mx-6 mt-1">
       <span className="font-extrabold text-sm mr-auto">
-        {t("installedContentSelected", { count: selected.length })}
+        {t("installedContentSelected", { count: actions.selection.length })}
       </span>
       <Button
-        onClick={() =>
-          actions.select({
-            locationId: location.id,
-            modType: section.modType,
-            fileNames: section.files.map((file) => file.fileName),
-          })
-        }
-        disabled={actions.pending !== null}
-        className={actionClass}
-      >
-        {t("installedContentSelectAll")}
-      </Button>
-      <Button
-        onClick={() => actions.select(null)}
+        onClick={() => actions.select([])}
         disabled={actions.pending !== null}
         className={actionClass}
       >
         {t("installedContentClearSelection")}
       </Button>
       {actions.locations.length > 1 && (
-        <CopyToMenu
+        <BulkCopyMenu
           text={t("installedContentCopySelected")}
           label={t("installedContentCopySelectedLabel")}
-          busy={actions.pending === key}
-          disabled={actions.pending !== null}
-          targets={targets}
-          optionLabel={(target) =>
-            t("installedContentCopyMissing", {
-              name: locationTitle(target.location, t),
-              missing: target.missing.length,
-            })
-          }
-          onPick={(target) =>
-            actions.copy({
-              key,
-              from: location,
-              to: target.location,
-              modType: section.modType,
-              fileNames: target.missing,
-            })
+          controlKey={selectionControlKey}
+          pending={actions.pending}
+          targets={copyTargets(
+            actions.locations,
+            actions.nameIndex,
+            actions.selection,
+          )}
+          onPick={(to, picked) =>
+            actions.copy({ key: selectionControlKey, to, groups: picked })
           }
         />
       )}
       <DeleteButton
-        request={{
-          key,
-          location,
-          modType: section.modType,
-          fileNames: selected,
-        }}
+        request={{ key: selectionControlKey, groups }}
         actions={actions}
         label={t("installedContentDeleteSelected")}
         text={t("installedContentDeleteSelected")}
         armedLabel={t("installedContentDeleteSelectedConfirm", {
-          amount: selected.length,
+          amount: actions.selection.length,
         })}
         armedText={t("installedContentDeleteSelectedConfirm", {
-          amount: selected.length,
+          amount: actions.selection.length,
         })}
       />
     </div>
@@ -409,24 +346,22 @@ function ContentSectionView({
 }: ContentSectionViewProps) {
   const { t } = useTranslation();
   const reportError = useReportError();
-  const sectionTitle = t(section.titleKey);
+  const ref: SectionRef = {
+    locationId: location.id,
+    modType: section.modType,
+  };
+  const title = sectionTitle(section.modType, t);
   const locationName = locationTitle(location, t);
-  const selected = selectedIn(actions.selection, location.id, section.modType);
+  const selected = selectedIn(actions.selection, ref);
   const allNames = section.files.map((file) => file.fileName);
-  const allKey = controlKey(location.id, section.modType);
-  const allTargets = copyTargets(
-    actions.locations,
-    actions.nameIndex,
-    location.id,
-    section.modType,
-    allNames,
-  );
+  const allFiles = allNames.map((fileName) => ({ ...ref, fileName }));
+  const allKey = copyAllControlKey(ref);
 
   return (
     <Disclosure as="div" className="bg-slate-800 rounded-4xl p-4 my-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <DisclosureButton className="group flex min-w-0 flex-1 items-center gap-x-3 text-start hover:cursor-pointer">
-          <span className="font-extrabold text-lg">{sectionTitle}</span>
+          <span className="font-extrabold text-lg">{title}</span>
           <span className="text-md text-slate-400">{section.files.length}</span>
           <MdExpandMore
             aria-hidden="true"
@@ -434,29 +369,21 @@ function ContentSectionView({
           />
         </DisclosureButton>
         {actions.locations.length > 1 && section.files.length > 0 && (
-          <CopyToMenu
+          <BulkCopyMenu
             text={t("installedContentCopyAll")}
             label={t("installedContentCopyAllLabel", {
-              section: sectionTitle,
+              section: title,
               name: locationName,
             })}
-            busy={actions.pending === allKey}
-            disabled={actions.pending !== null}
-            targets={allTargets}
-            optionLabel={(target) =>
-              t("installedContentCopyMissing", {
-                name: locationTitle(target.location, t),
-                missing: target.missing.length,
-              })
-            }
-            onPick={(target) =>
-              actions.copy({
-                key: allKey,
-                from: location,
-                to: target.location,
-                modType: section.modType,
-                fileNames: target.missing,
-              })
+            controlKey={allKey}
+            pending={actions.pending}
+            targets={copyTargets(
+              actions.locations,
+              actions.nameIndex,
+              allFiles,
+            )}
+            onPick={(to, picked) =>
+              actions.copy({ key: allKey, to, groups: picked })
             }
           />
         )}
@@ -470,7 +397,7 @@ function ContentSectionView({
           }}
           className={actionClass + " self-center"}
           aria-label={t("installedContentOpenFolderLabel", {
-            section: sectionTitle,
+            section: title,
             name: locationName,
           })}
         >
@@ -479,31 +406,39 @@ function ContentSectionView({
         </Button>
       </div>
       <DisclosurePanel>
-        {selected.length > 0 && (
-          <SelectionBar
-            location={location}
-            section={section}
-            actions={actions}
-            selected={selected}
-          />
-        )}
         {section.files.length === 0 ? (
           <p className="text-md text-slate-400 mt-3">
             {t("installedContentEmpty")}
           </p>
         ) : (
-          <ul className="mt-3 flex flex-col">
-            {section.files.map((file) => (
-              <ContentFileRow
-                key={file.fileName}
-                location={location}
-                modType={section.modType}
-                file={file}
-                actions={actions}
-                selected={selected.includes(file.fileName)}
-              />
-            ))}
-          </ul>
+          <>
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              <Button
+                onClick={() =>
+                  actions.select(selectAllIn(actions.selection, ref, allNames))
+                }
+                disabled={actions.pending !== null}
+                aria-label={t("installedContentSelectAllLabel", {
+                  section: title,
+                  name: locationName,
+                })}
+                className={actionClass}
+              >
+                {t("installedContentSelectAll")}
+              </Button>
+            </div>
+            <ul className="mt-3 flex flex-col">
+              {section.files.map((file) => (
+                <ContentFileRow
+                  key={file.fileName}
+                  section={ref}
+                  file={file}
+                  actions={actions}
+                  selected={selected.includes(file.fileName)}
+                />
+              ))}
+            </ul>
+          </>
         )}
       </DisclosurePanel>
     </Disclosure>
@@ -520,8 +455,9 @@ interface LocationCardProps {
 function LocationCard({ location, collapsible, actions }: LocationCardProps) {
   const { t } = useTranslation();
   const title = locationTitle(location, t);
-  const hasContent =
-    location.resourcePacks.length + location.shaderPacks.length > 0;
+  const hasContent = location.sections.some(
+    (section) => section.files.length > 0,
+  );
 
   const header = (
     <div className="min-w-0 flex-1 text-start">
@@ -539,7 +475,7 @@ function LocationCard({ location, collapsible, actions }: LocationCardProps) {
     </div>
   );
 
-  const sections = sectionsOf(location).map((section) => (
+  const sections = location.sections.map((section) => (
     <ContentSectionView
       key={section.modType}
       location={location}
@@ -583,30 +519,33 @@ export default function InstalledContentPage() {
   const [reloadToken, setReloadToken] = useState(0);
   const [pending, setPending] = useState<string | null>(null);
   const [armedKey, setArmedKey] = useState<string | null>(null);
-  const [selection, setSelection] = useState<ContentSelection | null>(null);
+  const [selection, setSelection] = useState<SelectedFile[]>([]);
+  // Listing loads are stamped in start order, so a slow earlier one can never
+  // overwrite a later one: the first load, the refresh button and the reload
+  // after an action can all be in flight at once.
+  const loadRef = useRef(0);
+
+  /** Fetches the listing, keeping it only while it is still the newest load. */
+  const loadListing = async (generation: number) => {
+    const loaded = await getInstalledContent();
+    if (generation !== loadRef.current) {
+      return;
+    }
+    setLocations(loaded);
+    setSelection((current) => pruneSelection(current, loaded));
+  };
 
   useEffect(() => {
-    let cancelled = false;
     setLocations(undefined);
-    setSelection(null);
-    const effect = async () => {
-      try {
-        const loaded = await getInstalledContent();
-        if (!cancelled) {
-          setLocations(loaded);
-        }
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
+    setSelection([]);
+    const generation = ++loadRef.current;
+    loadListing(generation).catch((error) => {
+      // A load the user already superseded must not settle the page.
+      if (generation === loadRef.current) {
         setLocations([]);
-        reportError(error);
       }
-    };
-    void effect();
-    return () => {
-      cancelled = true;
-    };
+      reportError(error);
+    });
     // `reportError` is rebuilt on every App render, so depending on it would
     // turn each reported failure into another load.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -623,11 +562,7 @@ export default function InstalledContentPage() {
 
   // Replaces the listing in place: clearing it first would drop the cards,
   // closing every section the user opened.
-  const refresh = async () => {
-    const loaded = await getInstalledContent();
-    setLocations(loaded);
-    setSelection((current) => pruneSelection(current, loaded));
-  };
+  const refresh = () => loadListing(++loadRef.current);
 
   /** Runs one copy or delete, announcing the message it answers with. */
   const runAction = async (key: string, work: () => Promise<string>) => {
@@ -642,17 +577,42 @@ export default function InstalledContentPage() {
     }
   };
 
+  /**
+   * Runs `each` over the groups in order, stopping at the first failure. A
+   * failure that comes after something already moved still reloads, so the
+   * listing never shows files that are already gone.
+   */
+  const runGroups = async (
+    groups: SectionFiles[],
+    each: (group: SectionFiles) => Promise<number>,
+  ): Promise<number> => {
+    let done = 0;
+    for (const group of groups) {
+      try {
+        done += await each(group);
+      } catch (error) {
+        if (done > 0) {
+          await refresh();
+        }
+        throw error;
+      }
+    }
+    return done;
+  };
+
   const runCopy = (request: CopyRequest) => {
-    if (pending !== null || request.fileNames.length === 0) {
+    if (pending !== null || request.groups.length === 0) {
       return;
     }
     setArmedKey(null);
     void runAction(request.key, async () => {
-      const copied = await copyContent(
-        request.from.id,
-        request.to.id,
-        request.modType,
-        request.fileNames,
+      const copied = await runGroups(request.groups, (group) =>
+        copyContent(
+          group.locationId,
+          request.to.id,
+          group.modType,
+          group.fileNames,
+        ),
       );
       return t("installedContentCopied", {
         count: copied,
@@ -662,7 +622,7 @@ export default function InstalledContentPage() {
   };
 
   const askDelete = (request: DeleteRequest) => {
-    if (pending !== null || request.fileNames.length === 0) {
+    if (pending !== null || request.groups.length === 0) {
       return;
     }
     if (armedKey !== request.key) {
@@ -670,14 +630,13 @@ export default function InstalledContentPage() {
       return;
     }
     setArmedKey(null);
+    const asked = countFiles(request.groups);
     void runAction(request.key, async () => {
-      const removed = await deleteContent(
-        request.location.id,
-        request.modType,
-        request.fileNames,
+      const removed = await runGroups(request.groups, (group) =>
+        deleteContent(group.locationId, group.modType, group.fileNames),
       );
-      return request.fileNames.length === 1
-        ? t("installedContentDeleted", { file: request.fileNames[0] })
+      return asked === 1
+        ? t("installedContentDeleted", { file: request.groups[0].fileNames[0] })
         : t("installedContentDeletedCount", { count: removed });
     });
   };
@@ -709,13 +668,17 @@ export default function InstalledContentPage() {
           onClick={() => {
             setReloadToken((token) => token + 1);
           }}
-          className="flex shrink-0 items-center justify-center w-10 h-10 rounded-full bg-slate-700 text-slate-200 hover:bg-slate-600 hover:text-white"
+          // A reload mid-action would swap the cards for the spinner and race
+          // the reload the action does itself.
+          disabled={pending !== null}
+          className="flex shrink-0 items-center justify-center w-10 h-10 rounded-full bg-slate-700 text-slate-200 hover:bg-slate-600 hover:text-white disabled:opacity-50 disabled:cursor-default"
           title={t("installedContentRefresh")}
           aria-label={t("installedContentRefresh")}
         >
           <MdRefresh aria-hidden="true" className="w-5 h-5" />
         </Button>
       </div>
+      {selection.length > 0 && <SelectionBar actions={actions} />}
       {locations === undefined ? (
         <div className="flex flex-1 items-center justify-center">
           <CircularProgress />

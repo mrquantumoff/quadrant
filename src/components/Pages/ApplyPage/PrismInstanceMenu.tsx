@@ -1,43 +1,18 @@
 /** @format */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { MdCheck, MdViewList } from "react-icons/md";
 import { useTranslation } from "react-i18next";
-import { LocalModpack, ModLoader, PrismInstance } from "../../../intefaces";
+import { LocalModpack, PrismInstance, PrismSyncPlan } from "../../../intefaces";
 import {
   applyModpackToPrismInstance,
   detachPrismInstance,
+  getPrismSyncPlans,
 } from "../../../tools";
 import { menuItemClass, menuPanelClass } from "../../core/menuClasses";
 import { useReportError } from "../../../useReportError";
 import { useReportSuccess } from "../../../useReportSuccess";
-
-// Prism only has components for these; the backend leaves any other loader,
-// and a modpack without a manifest version, untouched.
-const PRISM_LOADERS: readonly ModLoader[] = [
-  ModLoader.Fabric,
-  ModLoader.Quilt,
-  ModLoader.Forge,
-  ModLoader.NeoForge,
-];
-
-/** The parts of the instance that applying `modpack` will rewrite. */
-function switchedParts(instance: PrismInstance, modpack: LocalModpack) {
-  const parts: string[] = [];
-  const hasVersion = modpack.version !== "" && modpack.version !== "-";
-  if (hasVersion && instance.minecraftVersion !== modpack.version) {
-    parts.push(modpack.version);
-  }
-  if (
-    hasVersion &&
-    PRISM_LOADERS.includes(modpack.modLoader) &&
-    instance.modLoader !== modpack.modLoader
-  ) {
-    parts.push(modpack.modLoader);
-  }
-  return parts;
-}
 
 export interface PrismInstanceMenuProps {
   modpack: LocalModpack;
@@ -56,6 +31,27 @@ export default function PrismInstanceMenu({
   // The id of the instance whose request is in flight, or null when idle. One
   // request at a time keeps a double click from applying and detaching at once.
   const [pendingId, setPendingId] = useState<string | null>(null);
+  // What the host says applying would rewrite, or null until it has answered.
+  const [plans, setPlans] = useState<PrismSyncPlan[] | null>(null);
+  // There is one menu per modpack card, so the plans wait for a first opening.
+  const askedRef = useRef(false);
+
+  const loadPlans = async () => {
+    try {
+      setPlans(await getPrismSyncPlans(modpack.name));
+    } catch (error) {
+      // The hint is an extra; losing it must not cost the user the menu.
+      console.error(error);
+    }
+  };
+
+  const open = () => {
+    if (askedRef.current) {
+      return;
+    }
+    askedRef.current = true;
+    void loadPlans();
+  };
 
   const toggle = async (instance: PrismInstance) => {
     if (pendingId !== null) {
@@ -70,6 +66,7 @@ export default function PrismInstanceMenu({
         await applyModpackToPrismInstance(modpack.name, instance.id);
       }
       await onChanged();
+      await loadPlans();
       reportSuccess(t(linked ? "prismDetachSuccess" : "prismApplySuccess"));
     } catch (e: any) {
       reportError(e);
@@ -80,14 +77,23 @@ export default function PrismInstanceMenu({
 
   return (
     <Menu as="div" className="relative m-2 self-center">
-      <MenuButton className="rounded-4xl p-2 font-extrabold hover:cursor-pointer flex items-center bg-slate-800 hover:bg-slate-700 px-4 w-max h-10 justify-center">
+      <MenuButton
+        onClick={open}
+        className="rounded-4xl p-2 font-extrabold hover:cursor-pointer flex items-center bg-slate-800 hover:bg-slate-700 px-4 w-max h-10 justify-center"
+      >
         {t("prismLauncher")}
         <MdViewList className="w-5 h-5 mx-2" />
       </MenuButton>
       <MenuItems anchor="bottom start" className={menuPanelClass}>
         {instances.map((instance) => {
           const linked = instance.appliedModpack === modpack.name;
-          const switchTarget = linked ? [] : switchedParts(instance, modpack);
+          const plan = plans?.find((entry) => entry.instanceId === instance.id);
+          const switchTarget =
+            linked || plan === undefined
+              ? []
+              : [plan.minecraftVersion, plan.modLoader].filter(
+                  (part): part is string => part !== null,
+                );
           return (
             <MenuItem key={instance.id}>
               <button

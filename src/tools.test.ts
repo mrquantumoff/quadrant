@@ -34,6 +34,7 @@ import {
   getModOwners,
   getModpacks,
   getPrismInstances,
+  getPrismSyncPlans,
   installMod,
   openContentFolder,
   shareModpack,
@@ -216,6 +217,17 @@ describe("Prism Launcher instances", () => {
       instanceId: "instance-1",
     });
   });
+
+  it("asks what applying a named modpack would rewrite", async () => {
+    const plans = [
+      { instanceId: "instance-1", minecraftVersion: "1.20.1", modLoader: null },
+    ];
+    invoke.mockResolvedValue(plans);
+    expect(await getPrismSyncPlans("pack")).toEqual(plans);
+    expect(invoke).toHaveBeenCalledWith("get_prism_sync_plans", {
+      name: "pack",
+    });
+  });
 });
 
 describe("installed content", () => {
@@ -277,18 +289,18 @@ describe("installed content", () => {
 });
 
 describe("installMod", () => {
-  const args = [
-    "sodium",
-    "1.21",
-    ModLoader.Fabric,
-    ModSource.Modrinth,
-    ModType.ResourcePack,
-    "Pack",
-  ] as const;
+  const options = {
+    id: "sodium",
+    minecraftVersion: "1.21",
+    loader: ModLoader.Fabric,
+    source: ModSource.Modrinth,
+    modType: ModType.ResourcePack,
+    modpack: "Pack",
+  };
 
   it("forwards the chosen content location", async () => {
     invoke.mockResolvedValue(undefined);
-    await installMod(...args, undefined, "prism:1");
+    await installMod({ ...options, contentLocation: "prism:1" });
     expect(invoke).toHaveBeenCalledWith("install_mod", {
       id: "sodium",
       minecraftVersion: "1.21",
@@ -303,7 +315,7 @@ describe("installMod", () => {
 
   it("sends no content location when none was chosen", async () => {
     invoke.mockResolvedValue(undefined);
-    await installMod(...args);
+    await installMod(options);
     expect(invoke).toHaveBeenCalledWith("install_mod", {
       id: "sodium",
       minecraftVersion: "1.21",

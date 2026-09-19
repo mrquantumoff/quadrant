@@ -44,7 +44,7 @@ import LinearProgress from "../../core/LinearProgress";
 import { createDesktopStore, listen } from "../../../desktop";
 import { loaderProvidersForSource } from "../../../modLoaders";
 import { findInstalledIn, isInstalledIn } from "../../../installedMods";
-import { locationTitle } from "../InstalledContentPage/contentActions";
+import { isPackType, locationOptionLabel } from "../../../contentLocations";
 import { useReportError } from "../../../useReportError";
 
 export interface IModInstallPageProps {
@@ -54,6 +54,8 @@ export interface IModInstallPageProps {
   originRect?: DOMRect;
   /** The modpack the opener is installing into; wins over saved choices. */
   installTarget?: Pick<LocalModpack, "name">;
+  /** The `ContentLocation.id` the opener already chose, if it still exists. */
+  installLocation?: string;
   onInstalled?: () => void;
 }
 
@@ -106,6 +108,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   const { t, i18n } = useTranslation();
   const reportError = useReportError();
   const installTargetName = props.installTarget?.name;
+  const openerLocation = props.installLocation;
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
   const [contentLocations, setContentLocations] = useState<ContentLocation[]>(
@@ -186,9 +189,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
     const effect = async () => {
       // Only packs can be routed to a folder of the user's choosing; a mod
       // always follows its modpack.
-      const placeable =
-        mod.modType === ModType.ResourcePack ||
-        mod.modType === ModType.ShaderPack;
+      const placeable = isPackType(mod.modType);
       const [
         availableVersions,
         availableModpacks,
@@ -249,18 +250,22 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       setContentLocations(availableLocations);
       // A single location is not a choice, so it is never sent. With a target
       // pack, following it stays the default and the user opts out of it.
-      setContentLocation(
+      const fallbackLocation =
         availableLocations.length > 1 && explicitTarget === undefined
           ? availableLocations[0].id
-          : "",
+          : "";
+      // The opener's choice wins, but only while that folder is still listed.
+      const opened = availableLocations.find(
+        (entry) => entry.id === openerLocation,
       );
+      setContentLocation(opened?.id ?? fallbackLocation);
       setIsReady(true);
     };
     effect().catch(console.error);
     return () => {
       cancelled = true;
     };
-  }, [config, mod.modType, installTargetName]);
+  }, [config, mod.modType, installTargetName, openerLocation]);
 
   useEffect(() => {
     let cancelled = false;
@@ -348,16 +353,16 @@ export default function ModInstallPage(props: IModInstallPageProps) {
     installInFlightRef.current = true;
     setIsInstalling(true);
     try {
-      await installMod(
-        mod.id,
-        version,
-        loader as ModLoader,
-        mod.source,
-        mod.modType,
+      await installMod({
+        id: mod.id,
+        minecraftVersion: version,
+        loader: loader as ModLoader,
+        source: mod.source,
+        modType: mod.modType,
         modpack,
-        props.fileId,
-        contentLocation === "" ? undefined : contentLocation,
-      );
+        fileId: props.fileId,
+        contentLocation: contentLocation === "" ? undefined : contentLocation,
+      });
       // Not awaited: a slow or failed reload must not hold the button or
       // surface as an install failure.
       getModpacks().then(setModpacks).catch(console.error);
@@ -613,16 +618,11 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                       })}
                     </option>
                   )}
-                  {contentLocations.map((option) => {
-                    const title = locationTitle(option, t);
-                    return (
-                      <option key={option.id} value={option.id}>
-                        {option.kind === "prism"
-                          ? t("installedContentPrismOption", { name: title })
-                          : title}
-                      </option>
-                    );
-                  })}
+                  {contentLocations.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {locationOptionLabel(option, t)}
+                    </option>
+                  ))}
                 </select>
               </label>
             )}

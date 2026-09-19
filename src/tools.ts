@@ -16,6 +16,7 @@ import {
   ModSource,
   ModType,
   PrismInstance,
+  PrismSyncPlan,
   SearchCategory,
   SyncedModpack,
   UniversalModFile,
@@ -237,23 +238,35 @@ export async function openIn(url: string) {
   await openExternal(url);
 }
 
-export async function installMod(
-  id: string,
-  minecraft_version: string,
-  loader: ModLoader,
-  source: ModSource,
-  modType: ModType,
-  modpack: string,
-  fileId?: string,
+export interface InstallModOptions {
+  id: string;
+  minecraftVersion: string;
+  loader: ModLoader;
+  source: ModSource;
+  modType: ModType;
+  modpack: string;
+  fileId?: string;
   /**
    * A `ContentLocation.id` forcing where a resource pack or shader lands.
-   * Unset keeps the automatic behaviour, and mods ignore it entirely.
+   * Unset keeps the automatic behaviour, and mods ignore it entirely. The host
+   * rejects an empty string, so "automatic" is always the absent value.
    */
-  contentLocation?: string,
-) {
+  contentLocation?: string;
+}
+
+export async function installMod({
+  id,
+  minecraftVersion,
+  loader,
+  source,
+  modType,
+  modpack,
+  fileId,
+  contentLocation,
+}: InstallModOptions) {
   await invoke("install_mod", {
     id: id,
-    minecraftVersion: minecraft_version,
+    minecraftVersion: minecraftVersion,
     modLoader: loader,
     source: source,
     modpack: modpack,
@@ -438,6 +451,16 @@ export async function applyModpackToPrismInstance(
 
 export async function detachPrismInstance(instanceId: string) {
   await invoke("detach_prism_instance", { instanceId });
+}
+
+/**
+ * What applying `name` would rewrite on each instance, `null` meaning the
+ * instance keeps what it has. Empty unless experimental features are on.
+ */
+export async function getPrismSyncPlans(
+  name: string,
+): Promise<PrismSyncPlan[]> {
+  return await invoke<PrismSyncPlan[]>("get_prism_sync_plans", { name });
 }
 
 /**

@@ -7,11 +7,13 @@ import {
   ContentContext,
   ModLoader,
   type PrismInstance,
+  type PrismSyncPlan,
 } from "../../../intefaces";
 
 const exportModpack = vi.fn();
 const applyModpackToPrismInstance = vi.fn();
 const detachPrismInstance = vi.fn();
+const getPrismSyncPlans = vi.fn();
 
 vi.mock("../../../tools", () => ({
   applyModpack: vi.fn(),
@@ -20,6 +22,7 @@ vi.mock("../../../tools", () => ({
   deleteModpack: vi.fn(),
   detachPrismInstance: (...a: unknown[]) => detachPrismInstance(...a),
   exportModpack: (...a: unknown[]) => exportModpack(...a),
+  getPrismSyncPlans: (...a: unknown[]) => getPrismSyncPlans(...a),
   shareModpack: vi.fn(),
   syncModpack: vi.fn(),
 }));
@@ -71,8 +74,23 @@ function renderCard(
   );
 }
 
+function plan(over: Partial<PrismSyncPlan>): PrismSyncPlan {
+  return {
+    instanceId: "instance-1",
+    minecraftVersion: null,
+    modLoader: null,
+    ...over,
+  };
+}
+
+/** Opens the menu, which is what makes it ask the host for the sync plans. */
+async function openPrismMenu() {
+  await userEvent.click(screen.getByRole("button", { name: /prism launcher/i }));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  getPrismSyncPlans.mockResolvedValue([]);
 });
 
 describe("LocalModpackCard", () => {
@@ -129,9 +147,7 @@ describe("LocalModpackCard Prism Launcher menu", () => {
       ],
     });
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /prism launcher/i }),
-    );
+    await openPrismMenu();
 
     expect(
       screen.getByRole("menuitem", { name: /Survival/ }),
@@ -141,23 +157,46 @@ describe("LocalModpackCard Prism Launcher menu", () => {
     ).toHaveTextContent("1.21 | NeoForge");
   });
 
-  it("warns that a mismatched instance will be switched over", async () => {
+  it("asks the host what applying would rewrite, once, on the first opening", async () => {
+    renderCard({ prismInstances: [instance({ id: "a" })] });
+    expect(getPrismSyncPlans).not.toHaveBeenCalled();
+
+    await openPrismMenu();
+    await waitFor(() =>
+      expect(getPrismSyncPlans).toHaveBeenCalledWith("Alpha Pack"),
+    );
+
+    await openPrismMenu();
+    await openPrismMenu();
+    expect(getPrismSyncPlans).toHaveBeenCalledTimes(1);
+  });
+
+  it("warns with the version and loader the host says it would write", async () => {
+    getPrismSyncPlans.mockResolvedValue([
+      plan({
+        instanceId: "a",
+        minecraftVersion: "1.20.1",
+        modLoader: ModLoader.Fabric,
+      }),
+    ]);
     renderCard({
       prismInstances: [
-        instance({ minecraftVersion: "1.21", modLoader: ModLoader.NeoForge }),
+        instance({ id: "a", minecraftVersion: "1.21", modLoader: ModLoader.NeoForge }),
       ],
     });
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /prism launcher/i }),
-    );
+    await openPrismMenu();
 
     expect(
-      screen.getByText("Will be switched to 1.20.1 · Fabric"),
+      await screen.findByText("Will be switched to 1.20.1 · Fabric"),
     ).toBeInTheDocument();
   });
 
-  it("names only the parts that differ, and nothing on a linked instance", async () => {
+  it("names only the parts the plan rewrites, and nothing on a linked instance", async () => {
+    getPrismSyncPlans.mockResolvedValue([
+      plan({ instanceId: "a", minecraftVersion: "1.20.1" }),
+      plan({ instanceId: "b", minecraftVersion: "1.20.1" }),
+    ]);
     renderCard({
       prismInstances: [
         instance({ id: "a", name: "Survival", minecraftVersion: "1.21" }),
@@ -170,13 +209,13 @@ describe("LocalModpackCard Prism Launcher menu", () => {
       ],
     });
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /prism launcher/i }),
-    );
+    await openPrismMenu();
 
-    expect(
-      screen.getByRole("menuitem", { name: /Survival/ }),
-    ).toHaveTextContent("Will be switched to 1.20.1");
+    await waitFor(() =>
+      expect(
+        screen.getByRole("menuitem", { name: /Survival/ }),
+      ).toHaveTextContent("Will be switched to 1.20.1"),
+    );
     expect(
       screen.getByRole("menuitem", { name: /Survival/ }),
     ).not.toHaveTextContent("· Fabric");
@@ -185,14 +224,34 @@ describe("LocalModpackCard Prism Launcher menu", () => {
     ).not.toHaveTextContent("Will be switched");
   });
 
+  it("says nothing about an instance the plan leaves untouched", async () => {
+    getPrismSyncPlans.mockResolvedValue([plan({ instanceId: "a" })]);
+    renderCard({ prismInstances: [instance({ id: "a" })] });
+
+    await openPrismMenu();
+    await waitFor(() => expect(getPrismSyncPlans).toHaveBeenCalled());
+
+    expect(screen.queryByText(/Will be switched/)).toBeNull();
+  });
+
+  it("keeps the menu usable when the plans cannot be fetched", async () => {
+    getPrismSyncPlans.mockRejectedValue(new Error("boom"));
+    renderCard({ prismInstances: [instance({ id: "a" })] });
+
+    await openPrismMenu();
+    await waitFor(() => expect(getPrismSyncPlans).toHaveBeenCalled());
+
+    expect(screen.getByRole("menuitem", { name: /Survival/ })).toBeTruthy();
+    expect(screen.queryByText(/Will be switched/)).toBeNull();
+    expect(setSnackbar).not.toHaveBeenCalled();
+  });
+
   it("applies the modpack to an unlinked instance and refreshes", async () => {
     const onChanged = vi.fn();
     applyModpackToPrismInstance.mockResolvedValue(undefined);
     renderCard({ prismInstances: [instance({ id: "a" })], onChanged });
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /prism launcher/i }),
-    );
+    await openPrismMenu();
     await userEvent.click(screen.getByRole("menuitem", { name: /Survival/ }));
 
     await waitFor(() =>
@@ -203,6 +262,8 @@ describe("LocalModpackCard Prism Launcher menu", () => {
     );
     expect(detachPrismInstance).not.toHaveBeenCalled();
     expect(onChanged).toHaveBeenCalled();
+    // The plans are re-read, since applying is what changes them.
+    expect(getPrismSyncPlans).toHaveBeenCalledTimes(2);
     expect(setSnackbar.mock.calls[0][0]).toMatchObject({
       className: "bg-emerald-600 rounded-4xl",
     });
@@ -214,22 +275,19 @@ describe("LocalModpackCard Prism Launcher menu", () => {
       prismInstances: [instance({ id: "a", appliedModpack: "Alpha Pack" })],
     });
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /prism launcher/i }),
-    );
+    await openPrismMenu();
     await userEvent.click(screen.getByRole("menuitem", { name: /Survival/ }));
 
     await waitFor(() => expect(detachPrismInstance).toHaveBeenCalledWith("a"));
     expect(applyModpackToPrismInstance).not.toHaveBeenCalled();
+    expect(getPrismSyncPlans).toHaveBeenCalledTimes(2);
   });
 
   it("reports a failed apply through the error snackbar", async () => {
     applyModpackToPrismInstance.mockRejectedValue("errorPrismInstanceMissing");
     renderCard({ prismInstances: [instance({})] });
 
-    await userEvent.click(
-      screen.getByRole("button", { name: /prism launcher/i }),
-    );
+    await openPrismMenu();
     await userEvent.click(screen.getByRole("menuitem", { name: /Survival/ }));
 
     await waitFor(() => expect(setSnackbar).toHaveBeenCalledTimes(1));

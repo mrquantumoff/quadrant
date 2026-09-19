@@ -7,6 +7,7 @@ import {
   ModLoader,
   ModSource,
   ModType,
+  type ContentLocation,
   type IMod,
   type LocalModpack,
 } from "../../../intefaces";
@@ -15,6 +16,7 @@ const getVersions = vi.fn();
 const getModpacks = vi.fn();
 const getCategories = vi.fn();
 const searchMods = vi.fn();
+const getInstalledContent = vi.fn();
 
 const storeGet = vi.fn();
 const storeSet = vi.fn();
@@ -25,6 +27,7 @@ vi.mock("../../../tools", () => ({
   getModpacks: (...a: unknown[]) => getModpacks(...a),
   getCategories: (...a: unknown[]) => getCategories(...a),
   searchMods: (...a: unknown[]) => searchMods(...a),
+  getInstalledContent: (...a: unknown[]) => getInstalledContent(...a),
 }));
 
 vi.mock("../../../desktop", () => ({
@@ -42,15 +45,18 @@ vi.mock("../../shared/Mod", () => ({
   default: ({
     mod,
     installed,
+    installLocation,
     onInstalled,
   }: {
     mod: IMod;
     installed?: boolean;
+    installLocation?: string;
     onInstalled?: () => void;
   }) => (
     <div
       data-testid="mod-card"
       data-installed={String(!!installed)}
+      data-install-location={installLocation ?? ""}
       onClick={() => onInstalled?.()}
     >
       {mod.name}
@@ -107,6 +113,7 @@ beforeEach(() => {
   getModpacks.mockResolvedValue([]);
   getCategories.mockResolvedValue([]);
   searchMods.mockResolvedValue([]);
+  getInstalledContent.mockResolvedValue([]);
   // Only Modrinth enabled → one provider request per search, keeping the
   // race scenario unambiguous.
   storeGet.mockImplementation(async (key: string) => {
@@ -382,6 +389,123 @@ describe("SearchPage", () => {
       "data-installed",
       "false",
     );
+  });
+
+  describe("install location", () => {
+    const folder = (over: Partial<ContentLocation>): ContentLocation => ({
+      id: "minecraft",
+      kind: "minecraft",
+      name: "",
+      path: "/home/me/.minecraft",
+      sections: [],
+      ...over,
+    });
+    const folders = [
+      folder({}),
+      folder({ id: "prism:1", kind: "prism", name: "Survival" }),
+    ];
+
+    /** The content-type pills are the only way to leave the mod type. */
+    const chooseType = async (label: string) =>
+      userEvent.click(screen.getByRole("button", { name: label }));
+
+    const picker = () =>
+      screen.queryByRole("combobox", { name: "Install to" });
+
+    it("never offers a mod a folder to install into", async () => {
+      getInstalledContent.mockResolvedValue(folders);
+      render(<SearchPage />);
+      await waitFor(() => expect(searchMods).toHaveBeenCalled());
+
+      expect(picker()).toBeNull();
+      expect(getInstalledContent).not.toHaveBeenCalled();
+    });
+
+    it("offers nothing when the Minecraft folder is the only place", async () => {
+      getInstalledContent.mockResolvedValue([folders[0]]);
+      render(<SearchPage />);
+      await waitFor(() => expect(searchMods).toHaveBeenCalled());
+
+      await chooseType("Shaders");
+      // The picker only needs the names, so the pack lists are left out.
+      await waitFor(() => expect(getInstalledContent).toHaveBeenCalledWith(false));
+      expect(picker()).toBeNull();
+    });
+
+    it("offers every folder once a pack type is being searched", async () => {
+      getInstalledContent.mockResolvedValue(folders);
+      searchMods.mockResolvedValue([mod({ name: "Faithful", id: "faithful" })]);
+      render(<SearchPage />);
+      await waitFor(() => expect(searchMods).toHaveBeenCalled());
+
+      await chooseType("Resource Packs");
+      const select = await screen.findByRole("combobox", {
+        name: "Install to",
+      });
+      expect(select).toHaveValue("");
+      expect(
+        screen.getByRole("option", { name: "Automatic" }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole("option", { name: "Survival (Prism Launcher)" }),
+      ).toBeInTheDocument();
+    });
+
+    it("hands the chosen folder to the cards that quick install", async () => {
+      getInstalledContent.mockResolvedValue(folders);
+      searchMods.mockResolvedValue([mod({ name: "Faithful", id: "faithful" })]);
+      render(<SearchPage />);
+      await waitFor(() => expect(searchMods).toHaveBeenCalled());
+
+      await chooseType("Resource Packs");
+      await userEvent.selectOptions(
+        await screen.findByRole("combobox", { name: "Install to" }),
+        "prism:1",
+      );
+
+      await waitFor(() =>
+        expect(screen.getByText("Faithful")).toHaveAttribute(
+          "data-install-location",
+          "prism:1",
+        ),
+      );
+    });
+
+    it("forgets the folder when the content type changes", async () => {
+      getInstalledContent.mockResolvedValue(folders);
+      render(<SearchPage />);
+      await waitFor(() => expect(searchMods).toHaveBeenCalled());
+
+      await chooseType("Resource Packs");
+      await userEvent.selectOptions(
+        await screen.findByRole("combobox", { name: "Install to" }),
+        "prism:1",
+      );
+      await chooseType("Shaders");
+
+      await waitFor(() => expect(picker()).toHaveValue(""));
+      // A choice this transient has no business outliving the session.
+      expect(
+        storeSet.mock.calls.filter(([key]) => key === "searchFilters"),
+      ).not.toContainEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ installLocation: expect.anything() }),
+        ]),
+      );
+    });
+
+    it("costs the user the picker, not the search, when listing fails", async () => {
+      getInstalledContent.mockRejectedValue(new Error("boom"));
+      searchMods.mockResolvedValue([mod({ name: "Faithful", id: "faithful" })]);
+      render(<SearchPage />);
+      await waitFor(() => expect(searchMods).toHaveBeenCalled());
+
+      await chooseType("Resource Packs");
+      await waitFor(() => expect(getInstalledContent).toHaveBeenCalled());
+
+      expect(picker()).toBeNull();
+      expect(await screen.findByText("Faithful")).toBeInTheDocument();
+    });
   });
 
   it("translates the error code a failed search comes back with", async () => {

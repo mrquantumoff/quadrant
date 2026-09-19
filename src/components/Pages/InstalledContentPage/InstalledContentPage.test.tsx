@@ -43,16 +43,34 @@ function file(over: Record<string, unknown>) {
   };
 }
 
-function location(over: Record<string, unknown>) {
+/** Builds a location the way the host reports one: packs first, then shaders. */
+function location(
+  over: Record<string, unknown> & {
+    resourcePacks?: ReturnType<typeof file>[];
+    shaderPacks?: ReturnType<typeof file>[];
+  },
+) {
+  const { resourcePacks = [], shaderPacks = [], ...rest } = over;
   return {
     id: "minecraft",
     kind: "minecraft",
     name: "",
     path: "/home/me/.minecraft",
-    resourcePacks: [],
-    shaderPacks: [],
-    ...over,
+    sections: [
+      { modType: ModType.ResourcePack, files: resourcePacks },
+      { modType: ModType.ShaderPack, files: shaderPacks },
+    ],
+    ...rest,
   };
+}
+
+/** A promise whose resolution is controlled by the test. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
 }
 
 function renderPage() {
@@ -67,6 +85,8 @@ function renderPage() {
 async function openSection(title: string, index = 0) {
   await userEvent.click((await screen.findAllByText(title))[index]);
 }
+
+const refreshButton = () => screen.getByRole("button", { name: "Refresh" });
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -200,7 +220,7 @@ describe("InstalledContentPage", () => {
     getInstalledContent.mockResolvedValue([
       location({ resourcePacks: [file({ fileName: "After.zip" })] }),
     ]);
-    await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await userEvent.click(refreshButton());
 
     await openSection("Resource Packs");
     expect(screen.getByText("After.zip")).toBeInTheDocument();
@@ -219,7 +239,7 @@ describe("InstalledContentPage", () => {
     getInstalledContent.mockResolvedValue([
       location({ resourcePacks: [file({ fileName: "Retried.zip" })] }),
     ]);
-    await userEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await userEvent.click(refreshButton());
 
     await openSection("Resource Packs");
     expect(screen.getByText("Retried.zip")).toBeInTheDocument();
@@ -547,18 +567,28 @@ describe("InstalledContentPage — acting on several packs", () => {
     await userEvent.click(screen.getByRole("checkbox", { name }));
   }
 
-  it("shows no bulk actions until something is ticked", async () => {
+  const selectAll = (section: string, name: string) =>
+    screen.getByRole("button", { name: `Select all ${section} of ${name}` });
+
+  it("keeps the selection bar away until something is ticked", async () => {
     renderPage();
     await openSection("Resource Packs");
 
-    expect(screen.queryByRole("button", { name: "Select all" })).toBeNull();
-    await tick("Alpha.zip");
+    expect(screen.queryByText(/selected/)).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Select all" }),
+      screen.queryByRole("button", { name: "Delete selected" }),
+    ).toBeNull();
+    // "Select all" belongs to the section, so it is there before any tick.
+    expect(selectAll("Resource Packs", "Minecraft folder")).toBeInTheDocument();
+
+    await tick("Alpha.zip");
+    expect(screen.getByText("1 pack selected")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Delete selected" }),
     ).toBeInTheDocument();
   });
 
-  it("counts what is ticked, selects all, and clears", async () => {
+  it("counts what is ticked, selects a section, and clears", async () => {
     renderPage();
     await openSection("Resource Packs");
 
@@ -566,14 +596,14 @@ describe("InstalledContentPage — acting on several packs", () => {
     await tick("Beta.zip");
     expect(screen.getByText("2 packs selected")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Select all" }));
+    await userEvent.click(selectAll("Resource Packs", "Minecraft folder"));
     expect(screen.getByText("3 packs selected")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Clear" }));
-    expect(screen.queryByText(/packs selected/)).toBeNull();
+    expect(screen.queryByText(/selected/)).toBeNull();
   });
 
-  it("moves the selection when a file in another section is ticked", async () => {
+  it("keeps a tick made in another section", async () => {
     renderPage();
     await openSection("Resource Packs");
     await openSection("Shaders");
@@ -581,10 +611,34 @@ describe("InstalledContentPage — acting on several packs", () => {
     await tick("Alpha.zip");
     await tick("BSL.zip");
 
-    expect(screen.getByText("1 pack selected")).toBeInTheDocument();
-    expect(
-      screen.getByRole("checkbox", { name: "Alpha.zip" }),
-    ).not.toBeChecked();
+    expect(screen.getByText("2 packs selected")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Alpha.zip" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "BSL.zip" })).toBeChecked();
+  });
+
+  it("keeps a tick made in another location", async () => {
+    renderPage();
+    await openSection("Resource Packs");
+    await openSection("Resource Packs", 1);
+
+    await tick("Alpha.zip");
+    // Survival's copy of Faithful.zip is a different row of the same name.
+    await userEvent.click(
+      screen.getAllByRole("checkbox", { name: "Faithful.zip" })[1],
+    );
+
+    expect(screen.getByText("2 packs selected")).toBeInTheDocument();
+  });
+
+  it("adds only the files of the section whose Select all was pressed", async () => {
+    renderPage();
+    await openSection("Resource Packs");
+    await openSection("Shaders");
+
+    await tick("BSL.zip");
+    await userEvent.click(selectAll("Resource Packs", "Minecraft folder"));
+
+    expect(screen.getByText("4 packs selected")).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "BSL.zip" })).toBeChecked();
   });
 
@@ -617,12 +671,99 @@ describe("InstalledContentPage — acting on several packs", () => {
         ["Alpha.zip", "Beta.zip"],
       ),
     );
+    expect(deleteContent).toHaveBeenCalledTimes(1);
     // The reload no longer reports them, so the selection empties itself.
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "Select all" })).toBeNull(),
+    await waitFor(() => expect(screen.queryByText(/selected/)).toBeNull());
+    render(setSnackbar.mock.calls[0][0].message);
+    expect(screen.getByText("Deleted 2 packs")).toBeInTheDocument();
+  });
+
+  it("issues one delete per section, and counts them together", async () => {
+    deleteContent.mockResolvedValue(1);
+    getInstalledContent
+      .mockResolvedValueOnce([minecraft, survival])
+      .mockResolvedValue([location({}), survival]);
+    renderPage();
+    await openSection("Resource Packs");
+    await openSection("Shaders");
+
+    await tick("Alpha.zip");
+    await tick("BSL.zip");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Delete selected" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Delete 2?" }));
+
+    await waitFor(() => expect(deleteContent).toHaveBeenCalledTimes(2));
+    expect(deleteContent).toHaveBeenNthCalledWith(
+      1,
+      "minecraft",
+      ModType.ResourcePack,
+      ["Alpha.zip"],
+    );
+    expect(deleteContent).toHaveBeenNthCalledWith(
+      2,
+      "minecraft",
+      ModType.ShaderPack,
+      ["BSL.zip"],
     );
     render(setSnackbar.mock.calls[0][0].message);
     expect(screen.getByText("Deleted 2 packs")).toBeInTheDocument();
+  });
+
+  it("issues one delete per location a tick was made in", async () => {
+    getInstalledContent.mockResolvedValue([minecraft, survival]);
+    renderPage();
+    await openSection("Resource Packs");
+    await openSection("Resource Packs", 1);
+
+    await tick("Alpha.zip");
+    await userEvent.click(
+      screen.getAllByRole("checkbox", { name: "Faithful.zip" })[1],
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Delete selected" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Delete 2?" }));
+
+    await waitFor(() => expect(deleteContent).toHaveBeenCalledTimes(2));
+    expect(deleteContent).toHaveBeenNthCalledWith(
+      1,
+      "minecraft",
+      ModType.ResourcePack,
+      ["Alpha.zip"],
+    );
+    expect(deleteContent).toHaveBeenNthCalledWith(
+      2,
+      "prism:1",
+      ModType.ResourcePack,
+      ["Faithful.zip"],
+    );
+  });
+
+  it("stops at a failed group, reports it, and still reloads", async () => {
+    deleteContent
+      .mockResolvedValueOnce(1)
+      .mockRejectedValueOnce("errorContentMissing");
+    renderPage();
+    await openSection("Resource Packs");
+    await openSection("Shaders");
+
+    await tick("Alpha.zip");
+    await tick("BSL.zip");
+    await userEvent.click(
+      screen.getByRole("button", { name: "Delete selected" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Delete 2?" }));
+
+    await waitFor(() =>
+      expect(setSnackbar).toHaveBeenCalledWith(
+        expect.objectContaining({ className: "bg-red-700" }),
+      ),
+    );
+    expect(deleteContent).toHaveBeenCalledTimes(2);
+    // The first group is already gone, so the listing must be read again.
+    await waitFor(() => expect(getInstalledContent).toHaveBeenCalledTimes(2));
   });
 
   it("copies only what the destination misses out of the ticked files", async () => {
@@ -648,6 +789,76 @@ describe("InstalledContentPage — acting on several packs", () => {
         ModType.ResourcePack,
         ["Alpha.zip"],
       ),
+    );
+    expect(copyContent).toHaveBeenCalledTimes(1);
+  });
+
+  it("never copies a destination's own ticked files back to it", async () => {
+    copyContent.mockResolvedValue(1);
+    renderPage();
+    await openSection("Resource Packs");
+    await openSection("Resource Packs", 1);
+
+    await tick("Alpha.zip");
+    await userEvent.click(
+      screen.getAllByRole("checkbox", { name: "Faithful.zip" })[1],
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Copy the selected packs somewhere else",
+      }),
+    );
+
+    // Only Alpha.zip is left to send to Survival; its own pack never travels.
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "Survival · 1 new" }),
+    );
+    await waitFor(() =>
+      expect(copyContent).toHaveBeenCalledWith(
+        "minecraft",
+        "prism:1",
+        ModType.ResourcePack,
+        ["Alpha.zip"],
+      ),
+    );
+    expect(copyContent).toHaveBeenCalledTimes(1);
+  });
+
+  it("copies a selection spanning two sections, one call each", async () => {
+    copyContent.mockResolvedValue(1);
+    getInstalledContent.mockResolvedValue([
+      minecraft,
+      location({ id: "prism:2", kind: "prism", name: "Modded" }),
+    ]);
+    renderPage();
+    await openSection("Resource Packs");
+    await openSection("Shaders");
+
+    await tick("Alpha.zip");
+    await tick("BSL.zip");
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Copy the selected packs somewhere else",
+      }),
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "Modded · 2 new" }),
+    );
+
+    await waitFor(() => expect(copyContent).toHaveBeenCalledTimes(2));
+    expect(copyContent).toHaveBeenNthCalledWith(
+      1,
+      "minecraft",
+      "prism:2",
+      ModType.ResourcePack,
+      ["Alpha.zip"],
+    );
+    expect(copyContent).toHaveBeenNthCalledWith(
+      2,
+      "minecraft",
+      "prism:2",
+      ModType.ShaderPack,
+      ["BSL.zip"],
     );
   });
 
@@ -680,5 +891,72 @@ describe("InstalledContentPage — acting on several packs", () => {
       expect(screen.getByText("1 pack selected")).toBeInTheDocument(),
     );
     expect(screen.getByRole("checkbox", { name: "Beta.zip" })).toBeChecked();
+  });
+});
+
+describe("InstalledContentPage — refreshing while an action runs", () => {
+  const minecraft = location({
+    resourcePacks: [
+      file({ fileName: "Faithful.zip" }),
+      file({ fileName: "Alpha.zip" }),
+    ],
+  });
+  const survival = location({
+    id: "prism:1",
+    kind: "prism",
+    name: "Survival",
+    path: "/home/me/prism/Survival/.minecraft",
+  });
+
+  it("locks out a manual refresh until the copy is done", async () => {
+    getInstalledContent.mockResolvedValue([minecraft, survival]);
+    const copying = deferred<number>();
+    copyContent.mockReturnValue(copying.promise);
+    renderPage();
+    await openSection("Resource Packs");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Copy Alpha.zip somewhere else" }),
+    );
+    await userEvent.click(
+      await screen.findByRole("menuitem", { name: "Survival" }),
+    );
+
+    // A reload here would swap the cards for the spinner and race the reload
+    // the copy does itself.
+    await waitFor(() => expect(refreshButton()).toBeDisabled());
+
+    await act(async () => copying.resolve(1));
+    await waitFor(() => expect(refreshButton()).toBeEnabled());
+  });
+
+  it("keeps the newest listing when an earlier load answers late", async () => {
+    const stale = deferred<unknown[]>();
+    const fresh = deferred<unknown[]>();
+    getInstalledContent
+      .mockResolvedValueOnce([minecraft])
+      .mockReturnValueOnce(stale.promise)
+      .mockReturnValueOnce(fresh.promise);
+    renderPage();
+    await screen.findByText("Minecraft folder");
+
+    await userEvent.click(refreshButton());
+    await userEvent.click(refreshButton());
+    expect(getInstalledContent).toHaveBeenCalledTimes(3);
+
+    await act(async () =>
+      fresh.resolve([
+        location({ id: "prism:2", kind: "prism", name: "Fresh" }),
+      ]),
+    );
+    expect(await screen.findByText("Fresh")).toBeInTheDocument();
+
+    await act(async () =>
+      stale.resolve([
+        location({ id: "prism:3", kind: "prism", name: "Stale" }),
+      ]),
+    );
+    expect(screen.getByText("Fresh")).toBeInTheDocument();
+    expect(screen.queryByText("Stale")).toBeNull();
   });
 });

@@ -1,37 +1,42 @@
 /** @format */
 
-import type { TFunction } from "i18next";
-import { ContentFile, ContentLocation, ModType } from "../../../intefaces";
+import { ContentLocation, ModType } from "../../../intefaces";
 
-/** What the user calls a location: the Minecraft folder, or the instance name. */
-export function locationTitle(location: ContentLocation, t: TFunction): string {
-  return location.kind === "minecraft"
-    ? t("installedContentMinecraft")
-    : location.name;
+/** One section of one location: everything an action needs to address it. */
+export interface SectionRef {
+  locationId: string;
+  modType: ModType;
 }
 
-/** The packs of one kind a location holds. Empty for a kind it never stores. */
-export function filesOf(
-  location: ContentLocation,
-  modType: ModType,
-): ContentFile[] {
-  switch (modType) {
-    case ModType.ResourcePack:
-      return location.resourcePacks;
-    case ModType.ShaderPack:
-      return location.shaderPacks;
-    default:
-      return [];
-  }
+/** Files of one section, as one `copyContent` or `deleteContent` call. */
+export interface SectionFiles extends SectionRef {
+  fileNames: string[];
 }
 
-export interface CopyTarget {
-  location: ContentLocation;
-  /** The requested names this location does not hold yet, in request order. */
-  missing: string[];
+/** One ticked file, remembered with the section it was ticked in. */
+export interface SelectedFile extends SectionRef {
+  fileName: string;
 }
 
-/** The names every location holds, keyed by `controlKey(locationId, modType)`. */
+/** Identifies one section of one location; keys a {@link FileNameIndex}. */
+export function sectionKey(ref: SectionRef): string {
+  return `${ref.locationId}|${ref.modType}`;
+}
+
+/** Identifies the control an action was started from, so only it reacts. */
+export function controlKey(ref: SectionRef, fileName: string): string {
+  return `${sectionKey(ref)}|${fileName}`;
+}
+
+/** The "copy all" control of a section, apart from any of its files'. */
+export function copyAllControlKey(ref: SectionRef): string {
+  return controlKey(ref, "#all");
+}
+
+/** The page-level selection bar's controls, apart from every section's. */
+export const selectionControlKey = "#selection";
+
+/** The names every location holds, keyed by {@link sectionKey}. */
 export type FileNameIndex = Map<string, Set<string>>;
 
 const NO_FILE_NAMES: Set<string> = new Set();
@@ -40,105 +45,129 @@ const NO_FILE_NAMES: Set<string> = new Set();
 export function indexFileNames(locations: ContentLocation[]): FileNameIndex {
   const index: FileNameIndex = new Map();
   for (const location of locations) {
-    for (const modType of [ModType.ResourcePack, ModType.ShaderPack]) {
+    for (const section of location.sections) {
       index.set(
-        controlKey(location.id, modType),
-        new Set(filesOf(location, modType).map((file) => file.fileName)),
+        sectionKey({ locationId: location.id, modType: section.modType }),
+        new Set(section.files.map((file) => file.fileName)),
       );
     }
   }
   return index;
 }
 
+function namesIn(index: FileNameIndex, ref: SectionRef): Set<string> {
+  return index.get(sectionKey(ref)) ?? NO_FILE_NAMES;
+}
+
+export interface CopyTarget {
+  location: ContentLocation;
+  /** One copy per source section, never from the destination itself. */
+  groups: SectionFiles[];
+  /** How many files would move, across every group. */
+  count: number;
+}
+
 /**
- * Every location a copy could go to, paired with the work it would do there.
- * An empty `missing` means the destination already has all of `fileNames`.
+ * Every location a copy could go to, paired with the work it would do there:
+ * the given files, minus the ones that already come from that location and the
+ * ones it already holds. A destination everything came from is not offered.
  */
 export function copyTargets(
   locations: ContentLocation[],
   index: FileNameIndex,
-  sourceId: string,
-  modType: ModType,
-  fileNames: string[],
+  files: SelectedFile[],
 ): CopyTarget[] {
+  const sources = groupBySection(files);
   return locations
-    .filter((location) => location.id !== sourceId)
+    .filter((location) =>
+      sources.some((source) => source.locationId !== location.id),
+    )
     .map((location) => {
-      const present =
-        index.get(controlKey(location.id, modType)) ?? NO_FILE_NAMES;
-      return {
-        location,
-        missing: fileNames.filter((fileName) => !present.has(fileName)),
-      };
+      const groups = sources
+        .filter((source) => source.locationId !== location.id)
+        .map((source) => {
+          const present = namesIn(index, {
+            locationId: location.id,
+            modType: source.modType,
+          });
+          return {
+            ...source,
+            fileNames: source.fileNames.filter((name) => !present.has(name)),
+          };
+        })
+        .filter((group) => group.fileNames.length > 0);
+      return { location, groups, count: countFiles(groups) };
     });
 }
 
-/** Identifies the control an action was started from, so only it reacts. */
-export function controlKey(
-  locationId: string,
-  modType: ModType,
-  fileName?: string,
-): string {
-  return `${locationId}|${modType}|${fileName ?? "*"}`;
+/** How many files a run of copies or deletes would touch. */
+export function countFiles(groups: SectionFiles[]): number {
+  return groups.reduce((total, group) => total + group.fileNames.length, 0);
 }
 
-/** The key of a section's bulk controls, apart from any file's. */
-export function selectionKey(locationId: string, modType: ModType): string {
-  return controlKey(locationId, modType, "#selection");
+function sameSection(a: SectionRef, b: SectionRef): boolean {
+  return a.locationId === b.locationId && a.modType === b.modType;
 }
 
-/**
- * The ticked files. A copy or a delete takes one location and one kind of
- * pack, so a selection can never span two sections.
- */
-export interface ContentSelection {
-  locationId: string;
-  modType: ModType;
-  fileNames: string[];
-}
-
-/** The names ticked in this section; empty when the selection is elsewhere. */
+/** The names ticked in this section, in ticking order. */
 export function selectedIn(
-  selection: ContentSelection | null,
-  locationId: string,
-  modType: ModType,
+  selection: SelectedFile[],
+  ref: SectionRef,
 ): string[] {
-  return selection !== null &&
-    selection.locationId === locationId &&
-    selection.modType === modType
-    ? selection.fileNames
-    : [];
+  return selection
+    .filter((file) => sameSection(file, ref))
+    .map((file) => file.fileName);
 }
 
-/** Ticks or unticks one file, dropping a selection made in another section. */
+/** Ticks or unticks one file, leaving every tick made elsewhere alone. */
 export function toggleSelection(
-  selection: ContentSelection | null,
-  locationId: string,
-  modType: ModType,
-  fileName: string,
-): ContentSelection | null {
-  const current = selectedIn(selection, locationId, modType);
-  const fileNames = current.includes(fileName)
-    ? current.filter((name) => name !== fileName)
-    : [...current, fileName];
-  return fileNames.length === 0 ? null : { locationId, modType, fileNames };
+  selection: SelectedFile[],
+  file: SelectedFile,
+): SelectedFile[] {
+  const without = selection.filter(
+    (entry) => !(sameSection(entry, file) && entry.fileName === file.fileName),
+  );
+  return without.length === selection.length ? [...selection, file] : without;
 }
 
-/** Forgets names a reload no longer reports; an emptied selection is dropped. */
+/** Adds every one of a section's files, keeping the ticks made elsewhere. */
+export function selectAllIn(
+  selection: SelectedFile[],
+  ref: SectionRef,
+  fileNames: string[],
+): SelectedFile[] {
+  const ticked = new Set(selectedIn(selection, ref));
+  return [
+    ...selection,
+    ...fileNames
+      .filter((fileName) => !ticked.has(fileName))
+      .map((fileName) => ({ ...ref, fileName })),
+  ];
+}
+
+/** Forgets every tick a reload no longer reports. */
 export function pruneSelection(
-  selection: ContentSelection | null,
+  selection: SelectedFile[],
   locations: ContentLocation[],
-): ContentSelection | null {
-  if (selection === null) {
-    return null;
+): SelectedFile[] {
+  const index = indexFileNames(locations);
+  return selection.filter((file) => namesIn(index, file).has(file.fileName));
+}
+
+/** The selection as one request per section, in first-ticked order. */
+export function groupBySection(selection: SelectedFile[]): SectionFiles[] {
+  const groups = new Map<string, SectionFiles>();
+  for (const file of selection) {
+    const group = groups.get(sectionKey(file));
+    if (group === undefined) {
+      groups.set(sectionKey(file), {
+        locationId: file.locationId,
+        modType: file.modType,
+        fileNames: [file.fileName],
+      });
+    } else {
+      group.fileNames.push(file.fileName);
+    }
   }
-  const location = locations.find((entry) => entry.id === selection.locationId);
-  if (location === undefined) {
-    return null;
-  }
-  const present = new Set(
-    filesOf(location, selection.modType).map((file) => file.fileName),
-  );
-  const fileNames = selection.fileNames.filter((name) => present.has(name));
-  return fileNames.length === 0 ? null : { ...selection, fileNames };
+  return [...groups.values()];
 }

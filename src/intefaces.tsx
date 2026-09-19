@@ -69,6 +69,13 @@ export interface ContentFile {
   isDirectory: boolean;
 }
 
+/** One kind of pack a location holds, with the files it currently has. */
+export interface ContentSection {
+  modType: ModType;
+  /** Empty when the listing was asked for the locations alone. */
+  files: ContentFile[];
+}
+
 /** A folder Quadrant reads packs from: the Minecraft one, or a Prism instance. */
 export interface ContentLocation {
   /** `"minecraft"`, or `"prism:<instanceId>"`. */
@@ -77,8 +84,15 @@ export interface ContentLocation {
   /** Empty for the Minecraft folder, which has no name of its own. */
   name: string;
   path: string;
-  resourcePacks: ContentFile[];
-  shaderPacks: ContentFile[];
+  /** Resource packs first, then shaders. */
+  sections: ContentSection[];
+}
+
+/** What applying a modpack would rewrite on one instance; `null` stays put. */
+export interface PrismSyncPlan {
+  instanceId: string;
+  minecraftVersion: string | null;
+  modLoader: ModLoader | null;
 }
 
 export interface ModpackOwner {

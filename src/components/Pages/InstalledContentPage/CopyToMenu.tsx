@@ -50,7 +50,7 @@ export default function CopyToMenu({
       <MenuItems anchor="bottom end" className={menuPanelClass}>
         {targets.map((target) => {
           // Nothing left to copy there; the entry shows a check instead.
-          const nothingToDo = target.missing.length === 0;
+          const nothingToDo = target.count === 0;
           return (
             <MenuItem key={target.location.id}>
               <button
