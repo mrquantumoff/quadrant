@@ -91,11 +91,10 @@ pub async fn install_remote_file(
     modpack: Option<String>,
     source: ModSource,
     id: String,
-    content_location: Option<String>,
     app: AppHandle,
 ) -> Result<(), tauri::Error> {
     app.state::<QuadrantHost>()
-        .install_remote_file(file, mod_type, modpack, source, id, content_location)
+        .install_remote_file(file, mod_type, modpack, source, id)
         .await
         .map_err(crate::command_error)
 }

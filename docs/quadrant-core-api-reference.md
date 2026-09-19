@@ -164,6 +164,7 @@ Host note:
 
 - if you want to stay compatible with existing Quadrant data, keep these keys unchanged
 - `ensure_default_app_config` is the expected bootstrap step before calling other services
+- `quadrant-host` exposes `get_config_value`, `set_config_value` and `remove_config_value` (`key`). Clearing a key goes through `remove_config_value`, which drops it from the store so a later read falls back to the default; storing a JSON `null` instead leaves a value behind, and readers such as `prismLauncherFolder` only tolerate that for configs older versions wrote
 
 ## `models`
 
@@ -264,7 +265,7 @@ Read-only listing of the resource packs and shader packs installed in a game dir
 ### Listing
 
 - `list_content_files(dir)`
-- `content_location(id, kind, name, game_dir)`
+- `content_location(id, kind, name, game_dir, include_files)`
 - `content_subfolder(mod_type)`
 
 ### Location ids
@@ -283,7 +284,8 @@ Operational notes:
 - a location is addressed by its id, so a frontend never hands the backend a filesystem path to read or open
 - a missing or unreadable folder lists as empty rather than failing, because a game directory only grows these folders once something is installed into it
 - only directories and `.zip` files are listed, which drops the sidecar option files a shader loader writes next to a pack
-- `content_subfolder` is `None` for every type but `ResourcePack` and `ShaderPack`
+- `content_subfolder` is `None` for every type but `ResourcePack` and `ShaderPack`, and is the single source of the `resourcepacks`/`shaderpacks` folder names, including for `mc_mod::install_local_file`
+- `content_location` with `include_files` false does not read the pack folders at all and returns both lists empty, for a caller that only needs each location's id, name and path
 - both `copy_content_files` and `delete_content_files` take bare file names from a listing: each must be a single path component (`InvalidRequest` otherwise) and must name a pack the listing would show (`ContentMissing` otherwise), and every name is checked before anything is written or removed
 - copying into the source folder is `InvalidRequest`, and a destination entry that already exists is overwritten, so a repeated copy converges instead of failing
 - a `.zip` is streamed through a sibling temp file and renamed into place, and a symlink inside a pack folder is skipped rather than followed out of the pack
@@ -305,19 +307,23 @@ Operational notes:
 
 Type note:
 
-- `ModType` serializes as its variant name and also accepts `Shader` for `ShaderPack`, which is the label Quadrant's own frontend enum sends
+- `ModType` serializes as its variant name and also accepts `Shader` for `ShaderPack`, the label older frontends and N-API consumers send
 
 ### General operations
 
 - `get_versions()`
 - `search_mods(args, settings)`
 - `check_mod_updates(mod_to_update, minecraft_version, mod_loader, modpack, show_unupgradeable_mods)`
-- `install_mod(mc_folder, settings, event_sink, ...)`
-- `install_remote_file(mc_folder, event_sink, ...)`
+- `install_mod(install_roots, settings, event_sink, ...)`
+- `install_remote_file(install_roots, event_sink, ...)`
 - `identify_modpack(mc_folder, modpack, curseforge_enabled, modrinth_enabled)`
 - `get_mod_url(slug, mod_type, source)`
 - `get_user_url(username, source)`
 - `get_user_agent()`
+
+Install note:
+
+- `install_mod` and `install_remote_file` take a slice of install roots. They resolve, download and enrich once and then place the file into every root, so progress events fire once per install rather than once per root. An empty slice is `InvalidRequest`. Only a `Mod` returns an updated `LocalModpack`, and it always has exactly one root.
 
 Feature note:
 
@@ -467,15 +473,15 @@ Exposed by `quadrant-host` as the `get_prism_instances`, `apply_modpack_to_prism
 4. `prism::needs_loader_version` against `prism::read_pack_manifest`, and only then `prism::resolve_loader_version`
 5. `prism::apply_modpack_to_instance`, or `prism::detach_instance` to unlink
 
-Resource pack and shader installs use `prism::content_roots` to run `mc_mod::install_mod` once per root the modpack is applied to, unless the caller names one content location.
+Resource pack and shader installs hand `prism::content_roots` straight to `mc_mod::install_mod` as its install roots, so one call places the file in every root the modpack is applied to, unless the caller names one content location.
 
 ### List, install into, copy between, and clear out content locations
 
-Exposed by `quadrant-host` as the `get_installed_content`, `copy_content` (`fromLocation`, `toLocation`, `modType`, `fileNames`) and `delete_content` (`location`, `modType`, `fileNames`) commands. Opening a listed folder is a shell concern, so `content_folder(locationId, modType)` is host API only and the Tauri shell wraps it in `open_content_folder`.
+Exposed by `quadrant-host` as the `get_installed_content` (`includeFiles`, default true), `copy_content` (`fromLocation`, `toLocation`, `modType`, `fileNames`) and `delete_content` (`location`, `modType`, `fileNames`) commands. Passing `includeFiles: false` returns the locations with empty `resourcePacks`/`shaderPacks` and reads no pack folder, which is what a caller that only needs ids and names should send. Opening a listed folder is a shell concern, so `content_folder(locationId, modType)` is host API only and the Tauri shell wraps it in `open_content_folder`.
 
 1. `content::content_location` for the Minecraft folder
 2. `prism::list_instances`, then `prism::game_dir` and `content::prism_location_id` per instance
 3. `content::parse_location_id` and `content::content_subfolder` to turn a listed id back into a folder, which for a Prism id goes through `prism::resolve_instance_dir`
 4. `content::copy_content_files` between two such folders, or `content::delete_content_files` within one, which `copy_content` and `delete_content` return the number of copied or removed packs from
 
-`install_mod` and `install_remote_file` take an optional `contentLocation` id. For a `ResourcePack` or `ShaderPack` it makes that location's game directory the single install root, and for every other type it is ignored. Omitting it keeps the modpack-following behaviour above. A Prism location id resolves only while `experimentalFeatures` is on, in both the install and the copy path (`Forbidden` otherwise).
+`install_mod` takes an optional `contentLocation` id. For a `ResourcePack` or `ShaderPack` it makes that location's game directory the single install root, and for every other type it is ignored. Omitting it keeps the modpack-following behaviour above. `install_remote_file` has no such argument and always follows the modpack. A Prism location id resolves only while `experimentalFeatures` is on, in both the install and the copy path (`Forbidden` otherwise).

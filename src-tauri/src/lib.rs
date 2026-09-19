@@ -458,6 +458,7 @@ pub async fn run() {
             config::init_config,
             config::get_config_value,
             config::set_config_value,
+            config::remove_config_value,
             config::get_minecraft_folder,
             config::get_default_minecraft_folder,
             other::open_link,

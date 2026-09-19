@@ -606,12 +606,12 @@ pub async fn install_mod(
         InstalledMod::minimal(id.clone(), source, download_path.1.clone())
     });
 
-    let updated_modpack = install_local_file(
-        mc_folder,
-        download_path.0,
-        mod_to_install,
+    let updated_modpack = place_in_every_root(
+        install_roots,
+        &download_path.0,
+        &mod_to_install,
         mod_type,
-        modpack,
+        modpack.as_deref(),
     )?;
 
     event_sink.publish(BackendEvent::ModInstallProgress(ModProgressPayload {
@@ -619,6 +619,29 @@ pub async fn install_mod(
         progress: 100,
     }))?;
 
+    Ok(updated_modpack)
+}
+
+/// Installs one downloaded file into every root, returning the last modpack a
+/// root updated. Only [`ModType::Mod`] updates a modpack, and it always has
+/// exactly one root.
+fn place_in_every_root(
+    install_roots: &[PathBuf],
+    file: &Path,
+    local_mod: &InstalledMod,
+    mod_type: ModType,
+    modpack: Option<&str>,
+) -> Result<Option<LocalModpack>> {
+    let mut updated_modpack = None;
+    for root in install_roots {
+        updated_modpack = install_local_file(
+            root,
+            file.to_path_buf(),
+            local_mod.clone(),
+            mod_type,
+            modpack.map(ToOwned::to_owned),
+        )?;
+    }
     Ok(updated_modpack)
 }
 
@@ -791,14 +814,13 @@ pub fn install_local_file(
                 old_file_paths,
             )
         }
-        ModType::ResourcePack => (
-            mc_folder.join("resourcepacks").join(&target_file_name),
-            None,
-            None,
-            Vec::new(),
-        ),
-        ModType::ShaderPack => (
-            mc_folder.join("shaderpacks").join(&target_file_name),
+        ModType::ResourcePack | ModType::ShaderPack => (
+            mc_folder
+                .join(
+                    crate::content::content_subfolder(mod_type)
+                        .ok_or_else(|| anyhow!("unsupportedDownload"))?,
+                )
+                .join(&target_file_name),
             None,
             None,
             Vec::new(),
@@ -840,9 +862,12 @@ pub fn install_local_file(
     Ok(updated_modpack)
 }
 
-/// Downloads a remote file and installs it into the requested target.
+/// Downloads a remote file once and installs it into every requested root.
+///
+/// An empty `install_roots` is
+/// [`ErrorCode::InvalidRequest`](crate::error::ErrorCode::InvalidRequest).
 pub async fn install_remote_file(
-    mc_folder: &Path,
+    install_roots: &[PathBuf],
     event_sink: &impl EventSink,
     file: UniversalModFile,
     mod_type: ModType,
@@ -850,6 +875,9 @@ pub async fn install_remote_file(
     source: ModSource,
     id: String,
 ) -> Result<Option<LocalModpack>> {
+    if install_roots.is_empty() {
+        return Err(anyhow::Error::from(crate::error::ErrorCode::InvalidRequest));
+    }
     ensure_downloadable(&file)?;
     // Apply the same URL policy that later delete/install-modpack paths
     // enforce, so every manifest entry this creates can be removed again.
@@ -865,12 +893,12 @@ pub async fn install_remote_file(
         log::warn!("Failed to enrich mod {id} on remote install: {}", e);
         InstalledMod::minimal(id.clone(), source, downloaded_file.1.clone())
     });
-    install_local_file(
-        mc_folder,
-        downloaded_file.0,
-        mod_to_install,
+    place_in_every_root(
+        install_roots,
+        &downloaded_file.0,
+        &mod_to_install,
         mod_type,
-        modpack,
+        modpack.as_deref(),
     )
 }
 
@@ -1405,7 +1433,7 @@ mod tests {
     async fn install_mod_rejects_online_source_without_panicking() {
         let dir = tempfile::tempdir().unwrap();
         let error = install_mod(
-            dir.path(),
+            &[dir.path().to_path_buf()],
             &NullSettings,
             &CollectingEvents::default(),
             "mod".to_string(),
@@ -1419,6 +1447,62 @@ mod tests {
         .await
         .unwrap_err();
         assert!(error.to_string().contains("unsupportedDownload"));
+    }
+
+    #[tokio::test]
+    async fn install_remote_file_downloads_once_and_places_the_file_in_every_root() {
+        let _guard = crate::mc_mod::cache::tests::set_cache_dir();
+        let dir = tempfile::tempdir().unwrap();
+        let roots = [dir.path().join("minecraft"), dir.path().join("instance")];
+        let bytes = b"pack bytes";
+        let server = httpmock::MockServer::start();
+        let download = server.mock(|when, then| {
+            when.method(httpmock::Method::GET).path("/Faithful.zip");
+            then.status(200).body(bytes);
+        });
+        let file = UniversalModFile {
+            id: None,
+            file_name: "Faithful.zip".to_string(),
+            download_url: format!("{}/Faithful.zip", server.base_url()),
+            sha1: crate::mc_mod::cache::file_hash(bytes),
+            size: bytes.len() as u64,
+        };
+        let events = CollectingEvents::default();
+
+        let updated = install_remote_file(
+            &roots,
+            &events,
+            file.clone(),
+            ModType::ResourcePack,
+            None,
+            ModSource::Online,
+            "faithful".to_string(),
+        )
+        .await
+        .unwrap();
+
+        assert!(updated.is_none());
+        download.assert_calls(1);
+        for root in &roots {
+            assert_eq!(
+                std::fs::read(root.join("resourcepacks").join("Faithful.zip")).unwrap(),
+                bytes
+            );
+        }
+
+        let error = install_remote_file(
+            &[],
+            &events,
+            file,
+            ModType::ResourcePack,
+            None,
+            ModSource::Online,
+            "faithful".to_string(),
+        )
+        .await
+        .unwrap_err();
+        assert!(error.to_string().contains("errorInvalidRequest"));
+        download.assert_calls(1);
     }
 
     #[tokio::test]

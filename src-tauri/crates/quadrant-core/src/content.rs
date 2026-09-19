@@ -141,20 +141,33 @@ fn modified_millis(metadata: &Metadata) -> i64 {
         .unwrap_or(0)
 }
 
-/// Reads the resource packs and shader packs installed in a game directory.
+/// Describes a game directory as a content location.
+///
+/// With `include_files` false the pack folders are not read at all and both
+/// lists come back empty, which is what a caller that only needs the location's
+/// id, name and path pays for.
 pub fn content_location(
     id: &str,
     kind: ContentLocationKind,
     name: &str,
     game_dir: &Path,
+    include_files: bool,
 ) -> ContentLocation {
+    let (resource_packs, shader_packs) = if include_files {
+        (
+            list_content_files(&game_dir.join(RESOURCE_PACKS_DIR)),
+            list_content_files(&game_dir.join(SHADER_PACKS_DIR)),
+        )
+    } else {
+        (Vec::new(), Vec::new())
+    };
     ContentLocation {
         id: id.to_string(),
         kind,
         name: name.to_string(),
         path: game_dir.to_string_lossy().into_owned(),
-        resource_packs: list_content_files(&game_dir.join(RESOURCE_PACKS_DIR)),
-        shader_packs: list_content_files(&game_dir.join(SHADER_PACKS_DIR)),
+        resource_packs,
+        shader_packs,
     }
 }
 
@@ -374,6 +387,7 @@ mod tests {
             ContentLocationKind::Minecraft,
             "",
             &game_dir,
+            true,
         );
 
         assert_eq!(location.id, MINECRAFT_LOCATION_ID);
@@ -382,6 +396,18 @@ mod tests {
         assert_eq!(location.path, game_dir.to_string_lossy());
         assert_eq!(names(&location.resource_packs), ["pack.zip"]);
         assert_eq!(names(&location.shader_packs), ["shader.zip"]);
+
+        let header = content_location(
+            MINECRAFT_LOCATION_ID,
+            ContentLocationKind::Minecraft,
+            "",
+            &game_dir,
+            false,
+        );
+
+        assert_eq!(header.path, location.path);
+        assert!(header.resource_packs.is_empty());
+        assert!(header.shader_packs.is_empty());
     }
 
     #[test]

@@ -162,8 +162,7 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
             continue;
         }
 
-        let is_applied =
-            mods_link_target(&mods_folder).is_some_and(|mods_path| mods_path == path);
+        let is_applied = mods_link_target(&mods_folder).is_some_and(|mods_path| mods_path == path);
 
         let has_v2 = modpack_config_v2.exists();
         let has_v1 = modpack_config_v1.exists();

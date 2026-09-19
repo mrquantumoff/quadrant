@@ -5,10 +5,18 @@ use tauri::{AppHandle, Manager};
 use crate::tauri_adapter::TauriShell;
 
 #[tauri::command]
-pub fn get_installed_content(app: AppHandle) -> Result<Vec<ContentLocation>, tauri::Error> {
-    app.state::<QuadrantHost>()
-        .get_installed_content()
-        .map_err(crate::command_error)
+pub async fn get_installed_content(
+    include_files: Option<bool>,
+    app: AppHandle,
+) -> Result<Vec<ContentLocation>, tauri::Error> {
+    let host = app.state::<QuadrantHost>().inner().clone();
+    // Listing every pack folder is filesystem work, so it stays off the main
+    // thread.
+    tauri::async_runtime::spawn_blocking(move || {
+        host.get_installed_content(include_files.unwrap_or(true))
+    })
+    .await?
+    .map_err(crate::command_error)
 }
 
 #[tauri::command]
