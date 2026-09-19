@@ -19,6 +19,10 @@ use std::{
 const RESOURCE_PACKS_DIR: &str = "resourcepacks";
 const SHADER_PACKS_DIR: &str = "shaderpacks";
 
+/// The content types a game directory holds beside `mods`, in the order every
+/// listing reports them.
+pub const PACK_TYPES: [ModType; 2] = [ModType::ResourcePack, ModType::ShaderPack];
+
 /// Identifier of the Minecraft folder as a content location.
 pub const MINECRAFT_LOCATION_ID: &str = "minecraft";
 
@@ -44,7 +48,16 @@ pub enum ContentLocationKind {
     Prism,
 }
 
-/// A game directory and everything installed in it.
+/// What one content type holds in a game directory.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentSection {
+    pub mod_type: ModType,
+    pub files: Vec<ContentFile>,
+}
+
+/// A game directory and everything installed in it, one section per
+/// [`PACK_TYPES`] entry and always in that order.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ContentLocation {
@@ -54,8 +67,7 @@ pub struct ContentLocation {
     /// Display name, empty for the Minecraft folder so a frontend localizes it.
     pub name: String,
     pub path: String,
-    pub resource_packs: Vec<ContentFile>,
-    pub shader_packs: Vec<ContentFile>,
+    pub sections: Vec<ContentSection>,
 }
 
 /// What a [`ContentLocation::id`] points at.
@@ -141,33 +153,50 @@ fn modified_millis(metadata: &Metadata) -> i64 {
         .unwrap_or(0)
 }
 
-/// Describes a game directory as a content location.
-///
-/// With `include_files` false the pack folders are not read at all and both
-/// lists come back empty, which is what a caller that only needs the location's
-/// id, name and path pays for.
+/// Describes a game directory as a content location, with what is installed in
+/// it.
 pub fn content_location(
     id: &str,
     kind: ContentLocationKind,
     name: &str,
     game_dir: &Path,
-    include_files: bool,
 ) -> ContentLocation {
-    let (resource_packs, shader_packs) = if include_files {
-        (
-            list_content_files(&game_dir.join(RESOURCE_PACKS_DIR)),
-            list_content_files(&game_dir.join(SHADER_PACKS_DIR)),
-        )
-    } else {
-        (Vec::new(), Vec::new())
-    };
+    location(id, kind, name, game_dir, list_content_files)
+}
+
+/// The same location without reading the pack folders at all: every section is
+/// there with an empty file list, which is what a caller that only needs the
+/// location's id, name and path pays for.
+pub fn content_location_header(
+    id: &str,
+    kind: ContentLocationKind,
+    name: &str,
+    game_dir: &Path,
+) -> ContentLocation {
+    location(id, kind, name, game_dir, |_| Vec::new())
+}
+
+fn location(
+    id: &str,
+    kind: ContentLocationKind,
+    name: &str,
+    game_dir: &Path,
+    list: impl Fn(&Path) -> Vec<ContentFile>,
+) -> ContentLocation {
     ContentLocation {
         id: id.to_string(),
         kind,
         name: name.to_string(),
         path: game_dir.to_string_lossy().into_owned(),
-        resource_packs,
-        shader_packs,
+        sections: PACK_TYPES
+            .into_iter()
+            .map(|mod_type| ContentSection {
+                mod_type,
+                files: content_subfolder(mod_type)
+                    .map(|subfolder| list(&game_dir.join(subfolder)))
+                    .unwrap_or_default(),
+            })
+            .collect(),
     }
 }
 
@@ -374,7 +403,7 @@ mod tests {
     }
 
     #[test]
-    fn content_location_reads_both_folders() {
+    fn content_location_reads_one_section_per_pack_type() {
         let dir = tempdir().unwrap();
         let game_dir = dir.path().join("minecraft");
         std::fs::create_dir_all(game_dir.join("resourcepacks")).unwrap();
@@ -387,27 +416,50 @@ mod tests {
             ContentLocationKind::Minecraft,
             "",
             &game_dir,
-            true,
         );
 
         assert_eq!(location.id, MINECRAFT_LOCATION_ID);
         assert_eq!(location.kind, ContentLocationKind::Minecraft);
         assert_eq!(location.name, "");
         assert_eq!(location.path, game_dir.to_string_lossy());
-        assert_eq!(names(&location.resource_packs), ["pack.zip"]);
-        assert_eq!(names(&location.shader_packs), ["shader.zip"]);
+        assert_eq!(
+            location
+                .sections
+                .iter()
+                .map(|section| section.mod_type)
+                .collect::<Vec<_>>(),
+            PACK_TYPES
+        );
+        assert_eq!(names(&location.sections[0].files), ["pack.zip"]);
+        assert_eq!(names(&location.sections[1].files), ["shader.zip"]);
 
-        let header = content_location(
+        let header = content_location_header(
             MINECRAFT_LOCATION_ID,
             ContentLocationKind::Minecraft,
             "",
             &game_dir,
-            false,
         );
 
         assert_eq!(header.path, location.path);
-        assert!(header.resource_packs.is_empty());
-        assert!(header.shader_packs.is_empty());
+        assert!(
+            header
+                .sections
+                .iter()
+                .all(|section| section.files.is_empty())
+        );
+        assert_eq!(header.sections.len(), PACK_TYPES.len());
+    }
+
+    #[test]
+    fn a_section_serializes_its_type_the_way_the_frontend_reads_it() {
+        let section = ContentSection {
+            mod_type: ModType::ShaderPack,
+            files: Vec::new(),
+        };
+        assert_eq!(
+            serde_json::to_value(&section).unwrap(),
+            serde_json::json!({ "modType": "ShaderPack", "files": [] })
+        );
     }
 
     #[test]
@@ -664,6 +716,9 @@ mod tests {
 
     #[test]
     fn only_resource_packs_and_shaders_have_a_content_folder() {
+        for mod_type in PACK_TYPES {
+            assert!(content_subfolder(mod_type).is_some(), "{mod_type}");
+        }
         assert_eq!(
             content_subfolder(ModType::ResourcePack),
             Some(RESOURCE_PACKS_DIR)

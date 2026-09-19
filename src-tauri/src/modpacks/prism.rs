@@ -1,4 +1,4 @@
-use quadrant_core::prism::PrismInstance;
+use quadrant_core::prism::{PrismInstance, PrismSyncPlan};
 use quadrant_host::QuadrantHost;
 use tauri::{AppHandle, Manager};
 
@@ -16,6 +16,17 @@ pub async fn get_prism_instances(app: AppHandle) -> Vec<PrismInstance> {
             log::error!("Failed to list Prism instances: {error}");
             Vec::new()
         })
+}
+
+#[tauri::command]
+pub async fn get_prism_sync_plans(
+    name: String,
+    app: AppHandle,
+) -> Result<Vec<PrismSyncPlan>, tauri::Error> {
+    app.state::<QuadrantHost>()
+        .get_prism_sync_plans(name)
+        .await
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]

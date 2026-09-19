@@ -313,6 +313,7 @@ pub(crate) fn link_mods_folder(
     target: &Path,
     backup_parent: &Path,
 ) -> Result<()> {
+    let mut backup = None;
     if mods_path.is_symlink() {
         // An existing `mods` symlink. This may be dangling if the modpack it
         // pointed at was deleted as a directory outside of Quadrant, in which
@@ -322,25 +323,54 @@ pub(crate) fn link_mods_folder(
         std::fs::remove_dir_all(mods_path)?;
     } else if mods_path.exists() {
         // A real, non-symlink `mods` directory — back it up rather than delete.
-        std::fs::rename(
-            mods_path,
-            backup_parent.join(format!(
-                "{MODS_BACKUP_PREFIX}{}",
-                Utc::now().format("%Y%m%d-%H%M%S")
-            )),
-        )?;
+        let path = backup_parent.join(format!(
+            "{MODS_BACKUP_PREFIX}{}",
+            Utc::now().format("%Y%m%d-%H%M%S")
+        ));
+        std::fs::rename(mods_path, &path)?;
+        backup = Some(path);
     }
 
-    #[cfg(target_os = "windows")]
-    {
-        std::os::windows::fs::symlink_dir(target, mods_path)?;
-    }
+    restore_backup_on_error(
+        create_mods_link(target, mods_path),
+        backup.as_deref(),
+        mods_path,
+    )
+}
 
-    #[cfg(any(target_os = "linux", target_os = "macos"))]
+#[cfg(target_os = "windows")]
+fn create_mods_link(target: &Path, mods_path: &Path) -> std::io::Result<()> {
+    std::os::windows::fs::symlink_dir(target, mods_path)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn create_mods_link(target: &Path, mods_path: &Path) -> std::io::Result<()> {
+    std::os::unix::fs::symlink(target, mods_path)
+}
+
+/// Puts a backed-up `mods` directory back when creating the link failed, and
+/// reports the original failure.
+///
+/// Creating a symlink needs a privilege Windows does not grant by default, and
+/// without this the jars are left under a backup name with no `mods` folder at
+/// all.
+fn restore_backup_on_error(
+    linked: std::io::Result<()>,
+    backup: Option<&Path>,
+    mods_path: &Path,
+) -> Result<()> {
+    let Err(error) = linked else {
+        return Ok(());
+    };
+    if let Some(backup) = backup
+        && let Err(restore_error) = std::fs::rename(backup, mods_path)
     {
-        std::os::unix::fs::symlink(target, mods_path)?;
+        log::error!(
+            "Failed to restore \"{}\" after linking failed: {restore_error}",
+            backup.display()
+        );
     }
-    Ok(())
+    Err(error.into())
 }
 
 /// Applies the named modpack by making `<mcFolder>/mods` point at it.
@@ -888,6 +918,33 @@ mod tests {
         let mc_folder = dir.path().join(".minecraft");
         std::fs::create_dir_all(mc_folder.join("modpacks")).unwrap();
         (dir, mc_folder)
+    }
+
+    #[test]
+    fn a_failed_link_gives_the_mods_folder_back() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        let mods_path = mc_folder.join("mods");
+        let backup = mc_folder
+            .join("modpacks")
+            .join("mods-backup-20260101-000000");
+        std::fs::create_dir_all(&backup).unwrap();
+        std::fs::write(backup.join("loose.jar"), "jar").unwrap();
+        let failure = || {
+            Err(std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                "a privilege is not held",
+            ))
+        };
+
+        assert!(restore_backup_on_error(failure(), Some(&backup), &mods_path).is_err());
+
+        assert!(!backup.exists());
+        assert!(mods_path.join("loose.jar").exists());
+        // Nothing was set aside, so there is nothing to put back.
+        assert!(restore_backup_on_error(failure(), None, &mods_path).is_err());
+        assert!(mods_path.join("loose.jar").exists());
+        assert!(restore_backup_on_error(Ok(()), Some(&backup), &mods_path).is_ok());
+        assert!(mods_path.join("loose.jar").exists());
     }
 
     fn online_mod(id: &str, download_url: String) -> InstalledMod {

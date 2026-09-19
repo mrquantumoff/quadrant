@@ -7,8 +7,9 @@
 
 use crate::{
     Result,
+    content::content_subfolder,
     error::ErrorCode,
-    mc_mod::http::provider_cached_client,
+    mc_mod::{ModType, http::provider_cached_client},
     models::{LocalModpack, ModLoader, is_single_path_component, modpack_path},
     modpacks::{
         MODS_BACKUP_PREFIX, link_mods_folder, mods_link_target, validate_modpack_name,
@@ -22,6 +23,13 @@ use std::path::{Path, PathBuf};
 
 const MINECRAFT_UID: &str = "net.minecraft";
 
+/// The instance manifest Prism reads, and every component Quadrant syncs.
+const PACK_MANIFEST: &str = "mmc-pack.json";
+
+/// The manifest an instance had before Quadrant first rewrote it, kept beside
+/// it so unlinking can give the instance its own components back.
+pub const PACK_MANIFEST_BACKUP: &str = "mmc-pack.quadrant-backup.json";
+
 /// The only `mmc-pack.json` layout Prism itself accepts. Quadrant never writes
 /// this field, it only refuses to touch a manifest that does not declare it.
 const PACK_FORMAT_VERSION: i64 = 1;
@@ -34,6 +42,22 @@ const LOADER_COMPONENTS: &[(ModLoader, &str)] = &[
     (ModLoader::Forge, "net.minecraftforge"),
     (ModLoader::NeoForge, "net.neoforged"),
 ];
+
+/// Mapping components that belong to the Fabric loader family rather than to
+/// the instance, so they have to go when the instance leaves that family.
+const FABRIC_FAMILY_MAPPINGS: &[&str] = &["net.fabricmc.intermediary", "org.quiltmc.hashed"];
+
+/// What applying a modpack would change about one instance's components, as the
+/// frontend sees it.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PrismSyncPlan {
+    pub instance_id: String,
+    /// The Minecraft version the instance would be moved to, if any.
+    pub minecraft_version: Option<String>,
+    /// The loader the instance's components would be moved to, if any.
+    pub mod_loader: Option<ModLoader>,
+}
 
 /// A Prism Launcher instance as Quadrant sees it.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -158,16 +182,17 @@ pub fn resolve_instance_dir(instances_dir: &Path, instance_id: &str) -> Result<P
         return Err(anyhow::Error::from(ErrorCode::InvalidRequest));
     }
     let dir = instances_dir.join(instance_id);
-    if !dir.join("mmc-pack.json").is_file() {
+    if !dir.join(PACK_MANIFEST).is_file() {
         return Err(anyhow::Error::from(ErrorCode::PrismInstanceMissing));
     }
     Ok(dir)
 }
 
 /// Reads an instance's `mmc-pack.json` as raw JSON.
-pub fn read_pack_manifest(instances_dir: &Path, instance_id: &str) -> Result<Value> {
-    let path = resolve_instance_dir(instances_dir, instance_id)?.join("mmc-pack.json");
-    Ok(serde_json::from_slice(&std::fs::read(path)?)?)
+pub fn read_pack_manifest(instance_dir: &Path) -> Result<Value> {
+    Ok(serde_json::from_slice(&std::fs::read(
+        instance_dir.join(PACK_MANIFEST),
+    )?)?)
 }
 
 /// Lists the Prism instances under `instances_dir`, sorted by display name.
@@ -180,7 +205,7 @@ pub fn list_instances(instances_dir: &Path, mc_folder: &Path) -> Result<Vec<Pris
     for entry in std::fs::read_dir(instances_dir)? {
         let entry = entry?;
         let dir = entry.path();
-        if !dir.join("instance.cfg").is_file() || !dir.join("mmc-pack.json").is_file() {
+        if !dir.join("instance.cfg").is_file() || !dir.join(PACK_MANIFEST).is_file() {
             continue;
         }
         let id = entry.file_name().to_string_lossy().to_string();
@@ -197,11 +222,8 @@ pub fn list_instances(instances_dir: &Path, mc_folder: &Path) -> Result<Vec<Pris
 }
 
 fn read_instance(dir: &Path, id: String, mc_folder: &Path) -> Result<PrismInstance> {
-    let pack: Value = serde_json::from_slice(&std::fs::read(dir.join("mmc-pack.json"))?)?;
-    validate_pack(&pack)?;
-    let components = pack["components"]
-        .as_array()
-        .ok_or_else(|| anyhow::Error::from(ErrorCode::PrismInstanceUnreadable))?;
+    let pack = read_pack_manifest(dir)?;
+    let components = validated_components(&pack)?;
 
     let minecraft_version = components
         .iter()
@@ -241,19 +263,20 @@ fn read_instance(dir: &Path, id: String, mc_folder: &Path) -> Result<PrismInstan
     })
 }
 
-/// Checks the parts of `mmc-pack.json` Quadrant relies on. `formatVersion` is
-/// Prism's own compatibility gate, so a manifest that does not declare the
-/// version Prism accepts is left untouched rather than rewritten blind.
-fn validate_pack(pack: &Value) -> Result<()> {
-    if pack["formatVersion"].as_i64() != Some(PACK_FORMAT_VERSION) || !pack["components"].is_array()
-    {
+/// The components of a manifest Quadrant may touch. `formatVersion` is Prism's
+/// own compatibility gate, so a manifest that does not declare the version
+/// Prism accepts is left untouched rather than rewritten blind.
+fn validated_components(pack: &Value) -> Result<&Vec<Value>> {
+    if pack["formatVersion"].as_i64() != Some(PACK_FORMAT_VERSION) {
         return Err(anyhow::Error::from(ErrorCode::PrismInstanceUnreadable));
     }
-    Ok(())
+    pack["components"]
+        .as_array()
+        .ok_or_else(|| anyhow::Error::from(ErrorCode::PrismInstanceUnreadable))
 }
 
 fn components_mut(pack: &mut Value) -> Result<&mut Vec<Value>> {
-    validate_pack(pack)?;
+    validated_components(pack)?;
     pack.as_object_mut()
         .and_then(|object| object.get_mut("components"))
         .and_then(Value::as_array_mut)
@@ -280,6 +303,63 @@ fn loader_is_minecraft_specific(loader: ModLoader) -> bool {
     matches!(loader, ModLoader::Forge | ModLoader::NeoForge)
 }
 
+/// Whether a component holds mappings Prism pulls in for the Fabric loader
+/// family rather than for the instance itself.
+fn is_fabric_family_mapping(component: &Value) -> bool {
+    component["dependencyOnly"] == true
+        && component["uid"]
+            .as_str()
+            .is_some_and(|uid| FABRIC_FAMILY_MAPPINGS.contains(&uid))
+}
+
+/// What applying a modpack would change about an instance's components.
+///
+/// Every field is what the change would be, not whether there is one, so a
+/// caller can show the move it is about to make.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct SyncPlan {
+    /// The Minecraft version the components will be rewritten to, if any.
+    pub minecraft_version: Option<String>,
+    /// The loader whose component will be added, swapped in or re-versioned.
+    pub mod_loader: Option<ModLoader>,
+    /// Whether applying needs a resolved loader build to go through, so a
+    /// caller only reaches the network when the answer is used.
+    pub needs_loader_version: bool,
+}
+
+/// Works out what [`sync_components`] would do to `pack`, without touching it.
+///
+/// The single reading of the sync rules: `sync_components` applies this plan
+/// rather than deciding again.
+pub fn plan_sync(pack: &Value, minecraft_version: &str, loader: ModLoader) -> Result<SyncPlan> {
+    if !is_syncable_version(minecraft_version) {
+        return Ok(SyncPlan::default());
+    }
+    let components = validated_components(pack)?;
+    let rewrites_minecraft = components
+        .iter()
+        .find(|component| component["uid"] == MINECRAFT_UID)
+        .is_none_or(|component| component["version"] != minecraft_version);
+
+    let mut plan = SyncPlan {
+        minecraft_version: rewrites_minecraft.then(|| minecraft_version.to_string()),
+        ..SyncPlan::default()
+    };
+
+    if let Some(uid) = loader_component_uid(loader) {
+        let installed = components.iter().any(|component| component["uid"] == uid);
+        let other_loaders = components.iter().any(|component| {
+            component["uid"].as_str().is_some_and(|existing| {
+                existing != uid && loader_for_component_uid(existing).is_some()
+            })
+        });
+        plan.needs_loader_version =
+            !installed || (loader_is_minecraft_specific(loader) && rewrites_minecraft);
+        plan.mod_loader = (plan.needs_loader_version || other_loaders).then_some(loader);
+    }
+    Ok(plan)
+}
+
 /// Aligns an instance's components with a modpack's Minecraft version and mod
 /// loader, reporting whether anything changed.
 ///
@@ -295,9 +375,10 @@ pub fn sync_components(
     if !is_syncable_version(minecraft_version) {
         return Ok(false);
     }
+    let plan = plan_sync(pack, minecraft_version, loader)?;
+    let minecraft_changed = plan.minecraft_version.is_some();
     let components = components_mut(pack)?;
-    let mut changed = false;
-    let mut minecraft_changed = false;
+    let mut changed = minecraft_changed;
 
     match components
         .iter()
@@ -305,10 +386,9 @@ pub fn sync_components(
     {
         Some(index) => {
             let component = &mut components[index];
-            if component["version"] != minecraft_version {
-                component["version"] = Value::String(minecraft_version.to_string());
+            if let Some(version) = plan.minecraft_version {
+                component["version"] = Value::String(version);
                 drop_cached_fields(component);
-                minecraft_changed = true;
             }
             // Without `important` Prism lets the user remove Minecraft from the
             // instance, and skips its own re-resolve when the version changes.
@@ -317,16 +397,12 @@ pub fn sync_components(
                 changed = true;
             }
         }
-        None => {
-            components.push(json!({
-                "uid": MINECRAFT_UID,
-                "version": minecraft_version,
-                "important": true,
-            }));
-            minecraft_changed = true;
-        }
+        None => components.push(json!({
+            "uid": MINECRAFT_UID,
+            "version": minecraft_version,
+            "important": true,
+        })),
     }
-    changed |= minecraft_changed;
 
     if let Some(uid) = loader_component_uid(loader) {
         let before = components.len();
@@ -335,7 +411,7 @@ pub fn sync_components(
                 existing == uid || loader_for_component_uid(existing).is_none()
             })
         });
-        changed |= components.len() != before;
+        let mut loader_components_changed = components.len() != before;
 
         let rebuild = loader_is_minecraft_specific(loader) && minecraft_changed;
         match components
@@ -354,9 +430,17 @@ pub fn sync_components(
             None => {
                 let version = loader_version.ok_or(ErrorCode::PrismLoaderVersionRequired)?;
                 components.push(json!({ "uid": uid, "version": version }));
-                changed = true;
+                loader_components_changed = true;
             }
         }
+
+        // The mappings left over from a swapped-out Fabric or Quilt loader name
+        // that family's intermediary, which an instance that no longer has the
+        // family cannot launch with.
+        if loader_components_changed && !matches!(loader, ModLoader::Fabric | ModLoader::Quilt) {
+            components.retain(|component| !is_fabric_family_mapping(component));
+        }
+        changed |= loader_components_changed;
     }
 
     if minecraft_changed {
@@ -366,56 +450,41 @@ pub fn sync_components(
         // downloaded online anyway, whereas a loader-only change leaves them in
         // place so an already cached instance still launches offline.
         components.retain(|component| component["dependencyOnly"] != true);
+        // Whatever is left cached its name and version for the Minecraft
+        // version the instance is leaving.
+        for component in components.iter_mut() {
+            drop_cached_fields(component);
+        }
     }
     Ok(changed)
 }
 
-/// Whether [`sync_components`] would need a `loader_version` for this target,
-/// so a caller only reaches the network when the answer is used.
-pub fn needs_loader_version(pack: &Value, minecraft_version: &str, loader: ModLoader) -> bool {
-    if !is_syncable_version(minecraft_version) {
-        return false;
-    }
-    let Some(uid) = loader_component_uid(loader) else {
-        return false;
-    };
-    let Some(components) = pack["components"].as_array() else {
-        return true;
-    };
-    let minecraft_changes = components
-        .iter()
-        .find(|component| component["uid"] == MINECRAFT_UID)
-        .is_none_or(|component| component["version"] != minecraft_version);
-
-    !components.iter().any(|component| component["uid"] == uid)
-        || (loader_is_minecraft_specific(loader) && minecraft_changes)
-}
-
 /// Points an instance's `mods` folder at a modpack and syncs the instance's
 /// Minecraft version and mod loader to match it.
+///
+/// `pack` is the instance's parsed manifest, which the caller already read to
+/// plan the change.
 pub fn apply_modpack_to_instance(
     mc_folder: &Path,
-    instances_dir: &Path,
-    instance_id: &str,
+    instance_dir: &Path,
+    mut pack: Value,
     modpack: &LocalModpack,
     loader_version: Option<&str>,
 ) -> Result<()> {
     validate_modpack_name(&modpack.name)?;
-    let instance_folder = resolve_instance_dir(instances_dir, instance_id)?;
     let modpack_dir = modpack_path(mc_folder, &modpack.name);
     if !modpack_dir.is_dir() {
         return Err(anyhow::Error::from(ErrorCode::ModpackMissing));
     }
     log::info!(
-        "Applying modpack \"{}\" to Prism instance \"{instance_id}\"",
-        modpack.name
+        "Applying modpack \"{}\" to Prism instance \"{}\"",
+        modpack.name,
+        instance_dir.display()
     );
 
     // Compute the new manifest before touching the filesystem, so a rejected
     // manifest or a missing loader version leaves the instance untouched rather
     // than linked but out of sync.
-    let manifest = instance_folder.join("mmc-pack.json");
-    let mut pack: Value = serde_json::from_slice(&std::fs::read(&manifest)?)?;
     let pack_changed = sync_components(
         &mut pack,
         &modpack.version,
@@ -423,27 +492,70 @@ pub fn apply_modpack_to_instance(
         loader_version,
     )?;
 
-    let game_folder = game_dir(&instance_folder);
+    let game_folder = game_dir(instance_dir);
+    let mods_path = game_folder.join("mods");
+    // Read before linking: an instance that is not linked yet still has the
+    // components it came with, and this is the last moment they are on disk.
+    let was_linked = mods_path.is_symlink();
     std::fs::create_dir_all(&game_folder)?;
-    link_mods_folder(&game_folder.join("mods"), &modpack_dir, &game_folder)?;
+    link_mods_folder(&mods_path, &modpack_dir, &game_folder)?;
 
     if pack_changed {
-        write_file_atomically(&manifest, serde_json::to_string_pretty(&pack)?)?;
+        if !was_linked {
+            back_up_pack_manifest(instance_dir)?;
+        }
+        write_file_atomically(
+            instance_dir.join(PACK_MANIFEST),
+            serde_json::to_string_pretty(&pack)?,
+        )?;
     }
     Ok(())
 }
 
-/// Unlinks an instance from its modpack and gives it back the `mods` folder
-/// that applying set aside, or an empty one if there was none. A no-op when the
-/// instance is not linked.
-pub fn detach_instance(instances_dir: &Path, instance_id: &str) -> Result<()> {
-    let game_folder = game_dir(&resolve_instance_dir(instances_dir, instance_id)?);
-    let mods_path = game_folder.join("mods");
-    if !mods_path.is_symlink() {
+/// Saves the manifest an instance came with, so unlinking can restore it.
+///
+/// An existing backup is kept, so an instance moved from one modpack to another
+/// still goes back to the components it had before Quadrant touched it.
+fn back_up_pack_manifest(instance_dir: &Path) -> Result<()> {
+    let backup = instance_dir.join(PACK_MANIFEST_BACKUP);
+    if backup.exists() {
         return Ok(());
     }
-    log::info!("Detaching Prism instance \"{instance_id}\" from its modpack");
-    std::fs::remove_dir_all(&mods_path)?;
+    write_file_atomically(backup, std::fs::read(instance_dir.join(PACK_MANIFEST))?)?;
+    Ok(())
+}
+
+/// Puts back the manifest applying saved, if it saved one.
+fn restore_pack_manifest(instance_dir: &Path) -> Result<()> {
+    let backup = instance_dir.join(PACK_MANIFEST_BACKUP);
+    if !backup.is_file() {
+        return Ok(());
+    }
+    std::fs::rename(backup, instance_dir.join(PACK_MANIFEST))?;
+    Ok(())
+}
+
+/// Unlinks an instance from its modpack and gives it back the `mods` folder and
+/// the components that applying set aside, or an empty `mods` folder if there
+/// was none. A no-op when the instance has nothing of Quadrant's to undo.
+pub fn detach_instance(instance_dir: &Path) -> Result<()> {
+    let game_folder = game_dir(instance_dir);
+    let mods_path = game_folder.join("mods");
+    let linked = mods_path.is_symlink();
+    // A real `mods` directory is the instance's own, and an instance with no
+    // game directory was never applied to. A missing `mods` is where a failed
+    // link creation left the instance, and its backup is owed back just the
+    // way a linked one's is.
+    if !linked && (mods_path.exists() || !game_folder.is_dir()) {
+        return Ok(());
+    }
+    log::info!(
+        "Detaching Prism instance \"{}\" from its modpack",
+        instance_dir.display()
+    );
+    if linked {
+        std::fs::remove_dir_all(&mods_path)?;
+    }
 
     // Backup names end in a sortable timestamp, so the greatest is the newest.
     let newest_backup = std::fs::read_dir(&game_folder)?
@@ -460,7 +572,46 @@ pub fn detach_instance(instances_dir: &Path, instance_id: &str) -> Result<()> {
         Some(backup) => std::fs::rename(backup, &mods_path)?,
         None => std::fs::create_dir_all(&mods_path)?,
     }
-    Ok(())
+    restore_pack_manifest(instance_dir)
+}
+
+/// Points an instance that is already linked at the modpack's new folder.
+///
+/// Renaming a modpack moves the folder its links resolve through, not what the
+/// instance runs, so the components are left alone.
+pub fn relink_instance(instance_dir: &Path, mc_folder: &Path, modpack: &str) -> Result<()> {
+    validate_modpack_name(modpack)?;
+    let game_folder = game_dir(instance_dir);
+    log::info!(
+        "Relinking Prism instance \"{}\" to modpack \"{modpack}\"",
+        instance_dir.display()
+    );
+    link_mods_folder(
+        &game_folder.join("mods"),
+        &modpack_path(mc_folder, modpack),
+        &game_folder,
+    )
+}
+
+/// The ids of the instances whose `mods` folder links to the named modpack.
+///
+/// The one reading of "which instances use this modpack", for following it
+/// around and for keeping its links alive when it is renamed or deleted.
+pub fn instances_linked_to(instances_dir: &Path, mc_folder: &Path, modpack: &str) -> Vec<String> {
+    if modpack.is_empty() {
+        return Vec::new();
+    }
+    match list_instances(instances_dir, mc_folder) {
+        Ok(instances) => instances
+            .into_iter()
+            .filter(|instance| instance.applied_modpack.as_deref() == Some(modpack))
+            .map(|instance| instance.id)
+            .collect(),
+        Err(error) => {
+            log::warn!("Ignoring Prism instances linked to \"{modpack}\": {error}");
+            Vec::new()
+        }
+    }
 }
 
 /// Every root the named modpack is applied to, as a place to install content
@@ -485,23 +636,39 @@ pub fn content_roots(
     }
 
     if let Some(instances_dir) = instances_dir {
-        match list_instances(instances_dir, mc_folder) {
-            Ok(instances) => roots.extend(
-                instances
-                    .iter()
-                    .filter(|instance| instance.applied_modpack.as_deref() == Some(modpack))
-                    .map(|instance| game_dir(&instances_dir.join(&instance.id))),
-            ),
-            Err(error) => {
-                log::warn!("Ignoring Prism instances while resolving content roots: {error}");
-            }
-        }
+        roots.extend(
+            instances_linked_to(instances_dir, mc_folder, modpack)
+                .iter()
+                .map(|id| game_dir(&instances_dir.join(id))),
+        );
     }
 
     if roots.is_empty() {
         roots.push(mc_folder.to_path_buf());
     }
     roots
+}
+
+/// Where a single install of `mod_type` should land.
+///
+/// Resource packs and shaders live beside `mods` rather than inside it, so a
+/// caller can send one to a game directory it chose, and otherwise they follow
+/// the modpack into every place it is applied. Every other type installs into
+/// the Minecraft folder, whatever the caller asked for.
+pub fn install_roots(
+    mc_folder: &Path,
+    instances_dir: Option<&Path>,
+    mod_type: ModType,
+    modpack: Option<&str>,
+    explicit_game_dir: Option<PathBuf>,
+) -> Vec<PathBuf> {
+    if content_subfolder(mod_type).is_none() {
+        return vec![mc_folder.to_path_buf()];
+    }
+    if let Some(game_dir) = explicit_game_dir {
+        return vec![game_dir];
+    }
+    content_roots(mc_folder, instances_dir, modpack.unwrap_or_default())
 }
 
 fn prism_meta_base() -> String {
@@ -635,6 +802,20 @@ mod tests {
         (dir, mc_folder, instances_dir)
     }
 
+    /// Applies a modpack the way a host does: resolve the instance, read its
+    /// manifest once, hand both on.
+    fn apply(
+        mc_folder: &Path,
+        instances_dir: &Path,
+        instance_id: &str,
+        modpack: &LocalModpack,
+        loader_version: Option<&str>,
+    ) -> Result<()> {
+        let instance_dir = resolve_instance_dir(instances_dir, instance_id)?;
+        let pack = read_pack_manifest(&instance_dir)?;
+        apply_modpack_to_instance(mc_folder, &instance_dir, pack, modpack, loader_version)
+    }
+
     fn local_modpack(name: &str, version: &str, mod_loader: ModLoader) -> LocalModpack {
         LocalModpack {
             name: name.to_string(),
@@ -673,7 +854,7 @@ mod tests {
     }
 
     #[test]
-    fn sync_components_keeps_dependencies_when_only_the_loader_changes() {
+    fn sync_components_keeps_lwjgl_when_only_the_loader_changes() {
         let mut pack = pack_with(json!([
             { "uid": MINECRAFT_UID, "version": "1.21.1", "important": true },
             { "uid": "org.lwjgl3", "version": "3.3.3", "dependencyOnly": true },
@@ -685,15 +866,57 @@ mod tests {
             sync_components(&mut pack, "1.21.1", ModLoader::NeoForge, Some("21.1.251")).unwrap()
         );
 
+        // LWJGL stays so an already downloaded instance still launches offline,
+        // while the Fabric mappings go with the Fabric loader.
+        assert_eq!(uids(&pack), [MINECRAFT_UID, "org.lwjgl3", "net.neoforged"]);
+        assert!(
+            !sync_components(&mut pack, "1.21.1", ModLoader::NeoForge, Some("21.1.251")).unwrap()
+        );
+    }
+
+    #[test]
+    fn sync_components_keeps_the_mappings_shared_by_fabric_and_quilt() {
+        let mut pack = pack_with(json!([
+            { "uid": MINECRAFT_UID, "version": "1.21.1", "important": true },
+            { "uid": "net.fabricmc.intermediary", "version": "1.21.1", "dependencyOnly": true },
+            { "uid": "org.quiltmc.hashed", "version": "1.21.1", "dependencyOnly": true },
+            { "uid": "net.fabricmc.fabric-loader", "version": "0.16.9" }
+        ]));
+
+        assert!(sync_components(&mut pack, "1.21.1", ModLoader::Quilt, Some("0.27.0")).unwrap());
+
         assert_eq!(
             uids(&pack),
             [
                 MINECRAFT_UID,
-                "org.lwjgl3",
                 "net.fabricmc.intermediary",
-                "net.neoforged"
+                "org.quiltmc.hashed",
+                "org.quiltmc.quilt-loader"
             ]
         );
+    }
+
+    #[test]
+    fn sync_components_clears_cached_state_on_every_component() {
+        let mut pack = pack_with(json!([
+            { "uid": MINECRAFT_UID, "version": "1.20.1", "important": true },
+            {
+                "uid": "net.fabricmc.fabric-loader",
+                "version": "0.16.9",
+                "cachedName": "Fabric Loader",
+                "cachedRequires": [],
+                "disabled": true
+            }
+        ]));
+
+        assert!(sync_components(&mut pack, "1.21.1", ModLoader::Fabric, None).unwrap());
+
+        let fabric = component(&pack, "net.fabricmc.fabric-loader");
+        assert_eq!(fabric["version"], "0.16.9");
+        assert!(fabric.get("cachedName").is_none());
+        assert!(fabric.get("cachedRequires").is_none());
+        // Fields Quadrant does not model are not cached state.
+        assert_eq!(fabric["disabled"], true);
     }
 
     #[test]
@@ -847,23 +1070,90 @@ mod tests {
     }
 
     #[test]
-    fn needs_loader_version_only_when_sync_would_use_one() {
-        let pack = pack_with(json!([
+    fn plan_sync_reports_the_move_each_target_would_make() {
+        let forge = pack_with(json!([
             { "uid": MINECRAFT_UID, "version": "1.20.1" },
             { "uid": "net.minecraftforge", "version": "47.2.0" }
         ]));
-
-        assert!(!needs_loader_version(&pack, "1.20.1", ModLoader::Forge));
-        assert!(needs_loader_version(&pack, "1.21.1", ModLoader::Forge));
-        assert!(needs_loader_version(&pack, "1.20.1", ModLoader::Fabric));
-        assert!(!needs_loader_version(&pack, "1.20.1", ModLoader::Unknown));
-        assert!(!needs_loader_version(&pack, "-", ModLoader::Fabric));
-
         let fabric = pack_with(json!([
             { "uid": MINECRAFT_UID, "version": "1.20.1" },
             { "uid": "net.fabricmc.fabric-loader", "version": "0.15.0" }
         ]));
-        assert!(!needs_loader_version(&fabric, "1.21.1", ModLoader::Fabric));
+
+        for (pack, version, loader, expected) in [
+            // Nothing to do: the instance already runs what the modpack wants.
+            (&forge, "1.20.1", ModLoader::Forge, SyncPlan::default()),
+            // A Forge build is pinned to the Minecraft version, so moving the
+            // version re-versions the loader too.
+            (
+                &forge,
+                "1.21.1",
+                ModLoader::Forge,
+                SyncPlan {
+                    minecraft_version: Some("1.21.1".to_string()),
+                    mod_loader: Some(ModLoader::Forge),
+                    needs_loader_version: true,
+                },
+            ),
+            // A swap needs a build for a loader the instance does not have.
+            (
+                &forge,
+                "1.20.1",
+                ModLoader::Fabric,
+                SyncPlan {
+                    minecraft_version: None,
+                    mod_loader: Some(ModLoader::Fabric),
+                    needs_loader_version: true,
+                },
+            ),
+            // Fabric builds are Minecraft-version independent, so the kept
+            // loader component is not a change.
+            (
+                &fabric,
+                "1.21.1",
+                ModLoader::Fabric,
+                SyncPlan {
+                    minecraft_version: Some("1.21.1".to_string()),
+                    mod_loader: None,
+                    needs_loader_version: false,
+                },
+            ),
+            // A loader Prism does not install leaves the loader components be.
+            (
+                &forge,
+                "1.21.1",
+                ModLoader::Unknown,
+                SyncPlan {
+                    minecraft_version: Some("1.21.1".to_string()),
+                    mod_loader: None,
+                    needs_loader_version: false,
+                },
+            ),
+            // A modpack with no manifest version says nothing about the target.
+            (&forge, "-", ModLoader::Fabric, SyncPlan::default()),
+            (&forge, "", ModLoader::Fabric, SyncPlan::default()),
+        ] {
+            assert_eq!(
+                plan_sync(pack, version, loader).unwrap(),
+                expected,
+                "{version} {loader:?}"
+            );
+        }
+
+        assert_eq!(
+            plan_sync(&pack_with(json!([])), "1.21.1", ModLoader::Fabric).unwrap(),
+            SyncPlan {
+                minecraft_version: Some("1.21.1".to_string()),
+                mod_loader: Some(ModLoader::Fabric),
+                needs_loader_version: true,
+            }
+        );
+        assert!(
+            plan_sync(&json!({ "components": [] }), "1.21.1", ModLoader::Fabric)
+                .unwrap_err()
+                .to_string()
+                .contains("errorPrismInstanceUnreadable")
+        );
     }
 
     #[test]
@@ -1000,7 +1290,7 @@ mod tests {
         std::fs::create_dir_all(&mods_path).unwrap();
         std::fs::write(mods_path.join("loose.jar"), "jar").unwrap();
 
-        apply_modpack_to_instance(
+        apply(
             &mc_folder,
             &instances_dir,
             "alpha",
@@ -1035,13 +1325,13 @@ mod tests {
             Some("pack")
         );
 
-        detach_instance(&instances_dir, "alpha").unwrap();
+        detach_instance(&instance).unwrap();
         assert!(!mods_path.is_symlink());
         assert!(mods_path.join("loose.jar").exists());
         assert!(!backup.path().exists());
         assert!(modpack_dir.is_dir());
         // Detaching twice must converge on the same state.
-        detach_instance(&instances_dir, "alpha").unwrap();
+        detach_instance(&instance).unwrap();
         assert!(mods_path.is_dir());
     }
 
@@ -1061,7 +1351,7 @@ mod tests {
 
         // Forge needs a build for the new Minecraft version and none was resolved.
         assert!(
-            apply_modpack_to_instance(
+            apply(
                 &mc_folder,
                 &instances_dir,
                 "alpha",
@@ -1079,18 +1369,208 @@ mod tests {
     }
 
     #[test]
-    fn instance_operations_reject_unknown_and_unsafe_ids() {
+    fn the_manifest_an_instance_came_with_is_saved_once_and_restored() {
+        let (_dir, _mc_folder, instances_dir) = setup_dirs();
+        let instance = write_instance(
+            &instances_dir,
+            "alpha",
+            "Alpha",
+            &pack_with(json!([{ "uid": MINECRAFT_UID, "version": "1.20.1" }])),
+        );
+        let manifest = instance.join(PACK_MANIFEST);
+        let original = std::fs::read(&manifest).unwrap();
+
+        back_up_pack_manifest(&instance).unwrap();
+        std::fs::write(&manifest, pack_with(json!([])).to_string()).unwrap();
+        // Moving to a second modpack must not overwrite the instance's own.
+        back_up_pack_manifest(&instance).unwrap();
+        assert_eq!(
+            std::fs::read(instance.join(PACK_MANIFEST_BACKUP)).unwrap(),
+            original
+        );
+
+        restore_pack_manifest(&instance).unwrap();
+        assert_eq!(std::fs::read(&manifest).unwrap(), original);
+        assert!(!instance.join(PACK_MANIFEST_BACKUP).exists());
+
+        // Nothing was saved, so the manifest on disk is the instance's own.
+        std::fs::write(&manifest, pack_with(json!([])).to_string()).unwrap();
+        restore_pack_manifest(&instance).unwrap();
+        assert_ne!(std::fs::read(&manifest).unwrap(), original);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[test]
+    fn unlinking_restores_the_components_the_instance_came_with() {
         let (_dir, mc_folder, instances_dir) = setup_dirs();
-        let modpack = local_modpack("pack", "1.21.1", ModLoader::Fabric);
+        let instance = write_instance(
+            &instances_dir,
+            "alpha",
+            "Alpha",
+            &pack_with(json!([
+                { "uid": MINECRAFT_UID, "version": "1.20.1", "important": true },
+                { "uid": "net.minecraftforge", "version": "47.2.0" }
+            ])),
+        );
+        std::fs::create_dir_all(modpack_path(&mc_folder, "pack")).unwrap();
+        std::fs::create_dir_all(modpack_path(&mc_folder, "other")).unwrap();
+        let manifest = instance.join(PACK_MANIFEST);
+        let original = std::fs::read(&manifest).unwrap();
+
+        apply(
+            &mc_folder,
+            &instances_dir,
+            "alpha",
+            &local_modpack("pack", "1.21.1", ModLoader::Fabric),
+            Some("0.16.9"),
+        )
+        .unwrap();
+        assert!(instance.join(PACK_MANIFEST_BACKUP).is_file());
+        apply(
+            &mc_folder,
+            &instances_dir,
+            "alpha",
+            &local_modpack("other", "1.20.1", ModLoader::NeoForge),
+            Some("47.1.0"),
+        )
+        .unwrap();
+
+        detach_instance(&instance).unwrap();
+
+        assert_eq!(std::fs::read(&manifest).unwrap(), original);
+        assert!(!instance.join(PACK_MANIFEST_BACKUP).exists());
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[test]
+    fn an_apply_that_changes_no_components_saves_no_manifest() {
+        let (_dir, mc_folder, instances_dir) = setup_dirs();
+        let instance = write_instance(
+            &instances_dir,
+            "alpha",
+            "Alpha",
+            &pack_with(json!([
+                { "uid": MINECRAFT_UID, "version": "1.21.1", "important": true },
+                { "uid": "net.fabricmc.fabric-loader", "version": "0.16.9" }
+            ])),
+        );
         std::fs::create_dir_all(modpack_path(&mc_folder, "pack")).unwrap();
 
+        apply(
+            &mc_folder,
+            &instances_dir,
+            "alpha",
+            &local_modpack("pack", "1.21.1", ModLoader::Fabric),
+            None,
+        )
+        .unwrap();
+
+        assert!(!instance.join(PACK_MANIFEST_BACKUP).exists());
+        assert!(instance.join("minecraft").join("mods").is_symlink());
+    }
+
+    #[test]
+    fn detaching_gives_back_a_backup_a_failed_link_left_behind() {
+        let (_dir, _mc_folder, instances_dir) = setup_dirs();
+        let instance = write_instance(
+            &instances_dir,
+            "alpha",
+            "Alpha",
+            &pack_with(json!([{ "uid": MINECRAFT_UID, "version": "1.21.1" }])),
+        );
+        let game_folder = instance.join("minecraft");
+        let backup = game_folder.join("mods-backup-20260101-000000");
+        std::fs::create_dir_all(&backup).unwrap();
+        std::fs::write(backup.join("loose.jar"), "jar").unwrap();
+
+        detach_instance(&instance).unwrap();
+
+        let mods_path = game_folder.join("mods");
+        assert!(mods_path.join("loose.jar").exists());
+        assert!(!backup.exists());
+
+        // A real `mods` folder is the instance's own and is left as it is.
+        std::fs::write(mods_path.join("second.jar"), "jar").unwrap();
+        detach_instance(&instance).unwrap();
+        assert!(mods_path.join("second.jar").exists());
+    }
+
+    #[test]
+    fn detaching_an_instance_that_was_never_launched_does_nothing() {
+        let (_dir, _mc_folder, instances_dir) = setup_dirs();
+        let instance = write_instance(
+            &instances_dir,
+            "alpha",
+            "Alpha",
+            &pack_with(json!([{ "uid": MINECRAFT_UID, "version": "1.21.1" }])),
+        );
+        std::fs::remove_dir_all(instance.join("minecraft")).unwrap();
+
+        detach_instance(&instance).unwrap();
+
+        assert!(!instance.join("minecraft").exists());
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[test]
+    fn relinking_points_an_instance_at_a_renamed_modpack() {
+        let (_dir, mc_folder, instances_dir) = setup_dirs();
+        let instance = write_instance(
+            &instances_dir,
+            "alpha",
+            "Alpha",
+            &pack_with(json!([{ "uid": MINECRAFT_UID, "version": "1.21.1" }])),
+        );
+        std::fs::create_dir_all(modpack_path(&mc_folder, "pack")).unwrap();
+        apply(
+            &mc_folder,
+            &instances_dir,
+            "alpha",
+            &local_modpack("pack", "1.21.1", ModLoader::Fabric),
+            Some("0.16.9"),
+        )
+        .unwrap();
+        let manifest_before = std::fs::read(instance.join(PACK_MANIFEST)).unwrap();
+        std::fs::rename(
+            modpack_path(&mc_folder, "pack"),
+            modpack_path(&mc_folder, "renamed"),
+        )
+        .unwrap();
+
+        relink_instance(&instance, &mc_folder, "renamed").unwrap();
+
+        assert_eq!(
+            instance.join("minecraft").join("mods").read_link().unwrap(),
+            modpack_path(&mc_folder, "renamed")
+        );
+        assert_eq!(
+            instances_linked_to(&instances_dir, &mc_folder, "renamed"),
+            ["alpha"]
+        );
+        // Following the folder must not change what the instance runs.
+        assert_eq!(
+            std::fs::read(instance.join(PACK_MANIFEST)).unwrap(),
+            manifest_before
+        );
+        assert!(relink_instance(&instance, &mc_folder, "../escape").is_err());
+    }
+
+    #[test]
+    fn resolving_an_instance_rejects_unknown_and_unsafe_ids() {
+        let (_dir, _mc_folder, instances_dir) = setup_dirs();
+        write_instance(
+            &instances_dir,
+            "alpha",
+            "Alpha",
+            &pack_with(json!([{ "uid": MINECRAFT_UID, "version": "1.21.1" }])),
+        );
+
+        assert_eq!(
+            resolve_instance_dir(&instances_dir, "alpha").unwrap(),
+            instances_dir.join("alpha")
+        );
         for id in ["ghost", "../escape", "", "a/b"] {
-            assert!(
-                apply_modpack_to_instance(&mc_folder, &instances_dir, id, &modpack, Some("0.16.9"))
-                    .is_err(),
-                "{id:?}"
-            );
-            assert!(detach_instance(&instances_dir, id).is_err(), "{id:?}");
+            assert!(resolve_instance_dir(&instances_dir, id).is_err(), "{id:?}");
         }
     }
 
@@ -1122,7 +1602,7 @@ mod tests {
             [mc_folder.clone()]
         );
 
-        apply_modpack_to_instance(
+        apply(
             &mc_folder,
             &instances_dir,
             "alpha",
@@ -1134,6 +1614,11 @@ mod tests {
             content_roots(&mc_folder, Some(&instances_dir), "pack"),
             [instances_dir.join("alpha").join("minecraft")]
         );
+        assert_eq!(
+            instances_linked_to(&instances_dir, &mc_folder, "pack"),
+            ["alpha"]
+        );
+        assert!(instances_linked_to(&instances_dir, &mc_folder, "other").is_empty());
 
         crate::modpacks::apply_modpack(&mc_folder, "pack").unwrap();
         assert_eq!(
@@ -1146,6 +1631,74 @@ mod tests {
         assert_eq!(content_roots(&mc_folder, None, "pack"), [mc_folder.clone()]);
         assert_eq!(
             content_roots(&mc_folder, Some(&instances_dir), "other"),
+            [mc_folder]
+        );
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[test]
+    fn install_roots_follows_the_modpack_unless_a_game_directory_was_chosen() {
+        let (_dir, mc_folder, instances_dir) = setup_dirs();
+        std::fs::create_dir_all(modpack_path(&mc_folder, "pack")).unwrap();
+        write_instance(
+            &instances_dir,
+            "alpha",
+            "Alpha",
+            &pack_with(json!([{ "uid": MINECRAFT_UID, "version": "1.21.1" }])),
+        );
+        apply(
+            &mc_folder,
+            &instances_dir,
+            "alpha",
+            &local_modpack("pack", "1.21.1", ModLoader::Fabric),
+            Some("0.16.9"),
+        )
+        .unwrap();
+        let game_dir = instances_dir.join("alpha").join("minecraft");
+        let instances_dir = Some(instances_dir.as_path());
+
+        assert_eq!(
+            install_roots(
+                &mc_folder,
+                instances_dir,
+                ModType::ResourcePack,
+                Some("pack"),
+                None
+            ),
+            [game_dir.clone()]
+        );
+        assert_eq!(
+            install_roots(
+                &mc_folder,
+                instances_dir,
+                ModType::ShaderPack,
+                Some("pack"),
+                Some(mc_folder.clone())
+            ),
+            [mc_folder.clone()]
+        );
+        // Every other type installs into the Minecraft folder whatever the
+        // caller asks for.
+        for mod_type in [ModType::Mod, ModType::Modpack, ModType::DataPack] {
+            assert_eq!(
+                install_roots(
+                    &mc_folder,
+                    instances_dir,
+                    mod_type,
+                    Some("pack"),
+                    Some(game_dir.clone())
+                ),
+                [mc_folder.clone()],
+                "{mod_type}"
+            );
+        }
+        // Without Prism the modpack is only followed into the Minecraft folder.
+        assert_eq!(
+            install_roots(&mc_folder, None, ModType::ResourcePack, Some("pack"), None),
+            [mc_folder.clone()]
+        );
+        assert_eq!(
+            install_roots(&mc_folder, instances_dir, ModType::ResourcePack, None, None),
             [mc_folder]
         );
     }

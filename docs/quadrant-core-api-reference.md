@@ -212,6 +212,7 @@ Utility:
 Operational note:
 
 - `apply_modpack` and the export/install flows operate on the existing Quadrant on-disk layout, so hosts should treat that layout as part of the compatibility contract
+- applying sets a real `mods` directory aside as `mods-backup-<timestamp>` before linking and puts it back if creating the link fails, which is what Windows does without the symlink privilege, so a failed apply never leaves a game directory with no `mods` folder at all
 
 ## `prism`
 
@@ -220,6 +221,9 @@ Experimental, gated by the `experimentalFeatures` config key. Applies a Quadrant
 ### Shared types
 
 - `PrismInstance`
+- `PrismSyncPlan`
+- `SyncPlan`
+- `PACK_MANIFEST_BACKUP`
 
 ### Discovery
 
@@ -229,27 +233,36 @@ Experimental, gated by the `experimentalFeatures` config key. Applies a Quadrant
 - `game_dir(instance_dir)`
 - `list_instances(instances_dir, mc_folder)`
 - `resolve_instance_dir(instances_dir, instance_id)`
-- `read_pack_manifest(instances_dir, instance_id)`
+- `read_pack_manifest(instance_dir)`
+- `instances_linked_to(instances_dir, mc_folder, modpack)`
 - `content_roots(mc_folder, instances_dir, modpack)`
+- `install_roots(mc_folder, instances_dir, mod_type, modpack, explicit_game_dir)`
 
 ### Selection
 
-- `apply_modpack_to_instance(mc_folder, instances_dir, instance_id, modpack, loader_version)`
-- `detach_instance(instances_dir, instance_id)`
+- `apply_modpack_to_instance(mc_folder, instance_dir, pack, modpack, loader_version)`
+- `detach_instance(instance_dir)`
+- `relink_instance(instance_dir, mc_folder, modpack)`
 
 ### Component sync
 
+- `plan_sync(pack, minecraft_version, loader)`
 - `sync_components(pack, minecraft_version, loader, loader_version)`
-- `needs_loader_version(pack, minecraft_version, loader)`
 - `loader_component_uid(loader)`
 - `resolve_loader_version(loader, minecraft_version)`
 
 Operational notes:
 
+- `resolve_instance_dir` is the one validating entry: every other function takes the resolved `instance_dir`, so an id is checked once and the manifest is read once per operation
 - which modpack an instance uses is derived from its `<game dir>/mods` symlink target, exactly as `get_modpacks` derives `is_applied`; no binding is persisted
+- `plan_sync` is the single reading of the sync rules and `sync_components` applies its plan; an unsyncable modpack version (`""` or `-`) plans nothing
 - `sync_components` edits `mmc-pack.json` as raw JSON so fields Quadrant does not model survive, and returns `false` when nothing changed so the file is not rewritten
 - a manifest that does not declare `formatVersion: 1` is refused rather than rewritten
-- `resolve_loader_version` reads the Prism meta server at `https://meta.prismlauncher.org`, so call it only when `needs_loader_version` is true
+- a new Minecraft version drops the `dependencyOnly` components and every `cached*` field, so Prism re-resolves them; a loader-only change keeps LWJGL so an already downloaded instance still launches offline, but drops the mappings of a loader family the instance no longer has (`net.fabricmc.intermediary`, `org.quiltmc.hashed`, kept when swapping Fabric for Quilt)
+- the first apply that rewrites a manifest saves the original as `PACK_MANIFEST_BACKUP` beside it, and `detach_instance` restores it, so unlinking gives back the components the instance came with rather than leaving it on the modpack's; a later apply does not overwrite that backup
+- `detach_instance` also restores the newest `mods` backup when `mods` is missing, which is where a failed link creation leaves an instance; a real `mods` directory is left alone
+- `resolve_loader_version` reads the Prism meta server at `https://meta.prismlauncher.org`, so call it only when `SyncPlan::needs_loader_version` is true
+- `instances_linked_to` and `relink_instance` are link maintenance for renaming and deleting a modpack, not part of the experimental surface
 
 ## `content`
 
@@ -258,14 +271,17 @@ Read-only listing of the resource packs and shader packs installed in a game dir
 ### Shared types
 
 - `ContentFile`
+- `ContentSection`
 - `ContentLocation`
 - `ContentLocationKind`
 - `LocationRef`
+- `PACK_TYPES`
 
 ### Listing
 
 - `list_content_files(dir)`
-- `content_location(id, kind, name, game_dir, include_files)`
+- `content_location(id, kind, name, game_dir)`
+- `content_location_header(id, kind, name, game_dir)`
 - `content_subfolder(mod_type)`
 
 ### Location ids
@@ -284,8 +300,9 @@ Operational notes:
 - a location is addressed by its id, so a frontend never hands the backend a filesystem path to read or open
 - a missing or unreadable folder lists as empty rather than failing, because a game directory only grows these folders once something is installed into it
 - only directories and `.zip` files are listed, which drops the sidecar option files a shader loader writes next to a pack
-- `content_subfolder` is `None` for every type but `ResourcePack` and `ShaderPack`, and is the single source of the `resourcepacks`/`shaderpacks` folder names, including for `mc_mod::install_local_file`
-- `content_location` with `include_files` false does not read the pack folders at all and returns both lists empty, for a caller that only needs each location's id, name and path
+- a `ContentLocation` carries one `ContentSection` per `PACK_TYPES` entry, always in that order, each naming its `modType` (`ResourcePack`, `ShaderPack`) and its files, so a caller loops over the sections instead of branching per pack type
+- `content_subfolder` is `None` for every type but `ResourcePack` and `ShaderPack`, and is the single source of the `resourcepacks`/`shaderpacks` folder names and of what counts as a pack, including for `mc_mod::install_local_file` and `prism::install_roots`
+- `content_location_header` does not read the pack folders at all and returns every section with an empty file list, for a caller that only needs each location's id, name and path
 - both `copy_content_files` and `delete_content_files` take bare file names from a listing: each must be a single path component (`InvalidRequest` otherwise) and must name a pack the listing would show (`ContentMissing` otherwise), and every name is checked before anything is written or removed
 - copying into the source folder is `InvalidRequest`, and a destination entry that already exists is overwritten, so a repeated copy converges instead of failing
 - a `.zip` is streamed through a sibling temp file and renamed into place, and a symlink inside a pack folder is skipped rather than followed out of the pack
@@ -465,23 +482,27 @@ Important type:
 
 ### Apply a modpack to a Prism Launcher instance
 
-Exposed by `quadrant-host` as the `get_prism_instances`, `apply_modpack_to_prism_instance` (`name`, `instanceId`) and `detach_prism_instance` (`instanceId`) commands.
+Exposed by `quadrant-host` as the `get_prism_instances`, `get_prism_sync_plans` (`name`), `apply_modpack_to_prism_instance` (`name`, `instanceId`) and `detach_prism_instance` (`instanceId`) commands. All four are behind `experimentalFeatures`: the listings are empty while it is off and the two that act on an instance report `Forbidden`.
 
 1. check the `experimentalFeatures` config key
 2. `prism::find_data_dir` with the `prismLauncherFolder` override, then `prism::instances_dir`
 3. `prism::list_instances`, or `modpacks::get_modpacks` to find the modpack to apply
-4. `prism::needs_loader_version` against `prism::read_pack_manifest`, and only then `prism::resolve_loader_version`
+4. `prism::plan_sync` against `prism::read_pack_manifest`, and only then `prism::resolve_loader_version`
 5. `prism::apply_modpack_to_instance`, or `prism::detach_instance` to unlink
 
-Resource pack and shader installs hand `prism::content_roots` straight to `mc_mod::install_mod` as its install roots, so one call places the file in every root the modpack is applied to, unless the caller names one content location.
+`get_prism_sync_plans` returns one `PrismSyncPlan` per listed instance, each naming the `minecraftVersion` and `modLoader` applying the modpack would move that instance to (`null` for a field it would leave alone), so a frontend shows the change without reimplementing the component rules. It reads no network, and skips an instance whose manifest it cannot plan.
+
+Resource pack and shader installs hand `prism::install_roots` straight to `mc_mod::install_mod` as its install roots, so one call places the file in every root the modpack is applied to, unless the caller names one content location.
+
+Renaming or deleting a modpack maintains the links Quadrant made: `quadrant-host` relinks every instance that pointed at the old folder after a rename, and unlinks them before a delete so each gets its own `mods` folder and components back. This is repair rather than a feature, so it runs with `experimentalFeatures` off, and a link it cannot maintain is logged rather than failing the rename or delete.
 
 ### List, install into, copy between, and clear out content locations
 
-Exposed by `quadrant-host` as the `get_installed_content` (`includeFiles`, default true), `copy_content` (`fromLocation`, `toLocation`, `modType`, `fileNames`) and `delete_content` (`location`, `modType`, `fileNames`) commands. Passing `includeFiles: false` returns the locations with empty `resourcePacks`/`shaderPacks` and reads no pack folder, which is what a caller that only needs ids and names should send. Opening a listed folder is a shell concern, so `content_folder(locationId, modType)` is host API only and the Tauri shell wraps it in `open_content_folder`.
+Exposed by `quadrant-host` as the `get_installed_content` (`includeFiles`, default true), `copy_content` (`fromLocation`, `toLocation`, `modType`, `fileNames`) and `delete_content` (`location`, `modType`, `fileNames`) commands. Passing `includeFiles: false` returns the locations with every section's `files` empty and reads no pack folder, which is what a caller that only needs ids and names should send. Opening a listed folder is a shell concern, so `content_folder(locationId, modType)` is host API only and the Tauri shell wraps it in `open_content_folder`.
 
-1. `content::content_location` for the Minecraft folder
+1. `content::content_location`, or `content::content_location_header`, for the Minecraft folder
 2. `prism::list_instances`, then `prism::game_dir` and `content::prism_location_id` per instance
 3. `content::parse_location_id` and `content::content_subfolder` to turn a listed id back into a folder, which for a Prism id goes through `prism::resolve_instance_dir`
 4. `content::copy_content_files` between two such folders, or `content::delete_content_files` within one, which `copy_content` and `delete_content` return the number of copied or removed packs from
 
-`install_mod` takes an optional `contentLocation` id. For a `ResourcePack` or `ShaderPack` it makes that location's game directory the single install root, and for every other type it is ignored. Omitting it keeps the modpack-following behaviour above. `install_remote_file` has no such argument and always follows the modpack. A Prism location id resolves only while `experimentalFeatures` is on, in both the install and the copy path (`Forbidden` otherwise).
+`install_mod` takes an optional `contentLocation` id. For a `ResourcePack` or `ShaderPack` it makes that location's game directory the single install root, and for every other type it is ignored. Omitting it keeps the modpack-following behaviour above; an empty string is not a way to ask for that and reads as an unknown location (`InvalidRequest`). `install_remote_file` has no such argument and always follows the modpack. A Prism location id resolves only while `experimentalFeatures` is on, in both the install and the copy path (`Forbidden` otherwise).

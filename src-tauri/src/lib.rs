@@ -428,6 +428,7 @@ pub async fn run() {
             modpacks::general::get_modpacks,
             modpacks::general::frontend_apply_modpack,
             modpacks::prism::get_prism_instances,
+            modpacks::prism::get_prism_sync_plans,
             modpacks::prism::apply_modpack_to_prism_instance,
             modpacks::prism::detach_prism_instance,
             modpacks::manage_modpack::delete_mod,
