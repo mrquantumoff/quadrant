@@ -6,7 +6,6 @@ import {
   IMod,
   LocalModpack,
   MinecraftVersion,
-  ModProgress,
   ModSource,
   ModType,
   SearchCategory,
@@ -37,7 +36,7 @@ import {
 } from "react-icons/md";
 import CircularProgress from "../../core/CircularProgress";
 import { AnimatePresence, motion } from "motion/react";
-import { createDesktopStore, listen } from "../../../desktop";
+import { createDesktopStore } from "../../../desktop";
 import {
   getModLoaderOptions,
   loaderProvidersFromSettings,
@@ -386,36 +385,6 @@ export default function SearchPage() {
     };
     boot().catch(console.error);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // A one-click install from a result card changes what is in the target pack,
-  // so re-read the packs on completion to let that card flip to "installed".
-  useEffect(() => {
-    let cancelled = false;
-    let unlisten: (() => void | Promise<void>) | null = null;
-
-    const effect = async () => {
-      unlisten = await listen<ModProgress>("modInstallProgress", (event) => {
-        if (event.payload.progress !== 100) return;
-        getModpacks()
-          .then((refreshed) => {
-            if (!cancelled) setModpacks(refreshed);
-          })
-          .catch(console.error);
-      });
-      if (cancelled) {
-        void unlisten();
-        unlisten = null;
-      }
-    };
-    effect().catch(console.error);
-
-    return () => {
-      cancelled = true;
-      if (unlisten) {
-        void unlisten();
-      }
-    };
   }, []);
 
   // Persist the filter state whenever it changes (after the initial hydration).
@@ -1074,6 +1043,7 @@ export default function SearchPage() {
                       modpack={undefined}
                       installTarget={targetModpackObj}
                       installed={isInstalledIn(mod, targetModpackObj)}
+                      onInstalled={setModpacks}
                     />
                   ))}
 

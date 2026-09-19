@@ -20,9 +20,12 @@ import Button from "../../core/Button";
 import CancelButton from "../../core/CancelButton";
 import { MdPermIdentity, MdUpdate } from "react-icons/md";
 
-export default function ModpackView(
-  modpack: LocalModpack & { showBack?: boolean },
-) {
+type ModpackViewProps = LocalModpack & {
+  /** Set by openers that pushed this view, so there is a page to return to. */
+  showBack?: boolean;
+};
+
+export default function ModpackView({ showBack, ...modpack }: ModpackViewProps) {
   // Read here, not in the opener: a back() captured before this view was
   // pushed closes over a history that does not contain it yet.
   const context = useContext(ContentContext);
@@ -243,7 +246,7 @@ export default function ModpackView(
         }}
       >
         <div className="bg-slate-700 p-4 flex align-middle rounded-4xl mt-2 mb-5 w-full font-bold items-center justify-center ">
-          {modpack.showBack && (
+          {showBack && (
             <CancelButton
               onClick={() => void context.back()}
               className="self-center!"

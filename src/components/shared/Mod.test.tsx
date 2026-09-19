@@ -11,9 +11,14 @@ import {
   type IMod,
 } from "../../intefaces";
 
-const mocks = vi.hoisted(() => ({ get: vi.fn(), installMod: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  get: vi.fn(),
+  installMod: vi.fn(),
+  getModpacks: vi.fn(),
+}));
 vi.mock("../../tools", () => ({
   installMod: mocks.installMod,
+  getModpacks: mocks.getModpacks,
   deleteMod: vi.fn(),
   installRemoteFile: vi.fn(),
   openIn: vi.fn(),
@@ -133,6 +138,35 @@ describe("Mod", () => {
     renderCard(false);
     await userEvent.click(screen.getByRole("button", { name: "Download" }));
     await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
+  });
+
+  it("hands the re-read modpacks to onInstalled after a one-click install", async () => {
+    const packs = [{ name: "Selected Pack" }];
+    mocks.getModpacks.mockResolvedValue(packs);
+    const onInstalled = vi.fn();
+    render(
+      <Mod mod={mod} modpack={undefined} className="" onInstalled={onInstalled} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(onInstalled).toHaveBeenCalledWith(packs));
+  });
+
+  it("does not report an install that failed", async () => {
+    mocks.installMod.mockRejectedValue("noVersion");
+    const onInstalled = vi.fn();
+    render(
+      <ContentContext.Provider value={context}>
+        <Mod
+          mod={mod}
+          modpack={undefined}
+          className=""
+          onInstalled={onInstalled}
+        />
+      </ContentContext.Provider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Download" }));
+    await waitFor(() => expect(context.setSnackbar).toHaveBeenCalled());
+    expect(onInstalled).not.toHaveBeenCalled();
   });
 
   it("explains a blocked third-party download instead of echoing the key", async () => {

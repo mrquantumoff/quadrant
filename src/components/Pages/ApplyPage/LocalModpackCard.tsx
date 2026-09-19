@@ -31,7 +31,7 @@ import ModpackView from "../../shared/Pages/ModpackView";
 import CloudMembersPanel from "./CloudMembersPanel";
 import ModpackBadges from "./ModpackBadges";
 import { formatSyncDate } from "./syncDates";
-import { describeError } from "../../../errors";
+import { useReportError } from "../../../useReportError";
 
 export interface LocalModpackCardProps {
   modpack: LocalModpack;
@@ -50,6 +50,7 @@ export default function LocalModpackCard({
   onEdit,
 }: LocalModpackCardProps) {
   const { t } = useTranslation();
+  const reportError = useReportError();
   const context = useContext(ContentContext);
   const syncContext = useContext(SyncContext);
 
@@ -127,12 +128,7 @@ export default function LocalModpackCard({
             try {
               await shareModpack(modpack.name);
             } catch (e: any) {
-              console.error(e);
-              context.setSnackbar({
-                message: describeError(e, t),
-                className: "bg-red-700 rounded-4xl",
-                timeout: 5000,
-              });
+              reportError(e);
             }
           }}
           className={
@@ -161,12 +157,7 @@ export default function LocalModpackCard({
               });
               await onChanged();
             } catch (e: any) {
-              console.error(e);
-              context.setSnackbar({
-                message: describeError(e, t),
-                className: "bg-red-700 rounded-4xl",
-                timeout: 5000,
-              });
+              reportError(e);
             }
           }}
           className={
@@ -194,12 +185,7 @@ export default function LocalModpackCard({
               // the user never sees the error.
               await exportModpack(modpack.name);
             } catch (e: any) {
-              console.error(e);
-              context.setSnackbar({
-                message: describeError(e, t),
-                className: "bg-red-700 rounded-4xl",
-                timeout: 5000,
-              });
+              reportError(e);
             }
           }}
           className={

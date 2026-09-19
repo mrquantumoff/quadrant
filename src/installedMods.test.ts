@@ -2,25 +2,10 @@
 
 import { describe, expect, it } from "vitest";
 import { isInstalledIn } from "./installedMods";
-import {
-  ModLoader,
-  ModSource,
-  ModType,
-  type LocalMod,
-  type LocalModpack,
-} from "./intefaces";
+import { ModSource, ModType, type LocalMod } from "./intefaces";
+import sameModCases from "../src-tauri/crates/quadrant-core/testdata/same_mod_cases.json";
 
-function pack(mods: LocalMod[]): LocalModpack {
-  return {
-    name: "alpha",
-    version: "1.21.1",
-    modLoader: ModLoader.Fabric,
-    isApplied: true,
-    lastSynced: 0,
-    mods,
-    unknownMods: false,
-  };
-}
+const pack = (mods: LocalMod[]) => ({ mods });
 
 function installed(over: Partial<LocalMod>): LocalMod {
   return {
@@ -39,15 +24,40 @@ const sodium = {
 };
 
 describe("isInstalledIn", () => {
+  // The same table drives `is_same_mod` in quadrant-core, so the search badge
+  // and what an install replaces cannot drift apart.
+  it.each(sameModCases)("agrees with the backend: $name", ({ a, b, same }) => {
+    const asMod = (entry: typeof a) => ({
+      ...entry,
+      source: entry.source as ModSource,
+      modType: ModType.Mod,
+    });
+    const asInstalled = (entry: typeof a) =>
+      installed({ ...entry, source: entry.source as ModSource });
+
+    expect(isInstalledIn(asMod(a), pack([asInstalled(b)]))).toBe(same);
+    expect(isInstalledIn(asMod(b), pack([asInstalled(a)]))).toBe(same);
+  });
+
   it("matches an entry with the same id from the same source", () => {
     expect(isInstalledIn(sodium, pack([installed({})]))).toBe(true);
   });
 
-  it("does not match the same id from a different source without slugs", () => {
+  // Mirrors is_same_mod in quadrant-core: an install replaces by id alone.
+  it("matches the same id regardless of source", () => {
     expect(
       isInstalledIn(
         { ...sodium, slug: "" },
         pack([installed({ source: ModSource.CurseForge })]),
+      ),
+    ).toBe(true);
+  });
+
+  it("does not match a shared slug within one provider", () => {
+    expect(
+      isInstalledIn(
+        { ...sodium, id: "sodium-fork" },
+        pack([installed({ slug: "sodium" })]),
       ),
     ).toBe(false);
   });

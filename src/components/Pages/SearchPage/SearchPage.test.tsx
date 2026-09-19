@@ -3,7 +3,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { ModLoader, ModSource, ModType, type IMod } from "../../../intefaces";
+import {
+  ModLoader,
+  ModSource,
+  ModType,
+  type IMod,
+  type LocalModpack,
+} from "../../../intefaces";
 
 const getVersions = vi.fn();
 const getModpacks = vi.fn();
@@ -27,14 +33,27 @@ vi.mock("../../../desktop", () => ({
     set: (...a: unknown[]) => storeSet(...a),
     save: (...a: unknown[]) => storeSave(...a),
   }),
-  listen: async () => () => {},
 }));
 
 // The Mod card is heavy and independently tested; stub it to render just the
-// mod name so result ordering/identity is observable.
+// mod name so result ordering/identity is observable. Clicking it stands in
+// for a finished install reporting `packsAfterInstall`.
+let packsAfterInstall: LocalModpack[] = [];
 vi.mock("../../shared/Mod", () => ({
-  default: ({ mod, installed }: { mod: IMod; installed?: boolean }) => (
-    <div data-testid="mod-card" data-installed={String(!!installed)}>
+  default: ({
+    mod,
+    installed,
+    onInstalled,
+  }: {
+    mod: IMod;
+    installed?: boolean;
+    onInstalled?: (modpacks: LocalModpack[]) => void;
+  }) => (
+    <div
+      data-testid="mod-card"
+      data-installed={String(!!installed)}
+      onClick={() => onInstalled?.(packsAfterInstall)}
+    >
       {mod.name}
     </div>
   ),
@@ -251,25 +270,22 @@ describe("SearchPage", () => {
     );
   });
 
-  it("marks only the results already present in the target modpack", async () => {
-    getModpacks.mockResolvedValue([
-      {
-        name: "alpha",
-        version: "1.20.1",
-        modLoader: ModLoader.Fabric,
-        isApplied: false,
-        lastSynced: 0,
-        unknownMods: false,
-        mods: [
-          {
-            id: "sodium",
-            downloadUrl: "https://example.com/sodium.jar",
-            source: ModSource.Modrinth,
-            slug: "sodium",
-          },
-        ],
-      },
-    ]);
+  const alpha = (modIds: string[]): LocalModpack => ({
+    name: "alpha",
+    version: "1.20.1",
+    modLoader: ModLoader.Fabric,
+    isApplied: false,
+    lastSynced: 0,
+    unknownMods: false,
+    mods: modIds.map((id) => ({
+      id,
+      downloadUrl: `https://example.com/${id}.jar`,
+      source: ModSource.Modrinth,
+      slug: id,
+    })),
+  });
+
+  const targetAlpha = () =>
     storeGet.mockImplementation(async (key: string) => {
       if (key === "curseforge") return false;
       if (key === "modrinth") return true;
@@ -277,6 +293,32 @@ describe("SearchPage", () => {
         return { targetModpack: "alpha", version: "1.20.1" };
       return undefined;
     });
+
+  it("flips a card to installed once its install reports back", async () => {
+    getModpacks.mockResolvedValue([alpha([])]);
+    targetAlpha();
+    searchMods.mockResolvedValue([
+      mod({ name: "Iris", id: "iris", slug: "iris" }),
+    ]);
+    packsAfterInstall = [alpha(["iris"])];
+
+    render(<SearchPage />);
+    const card = await screen.findByText("Iris");
+    expect(card).toHaveAttribute("data-installed", "false");
+
+    await userEvent.click(card);
+
+    await waitFor(() =>
+      expect(screen.getByText("Iris")).toHaveAttribute(
+        "data-installed",
+        "true",
+      ),
+    );
+  });
+
+  it("marks only the results already present in the target modpack", async () => {
+    getModpacks.mockResolvedValue([alpha(["sodium"])]);
+    targetAlpha();
     searchMods.mockResolvedValue([
       mod({ name: "Sodium", id: "sodium", slug: "sodium" }),
       mod({ name: "Iris", id: "iris", slug: "iris" }),
@@ -306,10 +348,8 @@ describe("SearchPage", () => {
     );
   });
 
-  it("explains a failed search instead of showing the transport error", async () => {
-    searchMods.mockRejectedValue(
-      "error sending request for url (https://api.modrinth.com/v2/search)",
-    );
+  it("translates the error code a failed search comes back with", async () => {
+    searchMods.mockRejectedValue("errorNetwork");
 
     render(<SearchPage />);
 

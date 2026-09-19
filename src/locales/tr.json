@@ -240,7 +240,6 @@
   "errorFileAccess": "Quadrant o dosyaya erişemiyor. Klasörün izinlerini kontrol edip tekrar deneyin.",
   "errorFileInUse": "O dosyayı başka bir program kullanıyor. Minecraft'ı kapatıp tekrar deneyin.",
   "errorDiskFull": "Diskte yeterli boş alan yok. Biraz yer açıp tekrar deneyin.",
-  "errorKeyringLocked": "Sistem anahtar zinciriniz kilitli. Kilidini açıp tekrar deneyin.",
   "errorNoMinecraftFolder": "Quadrant, Minecraft klasörünüzü bulamadı. Ayarlardan belirtin.",
   "errorSignedOut": "Oturumunuz kapalı. Quadrant ID ile giriş yapıp tekrar deneyin.",
   "errorBusy": "Quadrant hâlâ başka bir işle meşgul. İşlem bitince tekrar deneyin."

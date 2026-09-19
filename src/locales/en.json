@@ -240,7 +240,6 @@
   "errorFileAccess": "Quadrant isn't allowed to touch that file. Check the folder's permissions and try again.",
   "errorFileInUse": "Another program is using that file. Close Minecraft and try again.",
   "errorDiskFull": "There isn't enough free disk space. Free some up and try again.",
-  "errorKeyringLocked": "Your system keyring is locked. Unlock it and try again.",
   "errorNoMinecraftFolder": "Quadrant couldn't find your Minecraft folder. Set it in the settings.",
   "errorSignedOut": "You're signed out. Sign in to Quadrant ID and try again.",
   "errorBusy": "Quadrant is still busy with something else. Wait for it to finish and try again."

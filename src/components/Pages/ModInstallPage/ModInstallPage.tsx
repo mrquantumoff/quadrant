@@ -41,14 +41,15 @@ import LoaderOptions from "../../shared/LoaderOption";
 import LinearProgress from "../../core/LinearProgress";
 import { createDesktopStore, listen } from "../../../desktop";
 import { loaderProvidersForSource } from "../../../modLoaders";
-import { isInstalledIn } from "../../../installedMods";
-import { describeError } from "../../../errors";
+import { isInstalledIn, refreshModpacks } from "../../../installedMods";
+import { useReportError } from "../../../useReportError";
 
 export interface IModInstallPageProps {
   mod: IMod;
   fileId?: string;
   /** Screen rect of the card that opened this page; the details card grows out of it. */
   originRect?: DOMRect;
+  onInstalled?: (modpacks: LocalModpack[]) => void;
 }
 
 interface IModOwner {
@@ -98,6 +99,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
 
   const context = useContext(ContentContext);
   const { t, i18n } = useTranslation();
+  const reportError = useReportError();
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
   const [version, setVersion] = useState<string>("");
@@ -302,19 +304,14 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         modpack,
         props.fileId,
       );
-      // Nested so a failed reload never surfaces as an install failure.
-      try {
-        setModpacks(await getModpacks());
-      } catch (refreshError) {
-        console.error(refreshError);
-      }
-    } catch (e: any) {
-      console.error(e);
-      context.setSnackbar({
-        message: describeError(e, t),
-        className: "bg-red-700 rounded-4xl",
-        timeout: 5000,
+      // Not awaited: a slow or failed reload must not hold the button or
+      // surface as an install failure.
+      refreshModpacks((refreshed) => {
+        setModpacks(refreshed);
+        props.onInstalled?.(refreshed);
       });
+    } catch (e: any) {
+      reportError(e);
     } finally {
       installInFlightRef.current = false;
       setIsInstalling(false);
@@ -449,6 +446,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                     mod={dependency}
                     modpack={undefined}
                     className="w-full"
+                    onInstalled={props.onInstalled}
                   />
                 ))}
               </div>
