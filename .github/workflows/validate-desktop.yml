@@ -116,13 +116,21 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # Vitest runs its workers under Node, and jsdom needs a current one.
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.13
+          bun-version: 1.4.2
 
+      # Frozen so an unreadable or stale lockfile fails here instead of
+      # silently installing whatever is newest.
       - name: Install frontend dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Lint
         run: bun run lint
