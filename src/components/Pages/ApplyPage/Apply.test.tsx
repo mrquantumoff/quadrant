@@ -174,10 +174,10 @@ describe("ApplyPage", () => {
     expect(screen.getByText("Beta Pack")).toBeInTheDocument();
   });
 
-  it("leaves Prism Launcher alone while experimental features are off", async () => {
-    storeGet.mockImplementation(
-      async (key: string) => key !== "experimentalFeatures",
-    );
+  // The experimental flag is the backend's to honor: with it off the command
+  // answers with an empty list, and no menu may appear.
+  it("renders no Prism menu when the backend returns no instances", async () => {
+    getPrismInstances.mockResolvedValue([]);
     getModpacks.mockResolvedValue([pack({ name: "Alpha Pack" })]);
 
     render(<ApplyPage />);
@@ -185,7 +185,6 @@ describe("ApplyPage", () => {
     await waitFor(() =>
       expect(screen.getByText("Alpha Pack")).toBeInTheDocument(),
     );
-    expect(getPrismInstances).not.toHaveBeenCalled();
     expect(
       screen.queryByRole("button", { name: /prism launcher/i }),
     ).not.toBeInTheDocument();
@@ -212,15 +211,19 @@ describe("ApplyPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("reloads Prism instances when the filesystem watch fires", async () => {
+  it("leaves the Prism list alone when the filesystem watch fires", async () => {
     getModpacks.mockResolvedValue([pack({ name: "Alpha Pack" })]);
     render(<ApplyPage />);
 
     await waitFor(() => expect(getPrismInstances).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(watchCallback).toBeTypeOf("function"));
-    watchCallback?.();
+    await act(async () => {
+      watchCallback?.();
+    });
 
-    await waitFor(() => expect(getPrismInstances).toHaveBeenCalledTimes(2));
+    // Nothing under the watched folders can change the instance list.
+    await waitFor(() => expect(getModpacks).toHaveBeenCalledTimes(2));
+    expect(getPrismInstances).toHaveBeenCalledTimes(1);
   });
 
   it("registers the folder watch and the share-submission listener", async () => {

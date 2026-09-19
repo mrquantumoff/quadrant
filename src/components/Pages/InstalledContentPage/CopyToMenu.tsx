@@ -2,17 +2,13 @@
 
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { MdCheck, MdContentCopy } from "react-icons/md";
-import { ContentLocation } from "../../../intefaces";
-
-export interface CopyToOption {
-  location: ContentLocation;
-  label: string;
-  /** Nothing left to copy there; the entry shows a check instead. */
-  disabled: boolean;
-}
+import { menuItemClass, menuPanelClass } from "../../core/menuClasses";
+import { CopyTarget } from "./contentActions";
 
 export interface CopyToMenuProps {
-  options: CopyToOption[];
+  targets: CopyTarget[];
+  /** Names one destination. The bulk controls also count what would move. */
+  optionLabel: (target: CopyTarget) => string;
   /** Screen-reader name of the button, naming what would be copied. */
   label: string;
   /** Visible button text. The compact per-file control leaves it out. */
@@ -21,11 +17,12 @@ export interface CopyToMenuProps {
   busy: boolean;
   /** Some copy is running, so no control may start another. */
   disabled: boolean;
-  onPick: (destination: ContentLocation) => void;
+  onPick: (target: CopyTarget) => void;
 }
 
 export default function CopyToMenu({
-  options,
+  targets,
+  optionLabel,
   label,
   text,
   busy,
@@ -50,28 +47,31 @@ export default function CopyToMenu({
           className={"w-5 h-5 " + (text === undefined ? "" : "ml-2")}
         />
       </MenuButton>
-      <MenuItems
-        anchor="bottom end"
-        className="z-50 [--anchor-gap:8px] flex flex-col p-2 font-bold bg-slate-800 rounded-4xl w-max max-w-80 max-h-80 overflow-y-auto shadow-lg shadow-slate-950"
-      >
-        {options.map((option) => (
-          <MenuItem key={option.location.id}>
-            <button
-              type="button"
-              disabled={option.disabled}
-              onClick={() => onPick(option.location)}
-              className="flex items-center gap-2 text-left w-full px-4 py-2 rounded-4xl hover:bg-slate-700 data-focus:bg-slate-700 disabled:opacity-50 disabled:cursor-default hover:cursor-pointer"
-            >
-              <span className="min-w-0 break-words">{option.label}</span>
-              {option.disabled && (
-                <MdCheck
-                  aria-hidden="true"
-                  className="w-5 h-5 ml-auto shrink-0"
-                />
-              )}
-            </button>
-          </MenuItem>
-        ))}
+      <MenuItems anchor="bottom end" className={menuPanelClass}>
+        {targets.map((target) => {
+          // Nothing left to copy there; the entry shows a check instead.
+          const nothingToDo = target.missing.length === 0;
+          return (
+            <MenuItem key={target.location.id}>
+              <button
+                type="button"
+                disabled={nothingToDo}
+                onClick={() => onPick(target)}
+                className={"flex items-center gap-2 " + menuItemClass}
+              >
+                <span className="min-w-0 break-words">
+                  {optionLabel(target)}
+                </span>
+                {nothingToDo && (
+                  <MdCheck
+                    aria-hidden="true"
+                    className="w-5 h-5 ml-auto shrink-0"
+                  />
+                )}
+              </button>
+            </MenuItem>
+          );
+        })}
       </MenuItems>
     </Menu>
   );

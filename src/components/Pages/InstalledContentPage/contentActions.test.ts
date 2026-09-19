@@ -1,16 +1,22 @@
 /** @format */
 
 import { describe, expect, it } from "vitest";
+import type { TFunction } from "i18next";
 import { ContentFile, ContentLocation, ModType } from "../../../intefaces";
 import {
   controlKey,
   copyTargets,
   filesOf,
+  indexFileNames,
+  locationTitle,
   pruneSelection,
   selectedIn,
   selectionKey,
   toggleSelection,
 } from "./contentActions";
+
+/** Answers with the key itself, so a translated string is visible as its key. */
+const t = ((key: string) => key) as unknown as TFunction;
 
 function file(fileName: string): ContentFile {
   return { fileName, size: 1024, modified: 0, isDirectory: false };
@@ -38,6 +44,32 @@ const survival = location({
 });
 const modded = location({ id: "prism:2", kind: "prism", name: "Modded" });
 
+/** The page indexes the listing once; every target check goes through it. */
+function targetsOf(
+  locations: ContentLocation[],
+  sourceId: string,
+  modType: ModType,
+  fileNames: string[],
+) {
+  return copyTargets(
+    locations,
+    indexFileNames(locations),
+    sourceId,
+    modType,
+    fileNames,
+  );
+}
+
+describe("locationTitle", () => {
+  it("calls the Minecraft folder by its translated name", () => {
+    expect(locationTitle(minecraft, t)).toBe("installedContentMinecraft");
+  });
+
+  it("calls a Prism instance by the name the launcher gave it", () => {
+    expect(locationTitle(survival, t)).toBe("Survival");
+  });
+});
+
 describe("filesOf", () => {
   it("answers with the section matching the kind of pack", () => {
     expect(filesOf(survival, ModType.ResourcePack)).toEqual([
@@ -51,9 +83,32 @@ describe("filesOf", () => {
   });
 });
 
+describe("indexFileNames", () => {
+  it("holds each location's names under the key of its section", () => {
+    const index = indexFileNames([minecraft, survival]);
+    expect(index.get(controlKey("prism:1", ModType.ResourcePack))).toEqual(
+      new Set(["Faithful.zip"]),
+    );
+    expect(index.get(controlKey("prism:1", ModType.ShaderPack))).toEqual(
+      new Set(["BSL.zip"]),
+    );
+    expect(index.get(controlKey("minecraft", ModType.ShaderPack))).toEqual(
+      new Set(),
+    );
+  });
+
+  it("knows nothing about a location that was not listed", () => {
+    expect(
+      indexFileNames([minecraft]).get(
+        controlKey("prism:1", ModType.ResourcePack),
+      ),
+    ).toBeUndefined();
+  });
+});
+
 describe("copyTargets", () => {
   it("offers every location except the source, in listed order", () => {
-    const targets = copyTargets(
+    const targets = targetsOf(
       [minecraft, survival, modded],
       "minecraft",
       ModType.ResourcePack,
@@ -66,7 +121,7 @@ describe("copyTargets", () => {
   });
 
   it("counts a name the destination already holds as nothing to do", () => {
-    const [target] = copyTargets(
+    const [target] = targetsOf(
       [minecraft, survival],
       "minecraft",
       ModType.ResourcePack,
@@ -76,7 +131,7 @@ describe("copyTargets", () => {
   });
 
   it("keeps the names the destination is missing, in request order", () => {
-    const [target] = copyTargets(
+    const [target] = targetsOf(
       [minecraft, survival],
       "minecraft",
       ModType.ResourcePack,
@@ -88,7 +143,7 @@ describe("copyTargets", () => {
   it("matches names within one section, not across them", () => {
     // Survival has BSL.zip as a shader; that must not hide a resource pack
     // of the same name.
-    const [target] = copyTargets(
+    const [target] = targetsOf(
       [minecraft, survival],
       "minecraft",
       ModType.ResourcePack,
@@ -99,14 +154,14 @@ describe("copyTargets", () => {
 
   it("offers nothing when the source is the only location", () => {
     expect(
-      copyTargets([minecraft], "minecraft", ModType.ResourcePack, [
+      targetsOf([minecraft], "minecraft", ModType.ResourcePack, [
         "Faithful.zip",
       ]),
     ).toEqual([]);
   });
 
   it("reports an empty destination as missing everything", () => {
-    const [target] = copyTargets(
+    const [target] = targetsOf(
       [minecraft, modded],
       "minecraft",
       ModType.ShaderPack,
@@ -114,6 +169,17 @@ describe("copyTargets", () => {
     );
     expect(target.location.name).toBe("Modded");
     expect(target.missing).toEqual(["BSL.zip", "Complementary.zip"]);
+  });
+
+  it("treats a destination the index never saw as missing everything", () => {
+    const [target] = copyTargets(
+      [minecraft, survival],
+      indexFileNames([minecraft]),
+      "minecraft",
+      ModType.ResourcePack,
+      ["Faithful.zip"],
+    );
+    expect(target.missing).toEqual(["Faithful.zip"]);
   });
 });
 

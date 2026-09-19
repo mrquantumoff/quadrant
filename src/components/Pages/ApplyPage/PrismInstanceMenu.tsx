@@ -1,20 +1,17 @@
 /** @format */
 
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { Menu, MenuButton, MenuItem, MenuItems } from "@headlessui/react";
 import { MdCheck, MdViewList } from "react-icons/md";
 import { useTranslation } from "react-i18next";
-import {
-  ContentContext,
-  LocalModpack,
-  ModLoader,
-  PrismInstance,
-} from "../../../intefaces";
+import { LocalModpack, ModLoader, PrismInstance } from "../../../intefaces";
 import {
   applyModpackToPrismInstance,
   detachPrismInstance,
 } from "../../../tools";
+import { menuItemClass, menuPanelClass } from "../../core/menuClasses";
 import { useReportError } from "../../../useReportError";
+import { useReportSuccess } from "../../../useReportSuccess";
 
 // Prism only has components for these; the backend leaves any other loader,
 // and a modpack without a manifest version, untouched.
@@ -55,7 +52,7 @@ export default function PrismInstanceMenu({
 }: PrismInstanceMenuProps) {
   const { t } = useTranslation();
   const reportError = useReportError();
-  const context = useContext(ContentContext);
+  const reportSuccess = useReportSuccess();
   // The id of the instance whose request is in flight, or null when idle. One
   // request at a time keeps a double click from applying and detaching at once.
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -73,16 +70,7 @@ export default function PrismInstanceMenu({
         await applyModpackToPrismInstance(modpack.name, instance.id);
       }
       await onChanged();
-      context.setSnackbar({
-        message: (
-          <span className="flex">
-            <MdCheck className="w-5 h-5 mx-2" />
-            {t(linked ? "prismDetachSuccess" : "prismApplySuccess")}
-          </span>
-        ),
-        className: "bg-emerald-600 rounded-4xl",
-        timeout: 5000,
-      });
+      reportSuccess(t(linked ? "prismDetachSuccess" : "prismApplySuccess"));
     } catch (e: any) {
       reportError(e);
     } finally {
@@ -96,10 +84,7 @@ export default function PrismInstanceMenu({
         {t("prismLauncher")}
         <MdViewList className="w-5 h-5 mx-2" />
       </MenuButton>
-      <MenuItems
-        anchor="bottom start"
-        className="z-50 [--anchor-gap:8px] flex flex-col p-2 font-bold bg-slate-800 rounded-4xl w-max max-w-80 max-h-80 overflow-y-auto shadow-lg shadow-slate-950"
-      >
+      <MenuItems anchor="bottom start" className={menuPanelClass}>
         {instances.map((instance) => {
           const linked = instance.appliedModpack === modpack.name;
           const switchTarget = linked ? [] : switchedParts(instance, modpack);
@@ -109,7 +94,7 @@ export default function PrismInstanceMenu({
                 type="button"
                 disabled={pendingId !== null}
                 onClick={() => void toggle(instance)}
-                className="flex flex-col items-start text-left w-full px-4 py-2 rounded-4xl hover:bg-slate-700 data-focus:bg-slate-700 disabled:opacity-50 disabled:cursor-default hover:cursor-pointer"
+                className={"flex flex-col items-start " + menuItemClass}
               >
                 <span className="flex items-center gap-2 w-full">
                   {instance.name}

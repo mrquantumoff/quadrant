@@ -115,8 +115,7 @@ class TauriStoreAdapter implements DesktopStoreAdapter {
   }
 
   async delete(key: string): Promise<void> {
-    // The host store has no remove command; a null value reads back as unset.
-    await tauriInvoke("set_config_value", { key, value: null });
+    await tauriInvoke("remove_config_value", { key });
   }
 
   async save(): Promise<void> {

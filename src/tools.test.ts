@@ -219,11 +219,21 @@ describe("Prism Launcher instances", () => {
 });
 
 describe("installed content", () => {
-  it("returns the locations the host reports", async () => {
+  it("returns the locations the host reports, with their files", async () => {
     const locations = [{ id: "minecraft", kind: "minecraft" }];
     invoke.mockResolvedValue(locations);
     expect(await getInstalledContent()).toEqual(locations);
-    expect(invoke).toHaveBeenCalledWith("get_installed_content");
+    expect(invoke).toHaveBeenCalledWith("get_installed_content", {
+      includeFiles: true,
+    });
+  });
+
+  it("asks for the locations alone when the files are not wanted", async () => {
+    invoke.mockResolvedValue([]);
+    await getInstalledContent(false);
+    expect(invoke).toHaveBeenCalledWith("get_installed_content", {
+      includeFiles: false,
+    });
   });
 
   it("invokes open with the location id and the mod type", async () => {

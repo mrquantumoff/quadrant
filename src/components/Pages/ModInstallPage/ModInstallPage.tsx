@@ -44,6 +44,7 @@ import LinearProgress from "../../core/LinearProgress";
 import { createDesktopStore, listen } from "../../../desktop";
 import { loaderProvidersForSource } from "../../../modLoaders";
 import { findInstalledIn, isInstalledIn } from "../../../installedMods";
+import { locationTitle } from "../InstalledContentPage/contentActions";
 import { useReportError } from "../../../useReportError";
 
 export interface IModInstallPageProps {
@@ -201,10 +202,11 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         config.get<string>("lastUsedVersion"),
         config.get<string>("lastUsedAPI"),
         config.get<string>("lastUsedModpack"),
+        // The picker only names the folders, so their files are left unlisted.
         // A host that cannot list its folders costs the user the picker, not
         // the install, so this branch settles rather than rejects.
         placeable
-          ? getInstalledContent().catch((error) => {
+          ? getInstalledContent(false).catch((error) => {
               console.error(error);
               return [] as ContentLocation[];
             })
@@ -611,15 +613,16 @@ export default function ModInstallPage(props: IModInstallPageProps) {
                       })}
                     </option>
                   )}
-                  {contentLocations.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.kind === "minecraft"
-                        ? t("installedContentMinecraft")
-                        : t("installedContentPrismOption", {
-                            name: option.name,
-                          })}
-                    </option>
-                  ))}
+                  {contentLocations.map((option) => {
+                    const title = locationTitle(option, t);
+                    return (
+                      <option key={option.id} value={option.id}>
+                        {option.kind === "prism"
+                          ? t("installedContentPrismOption", { name: title })
+                          : title}
+                      </option>
+                    );
+                  })}
                 </select>
               </label>
             )}

@@ -25,6 +25,7 @@ export const HOST_COMMANDS = [
   "init_config",
   "get_config_value",
   "set_config_value",
+  "remove_config_value",
   "search_mods",
   "get_categories",
   "get_versions",

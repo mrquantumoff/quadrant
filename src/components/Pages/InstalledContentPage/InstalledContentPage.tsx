@@ -1,6 +1,6 @@
 /** @format */
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Disclosure,
   DisclosureButton,
@@ -9,19 +9,8 @@ import {
 import { motion } from "motion/react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import {
-  MdCheck,
-  MdDelete,
-  MdExpandMore,
-  MdFolder,
-  MdRefresh,
-} from "react-icons/md";
-import {
-  ContentContext,
-  ContentFile,
-  ContentLocation,
-  ModType,
-} from "../../../intefaces";
+import { MdDelete, MdExpandMore, MdFolder, MdRefresh } from "react-icons/md";
+import { ContentFile, ContentLocation, ModType } from "../../../intefaces";
 import {
   copyContent,
   deleteContent,
@@ -37,12 +26,16 @@ import {
   controlKey,
   copyTargets,
   filesOf,
+  FileNameIndex,
+  indexFileNames,
+  locationTitle,
   pruneSelection,
   selectedIn,
   selectionKey,
   toggleSelection,
 } from "./contentActions";
 import { useReportError } from "../../../useReportError";
+import { useReportSuccess } from "../../../useReportSuccess";
 
 const cardClass = "flex flex-col bg-slate-900 p-4 rounded-4xl mx-5 my-5 h-max";
 const actionClass =
@@ -64,6 +57,21 @@ const SIZE_UNITS: SizeUnit[] = [
   { unit: "gigabyte", bytes: 1024 ** 3 },
 ];
 
+// Building an `Intl` formatter is expensive and every row needs one, so they
+// are kept per locale — the language can change while the app runs.
+const sizeFormatters = new Map<string, Intl.NumberFormat>();
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function cached<T>(cache: Map<string, T>, key: string, build: () => T): T {
+  const hit = cache.get(key);
+  if (hit !== undefined) {
+    return hit;
+  }
+  const built = build();
+  cache.set(key, built);
+  return built;
+}
+
 function formatSize(bytes: number): string {
   let chosen = SIZE_UNITS[0];
   for (const candidate of SIZE_UNITS) {
@@ -71,23 +79,37 @@ function formatSize(bytes: number): string {
       chosen = candidate;
     }
   }
-  return new Intl.NumberFormat(quadrantLocale.language, {
-    style: "unit",
-    unit: chosen.unit,
-    unitDisplay: "narrow",
-    maximumFractionDigits: 1,
-  }).format(bytes / chosen.bytes);
+  const locale = quadrantLocale.language;
+  const formatter = cached(
+    sizeFormatters,
+    `${locale}|${chosen.unit}`,
+    () =>
+      new Intl.NumberFormat(locale, {
+        style: "unit",
+        unit: chosen.unit,
+        unitDisplay: "narrow",
+        maximumFractionDigits: 1,
+      }),
+  );
+  return formatter.format(bytes / chosen.bytes);
 }
 
 function formatModified(modified: number): string {
-  return new Intl.DateTimeFormat(quadrantLocale.language, {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(new Date(modified));
+  const locale = quadrantLocale.language;
+  const formatter = cached(
+    dateFormatters,
+    locale,
+    () =>
+      new Intl.DateTimeFormat(locale, {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      }),
+  );
+  return formatter.format(new Date(modified));
 }
 
 function describeFile(file: ContentFile, t: TFunction): string {
@@ -98,12 +120,6 @@ function describeFile(file: ContentFile, t: TFunction): string {
     parts.push(formatModified(file.modified));
   }
   return parts.join(" · ");
-}
-
-function locationTitle(location: ContentLocation, t: TFunction): string {
-  return location.kind === "minecraft"
-    ? t("installedContentMinecraft")
-    : location.name;
 }
 
 interface ContentSection {
@@ -146,6 +162,8 @@ interface DeleteRequest {
 
 interface ContentActions {
   locations: ContentLocation[];
+  /** What each location holds, so no control has to derive it per render. */
+  nameIndex: FileNameIndex;
   /** The running copy or delete's key, or null while nothing is running. */
   pending: string | null;
   /** The delete control waiting for its confirming click, or null. */
@@ -177,6 +195,8 @@ function DeleteButton({
   armedText,
 }: DeleteButtonProps) {
   const armed = actions.armedKey === request.key;
+  // An armed control always says so; only an idle per-file one is icon-only.
+  const labelled = armed || text !== undefined;
   return (
     <Button
       onClick={() => actions.askDelete(request)}
@@ -191,16 +211,15 @@ function DeleteButton({
       className={
         "flex items-center justify-center h-10 shrink-0 text-sm " +
         (armed
-          ? "bg-red-700 hover:bg-red-600 px-4 w-max"
-          : text === undefined
-            ? "bg-slate-800 hover:bg-red-700 w-10"
-            : "bg-slate-800 hover:bg-red-700 px-4 w-max")
+          ? "bg-red-700 hover:bg-red-600 "
+          : "bg-slate-800 hover:bg-red-700 ") +
+        (labelled ? "px-4 w-max" : "w-10")
       }
     >
       {armed ? armedText : text}
       <MdDelete
         aria-hidden="true"
-        className={"w-5 h-5 " + (armed || text !== undefined ? "ml-2" : "")}
+        className={"w-5 h-5 " + (labelled ? "ml-2" : "")}
       />
     </Button>
   );
@@ -252,20 +271,21 @@ function ContentFileRow({
           label={t("installedContentCopyFileLabel", { file: file.fileName })}
           busy={actions.pending === rowKey}
           disabled={actions.pending !== null}
-          options={copyTargets(actions.locations, location.id, modType, [
-            file.fileName,
-          ]).map((target) => ({
-            location: target.location,
-            label: locationTitle(target.location, t),
-            disabled: target.missing.length === 0,
-          }))}
-          onPick={(destination) =>
+          targets={copyTargets(
+            actions.locations,
+            actions.nameIndex,
+            location.id,
+            modType,
+            [file.fileName],
+          )}
+          optionLabel={(target) => locationTitle(target.location, t)}
+          onPick={(target) =>
             actions.copy({
               key: rowKey,
               from: location,
-              to: destination,
+              to: target.location,
               modType,
-              fileNames: [file.fileName],
+              fileNames: target.missing,
             })
           }
         />
@@ -300,6 +320,7 @@ function SelectionBar({
   const key = selectionKey(location.id, section.modType);
   const targets = copyTargets(
     actions.locations,
+    actions.nameIndex,
     location.id,
     section.modType,
     selected,
@@ -336,23 +357,20 @@ function SelectionBar({
           label={t("installedContentCopySelectedLabel")}
           busy={actions.pending === key}
           disabled={actions.pending !== null}
-          options={targets.map((target) => ({
-            location: target.location,
-            label: t("installedContentCopyMissing", {
+          targets={targets}
+          optionLabel={(target) =>
+            t("installedContentCopyMissing", {
               name: locationTitle(target.location, t),
               missing: target.missing.length,
-            }),
-            disabled: target.missing.length === 0,
-          }))}
-          onPick={(destination) =>
+            })
+          }
+          onPick={(target) =>
             actions.copy({
               key,
               from: location,
-              to: destination,
+              to: target.location,
               modType: section.modType,
-              fileNames:
-                targets.find((target) => target.location.id === destination.id)
-                  ?.missing ?? [],
+              fileNames: target.missing,
             })
           }
         />
@@ -398,6 +416,7 @@ function ContentSectionView({
   const allKey = controlKey(location.id, section.modType);
   const allTargets = copyTargets(
     actions.locations,
+    actions.nameIndex,
     location.id,
     section.modType,
     allNames,
@@ -423,24 +442,20 @@ function ContentSectionView({
             })}
             busy={actions.pending === allKey}
             disabled={actions.pending !== null}
-            options={allTargets.map((target) => ({
-              location: target.location,
-              label: t("installedContentCopyMissing", {
+            targets={allTargets}
+            optionLabel={(target) =>
+              t("installedContentCopyMissing", {
                 name: locationTitle(target.location, t),
                 missing: target.missing.length,
-              }),
-              disabled: target.missing.length === 0,
-            }))}
-            onPick={(destination) =>
+              })
+            }
+            onPick={(target) =>
               actions.copy({
                 key: allKey,
                 from: location,
-                to: destination,
+                to: target.location,
                 modType: section.modType,
-                fileNames:
-                  allTargets.find(
-                    (target) => target.location.id === destination.id,
-                  )?.missing ?? [],
+                fileNames: target.missing,
               })
             }
           />
@@ -453,7 +468,7 @@ function ContentSectionView({
               reportError(e);
             }
           }}
-          className="flex items-center self-center bg-slate-700 hover:bg-slate-600 px-4 w-max h-10 justify-center text-sm"
+          className={actionClass + " self-center"}
           aria-label={t("installedContentOpenFolderLabel", {
             section: sectionTitle,
             name: locationName,
@@ -559,7 +574,7 @@ function LocationCard({ location, collapsible, actions }: LocationCardProps) {
 export default function InstalledContentPage() {
   const { t } = useTranslation();
   const reportError = useReportError();
-  const context = useContext(ContentContext);
+  const reportSuccess = useReportSuccess();
   // `undefined` while the first load is in flight; a failed load settles on an
   // empty list so the page stays usable and the refresh button acts as the retry.
   const [locations, setLocations] = useState<ContentLocation[] | undefined>(
@@ -569,15 +584,6 @@ export default function InstalledContentPage() {
   const [pending, setPending] = useState<string | null>(null);
   const [armedKey, setArmedKey] = useState<string | null>(null);
   const [selection, setSelection] = useState<ContentSelection | null>(null);
-  const armTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const disarm = () => {
-    if (armTimer.current !== null) {
-      clearTimeout(armTimer.current);
-      armTimer.current = null;
-    }
-    setArmedKey(null);
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -606,13 +612,14 @@ export default function InstalledContentPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloadToken]);
 
+  // An armed delete waits for its confirming click, then forgets it was asked.
   useEffect(() => {
-    return () => {
-      if (armTimer.current !== null) {
-        clearTimeout(armTimer.current);
-      }
-    };
-  }, []);
+    if (armedKey === null) {
+      return;
+    }
+    const id = setTimeout(() => setArmedKey(null), ARM_TIMEOUT_MS);
+    return () => clearTimeout(id);
+  }, [armedKey]);
 
   // Replaces the listing in place: clearing it first would drop the cards,
   // closing every section the user opened.
@@ -622,65 +629,36 @@ export default function InstalledContentPage() {
     setSelection((current) => pruneSelection(current, loaded));
   };
 
-  const announce = (message: string) => {
-    context.setSnackbar({
-      message: (
-        <span className="flex">
-          <MdCheck className="w-5 h-5 mx-2" />
-          {message}
-        </span>
-      ),
-      className: "bg-emerald-600 rounded-4xl",
-      timeout: 5000,
-    });
+  /** Runs one copy or delete, announcing the message it answers with. */
+  const runAction = async (key: string, work: () => Promise<string>) => {
+    setPending(key);
+    try {
+      reportSuccess(await work());
+      await refresh();
+    } catch (error) {
+      reportError(error);
+    } finally {
+      setPending(null);
+    }
   };
 
-  const runCopy = async (request: CopyRequest) => {
+  const runCopy = (request: CopyRequest) => {
     if (pending !== null || request.fileNames.length === 0) {
       return;
     }
-    disarm();
-    setPending(request.key);
-    try {
+    setArmedKey(null);
+    void runAction(request.key, async () => {
       const copied = await copyContent(
         request.from.id,
         request.to.id,
         request.modType,
         request.fileNames,
       );
-      announce(
-        t("installedContentCopied", {
-          count: copied,
-          name: locationTitle(request.to, t),
-        }),
-      );
-      await refresh();
-    } catch (error) {
-      reportError(error);
-    } finally {
-      setPending(null);
-    }
-  };
-
-  const runDelete = async (request: DeleteRequest) => {
-    setPending(request.key);
-    try {
-      const removed = await deleteContent(
-        request.location.id,
-        request.modType,
-        request.fileNames,
-      );
-      announce(
-        request.fileNames.length === 1
-          ? t("installedContentDeleted", { file: request.fileNames[0] })
-          : t("installedContentDeletedCount", { count: removed }),
-      );
-      await refresh();
-    } catch (error) {
-      reportError(error);
-    } finally {
-      setPending(null);
-    }
+      return t("installedContentCopied", {
+        count: copied,
+        name: locationTitle(request.to, t),
+      });
+    });
   };
 
   const askDelete = (request: DeleteRequest) => {
@@ -688,28 +666,31 @@ export default function InstalledContentPage() {
       return;
     }
     if (armedKey !== request.key) {
-      if (armTimer.current !== null) {
-        clearTimeout(armTimer.current);
-      }
       setArmedKey(request.key);
-      armTimer.current = setTimeout(() => {
-        armTimer.current = null;
-        setArmedKey(null);
-      }, ARM_TIMEOUT_MS);
       return;
     }
-    disarm();
-    void runDelete(request);
+    setArmedKey(null);
+    void runAction(request.key, async () => {
+      const removed = await deleteContent(
+        request.location.id,
+        request.modType,
+        request.fileNames,
+      );
+      return request.fileNames.length === 1
+        ? t("installedContentDeleted", { file: request.fileNames[0] })
+        : t("installedContentDeletedCount", { count: removed });
+    });
   };
 
   const actions: ContentActions = {
     locations: locations ?? [],
+    nameIndex: indexFileNames(locations ?? []),
     pending,
     armedKey,
     selection,
-    copy: (request) => void runCopy(request),
+    copy: runCopy,
     askDelete,
-    disarm,
+    disarm: () => setArmedKey(null),
     select: setSelection,
   };
 

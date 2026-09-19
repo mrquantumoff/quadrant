@@ -1,6 +1,14 @@
 /** @format */
 
+import type { TFunction } from "i18next";
 import { ContentFile, ContentLocation, ModType } from "../../../intefaces";
+
+/** What the user calls a location: the Minecraft folder, or the instance name. */
+export function locationTitle(location: ContentLocation, t: TFunction): string {
+  return location.kind === "minecraft"
+    ? t("installedContentMinecraft")
+    : location.name;
+}
 
 /** The packs of one kind a location holds. Empty for a kind it never stores. */
 export function filesOf(
@@ -23,12 +31,32 @@ export interface CopyTarget {
   missing: string[];
 }
 
+/** The names every location holds, keyed by `controlKey(locationId, modType)`. */
+export type FileNameIndex = Map<string, Set<string>>;
+
+const NO_FILE_NAMES: Set<string> = new Set();
+
+/** Indexes the whole listing once, so a copy check is a lookup per target. */
+export function indexFileNames(locations: ContentLocation[]): FileNameIndex {
+  const index: FileNameIndex = new Map();
+  for (const location of locations) {
+    for (const modType of [ModType.ResourcePack, ModType.ShaderPack]) {
+      index.set(
+        controlKey(location.id, modType),
+        new Set(filesOf(location, modType).map((file) => file.fileName)),
+      );
+    }
+  }
+  return index;
+}
+
 /**
  * Every location a copy could go to, paired with the work it would do there.
  * An empty `missing` means the destination already has all of `fileNames`.
  */
 export function copyTargets(
   locations: ContentLocation[],
+  index: FileNameIndex,
   sourceId: string,
   modType: ModType,
   fileNames: string[],
@@ -36,9 +64,8 @@ export function copyTargets(
   return locations
     .filter((location) => location.id !== sourceId)
     .map((location) => {
-      const present = new Set(
-        filesOf(location, modType).map((file) => file.fileName),
-      );
+      const present =
+        index.get(controlKey(location.id, modType)) ?? NO_FILE_NAMES;
       return {
         location,
         missing: fileNames.filter((fileName) => !present.has(fileName)),

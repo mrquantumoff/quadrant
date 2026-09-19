@@ -414,7 +414,10 @@ describe("ModInstallPage", () => {
       });
 
       await screen.findByText("jellysquid");
-      await waitFor(() => expect(getInstalledContent).toHaveBeenCalled());
+      // The picker only needs the names, so the pack lists are left out.
+      await waitFor(() =>
+        expect(getInstalledContent).toHaveBeenCalledWith(false),
+      );
       expect(
         screen.queryByRole("combobox", { name: /Install to/ }),
       ).toBeNull();

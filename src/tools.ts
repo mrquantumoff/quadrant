@@ -296,7 +296,6 @@ export async function installRemoteFile(
   modpack: string | undefined,
   source: ModSource,
   id: string,
-  contentLocation?: string,
 ) {
   await invoke("install_remote_file", {
     file: file,
@@ -304,7 +303,6 @@ export async function installRemoteFile(
     modpack: modpack,
     source: source,
     id: id,
-    contentLocation: contentLocation,
   });
 }
 
@@ -442,9 +440,16 @@ export async function detachPrismInstance(instanceId: string) {
   await invoke("detach_prism_instance", { instanceId });
 }
 
-/** The Minecraft folder first, then one entry per Prism instance the host found. */
-export async function getInstalledContent(): Promise<ContentLocation[]> {
-  return await invoke<ContentLocation[]>("get_installed_content");
+/**
+ * The Minecraft folder first, then one entry per Prism instance the host found.
+ * Pass `false` to name the locations only, leaving their pack lists empty.
+ */
+export async function getInstalledContent(
+  includeFiles = true,
+): Promise<ContentLocation[]> {
+  return await invoke<ContentLocation[]>("get_installed_content", {
+    includeFiles,
+  });
 }
 
 export async function openContentFolder(locationId: string, modType: ModType) {

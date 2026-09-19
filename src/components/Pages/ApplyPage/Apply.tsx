@@ -1,6 +1,6 @@
 /** @format */
 
-import { useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   LocalModpack,
   MinecraftVersion,
@@ -46,7 +46,6 @@ const toolbarIconClass =
 export default function ApplyPage() {
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
   const [prismInstances, setPrismInstances] = useState<PrismInstance[]>([]);
-  const configStoreRef = useRef(createDesktopStore("config.json"));
   const {
     accountInfo,
     syncedModpacks,
@@ -90,13 +89,16 @@ export default function ApplyPage() {
     const cleanupFns: Array<() => void> = [];
 
     const effect = async () => {
-      const configStore = configStoreRef.current;
+      const configStore = createDesktopStore("config.json");
       const [versions, availableModpacks, curseForgeEnabled, modrinthEnabled] =
         await Promise.all([
           getVersions(),
           getModpacks(),
           configStore.get<boolean>("curseforge"),
           configStore.get<boolean>("modrinth"),
+          // The instance list only changes outside the watched folders, so it
+          // is loaded here and after a card acts, never on a watch event.
+          refreshPrismInstances(),
         ]);
       if (isUnmounted) {
         return;
@@ -106,7 +108,6 @@ export default function ApplyPage() {
       setLoaderProviders(
         loaderProvidersFromSettings(curseForgeEnabled, modrinthEnabled),
       );
-      await refreshPrismInstances();
 
       setDefaultModpack({
         name: "",
@@ -201,13 +202,11 @@ export default function ApplyPage() {
     };
   }, []);
 
-  // The flag is re-read per refresh rather than captured, so toggling it in
-  // settings takes effect without remounting this page.
+  // The backend gates this on the experimental flag and answers with an empty
+  // list while it is off, so the flag is never read here.
   const refreshPrismInstances = async () => {
     try {
-      const experimental =
-        await configStoreRef.current.get<boolean>("experimentalFeatures");
-      setPrismInstances(experimental ? await getPrismInstances() : []);
+      setPrismInstances(await getPrismInstances());
     } catch (error) {
       console.error(error);
       // Never keep offering instances the host can no longer enumerate.
@@ -219,7 +218,6 @@ export default function ApplyPage() {
     const newModpacks = await getModpacks();
 
     setModpacks(newModpacks);
-    await refreshPrismInstances();
   };
 
   const shareCode = parseShareCode(searchQuery);
@@ -344,7 +342,10 @@ export default function ApplyPage() {
                     synced={synced}
                     accountInfo={accountInfo}
                     prismInstances={prismInstances}
-                    onChanged={updateModpacks}
+                    onChanged={async () => {
+                      await updateModpacks();
+                      await refreshPrismInstances();
+                    }}
                     onEdit={(target) => {
                       setIsUpdateDialogOpen(true);
                       setIsDialogToCreate(false);
