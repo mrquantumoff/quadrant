@@ -10,16 +10,18 @@ pub fn get_minecraft_folder(app: AppHandle) -> Result<String, tauri::Error> {
     let path = app
         .state::<QuadrantHost>()
         .get_minecraft_folder()
-        .map_err(tauri::Error::from)?;
+        .map_err(crate::command_error)?;
     Ok(path.to_string_lossy().to_string())
 }
 
 #[tauri::command]
 pub fn get_default_minecraft_folder() -> Result<String, tauri::Error> {
     let path = get_mc_folder()
-        .map_err(tauri::Error::from)?
+        .map_err(crate::command_error)?
         .ok_or_else(|| {
-            tauri::Error::from(anyhow::anyhow!("default Minecraft folder is unavailable"))
+            tauri::Error::from(anyhow::Error::from(
+                quadrant_core::error::ErrorCode::NoMinecraftFolder,
+            ))
         })?;
     Ok(path.to_string_lossy().to_string())
 }
@@ -28,7 +30,7 @@ pub fn get_default_minecraft_folder() -> Result<String, tauri::Error> {
 pub fn init_config(app: AppHandle) -> Result<(), tauri::Error> {
     app.state::<QuadrantHost>()
         .init_config()
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -38,7 +40,7 @@ pub fn get_config_value(
 ) -> Result<Option<serde_json::Value>, tauri::Error> {
     app.state::<QuadrantHost>()
         .get_config_value(&key)
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -49,6 +51,6 @@ pub fn set_config_value(
 ) -> Result<(), tauri::Error> {
     app.state::<QuadrantHost>()
         .set_config_value(&key, value)
-        .map_err(tauri::Error::from)?;
+        .map_err(crate::command_error)?;
     app.emit("configChanged", key).map_err(tauri::Error::from)
 }

@@ -70,12 +70,22 @@ pub struct ModFile {
     pub download_url: Option<String>,
 }
 
-impl From<ModFile> for UniversalModFile {
-    fn from(value: ModFile) -> Self {
-        Self {
+impl TryFrom<ModFile> for UniversalModFile {
+    type Error = anyhow::Error;
+
+    /// CurseForge returns a null `downloadUrl` when the author opted out of
+    /// third-party distribution, so such a file has nothing to install.
+    fn try_from(value: ModFile) -> Result<Self> {
+        let download_url = value
+            .download_url
+            .filter(|url| !url.trim().is_empty())
+            .ok_or_else(|| {
+                anyhow::Error::from(crate::error::ErrorCode::ThirdPartyDownloadDisabled)
+            })?;
+        Ok(Self {
             id: Some(value.id.to_string()),
             file_name: value.file_name,
-            download_url: value.download_url.unwrap_or_default(),
+            download_url,
             sha1: value
                 .hashes
                 .iter()
@@ -83,7 +93,7 @@ impl From<ModFile> for UniversalModFile {
                 .map(|hash| hash.value.clone())
                 .unwrap_or_default(),
             size: value.file_length,
-        }
+        })
     }
 }
 
@@ -494,9 +504,10 @@ pub async fn download_mod_curseforge(
     )
     .await?
     .ok_or_else(|| anyhow::anyhow!("noVersion"))?;
+    let file = UniversalModFile::try_from(file)?;
     let current_usage = settings.get_i64("curseforgeUsage")?.unwrap_or_default();
     settings.set_i64("curseforgeUsage", current_usage + 1)?;
-    get_file(file.into(), id, event_sink).await
+    get_file(file, id, event_sink).await
 }
 
 pub async fn identify_modpack_curseforge(
@@ -511,7 +522,7 @@ pub async fn identify_modpack_curseforge(
         .filter(|existing| existing.name == modpack)
         .collect();
     if existing_modpack.is_empty() {
-        return Err(anyhow::anyhow!("Modpack doesn't exist"));
+        return Err(anyhow::Error::from(crate::error::ErrorCode::ModpackMissing));
     }
     let existing_modpack = existing_modpack.first().unwrap();
     let existing_files: Vec<String> = existing_modpack
@@ -618,6 +629,37 @@ pub(crate) async fn clear_curseforge_fingerprint_cache() {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn file_without_a_download_url_is_not_installable() {
+        let file = |download_url: Option<&str>| ModFile {
+            id: 1,
+            game_id: 432,
+            mod_id: 2,
+            is_available: true,
+            file_name: "mod.jar".to_string(),
+            hashes: Vec::new(),
+            file_date: String::new(),
+            file_length: 0,
+            download_url: download_url.map(ToOwned::to_owned),
+        };
+
+        for missing in [None, Some(""), Some("  ")] {
+            assert_eq!(
+                UniversalModFile::try_from(file(missing))
+                    .unwrap_err()
+                    .to_string(),
+                "thirdPartyDownloadDisabled"
+            );
+        }
+        assert_eq!(
+            UniversalModFile::try_from(file(Some("https://example.invalid/mod.jar")))
+                .unwrap()
+                .download_url,
+            "https://example.invalid/mod.jar"
+        );
+    }
+
     use crate::mc_mod::http::{PROVIDER_HTTP_TEST_MUTEX, clear_provider_http_cache};
     use crate::models::{InstalledModpack, ModLoader};
     use httpmock::prelude::*;

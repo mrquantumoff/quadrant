@@ -10,7 +10,7 @@ pub async fn get_account_info(app: AppHandle) -> Result<AccountInfo, tauri::Erro
     app.state::<QuadrantHost>()
         .get_account_info()
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -22,7 +22,7 @@ pub async fn oauth2_login(
     app.state::<QuadrantHost>()
         .oauth2_login(code, redirect_uri)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -38,5 +38,5 @@ pub async fn read_notification(
     app.state::<QuadrantHost>()
         .read_notification(notification_id)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }

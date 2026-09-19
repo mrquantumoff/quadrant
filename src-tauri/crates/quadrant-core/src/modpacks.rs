@@ -63,7 +63,9 @@ pub(crate) fn validate_modpack_name(name: &str) -> Result<()> {
         || !matches!(components.next(), Some(Component::Normal(_)))
         || components.next().is_some()
     {
-        return Err(anyhow!("Invalid modpack name"));
+        return Err(anyhow::Error::from(
+            crate::error::ErrorCode::InvalidModpackName,
+        ));
     }
     Ok(())
 }
@@ -73,7 +75,7 @@ pub(crate) fn safe_download_file_name(download_url: &str, source: &ModSource) ->
     let scheme_allowed = url.scheme() == "https"
         || cfg!(test) && url.scheme() == "http" && url.host_str() == Some("127.0.0.1");
     if !scheme_allowed {
-        return Err(anyhow!("Unsupported download URL scheme"));
+        return Err(anyhow::Error::from(crate::error::ErrorCode::UnsafeDownload));
     }
 
     let host = url.host_str().unwrap_or_default().to_ascii_lowercase();
@@ -87,13 +89,13 @@ pub(crate) fn safe_download_file_name(download_url: &str, source: &ModSource) ->
         ModSource::Online => true,
     };
     if !trusted_provider {
-        return Err(anyhow!("Untrusted download host"));
+        return Err(anyhow::Error::from(crate::error::ErrorCode::UnsafeDownload));
     }
 
     let encoded = url
         .path_segments()
         .and_then(|segments| segments.filter(|part| !part.is_empty()).next_back())
-        .ok_or_else(|| anyhow!("Download URL has no file name"))?;
+        .ok_or_else(|| anyhow::Error::from(crate::error::ErrorCode::UnsafeDownload))?;
     let decoded = urlencoding::decode(encoded)?.into_owned();
     let mut components = Path::new(&decoded).components();
     if decoded.is_empty()
@@ -102,7 +104,7 @@ pub(crate) fn safe_download_file_name(download_url: &str, source: &ModSource) ->
         || decoded == "."
         || decoded == ".."
     {
-        return Err(anyhow!("Unsafe download file name"));
+        return Err(anyhow::Error::from(crate::error::ErrorCode::UnsafeDownload));
     }
     Ok(decoded)
 }
@@ -293,7 +295,7 @@ pub fn apply_modpack(mc_folder: &Path, name: &str) -> Result<()> {
     let modpack_dir = modpack_path(mc_folder, name);
     let mods_path = mc_folder.join("mods");
     if !modpack_dir.exists() {
-        return Err(anyhow!("Modpack does not exist"));
+        return Err(anyhow::Error::from(crate::error::ErrorCode::ModpackMissing));
     }
     if mods_path.is_symlink() {
         // An existing `mods` symlink. This may be dangling if the modpack it
@@ -336,7 +338,7 @@ pub fn create_modpack(
     validate_modpack_name(name)?;
     log::info!("Creating modpack \"{name}\" (version={version}, mod_loader={mod_loader:?})");
     if existing_modpacks.iter().any(|modpack| modpack.name == name) {
-        return Err(anyhow!("Modpack exists"));
+        return Err(anyhow::Error::from(crate::error::ErrorCode::ModpackExists));
     }
     let modpack_folder = modpack_path(mc_folder, name);
     std::fs::create_dir_all(mc_folder.join("modpacks"))?;
@@ -344,7 +346,7 @@ pub fn create_modpack(
     // creation cannot replace an existing pack's manifest.
     std::fs::create_dir(&modpack_folder).map_err(|error| {
         if error.kind() == std::io::ErrorKind::AlreadyExists {
-            anyhow!("Modpack exists")
+            anyhow::Error::from(crate::error::ErrorCode::ModpackExists)
         } else {
             error.into()
         }
@@ -384,7 +386,7 @@ pub fn update_modpack(
         .iter()
         .find(|modpack| modpack.name == modpack_source)
         .cloned()
-        .ok_or_else(|| anyhow!("No modpack found"))?;
+        .ok_or_else(|| anyhow::Error::from(crate::error::ErrorCode::ModpackMissing))?;
     let modpack_folder = modpack_path(mc_folder, modpack_source);
     let original_name = modpack.name.clone();
 
@@ -393,7 +395,7 @@ pub fn update_modpack(
     {
         let destination = modpack_path(mc_folder, name);
         if destination.try_exists()? || destination.is_symlink() {
-            return Err(anyhow!("Modpack exists"));
+            return Err(anyhow::Error::from(crate::error::ErrorCode::ModpackExists));
         }
     }
 
@@ -443,7 +445,7 @@ pub fn delete_modpack(
         .iter()
         .find(|modpack| modpack.name == name)
         .map(|modpack| modpack.is_applied)
-        .ok_or_else(|| anyhow!("Modpack doesn't exist"))?;
+        .ok_or_else(|| anyhow::Error::from(crate::error::ErrorCode::ModpackMissing))?;
 
     let mods_folder = mc_folder.join("mods");
     if is_applied && mods_folder.exists() {
@@ -467,10 +469,12 @@ pub async fn register_mod(
         .iter()
         .find(|modpack| modpack.name == modpack_name)
         .cloned()
-        .ok_or_else(|| anyhow!("Modpack doesn't exist"))?;
+        .ok_or_else(|| anyhow::Error::from(crate::error::ErrorCode::ModpackMissing))?;
 
     if modpack.mods.iter().any(|existing| existing.id == mod_.id) {
-        return Err(anyhow!("Mod already registered"));
+        return Err(anyhow::Error::from(
+            crate::error::ErrorCode::ModAlreadyRegistered,
+        ));
     }
 
     if mod_.name.is_empty() && mod_.source != ModSource::Online {
@@ -507,7 +511,7 @@ pub fn delete_mod(
         .iter()
         .find(|modpack| modpack.name == modpack_name)
         .cloned()
-        .ok_or_else(|| anyhow!("No modpack found"))?;
+        .ok_or_else(|| anyhow::Error::from(crate::error::ErrorCode::ModpackMissing))?;
 
     let modpack_folder = modpack_path(mc_folder, modpack_name);
     let to_delete_ids: Vec<_> = modpack

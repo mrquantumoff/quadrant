@@ -74,6 +74,20 @@ pub struct InstalledMod {
 }
 
 impl InstalledMod {
+    /// Whether `other` is the same mod, so installing one supersedes the other.
+    ///
+    /// The same mod from the other provider ships a different id, so slugs are
+    /// compared too, or both jars end up installed at once. `isInstalledIn`
+    /// in `src/installedMods.ts` marks search results by the same rule; both
+    /// are tested against `testdata/same_mod_cases.json`.
+    pub fn is_same_mod(&self, other: &InstalledMod) -> bool {
+        let slug = self.slug.trim().to_lowercase();
+        self.id == other.id
+            || (self.source != other.source
+                && !slug.is_empty()
+                && slug == other.slug.trim().to_lowercase())
+    }
+
     /// Creates an `InstalledMod` with only the required fields populated;
     /// all optional fields default to empty/zero values.
     pub fn minimal(id: String, source: ModSource, download_url: String) -> Self {
@@ -357,6 +371,35 @@ pub fn modpack_path(mc_folder: &Path, modpack_name: &str) -> PathBuf {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn is_same_mod_matches_the_shared_cases() {
+        #[derive(Deserialize)]
+        struct Entry {
+            id: String,
+            source: ModSource,
+            slug: String,
+        }
+        #[derive(Deserialize)]
+        struct Case {
+            name: String,
+            a: Entry,
+            b: Entry,
+            same: bool,
+        }
+        let entry = |entry: Entry| InstalledMod {
+            slug: entry.slug,
+            ..InstalledMod::minimal(entry.id, entry.source, String::new())
+        };
+
+        let cases: Vec<Case> =
+            serde_json::from_str(include_str!("../testdata/same_mod_cases.json")).unwrap();
+        for case in cases {
+            let (a, b) = (entry(case.a), entry(case.b));
+            assert_eq!(a.is_same_mod(&b), case.same, "{}", case.name);
+            assert_eq!(b.is_same_mod(&a), case.same, "{} (reversed)", case.name);
+        }
+    }
 
     const ALL_LOADERS: [ModLoader; 14] = [
         ModLoader::Forge,

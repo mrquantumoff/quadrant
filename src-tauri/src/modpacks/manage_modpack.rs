@@ -15,7 +15,7 @@ pub async fn delete_mod(
     app.state::<QuadrantHost>()
         .delete_mod(modpack_name, mod_id)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -29,7 +29,7 @@ pub async fn update_modpack(
     app.state::<QuadrantHost>()
         .update_modpack(modpack_source, name, version, mod_loader)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -42,7 +42,7 @@ pub async fn create_modpack(
     app.state::<QuadrantHost>()
         .create_modpack(name, version, mod_loader)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -50,7 +50,7 @@ pub async fn delete_modpack(name: String, app: AppHandle) -> Result<(), tauri::E
     app.state::<QuadrantHost>()
         .delete_modpack(name)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -58,11 +58,11 @@ pub async fn open_modpacks_folder(app: AppHandle) -> Result<(), tauri::Error> {
     let modpacks_path = app
         .state::<QuadrantHost>()
         .get_modpacks_folder()
-        .map_err(tauri::Error::from)?;
-    std::fs::create_dir_all(&modpacks_path).map_err(tauri::Error::from)?;
+        .map_err(crate::command_error)?;
+    std::fs::create_dir_all(&modpacks_path).map_err(crate::command_error)?;
     TauriShell::new(app)
         .open_path(&modpacks_path)
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -70,7 +70,7 @@ pub fn get_modpacks_folder(app: AppHandle) -> Result<String, tauri::Error> {
     app.state::<QuadrantHost>()
         .get_modpacks_folder()
         .map(|path| path.to_string_lossy().into_owned())
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -82,5 +82,5 @@ pub async fn register_mod(
     app.state::<QuadrantHost>()
         .register_mod(mod_, modpack)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }

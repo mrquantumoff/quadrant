@@ -67,14 +67,14 @@ pub fn set_secret(secret_store: &impl SecretStore, key: &str, value: &str) -> Re
 pub fn get_account_token(secret_store: &impl SecretStore) -> Result<String> {
     secret_store
         .get_secret("accountToken")?
-        .ok_or_else(|| anyhow::anyhow!("No account token"))
+        .ok_or_else(|| anyhow::Error::from(crate::error::ErrorCode::SignedOut))
 }
 
 /// Reads the current account refresh token.
 pub fn get_refresh_token(secret_store: &impl SecretStore) -> Result<String> {
     secret_store
         .get_secret("refreshToken")?
-        .ok_or_else(|| anyhow::anyhow!("No refresh token"))
+        .ok_or_else(|| anyhow::Error::from(crate::error::ErrorCode::SignedOut))
 }
 
 /// Removes any persisted account and refresh tokens.

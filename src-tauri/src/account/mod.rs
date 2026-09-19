@@ -10,7 +10,7 @@ pub mod quadrant_sync;
 pub fn set_secret(key: String, value: String, app: AppHandle) -> Result<(), tauri::Error> {
     app.state::<QuadrantHost>()
         .set_secret(key, value)
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 pub fn get_account_token() -> Result<String, anyhow::Error> {
@@ -29,5 +29,5 @@ pub fn get_refresh_token() -> Result<String, anyhow::Error> {
 pub fn clear_account_token(app: AppHandle) -> Result<(), tauri::Error> {
     app.state::<QuadrantHost>()
         .clear_account_token()
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }

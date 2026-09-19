@@ -103,6 +103,12 @@ fn redirect_tray_icon_for_flatpak(
     }
 }
 
+/// Every command error leaves the backend through here, so the frontend
+/// receives a stable error code wherever the failure has one.
+pub(crate) fn command_error(error: impl Into<anyhow::Error>) -> tauri::Error {
+    quadrant_core::error::user_facing(error.into()).into()
+}
+
 fn build_quadrant_host(
     app: &tauri::AppHandle,
     api_base_url: Option<String>,
@@ -535,7 +541,7 @@ async fn request_check_for_updates(app: tauri::AppHandle) -> Result<(), tauri::E
             return Ok(());
         }
     }
-    check_update(app).await.map_err(tauri::Error::from)
+    check_update(app).await.map_err(crate::command_error)
 }
 
 #[tauri::command]

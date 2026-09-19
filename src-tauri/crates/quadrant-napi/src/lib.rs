@@ -206,6 +206,6 @@ impl QuadrantHostAddon {
     }
 }
 
-fn to_napi_error(error: impl ToString) -> napi::Error {
-    napi::Error::from_reason(error.to_string())
+fn to_napi_error(error: impl Into<anyhow::Error>) -> napi::Error {
+    napi::Error::from_reason(quadrant_host::user_facing(error.into()).to_string())
 }

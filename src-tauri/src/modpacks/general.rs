@@ -29,7 +29,7 @@ pub async fn get_modpacks(hide_free: bool, app: AppHandle) -> Vec<LocalModpack> 
 pub fn frontend_apply_modpack(name: String, app: AppHandle) -> Result<(), tauri::Error> {
     app.state::<QuadrantHost>()
         .frontend_apply_modpack(name)
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 pub fn apply_modpack(name: String, app: AppHandle) -> Result<(), anyhow::Error> {
@@ -44,7 +44,7 @@ pub async fn install_modpack(
     app.state::<QuadrantHost>()
         .install_modpack(mod_config)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -56,7 +56,7 @@ pub async fn set_modpack_sync_date(
 ) -> Result<(), tauri::Error> {
     app.state::<QuadrantHost>()
         .set_modpack_sync_date(time, modpack, modpack_id)
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -64,7 +64,7 @@ pub async fn export_modpack(modpack: String, app: AppHandle) -> Result<(), tauri
     let shell = TauriShell::new(app.clone());
     let destination = shell
         .choose_export_path(&format!("{modpack}.quadrantExport.zip"))
-        .map_err(tauri::Error::from)?;
+        .map_err(crate::command_error)?;
     let Some(destination) = destination else {
         return Ok(());
     };
@@ -72,7 +72,7 @@ pub async fn export_modpack(modpack: String, app: AppHandle) -> Result<(), tauri
     app.state::<QuadrantHost>()
         .export_modpack_to(modpack, destination)
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }
 
 #[tauri::command]
@@ -84,5 +84,5 @@ pub async fn export_modpack_to(
     app.state::<QuadrantHost>()
         .export_modpack_to(modpack, destination.into())
         .await
-        .map_err(tauri::Error::from)
+        .map_err(crate::command_error)
 }

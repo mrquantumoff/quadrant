@@ -19,7 +19,7 @@ pub fn open_link(url: String) -> Result<(), tauri::Error> {
             "Refusing to open non-web link"
         )));
     }
-    open::that_detached(url).map_err(tauri::Error::from)
+    open::that_detached(url).map_err(crate::command_error)
 }
 
 #[cfg(test)]
