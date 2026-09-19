@@ -79,7 +79,11 @@ function mod(over: Partial<IMod>): IMod {
 const back = vi.fn();
 const setSnackbar = vi.fn();
 
-function renderPage(props: { mod: IMod; fileId?: string }) {
+function renderPage(props: {
+  mod: IMod;
+  fileId?: string;
+  installTarget?: { name: string };
+}) {
   return render(
     <ContentContext.Provider
       value={{
@@ -295,6 +299,27 @@ describe("ModInstallPage", () => {
     expect(download).toBeDisabled();
     await userEvent.click(download);
     expect(installMod).not.toHaveBeenCalled();
+  });
+
+  it("targets the opener's modpack over the last used one", async () => {
+    getModpacks.mockResolvedValue([
+      { name: "Pack", version: "1.21", modLoader: ModLoader.Fabric, mods: [] },
+      { name: "Other", version: "1.20.1", modLoader: ModLoader.Forge, mods: [] },
+    ]);
+    getVersions.mockResolvedValue([
+      { version: "1.21", versionType: "release" },
+      { version: "1.20.1", versionType: "release" },
+    ]);
+    renderPage({ mod: mod({}), installTarget: { name: "Other" } });
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("combobox", { name: /Choose a modpack/ }),
+      ).toHaveValue("Other"),
+    );
+    expect(
+      screen.getByRole("combobox", { name: /Choose a Minecraft version/ }),
+    ).toHaveValue("1.20.1");
   });
 
   it("warns and offers a reinstall when the pack already has the mod", async () => {

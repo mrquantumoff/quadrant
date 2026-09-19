@@ -30,7 +30,6 @@ import Button from "../core/Button";
 import "./Mod.css";
 import { createDesktopStore, listen } from "../../desktop";
 import { useReportError } from "../../useReportError";
-import { refreshModpacks } from "../../installedMods";
 
 export interface IModProps {
   mod: IMod;
@@ -38,8 +37,8 @@ export interface IModProps {
   className: string;
   installTarget?: Pick<LocalModpack, "name" | "version" | "modLoader">;
   installed?: boolean;
-  /** Called with the re-read modpacks after this card (or its mod page) installs. */
-  onInstalled?: (modpacks: LocalModpack[]) => void;
+  /** Called after this card (or the mod page it opens) installs something. */
+  onInstalled?: () => void;
 }
 
 /** Deterministic hue (0-359) from a string, for the gradient fallback tile. */
@@ -87,10 +86,6 @@ export default function Mod(props: IModProps) {
 
   const canDownload = mod.downloadable && installable;
 
-  const notifyInstalled = () => {
-    if (props.onInstalled) refreshModpacks(props.onInstalled);
-  };
-
   const failInstall = (e: unknown) => {
     installRequestedRef.current = false;
     installInFlightRef.current = false;
@@ -115,6 +110,7 @@ export default function Mod(props: IModProps) {
           key={mod.id}
           mod={mod}
           originRect={originRect}
+          installTarget={props.installTarget}
           onInstalled={props.onInstalled}
         />
       ),
@@ -338,7 +334,7 @@ export default function Mod(props: IModProps) {
                         mod.source,
                         mod.id,
                       );
-                      notifyInstalled();
+                      props.onInstalled?.();
                     } catch (e) {
                       failInstall(e);
                     }
@@ -381,7 +377,7 @@ export default function Mod(props: IModProps) {
                           mod.modType,
                           lastUsedModpack ?? "free",
                         );
-                        notifyInstalled();
+                        props.onInstalled?.();
                       } catch (e) {
                         failInstall(e);
                       }

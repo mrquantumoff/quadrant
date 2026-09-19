@@ -41,7 +41,7 @@ import LoaderOptions from "../../shared/LoaderOption";
 import LinearProgress from "../../core/LinearProgress";
 import { createDesktopStore, listen } from "../../../desktop";
 import { loaderProvidersForSource } from "../../../modLoaders";
-import { isInstalledIn, refreshModpacks } from "../../../installedMods";
+import { isInstalledIn } from "../../../installedMods";
 import { useReportError } from "../../../useReportError";
 
 export interface IModInstallPageProps {
@@ -49,7 +49,9 @@ export interface IModInstallPageProps {
   fileId?: string;
   /** Screen rect of the card that opened this page; the details card grows out of it. */
   originRect?: DOMRect;
-  onInstalled?: (modpacks: LocalModpack[]) => void;
+  /** The modpack the opener is installing into; wins over saved choices. */
+  installTarget?: Pick<LocalModpack, "name">;
+  onInstalled?: () => void;
 }
 
 interface IModOwner {
@@ -100,6 +102,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   const context = useContext(ContentContext);
   const { t, i18n } = useTranslation();
   const reportError = useReportError();
+  const installTargetName = props.installTarget?.name;
   const [versions, setVersions] = useState<MinecraftVersion[]>([]);
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
   const [version, setVersion] = useState<string>("");
@@ -189,16 +192,21 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       if (cancelled) return;
       // Reconcile the saved choices with what actually exists: a deleted pack
       // or an unavailable version must never reach the install call.
+      const explicitTarget = availableModpacks.find(
+        (entry) => entry.name === installTargetName,
+      );
       const target =
         mod.modType === ModType.Mod
-          ? (availableModpacks.find((entry) => entry.name === savedModpack) ??
+          ? (explicitTarget ??
+            availableModpacks.find((entry) => entry.name === savedModpack) ??
             availableModpacks.find((entry) => entry.isApplied) ??
             availableModpacks[0])
           : undefined;
       // Keep a saved choice while it is still offered; otherwise fall back to
       // the target pack, so the install never submits an unavailable value.
+      const wantedVersion = explicitTarget?.version ?? savedVersion;
       const initialVersion =
-        availableVersions.find((entry) => entry.version === savedVersion)
+        availableVersions.find((entry) => entry.version === wantedVersion)
           ?.version ??
         target?.version ??
         availableVersions[0]?.version ??
@@ -206,7 +214,12 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       setVersions(availableVersions);
       setModpacks(availableModpacks);
       setVersion(initialVersion);
-      setLoader(savedLoader || target?.modLoader || ModLoader.Unknown);
+      setLoader(
+        explicitTarget?.modLoader ||
+          savedLoader ||
+          target?.modLoader ||
+          ModLoader.Unknown,
+      );
       setModpack(target?.name ?? "");
       setIsReady(true);
     };
@@ -214,7 +227,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [config, mod.modType]);
+  }, [config, mod.modType, installTargetName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -306,10 +319,8 @@ export default function ModInstallPage(props: IModInstallPageProps) {
       );
       // Not awaited: a slow or failed reload must not hold the button or
       // surface as an install failure.
-      refreshModpacks((refreshed) => {
-        setModpacks(refreshed);
-        props.onInstalled?.(refreshed);
-      });
+      getModpacks().then(setModpacks).catch(console.error);
+      props.onInstalled?.();
     } catch (e: any) {
       reportError(e);
     } finally {

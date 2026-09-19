@@ -93,6 +93,7 @@ describe("ModpackView", () => {
     ]);
   });
   it("offers a back button that uses the live content context", async () => {
+    const staleBack = vi.fn();
     const back = vi.fn();
     const pack = {
       name: "Pack",
@@ -103,10 +104,10 @@ describe("ModpackView", () => {
       unknownMods: false,
       mods: [],
     };
-    const withContext = (view: React.ReactNode) => (
+    const withContext = (view: React.ReactNode, goBack = back) => (
       <ContentContext.Provider
         value={{
-          back,
+          back: goBack,
           changeContent: vi.fn(),
           changePage: vi.fn(),
           setSnackbar: vi.fn(),
@@ -116,11 +117,14 @@ describe("ModpackView", () => {
         {view}
       </ContentContext.Provider>
     );
-    const { rerender } = render(withContext(<ModpackView {...pack} />));
+    const { rerender } = render(
+      withContext(<ModpackView {...pack} />, staleBack),
+    );
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
 
     rerender(withContext(<ModpackView {...pack} showBack />));
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(back).toHaveBeenCalledTimes(1);
+    expect(staleBack).not.toHaveBeenCalled();
   });
 });

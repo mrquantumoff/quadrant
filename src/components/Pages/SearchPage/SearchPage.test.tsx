@@ -37,8 +37,7 @@ vi.mock("../../../desktop", () => ({
 
 // The Mod card is heavy and independently tested; stub it to render just the
 // mod name so result ordering/identity is observable. Clicking it stands in
-// for a finished install reporting `packsAfterInstall`.
-let packsAfterInstall: LocalModpack[] = [];
+// for a finished install.
 vi.mock("../../shared/Mod", () => ({
   default: ({
     mod,
@@ -47,12 +46,12 @@ vi.mock("../../shared/Mod", () => ({
   }: {
     mod: IMod;
     installed?: boolean;
-    onInstalled?: (modpacks: LocalModpack[]) => void;
+    onInstalled?: () => void;
   }) => (
     <div
       data-testid="mod-card"
       data-installed={String(!!installed)}
-      onClick={() => onInstalled?.(packsAfterInstall)}
+      onClick={() => onInstalled?.()}
     >
       {mod.name}
     </div>
@@ -300,12 +299,12 @@ describe("SearchPage", () => {
     searchMods.mockResolvedValue([
       mod({ name: "Iris", id: "iris", slug: "iris" }),
     ]);
-    packsAfterInstall = [alpha(["iris"])];
 
     render(<SearchPage />);
     const card = await screen.findByText("Iris");
     expect(card).toHaveAttribute("data-installed", "false");
 
+    getModpacks.mockResolvedValue([alpha(["iris"])]);
     await userEvent.click(card);
 
     await waitFor(() =>
@@ -313,6 +312,43 @@ describe("SearchPage", () => {
         "data-installed",
         "true",
       ),
+    );
+  });
+
+  it("keeps the newest reload when two installs answer out of order", async () => {
+    getModpacks.mockResolvedValue([alpha([])]);
+    targetAlpha();
+    searchMods.mockResolvedValue([
+      mod({ name: "Iris", id: "iris", slug: "iris" }),
+      mod({ name: "Sodium", id: "sodium", slug: "sodium" }),
+    ]);
+
+    render(<SearchPage />);
+    const iris = await screen.findByText("Iris");
+
+    const afterFirst = deferred<LocalModpack[]>();
+    const afterSecond = deferred<LocalModpack[]>();
+    getModpacks
+      .mockReturnValueOnce(afterFirst.promise)
+      .mockReturnValueOnce(afterSecond.promise);
+    await userEvent.click(iris);
+    await userEvent.click(screen.getByText("Sodium"));
+
+    afterSecond.resolve([alpha(["iris", "sodium"])]);
+    await waitFor(() =>
+      expect(screen.getByText("Sodium")).toHaveAttribute(
+        "data-installed",
+        "true",
+      ),
+    );
+
+    afterFirst.resolve([alpha(["iris"])]);
+    await act(async () => {
+      await afterFirst.promise;
+    });
+    expect(screen.getByText("Sodium")).toHaveAttribute(
+      "data-installed",
+      "true",
     );
   });
 

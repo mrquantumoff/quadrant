@@ -14,11 +14,10 @@ import {
 const mocks = vi.hoisted(() => ({
   get: vi.fn(),
   installMod: vi.fn(),
-  getModpacks: vi.fn(),
+  installPage: vi.fn(),
 }));
 vi.mock("../../tools", () => ({
   installMod: mocks.installMod,
-  getModpacks: mocks.getModpacks,
   deleteMod: vi.fn(),
   installRemoteFile: vi.fn(),
   openIn: vi.fn(),
@@ -29,7 +28,10 @@ vi.mock("../../desktop", () => ({
   listen: vi.fn(async () => vi.fn()),
 }));
 vi.mock("../Pages/ModInstallPage/ModInstallPage", () => ({
-  default: () => null,
+  default: (props: unknown) => {
+    mocks.installPage(props);
+    return null;
+  },
 }));
 import Mod from "./Mod";
 
@@ -134,21 +136,43 @@ describe("Mod", () => {
     expect(mocks.installMod).not.toHaveBeenCalled();
   });
 
+  it("opens the install page on the card's own target modpack", async () => {
+    const target = {
+      name: "Selected Pack",
+      version: "1.21.1",
+      modLoader: ModLoader.Fabric,
+    };
+    render(
+      <ContentContext.Provider value={context}>
+        <Mod
+          mod={mod}
+          modpack={undefined}
+          className=""
+          installed
+          installTarget={target}
+        />
+      </ContentContext.Provider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Installed" }));
+    render(context.changeContent.mock.calls[0][0].content);
+    expect(mocks.installPage).toHaveBeenCalledWith(
+      expect.objectContaining({ installTarget: target }),
+    );
+  });
+
   it("installs directly when the same mod is not in the pack", async () => {
     renderCard(false);
     await userEvent.click(screen.getByRole("button", { name: "Download" }));
     await waitFor(() => expect(mocks.installMod).toHaveBeenCalledTimes(1));
   });
 
-  it("hands the re-read modpacks to onInstalled after a one-click install", async () => {
-    const packs = [{ name: "Selected Pack" }];
-    mocks.getModpacks.mockResolvedValue(packs);
+  it("reports a finished one-click install through onInstalled", async () => {
     const onInstalled = vi.fn();
     render(
       <Mod mod={mod} modpack={undefined} className="" onInstalled={onInstalled} />,
     );
     await userEvent.click(screen.getByRole("button", { name: "Download" }));
-    await waitFor(() => expect(onInstalled).toHaveBeenCalledWith(packs));
+    await waitFor(() => expect(onInstalled).toHaveBeenCalledTimes(1));
   });
 
   it("does not report an install that failed", async () => {

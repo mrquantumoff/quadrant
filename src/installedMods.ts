@@ -1,7 +1,6 @@
 /** @format */
 
 import { IMod, LocalModpack, ModType } from "./intefaces";
-import { getModpacks } from "./tools";
 
 /**
  * Whether `mod` already has a jar in `modpack`.
@@ -26,14 +25,4 @@ export function isInstalledIn(
         slug !== "" &&
         (installed.slug ?? "").trim().toLowerCase() === slug),
   );
-}
-
-/**
- * Re-reads the modpacks after an install and hands them to `onRefreshed`.
- * Never rejects: a failed reload must not look like a failed install.
- */
-export function refreshModpacks(
-  onRefreshed: (modpacks: LocalModpack[]) => void,
-): void {
-  getModpacks().then(onRefreshed).catch(console.error);
 }
