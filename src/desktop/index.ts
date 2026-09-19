@@ -36,6 +36,10 @@ export class DesktopStore {
     await (await this.adapter()).set(key, value);
   }
 
+  async delete(key: string): Promise<void> {
+    await (await this.adapter()).delete(key);
+  }
+
   async save(): Promise<void> {
     await (await this.adapter()).save();
   }

@@ -3,6 +3,7 @@
 import {
   AccountInfo,
   Article,
+  ContentLocation,
   GetModArgs,
   GlobalSearchModsArgs,
   IdentifiedMod,
@@ -14,6 +15,7 @@ import {
   ModLoader,
   ModSource,
   ModType,
+  PrismInstance,
   SearchCategory,
   SyncedModpack,
   UniversalModFile,
@@ -243,6 +245,11 @@ export async function installMod(
   modType: ModType,
   modpack: string,
   fileId?: string,
+  /**
+   * A `ContentLocation.id` forcing where a resource pack or shader lands.
+   * Unset keeps the automatic behaviour, and mods ignore it entirely.
+   */
+  contentLocation?: string,
 ) {
   await invoke("install_mod", {
     id: id,
@@ -252,6 +259,7 @@ export async function installMod(
     modpack: modpack,
     modType: modType,
     fileId: fileId,
+    contentLocation: contentLocation,
   });
 }
 
@@ -288,6 +296,7 @@ export async function installRemoteFile(
   modpack: string | undefined,
   source: ModSource,
   id: string,
+  contentLocation?: string,
 ) {
   await invoke("install_remote_file", {
     file: file,
@@ -295,6 +304,7 @@ export async function installRemoteFile(
     modpack: modpack,
     source: source,
     id: id,
+    contentLocation: contentLocation,
   });
 }
 
@@ -415,3 +425,56 @@ export const identifyUnknownMods = async (
 export const registerMod = async (mod: LocalMod, modpack: string) => {
   await invoke("register_mod", { mod: mod, modpack: modpack });
 };
+
+/** Empty unless experimental features are on and Prism Launcher is installed. */
+export async function getPrismInstances(): Promise<PrismInstance[]> {
+  return await invoke<PrismInstance[]>("get_prism_instances");
+}
+
+export async function applyModpackToPrismInstance(
+  name: string,
+  instanceId: string,
+) {
+  await invoke("apply_modpack_to_prism_instance", { name, instanceId });
+}
+
+export async function detachPrismInstance(instanceId: string) {
+  await invoke("detach_prism_instance", { instanceId });
+}
+
+/** The Minecraft folder first, then one entry per Prism instance the host found. */
+export async function getInstalledContent(): Promise<ContentLocation[]> {
+  return await invoke<ContentLocation[]>("get_installed_content");
+}
+
+export async function openContentFolder(locationId: string, modType: ModType) {
+  await invoke("open_content_folder", { locationId, modType });
+}
+
+/** Copies packs between two locations, overwriting, and answers how many moved. */
+export async function copyContent(
+  fromLocation: string,
+  toLocation: string,
+  modType: ModType,
+  fileNames: string[],
+): Promise<number> {
+  return await invoke<number>("copy_content", {
+    fromLocation,
+    toLocation,
+    modType,
+    fileNames,
+  });
+}
+
+/** Permanently removes packs from a location, answering how many went. */
+export async function deleteContent(
+  location: string,
+  modType: ModType,
+  fileNames: string[],
+): Promise<number> {
+  return await invoke<number>("delete_content", {
+    location,
+    modType,
+    fileNames,
+  });
+}

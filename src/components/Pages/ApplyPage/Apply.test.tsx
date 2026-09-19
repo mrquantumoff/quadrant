@@ -14,6 +14,7 @@ const getAccountInfo = vi.fn();
 const getSyncedModpacks = vi.fn();
 const syncModpack = vi.fn();
 const installModpack = vi.fn();
+const getPrismInstances = vi.fn();
 const invoke = vi.fn();
 
 const storeGet = vi.fn();
@@ -33,6 +34,7 @@ vi.mock("../../../tools", () => ({
   getMinecraftFolder: (...a: unknown[]) => getMinecraftFolder(...a),
   getMod: vi.fn(),
   getModpacks: (...a: unknown[]) => getModpacks(...a),
+  getPrismInstances: (...a: unknown[]) => getPrismInstances(...a),
   getQuadrantShareModpack: (...a: unknown[]) => getQuadrantShareModpack(...a),
   getVersions: (...a: unknown[]) => getVersions(...a),
   installModpack: (...a: unknown[]) => installModpack(...a),
@@ -137,6 +139,7 @@ beforeEach(() => {
     version: "1.20.1",
   });
   storeGet.mockResolvedValue(true);
+  getPrismInstances.mockResolvedValue([]);
   joinPath.mockImplementation(async (...segments: string[]) =>
     segments.join("/"),
   );
@@ -169,6 +172,55 @@ describe("ApplyPage", () => {
       expect(screen.getByText("Alpha Pack")).toBeInTheDocument(),
     );
     expect(screen.getByText("Beta Pack")).toBeInTheDocument();
+  });
+
+  it("leaves Prism Launcher alone while experimental features are off", async () => {
+    storeGet.mockImplementation(
+      async (key: string) => key !== "experimentalFeatures",
+    );
+    getModpacks.mockResolvedValue([pack({ name: "Alpha Pack" })]);
+
+    render(<ApplyPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Alpha Pack")).toBeInTheDocument(),
+    );
+    expect(getPrismInstances).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("button", { name: /prism launcher/i }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("loads Prism instances and hands them to the card when experimental is on", async () => {
+    getModpacks.mockResolvedValue([pack({ name: "Alpha Pack" })]);
+    getPrismInstances.mockResolvedValue([
+      {
+        id: "a",
+        name: "Survival",
+        minecraftVersion: "1.20.1",
+        modLoader: ModLoader.Fabric,
+        modLoaderVersion: "0.15.0",
+        appliedModpack: null,
+      },
+    ]);
+
+    render(<ApplyPage />);
+
+    await waitFor(() => expect(getPrismInstances).toHaveBeenCalled());
+    expect(
+      await screen.findByRole("button", { name: /prism launcher/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("reloads Prism instances when the filesystem watch fires", async () => {
+    getModpacks.mockResolvedValue([pack({ name: "Alpha Pack" })]);
+    render(<ApplyPage />);
+
+    await waitFor(() => expect(getPrismInstances).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(watchCallback).toBeTypeOf("function"));
+    watchCallback?.();
+
+    await waitFor(() => expect(getPrismInstances).toHaveBeenCalledTimes(2));
   });
 
   it("registers the folder watch and the share-submission listener", async () => {

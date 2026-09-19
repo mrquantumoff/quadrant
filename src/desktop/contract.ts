@@ -12,6 +12,8 @@ export type UnlistenFn = () => void | Promise<void>;
 export interface DesktopStoreAdapter {
   get<T>(key: string): Promise<T | undefined>;
   set(key: string, value: unknown): Promise<void>;
+  /** Clears the key, so `get` reports it as unset. */
+  delete(key: string): Promise<void>;
   save(): Promise<void>;
   onChange(listener: (key: string) => void): Promise<UnlistenFn>;
   onKeyChange<T>(

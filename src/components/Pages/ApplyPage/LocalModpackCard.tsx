@@ -5,6 +5,7 @@ import {
   AccountInfo,
   ContentContext,
   LocalModpack,
+  PrismInstance,
   SyncContext,
   SyncedModpack,
 } from "../../../intefaces";
@@ -32,12 +33,15 @@ import CloudMembersPanel from "./CloudMembersPanel";
 import ModpackBadges from "./ModpackBadges";
 import { formatSyncDate } from "./syncDates";
 import { useReportError } from "../../../useReportError";
+import PrismInstanceMenu from "./PrismInstanceMenu";
 
 export interface LocalModpackCardProps {
   modpack: LocalModpack;
   /** The Quadrant Sync record this modpack is paired with, if any. */
   synced?: SyncedModpack;
   accountInfo?: AccountInfo | null;
+  /** Prism Launcher instances available to link; empty unless experimental. */
+  prismInstances?: PrismInstance[];
   onChanged: () => void | Promise<void>;
   onEdit: (modpack: LocalModpack) => void;
 }
@@ -46,6 +50,7 @@ export default function LocalModpackCard({
   modpack,
   synced,
   accountInfo = null,
+  prismInstances = [],
   onChanged,
   onEdit,
 }: LocalModpackCardProps) {
@@ -57,6 +62,9 @@ export default function LocalModpackCard({
   const dateString = t("localSyncDate", {
     date: formatSyncDate(modpack.lastSynced),
   });
+  const appliedInstances = prismInstances.filter(
+    (instance) => instance.appliedModpack === modpack.name,
+  );
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -86,6 +94,15 @@ export default function LocalModpackCard({
           </span>
         )}
       </p>
+      {appliedInstances.length > 0 && (
+        <p className="text-md text-slate-400">
+          {t("prismAppliedTo", {
+            instances: appliedInstances
+              .map((instance) => instance.name)
+              .join(", "),
+          })}
+        </p>
+      )}
       <div className="my-2 flex overflow-x-auto flex-wrap h-max flex-row items-center text-sm justify-start text-center w-full">
         <Button
           onClick={async () => {
@@ -118,6 +135,13 @@ export default function LocalModpackCard({
           {modpack.isApplied ? t("applied") : t("apply")}
           <MdCheck className="w-5 h-5 mx-2" />
         </Button>
+        {prismInstances.length > 0 && (
+          <PrismInstanceMenu
+            modpack={modpack}
+            instances={prismInstances}
+            onChanged={onChanged}
+          />
+        )}
         <Button
           onClick={async () => {
             try {

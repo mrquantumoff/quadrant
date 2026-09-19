@@ -58,6 +58,13 @@ export const HOST_COMMANDS = [
   "get_mod_curseforge",
   "get_mod_owners_curseforge",
   "get_mod_deps_curseforge",
+  "get_prism_instances",
+  "apply_modpack_to_prism_instance",
+  "detach_prism_instance",
+  "get_installed_content",
+  "open_content_folder",
+  "copy_content",
+  "delete_content",
 ] as const;
 
 export type DesktopCommand = (typeof HOST_COMMANDS)[number];
