@@ -94,3 +94,17 @@ When you change something, run the tests for the affected side and add coverage 
 
 ## Versioning
 `YY.MM.REVISION` (e.g. `26.6.0-stable`). Tags use `v` prefix with a suffix (`-stable`, `-flatpak`, `-msstore`). Prerelease tags skip the suffix. Version lives in `package.json`, `src-tauri/tauri.conf.json`, and the `*.metainfo.xml`/manifest files.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as GitHub issues on `QuadrantMC/quadrant` (upstream — `origin` has issues disabled, so always pass `-R`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical triage labels, unrenamed: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root (neither exists yet; created lazily). See `docs/agents/domain.md`.
