@@ -1,12 +1,11 @@
 /** @format */
 
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import {
   AccountInfo,
   ContentContext,
   LocalModpack,
   PrismInstance,
-  SyncContext,
   SyncedModpack,
 } from "../../../intefaces";
 import {
@@ -17,7 +16,14 @@ import {
   syncModpack,
 } from "../../../tools";
 import { useTranslation } from "react-i18next";
+import {
+  Dialog,
+  DialogBackdrop,
+  DialogPanel,
+  DialogTitle,
+} from "@headlessui/react";
 import Button from "../../core/Button";
+import CancelButton from "../../core/CancelButton";
 import { motion } from "motion/react";
 import {
   MdArchive,
@@ -32,6 +38,7 @@ import ModpackView from "../../shared/Pages/ModpackView";
 import CloudMembersPanel from "./CloudMembersPanel";
 import ModpackBadges from "./ModpackBadges";
 import { formatSyncDate } from "./syncDates";
+import { isCloudSyncNewerError } from "../../../errors";
 import { useReportError } from "../../../useReportError";
 import PrismInstanceMenu from "./PrismInstanceMenu";
 
@@ -57,7 +64,7 @@ export default function LocalModpackCard({
   const { t } = useTranslation();
   const reportError = useReportError();
   const context = useContext(ContentContext);
-  const syncContext = useContext(SyncContext);
+  const [isSyncConflictOpen, setIsSyncConflictOpen] = useState(false);
 
   const dateString = t("localSyncDate", {
     date: formatSyncDate(modpack.lastSynced),
@@ -65,6 +72,21 @@ export default function LocalModpackCard({
   const appliedInstances = prismInstances.filter(
     (instance) => instance.appliedModpack === modpack.name,
   );
+
+  const pushToCloud = async (overwrite: boolean) => {
+    await syncModpack(modpack, overwrite);
+    context.setSnackbar({
+      message: (
+        <span className="flex">
+          <MdCheck className="w-5 h-5 mx-2" />
+          {t("modpackUpdated")}
+        </span>
+      ),
+      className: "bg-emerald-600 rounded-4xl",
+      timeout: 5000,
+    });
+    await onChanged();
+  };
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -160,22 +182,12 @@ export default function LocalModpackCard({
         <Button
           onClick={async () => {
             try {
-              await syncModpack(modpack, true);
-              // The push creates or updates the cloud record; nothing else
-              // tells the cloud list about it.
-              syncContext.refreshSyncedModpacks();
-              context.setSnackbar({
-                message: (
-                  <span className="flex">
-                    <MdCheck className="w-5 h-5 mx-2" />
-                    {t("modpackUpdated")}
-                  </span>
-                ),
-                className: "bg-emerald-600 rounded-4xl",
-                timeout: 5000,
-              });
-              await onChanged();
+              await pushToCloud(false);
             } catch (e: any) {
+              if (isCloudSyncNewerError(e)) {
+                setIsSyncConflictOpen(true);
+                return;
+              }
               reportError(e);
             }
           }}
@@ -273,6 +285,42 @@ export default function LocalModpackCard({
           localName={modpack.name}
         />
       )}
+      <Dialog
+        open={isSyncConflictOpen}
+        onClose={() => setIsSyncConflictOpen(false)}
+        className={"relative z-50"}
+      >
+        <DialogBackdrop className="fixed inset-0 opacity-60 bg-slate-950/30" />
+        <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
+          <DialogPanel
+            className={"max-w-xl space-y-4 rounded-4xl bg-slate-800 p-8"}
+          >
+            <DialogTitle className={"font-black text-xl"}>
+              {t("cloudSyncNewerQuestion")}
+            </DialogTitle>
+            <p>{t("cloudSyncNewerQuestionText", { name: modpack.name })}</p>
+            <div className="flex">
+              <Button
+                className="bg-emerald-600 hover:bg-emerald-700 w-full"
+                onClick={async () => {
+                  setIsSyncConflictOpen(false);
+                  try {
+                    await pushToCloud(true);
+                  } catch (e: any) {
+                    reportError(e);
+                  }
+                }}
+              >
+                {t("syncAnyway")}
+              </Button>
+              <CancelButton
+                className="ml-2 w-full"
+                onClick={() => setIsSyncConflictOpen(false)}
+              />
+            </div>
+          </DialogPanel>
+        </div>
+      </Dialog>
     </motion.div>
   );
 }

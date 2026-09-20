@@ -18,7 +18,7 @@ use quadrant_core::{
             get_account_info_with_refresh, get_notification_history_all_since_with_refresh,
             oauth2_login, read_notification, try_refresh_token,
         },
-        quadrant_settings_sync,
+        quadrant_settings_sync::{self, SettingsPull},
         quadrant_share::{
             QuadrantShareSubmissionResponse, get_quadrant_share_modpack, share_modpack_raw,
         },
@@ -34,6 +34,7 @@ use quadrant_core::{
         content_location_header, content_subfolder, copy_content_files, delete_content_files,
         parse_location_id, prism_location_id,
     },
+    error::is_cloud_sync_conflict,
     events::BackendEvent,
     mc_mod::{
         GetModArgs, GlobalSearchModsArgs, IdentifiedMod, MinecraftVersion, Mod, ModType,
@@ -85,6 +86,8 @@ const SETTINGS_SYNC_INTERVAL_SECS: u64 = 120;
 const TOKEN_REFRESH_CHECK_INTERVAL_SECS: u64 = 60;
 const WS_REPLAY_LIMIT: usize = 500;
 const REFRESH_SYNCED_MODPACKS_EVENT: &str = "refreshSyncedModpacks";
+const MODPACK_SYNC_NOTIFICATION_TYPE: &str = "modpack_sync";
+const MODPACK_MEMBERSHIP_NOTIFICATION_TYPE: &str = "modpack_membership";
 static LOGGER_INIT: Once = Once::new();
 static KEYRING_STORE_INIT: OnceLock<std::result::Result<(), String>> = OnceLock::new();
 
@@ -1178,7 +1181,7 @@ impl QuadrantHost {
             runtime.notification_connection_id.clone()
         };
 
-        let timestamp = quadrant_core::account::quadrant_sync::sync_modpack(
+        let submission = quadrant_core::account::quadrant_sync::sync_modpack(
             &self.inner.secret_store,
             &self.inner.options.user_agent,
             &self.inner.options.oauth_client_id,
@@ -1189,15 +1192,22 @@ impl QuadrantHost {
         )
         .await?;
 
-        let persisted_modpack_id = self
-            .resolve_submitted_modpack_id(&modpack, timestamp)
-            .await?
-            .or_else(|| modpack.modpack_id.clone());
         self.persist_sync_metadata(
             &modpack.name,
-            timestamp as u64,
-            persisted_modpack_id.as_deref(),
-        )
+            submission.last_synced as u64,
+            submission.modpack_id.as_deref(),
+        )?;
+
+        // An empty id tells the renderer to refresh the whole list, since there
+        // is no single pack to refresh. The push already succeeded, so a failed
+        // refresh signal must not report it as an error.
+        if let Err(error) = self.inner.event_sink.emit(
+            REFRESH_SYNCED_MODPACKS_EVENT,
+            submission.modpack_id.unwrap_or_default(),
+        ) {
+            log::warn!("Failed to signal a synced modpack refresh: {error}");
+        }
+        Ok(())
     }
 
     pub async fn answer_invite(
@@ -1267,7 +1277,7 @@ impl QuadrantHost {
         .await
     }
 
-    pub async fn get_quadrant_settings(&self) -> Result<()> {
+    pub async fn get_quadrant_settings(&self) -> Result<SettingsPull> {
         quadrant_settings_sync::get_quadrant_settings(
             &self.inner.config_store,
             &self.inner.secret_store,
@@ -1697,33 +1707,23 @@ impl QuadrantHost {
             .get_bool("autoQuadrantSync")?
             .unwrap_or(false);
 
-        if modpack.last_synced != 0 && auto_sync {
-            self.sync_modpack(modpack, true).await?;
+        if modpack.last_synced == 0 || !auto_sync {
+            return Ok(());
         }
 
-        Ok(())
-    }
-
-    async fn resolve_submitted_modpack_id(
-        &self,
-        modpack: &LocalModpack,
-        timestamp: i64,
-    ) -> Result<Option<String>> {
-        let synced_modpacks = self.get_synced_modpacks(false, None).await?;
-
-        let mut matching = synced_modpacks.into_iter().filter(|synced_modpack| {
-            synced_modpack.name == modpack.name
-                && synced_modpack.minecraft_version == modpack.version
-                && synced_modpack.mod_loader == modpack.mod_loader
-                && synced_modpack.last_synced == timestamp
-        });
-
-        let first = matching.next().map(|modpack| modpack.modpack_id);
-        if matching.next().is_some() {
-            return Ok(None);
+        let modpack_name = modpack.name.clone();
+        let modpack_id = modpack.modpack_id.clone().unwrap_or_default();
+        match self.sync_modpack(modpack, false).await {
+            // Installing or updating a mod must not fail just because the cloud
+            // copy moved ahead; the refresh lets the user resolve it.
+            Err(error) if is_cloud_sync_conflict(&error) => {
+                log::warn!("Skipped auto sync of {modpack_name}: the cloud copy is newer");
+                self.inner
+                    .event_sink
+                    .emit(REFRESH_SYNCED_MODPACKS_EVENT, modpack_id)
+            }
+            result => result,
         }
-
-        Ok(first)
     }
 
     fn persist_sync_metadata(
@@ -1852,6 +1852,12 @@ impl QuadrantHost {
                 .emit("refreshNotifications", notifications)?;
         }
 
+        for modpack_id in merge_outcome.membership_modpack_ids {
+            self.inner
+                .event_sink
+                .emit(REFRESH_SYNCED_MODPACKS_EVENT, modpack_id)?;
+        }
+
         for notification in merge_outcome.modpack_sync_notifications {
             if let Err(error) = self.handle_modpack_sync_notification(&notification).await {
                 log::warn!("Failed to process bootstrapped modpack sync notification: {error}");
@@ -1931,6 +1937,14 @@ impl QuadrantHost {
                     } else {
                         self.mark_modpack_sync_processed(&notification).await;
                     }
+                }
+
+                if is_modpack_membership_notification(&notification)
+                    && let Some(modpack_id) = notification.resource_id.as_deref()
+                {
+                    self.inner
+                        .event_sink
+                        .emit(REFRESH_SYNCED_MODPACKS_EVENT, modpack_id)?;
                 }
             }
             NotificationWsFrame::ReplayComplete { truncated, .. } => {
@@ -2152,15 +2166,12 @@ impl QuadrantHost {
             return Ok(());
         }
 
-        if let Err(error) = self.get_quadrant_settings().await {
-            if error.to_string() == "Current settings are newer" {
-                self.submit_quadrant_settings().await?;
-            } else {
-                return Err(error);
+        match self.get_quadrant_settings().await? {
+            SettingsPull::LocalNewer | SettingsPull::NoRemote => {
+                self.submit_quadrant_settings().await
             }
+            SettingsPull::UpToDate | SettingsPull::Applied => Ok(()),
         }
-
-        Ok(())
     }
 
     async fn mark_notification_read_and_snapshot(
@@ -2242,6 +2253,7 @@ struct UpsertOutcome {
 struct MergeNotificationsOutcome {
     notifications_for_ui: Option<Vec<Notification>>,
     modpack_sync_notifications: Vec<Notification>,
+    membership_modpack_ids: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -2383,12 +2395,23 @@ fn merge_notifications_and_collect_updates(
     let mut changed = false;
     let mut latest_modpack_sync_by_key = HashMap::new();
     let mut modpack_sync_order = Vec::new();
+    let mut membership_modpack_ids: Vec<String> = Vec::new();
 
     for notification in notifications {
         let should_queue_modpack_sync =
             runtime.should_process_modpack_sync_notification(&notification);
         let outcome = runtime.upsert(notification.clone());
         changed |= outcome.changed;
+
+        // Gating on `changed` keeps a re-bootstrap of the same history from
+        // re-emitting refreshes the renderer has already acted on.
+        if outcome.changed
+            && is_modpack_membership_notification(&notification)
+            && let Some(resource_id) = notification.resource_id.as_deref()
+            && !membership_modpack_ids.iter().any(|id| id == resource_id)
+        {
+            membership_modpack_ids.push(resource_id.to_string());
+        }
 
         if should_queue_modpack_sync {
             let identity_key = notification_identity_key(&notification);
@@ -2409,6 +2432,7 @@ fn merge_notifications_and_collect_updates(
             .into_iter()
             .filter_map(|identity_key| latest_modpack_sync_by_key.remove(&identity_key))
             .collect(),
+        membership_modpack_ids,
     }
 }
 
@@ -2427,18 +2451,22 @@ fn reconnect_delay(attempt: u32) -> Duration {
 fn parse_notification_message(notification: &Notification) -> Option<ModpackSyncPayload> {
     serde_json::from_str::<ModpackSyncPayload>(&notification.message)
         .ok()
-        .filter(|payload| payload.notification_type == "modpack_sync")
+        .filter(|payload| payload.notification_type == MODPACK_SYNC_NOTIFICATION_TYPE)
 }
 
 fn is_modpack_sync_notification(notification: &Notification) -> bool {
-    notification.notification_type.as_deref() == Some("modpack_sync")
+    notification.notification_type.as_deref() == Some(MODPACK_SYNC_NOTIFICATION_TYPE)
+}
+
+fn is_modpack_membership_notification(notification: &Notification) -> bool {
+    notification.notification_type.as_deref() == Some(MODPACK_MEMBERSHIP_NOTIFICATION_TYPE)
 }
 
 fn notification_identity_key(notification: &Notification) -> String {
     if is_modpack_sync_notification(notification)
         && let Some(resource_id) = notification.resource_id.as_deref()
     {
-        return format!("modpack_sync:{resource_id}");
+        return format!("{MODPACK_SYNC_NOTIFICATION_TYPE}:{resource_id}");
     }
     notification.notification_id.clone()
 }
@@ -2735,15 +2763,15 @@ struct CodeArgs {
 mod tests {
     use super::{
         HostEventBridge, HostEventEnvelope, JsonFileStore, Notification, NotificationCursor,
-        NotificationRuntimeState, QuadrantHost, QuadrantHostOptions,
-        merge_notifications_and_collect_updates,
+        NotificationRuntimeState, QuadrantHost, QuadrantHostOptions, Uuid,
+        is_modpack_membership_notification, merge_notifications_and_collect_updates,
     };
     use quadrant_core::{
         account::KEYRING_SERVICE,
         content::{ContentLocation, ContentLocationKind, PACK_TYPES},
         events::{BackendEvent, ModProgressPayload},
         mc_mod::ModType,
-        models::{ModLoader, modpack_path},
+        models::{LocalModpack, ModLoader, SyncInfo, modpack_path},
         ports::{EventSink, SettingsStore},
         prism::PrismSyncPlan,
     };
@@ -2764,6 +2792,45 @@ mod tests {
             created_at: format!("2026-03-20T10:{unix:02}:00Z"),
             created_at_unix: unix,
             read,
+        }
+    }
+
+    fn membership_notification(id: &str, unix: i64, resource_id: &str) -> Notification {
+        Notification {
+            notification_type: Some("modpack_membership".to_string()),
+            resource_id: Some(resource_id.to_string()),
+            message: "{\"notification_type\":\"modpack_membership\"}".to_string(),
+            ..notification(id, unix, false)
+        }
+    }
+
+    /// A host whose Minecraft folder is a temp dir holding one modpack. Its
+    /// keyring service name is unique per run, so a test that unintentionally
+    /// reaches a signed-in code path fails on the missing token instead of
+    /// talking to the developer's real account.
+    fn sync_host(temp_dir: &Path) -> (QuadrantHost, PathBuf) {
+        let mc_folder = temp_dir.join(".minecraft");
+        fs::create_dir_all(mc_folder.join("modpacks").join("pack")).unwrap();
+
+        let mut options =
+            QuadrantHostOptions::new(temp_dir.join("data"), "client", "secret", "api-key");
+        options.keyring_service_name = format!("quadrant-test-{}", Uuid::now_v7());
+
+        let host = QuadrantHost::new(options).unwrap();
+        host.set_config_value("mcFolder", json!(mc_folder)).unwrap();
+        (host, mc_folder)
+    }
+
+    fn local_modpack(last_synced: i64) -> LocalModpack {
+        LocalModpack {
+            name: "pack".to_string(),
+            version: "1.21.1".to_string(),
+            mod_loader: ModLoader::Fabric,
+            mods: Vec::new(),
+            unknown_mods: false,
+            is_applied: false,
+            last_synced,
+            modpack_id: Some("modpack-7".to_string()),
         }
     }
 
@@ -2842,6 +2909,73 @@ mod tests {
                 notification_id: Some("n2".to_string()),
             }
         );
+    }
+
+    #[test]
+    fn membership_notifications_are_told_apart_by_type() {
+        assert!(is_modpack_membership_notification(
+            &membership_notification("m1", 1, "pack-1")
+        ));
+        assert!(!is_modpack_membership_notification(&notification(
+            "n1", 1, false
+        )));
+    }
+
+    #[test]
+    fn notification_merge_collects_each_membership_modpack_once() {
+        let mut state = NotificationRuntimeState::default();
+        let outcome = merge_notifications_and_collect_updates(
+            &mut state,
+            vec![
+                membership_notification("m1", 1, "pack-1"),
+                membership_notification("m2", 2, "pack-1"),
+                membership_notification("m3", 3, "pack-2"),
+            ],
+        );
+        assert_eq!(outcome.membership_modpack_ids, ["pack-1", "pack-2"]);
+
+        let replayed = merge_notifications_and_collect_updates(
+            &mut state,
+            vec![membership_notification("m1", 1, "pack-1")],
+        );
+        assert!(replayed.membership_modpack_ids.is_empty());
+    }
+
+    #[test]
+    fn persist_sync_metadata_records_what_the_server_returned() {
+        let temp_dir = tempdir().unwrap();
+        let (host, mc_folder) = sync_host(temp_dir.path());
+
+        host.persist_sync_metadata("pack", 1_762_000_000, Some("modpack-7"))
+            .unwrap();
+
+        let sync_info: SyncInfo = serde_json::from_str(
+            &fs::read_to_string(modpack_path(&mc_folder, "pack").join("quadrantSync.json"))
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(sync_info.last_synced, 1_762_000_000);
+        assert_eq!(sync_info.modpack_id.as_deref(), Some("modpack-7"));
+    }
+
+    /// Both guards must hold without a keyring or network, so reaching the
+    /// submit at all would fail the test rather than pass it.
+    #[tokio::test]
+    async fn auto_sync_waits_for_the_setting_and_a_previous_sync() {
+        let temp_dir = tempdir().unwrap();
+        let (host, _mc_folder) = sync_host(temp_dir.path());
+
+        host.set_config_value("autoQuadrantSync", json!(false))
+            .unwrap();
+        host.maybe_auto_sync_updated_modpack(Some(local_modpack(1_762_000_000_000)))
+            .await
+            .unwrap();
+
+        host.set_config_value("autoQuadrantSync", json!(true))
+            .unwrap();
+        host.maybe_auto_sync_updated_modpack(Some(local_modpack(0)))
+            .await
+            .unwrap();
     }
 
     #[test]

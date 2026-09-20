@@ -1,7 +1,7 @@
 /** @format */
 
 import { describe, expect, it } from "vitest";
-import { describeError } from "./errors";
+import { describeError, isCloudSyncNewerError } from "./errors";
 import quadrantLocale from "./i18n";
 import en from "./locales/en.json";
 
@@ -72,5 +72,32 @@ describe("describeError keys and fallback", () => {
     expect(describeRaw("The flux capacitor overheated")).toBe(
       en.errorUnknown.replace("{{details}}", "The flux capacitor overheated"),
     );
+  });
+});
+
+describe("isCloudSyncNewerError", () => {
+  it.each(["errorCloudSyncNewer", "  errorCloudSyncNewer  "])(
+    "recognizes %s",
+    (raw) => {
+      expect(isCloudSyncNewerError(raw)).toBe(true);
+      expect(isCloudSyncNewerError(new Error(raw))).toBe(true);
+    },
+  );
+
+  it.each([
+    "errorNetwork",
+    "errorModpackMissing",
+    "Current settings are newer",
+    // The backend classifies the server's sentence before it gets here.
+    "Cloud sync is newer",
+    "Upload refused: cloud sync is newer than allowed",
+    // What the browser runtime throws when there is no desktop host at all.
+    "Quadrant desktop runtime is unavailable in this environment. Tried to use: invoke",
+    "",
+    null,
+    undefined,
+    42,
+  ])("does not mistake %o for the conflict", (raw) => {
+    expect(isCloudSyncNewerError(raw)).toBe(false);
   });
 });

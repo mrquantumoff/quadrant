@@ -8,7 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use crate::{
     Result,
     account::{
-        backend_base_url, get_account_token, get_refresh_token, set_secret,
+        account_http_client, backend_base_url, get_account_token, get_refresh_token, set_secret,
         set_token_refresh_deadline,
     },
     ports::SecretStore,
@@ -233,7 +233,7 @@ pub async fn try_refresh_token(
     body.insert("grant_type", "refresh_token");
     body.insert("refresh_token", refresh_token.as_str());
 
-    let response = reqwest::Client::new()
+    let response = account_http_client()
         .post(format!("{}/oauth2/token", backend_base_url()))
         .form(&body)
         .header("User-Agent", user_agent)
@@ -257,7 +257,7 @@ pub async fn get_account_info(
 ) -> Result<AccountInfo> {
     log::info!("Fetching account info");
     let token = get_account_token(secret_store)?;
-    let client = reqwest::Client::new();
+    let client = account_http_client();
     let url = format!("{}/account/info/get", backend_base_url());
 
     let response = client
@@ -278,7 +278,7 @@ pub async fn get_account_info_with_refresh(
     client_secret: &str,
 ) -> Result<AccountInfo> {
     let token = get_account_token(secret_store)?;
-    let client = reqwest::Client::new();
+    let client = account_http_client();
     let url = format!("{}/account/info/get", backend_base_url());
 
     let response = client
@@ -321,7 +321,7 @@ pub async fn oauth2_login(
     body.insert("code", code.as_str());
     body.insert("redirect_uri", redirect_uri.as_str());
 
-    let response = reqwest::Client::new()
+    let response = account_http_client()
         .post(format!("{}/oauth2/token", backend_base_url()))
         .form(&body)
         .header("User-Agent", user_agent)
@@ -362,7 +362,7 @@ pub async fn get_notification_history_page_with_refresh(
     let token = get_account_token(secret_store)?;
     let query = notification_history_query(cursor, read, limit, include_modpack_sync);
 
-    let response = reqwest::Client::new()
+    let response = account_http_client()
         .get(format!("{}/account/notifications/get", backend_base_url()))
         .header("User-Agent", user_agent)
         .bearer_auth(&token)
@@ -374,7 +374,7 @@ pub async fn get_notification_history_page_with_refresh(
         log::info!("Notification history request unauthorized, attempting token refresh");
         try_refresh_token(secret_store, client_id, client_secret, user_agent).await?;
         let new_token = get_account_token(secret_store)?;
-        let retry = reqwest::Client::new()
+        let retry = account_http_client()
             .get(format!("{}/account/notifications/get", backend_base_url()))
             .header("User-Agent", user_agent)
             .bearer_auth(new_token)
@@ -501,7 +501,7 @@ pub async fn read_notification(
 ) -> Result<()> {
     log::info!("Marking notification {notification_id} as read");
     let token = get_account_token(secret_store)?;
-    let request = reqwest::Client::new()
+    let request = account_http_client()
         .post(format!("{}/account/notifications/read", backend_base_url()))
         .header("User-Agent", user_agent)
         .bearer_auth(&token)

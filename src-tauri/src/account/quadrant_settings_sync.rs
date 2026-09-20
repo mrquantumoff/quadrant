@@ -6,6 +6,7 @@ pub async fn get_quadrant_settings(app: AppHandle) -> Result<(), tauri::Error> {
     app.state::<QuadrantHost>()
         .get_quadrant_settings()
         .await
+        .map(|_| ())
         .map_err(crate::command_error)
 }
 

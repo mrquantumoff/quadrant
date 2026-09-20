@@ -36,10 +36,11 @@ pub enum ErrorCode {
     PrismInstanceUnreadable,
     PrismLoaderVersionRequired,
     PrismLoaderVersionNotFound,
+    CloudSyncNewer,
 }
 
 impl ErrorCode {
-    pub const ALL: [ErrorCode; 28] = [
+    pub const ALL: [ErrorCode; 29] = [
         Self::ThirdPartyDownloadDisabled,
         Self::DownloadRefused,
         Self::InvalidRequest,
@@ -68,6 +69,7 @@ impl ErrorCode {
         Self::PrismInstanceUnreadable,
         Self::PrismLoaderVersionRequired,
         Self::PrismLoaderVersionNotFound,
+        Self::CloudSyncNewer,
     ];
 
     pub const fn key(self) -> &'static str {
@@ -100,6 +102,7 @@ impl ErrorCode {
             Self::PrismInstanceUnreadable => "errorPrismInstanceUnreadable",
             Self::PrismLoaderVersionRequired => "errorPrismLoaderVersionRequired",
             Self::PrismLoaderVersionNotFound => "errorPrismLoaderVersionNotFound",
+            Self::CloudSyncNewer => "errorCloudSyncNewer",
         }
     }
 
@@ -172,6 +175,14 @@ impl fmt::Display for ErrorCode {
 }
 
 impl std::error::Error for ErrorCode {}
+
+/// Whether an error is the cloud-sync conflict the backend reports when a
+/// submitted modpack is older than the copy it would overwrite.
+///
+/// Callers branch on this instead of comparing the backend's wording.
+pub fn is_cloud_sync_conflict(error: &anyhow::Error) -> bool {
+    ErrorCode::classify(error) == Some(ErrorCode::CloudSyncNewer)
+}
 
 /// Converts an error for display by a host: a recognised failure becomes its
 /// [`ErrorCode`] key, anything else passes through unchanged.

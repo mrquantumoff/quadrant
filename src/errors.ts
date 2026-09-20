@@ -9,6 +9,17 @@ function rawMessage(error: unknown): string {
 }
 
 /**
+ * Whether a caught error is Quadrant Sync refusing a push because the cloud
+ * copy moved on.
+ *
+ * Matched exactly: confirming this error overwrites the cloud copy, so a
+ * lookalike must not pass.
+ */
+export function isCloudSyncNewerError(error: unknown): boolean {
+  return rawMessage(error) === "errorCloudSyncNewer";
+}
+
+/**
  * The text to show for a caught error.
  *
  * The backend classifies failures itself (`quadrant_core::error::ErrorCode`)

@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 
 use crate::{
     Result,
-    account::{backend_base_url, send_with_token_refresh},
+    account::{account_http_client, backend_base_url, send_with_token_refresh},
     events::BackendEvent,
     ports::{EventSink, SecretStore, SettingsStore},
 };
@@ -30,6 +30,19 @@ pub const SYNCED_KEYS: &[&str] = &[
     "clipIcons",
 ];
 
+/// Outcome of a cloud settings pull.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SettingsPull {
+    /// The cloud copy carries the same sync date as the local settings.
+    UpToDate,
+    /// The cloud copy was newer and has been written to the settings store.
+    Applied,
+    /// The local settings are newer than the cloud copy.
+    LocalNewer,
+    /// The account has no cloud settings yet.
+    NoRemote,
+}
+
 /// Pulls synced settings from the cloud into the local settings store.
 pub async fn get_quadrant_settings(
     settings_store: &impl SettingsStore,
@@ -38,24 +51,33 @@ pub async fn get_quadrant_settings(
     client_id: &str,
     client_secret: &str,
     event_sink: &impl EventSink,
-) -> Result<()> {
+) -> Result<SettingsPull> {
     log::debug!("Pulling settings from cloud");
-    let json = send_with_token_refresh(
+    let response = send_with_token_refresh(
         secret_store,
         user_agent,
         client_id,
         client_secret,
         |token| {
-            reqwest::Client::new()
+            account_http_client()
                 .get(format!("{}/quadrant/settings_sync/get", backend_base_url()))
                 .header("User-Agent", user_agent)
                 .bearer_auth(token)
                 .send()
         },
     )
-    .await?
-    .json::<serde_json::Value>()
     .await?;
+
+    // A fresh account has never pushed settings and answers 404 with a plain
+    // text body, so the decode has to be gated behind the status.
+    if response.status() == reqwest::StatusCode::NOT_FOUND {
+        log::debug!("Account has no cloud settings yet");
+        return Ok(SettingsPull::NoRemote);
+    }
+    if !response.status().is_success() {
+        return Err(anyhow!(response.text().await?));
+    }
+    let json = response.json::<serde_json::Value>().await?;
 
     let last_settings_updated = DateTime::parse_from_rfc3339(
         &settings_store
@@ -70,10 +92,10 @@ pub async fn get_quadrant_settings(
 
     if last_settings_updated == sync_time {
         log::debug!("Cloud settings are up-to-date, skipping sync");
-        return Ok(());
+        return Ok(SettingsPull::UpToDate);
     }
     if last_settings_updated > sync_time {
-        return Err(anyhow!("Current settings are newer"));
+        return Ok(SettingsPull::LocalNewer);
     }
 
     log::info!("Applying cloud settings (sync_time={sync_time})");
@@ -95,7 +117,7 @@ pub async fn get_quadrant_settings(
         event_sink.publish(BackendEvent::ConfigChanged(
             "lastSettingsUpdated".to_string(),
         ))?;
-        return Ok(());
+        return Ok(SettingsPull::Applied);
     }
 
     Err(anyhow!("No valid settings"))
@@ -133,7 +155,7 @@ pub async fn submit_quadrant_settings(
         client_id,
         client_secret,
         |token| {
-            reqwest::Client::new()
+            account_http_client()
                 .post(format!(
                     "{}/quadrant/settings_sync/submit",
                     backend_base_url()
@@ -153,7 +175,7 @@ pub async fn submit_quadrant_settings(
 
 #[cfg(test)]
 mod tests {
-    use super::{SYNCED_KEYS, get_quadrant_settings, submit_quadrant_settings};
+    use super::{SYNCED_KEYS, SettingsPull, get_quadrant_settings, submit_quadrant_settings};
     use crate::{
         Result,
         events::BackendEvent,
@@ -173,13 +195,25 @@ mod tests {
         }
     }
 
-    struct MemorySettingsStore;
+    const CLOUD_SYNC_DATE: &str = "2025-01-01T00:00:00+00:00";
+
+    struct MemorySettingsStore {
+        last_settings_updated: &'static str,
+    }
+
+    impl MemorySettingsStore {
+        fn updated_at(last_settings_updated: &'static str) -> Self {
+            Self {
+                last_settings_updated,
+            }
+        }
+    }
 
     impl SettingsStore for MemorySettingsStore {
         fn get_value(&self, key: &str) -> Result<Option<Value>> {
             Ok(match key {
                 "lastSettingsUpdated" => {
-                    Some(Value::String("2024-01-01T00:00:00+00:00".to_string()))
+                    Some(Value::String(self.last_settings_updated.to_string()))
                 }
                 "modrinth" => Some(Value::Bool(true)),
                 _ => None,
@@ -247,7 +281,7 @@ mod tests {
         });
 
         let error = submit_quadrant_settings(
-            &MemorySettingsStore,
+            &MemorySettingsStore::updated_at("2024-01-01T00:00:00+00:00"),
             &MemorySecretStore,
             "test-agent",
             "test-client-id",
@@ -276,7 +310,7 @@ mod tests {
         });
 
         let error = get_quadrant_settings(
-            &MemorySettingsStore,
+            &MemorySettingsStore::updated_at("2024-01-01T00:00:00+00:00"),
             &MemorySecretStore,
             "test-agent",
             "test-client-id",
@@ -316,8 +350,8 @@ mod tests {
         });
 
         let events = CollectingEvents(Default::default());
-        get_quadrant_settings(
-            &MemorySettingsStore,
+        let outcome = get_quadrant_settings(
+            &MemorySettingsStore::updated_at("2024-01-01T00:00:00+00:00"),
             &MemorySecretStore,
             "test-agent",
             "test-client-id",
@@ -326,6 +360,7 @@ mod tests {
         )
         .await
         .unwrap();
+        assert_eq!(outcome, SettingsPull::Applied);
 
         let keys: Vec<String> = events
             .0
@@ -338,5 +373,98 @@ mod tests {
             })
             .collect();
         assert_eq!(keys, ["uiScale", "lastSettingsUpdated"]);
+    }
+
+    async fn pull(last_settings_updated: &'static str) -> Result<SettingsPull> {
+        get_quadrant_settings(
+            &MemorySettingsStore::updated_at(last_settings_updated),
+            &MemorySecretStore,
+            "test-agent",
+            "test-client-id",
+            "test-client-secret",
+            &NoopEvents,
+        )
+        .await
+    }
+
+    /// Serves the cloud settings the pull tests compare against.
+    fn mock_settings_get<'a>(
+        server: &'a MockServer,
+        status: u16,
+        body: &str,
+    ) -> httpmock::Mock<'a> {
+        server.mock(|when, then| {
+            when.method(GET)
+                .path("/quadrant/settings_sync/get")
+                .header("authorization", "Bearer token-123");
+            then.status(status)
+                .header("content-type", "text/plain")
+                .body(body);
+        })
+    }
+
+    #[tokio::test]
+    async fn get_quadrant_settings_reports_no_remote_for_an_account_without_cloud_settings() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+        // A plain-text 404 is what a never-synced account gets; decoding it as
+        // JSON used to fail and stop the account from ever bootstrapping.
+        let _mock = mock_settings_get(&server, 404, "No settings found");
+
+        assert_eq!(
+            pull("2024-01-01T00:00:00+00:00").await.unwrap(),
+            SettingsPull::NoRemote
+        );
+    }
+
+    #[tokio::test]
+    async fn get_quadrant_settings_reports_local_newer_without_applying() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+        let _mock = mock_settings_get(
+            &server,
+            200,
+            &format!(r#"{{"sync_date":"{CLOUD_SYNC_DATE}","settings":"{{}}"}}"#),
+        );
+
+        assert_eq!(
+            pull("2026-01-01T00:00:00+00:00").await.unwrap(),
+            SettingsPull::LocalNewer
+        );
+    }
+
+    #[tokio::test]
+    async fn get_quadrant_settings_reports_up_to_date_on_matching_sync_dates() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+        let _mock = mock_settings_get(
+            &server,
+            200,
+            &format!(r#"{{"sync_date":"{CLOUD_SYNC_DATE}","settings":"{{}}"}}"#),
+        );
+
+        assert_eq!(pull(CLOUD_SYNC_DATE).await.unwrap(), SettingsPull::UpToDate);
+    }
+
+    #[tokio::test]
+    async fn get_quadrant_settings_surfaces_a_server_failure_body() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+        let _mock = mock_settings_get(&server, 500, "settings store unavailable");
+
+        let error = pull("2024-01-01T00:00:00+00:00").await.unwrap_err();
+        assert_eq!(error.to_string(), "settings store unavailable");
     }
 }

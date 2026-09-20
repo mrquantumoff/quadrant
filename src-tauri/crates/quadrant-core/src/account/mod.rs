@@ -3,6 +3,8 @@
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use once_cell::sync::Lazy;
+
 use crate::{Result, ports::SecretStore};
 
 pub mod id;
@@ -55,6 +57,18 @@ pub fn backend_base_url() -> String {
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty())
         .unwrap_or_else(|| qnt_base_url().to_string())
+}
+
+/// Carries no default `User-Agent`: every account call site sets its own from
+/// the host-supplied string.
+static ACCOUNT_HTTP_CLIENT: Lazy<reqwest::Client> = Lazy::new(|| {
+    reqwest::Client::builder()
+        .build()
+        .expect("failed to build shared account HTTP client")
+});
+
+pub(crate) fn account_http_client() -> &'static reqwest::Client {
+    &ACCOUNT_HTTP_CLIENT
 }
 
 /// Persists a named secret in the host secret store.

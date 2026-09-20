@@ -14,6 +14,7 @@ const exportModpack = vi.fn();
 const applyModpackToPrismInstance = vi.fn();
 const detachPrismInstance = vi.fn();
 const getPrismSyncPlans = vi.fn();
+const syncModpack = vi.fn();
 
 vi.mock("../../../tools", () => ({
   applyModpack: vi.fn(),
@@ -24,7 +25,7 @@ vi.mock("../../../tools", () => ({
   exportModpack: (...a: unknown[]) => exportModpack(...a),
   getPrismSyncPlans: (...a: unknown[]) => getPrismSyncPlans(...a),
   shareModpack: vi.fn(),
-  syncModpack: vi.fn(),
+  syncModpack: (...a: unknown[]) => syncModpack(...a),
 }));
 
 import LocalModpackCard from "./LocalModpackCard";
@@ -91,6 +92,7 @@ async function openPrismMenu() {
 beforeEach(() => {
   vi.clearAllMocks();
   getPrismSyncPlans.mockResolvedValue([]);
+  syncModpack.mockResolvedValue(undefined);
 });
 
 describe("LocalModpackCard", () => {
@@ -118,6 +120,102 @@ describe("LocalModpackCard", () => {
       expect(exportModpack).toHaveBeenCalledWith("Alpha Pack"),
     );
     expect(setSnackbar).not.toHaveBeenCalled();
+  });
+});
+
+describe("LocalModpackCard sync", () => {
+  const conflictTitle = "Cloud copy is newer";
+
+  async function clickSync() {
+    await userEvent.click(screen.getByRole("button", { name: /^sync$/i }));
+  }
+
+  it("pushes without overwriting and confirms when the cloud accepts it", async () => {
+    const onChanged = vi.fn();
+    syncModpack.mockResolvedValue(undefined);
+    renderCard({ onChanged });
+
+    await clickSync();
+
+    await waitFor(() => expect(setSnackbar).toHaveBeenCalledTimes(1));
+    expect(syncModpack).toHaveBeenCalledTimes(1);
+    expect(syncModpack).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Alpha Pack" }),
+      false,
+    );
+    expect(setSnackbar.mock.calls[0][0]).toMatchObject({
+      className: "bg-emerald-600 rounded-4xl",
+    });
+    expect(onChanged).toHaveBeenCalled();
+    expect(screen.queryByText(conflictTitle)).not.toBeInTheDocument();
+  });
+
+  it("asks before replacing a newer cloud copy instead of reporting an error", async () => {
+    syncModpack.mockRejectedValue("errorCloudSyncNewer");
+    renderCard();
+
+    await clickSync();
+
+    expect(await screen.findByText(conflictTitle)).toBeInTheDocument();
+    expect(
+      screen.getByText(/The cloud copy of Alpha Pack was updated/),
+    ).toBeInTheDocument();
+    expect(setSnackbar).not.toHaveBeenCalled();
+  });
+
+  it("retries with overwrite when the replacement is confirmed", async () => {
+    const onChanged = vi.fn();
+    syncModpack.mockRejectedValueOnce("errorCloudSyncNewer");
+    syncModpack.mockResolvedValue(undefined);
+    renderCard({ onChanged });
+
+    await clickSync();
+    await userEvent.click(
+      await screen.findByRole("button", { name: /sync anyway/i }),
+    );
+
+    await waitFor(() => expect(syncModpack).toHaveBeenCalledTimes(2));
+    expect(syncModpack).toHaveBeenLastCalledWith(
+      expect.objectContaining({ name: "Alpha Pack" }),
+      true,
+    );
+    await waitFor(() => expect(setSnackbar).toHaveBeenCalledTimes(1));
+    expect(setSnackbar.mock.calls[0][0]).toMatchObject({
+      className: "bg-emerald-600 rounded-4xl",
+    });
+    expect(onChanged).toHaveBeenCalled();
+    expect(screen.queryByText(conflictTitle)).not.toBeInTheDocument();
+  });
+
+  it("pushes nothing more when the replacement is cancelled", async () => {
+    syncModpack.mockRejectedValue("errorCloudSyncNewer");
+    renderCard();
+
+    await clickSync();
+    await userEvent.click(
+      await screen.findByRole("button", { name: /cancel/i }),
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByText(conflictTitle)).not.toBeInTheDocument(),
+    );
+    expect(syncModpack).toHaveBeenCalledTimes(1);
+    expect(setSnackbar).not.toHaveBeenCalled();
+  });
+
+  it("reports any other sync failure without asking anything", async () => {
+    syncModpack.mockRejectedValue("errorNetwork");
+    renderCard();
+
+    await clickSync();
+
+    await waitFor(() => expect(setSnackbar).toHaveBeenCalledTimes(1));
+    expect(setSnackbar.mock.calls[0][0]).toMatchObject({
+      className: "bg-red-700",
+      message:
+        "Couldn't reach the server. Check your internet connection and try again.",
+    });
+    expect(screen.queryByText(conflictTitle)).not.toBeInTheDocument();
   });
 });
 

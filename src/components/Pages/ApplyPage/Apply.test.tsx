@@ -119,11 +119,13 @@ function cloudPack(over: Record<string, unknown>) {
 // drive the backend event by hand.
 let watchCallback: (() => void) | undefined;
 let shareCallback: ((event: unknown) => void) | undefined;
+let syncRefreshCallback: ((event: unknown) => void) | undefined;
 
 beforeEach(() => {
   vi.clearAllMocks();
   watchCallback = undefined;
   shareCallback = undefined;
+  syncRefreshCallback = undefined;
   getVersions.mockResolvedValue([
     { version: "1.20.1", versionType: "release" },
   ]);
@@ -150,6 +152,9 @@ beforeEach(() => {
   listen.mockImplementation(async (event: string, cb: (e: unknown) => void) => {
     if (event === "quadrantShareSubmission") {
       shareCallback = cb;
+    }
+    if (event === "refreshSyncedModpacks") {
+      syncRefreshCallback = cb;
     }
     return () => {};
   });
@@ -368,7 +373,7 @@ describe("ApplyPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("refreshes the cloud list right after a local modpack is pushed", async () => {
+  it("shows the cloud record the host announces after a local modpack is pushed", async () => {
     getAccountInfo.mockResolvedValue({ login: "me", quadrant_sync_limit: 5 });
     getModpacks.mockResolvedValue([pack({ name: "Fresh", modpackId: "abc" })]);
     syncModpack.mockResolvedValue(undefined);
@@ -378,13 +383,24 @@ describe("ApplyPage", () => {
     await waitFor(() => expect(getSyncedModpacks).toHaveBeenCalledTimes(1));
     expect(screen.queryByText("Synced")).not.toBeInTheDocument();
 
-    // The push creates the cloud record; the badge must appear without any
-    // backend event or remount.
+    await userEvent.click(screen.getByRole("button", { name: /^sync$/i }));
+
+    await waitFor(() =>
+      expect(syncModpack).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "Fresh" }),
+        false,
+      ),
+    );
+    // The card itself no longer re-reads the list; the host's event is what
+    // brings the new cloud record in.
+    expect(getSyncedModpacks).toHaveBeenCalledTimes(1);
+
     getSyncedModpacks.mockResolvedValue([
       cloudPack({ name: "Fresh", modpack_id: "abc" }),
     ]);
-    await userEvent.click(screen.getByRole("button", { name: /^sync$/i }));
+    await act(async () => syncRefreshCallback?.({ payload: "abc" }));
 
+    expect(getSyncedModpacks).toHaveBeenLastCalledWith(true, "abc");
     await waitFor(() => expect(screen.getByText("Synced")).toBeInTheDocument());
   });
 
@@ -602,7 +618,7 @@ describe("ApplyPage", () => {
   it("recovers the cloud list on a refresh event after the initial request fails", async () => {
     getAccountInfo.mockResolvedValue({ login: "me", quadrant_sync_limit: 5 });
     getSyncedModpacks.mockRejectedValueOnce(new Error("offline"));
-    let refresh!: () => void;
+    let refresh!: (event: { payload: string | null }) => void;
     listen.mockImplementation(async (event, cb) => {
       if (event === "refreshSyncedModpacks") refresh = cb;
       return () => {};
@@ -610,7 +626,7 @@ describe("ApplyPage", () => {
     render(<ApplyPage />);
     await waitFor(() => expect(getSyncedModpacks).toHaveBeenCalledOnce());
     getSyncedModpacks.mockResolvedValue([cloudPack({ name: "Recovered" })]);
-    await act(async () => refresh());
+    await act(async () => refresh({ payload: null }));
     expect(await screen.findByText("Recovered")).toBeInTheDocument();
   });
   it("does not replace a refreshed cloud list with an older response", async () => {
@@ -621,7 +637,7 @@ describe("ApplyPage", () => {
         resolveOld = resolve;
       }),
     );
-    let refresh!: () => void;
+    let refresh!: (event: { payload: string | null }) => void;
     listen.mockImplementation(async (event, cb) => {
       if (event === "refreshSyncedModpacks") refresh = cb;
       return () => {};
@@ -629,7 +645,7 @@ describe("ApplyPage", () => {
     render(<ApplyPage />);
     await waitFor(() => expect(refresh).toBeTypeOf("function"));
     getSyncedModpacks.mockResolvedValue([cloudPack({ name: "Latest" })]);
-    await act(async () => refresh());
+    await act(async () => refresh({ payload: null }));
     await act(async () => resolveOld([cloudPack({ name: "Stale" })]));
     expect(await screen.findByText("Latest")).toBeInTheDocument();
     expect(screen.queryByText("Stale")).not.toBeInTheDocument();

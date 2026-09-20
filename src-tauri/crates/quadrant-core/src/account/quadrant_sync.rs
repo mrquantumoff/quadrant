@@ -6,10 +6,15 @@ use serde_json::json;
 
 use crate::{
     Result,
-    account::{backend_base_url, send_with_token_refresh},
+    account::{account_http_client, backend_base_url, send_with_token_refresh},
+    error::ErrorCode,
     models::{LocalModpack, ModLoader},
     ports::SecretStore,
 };
+
+/// Body the backend answers a sync conflict with when the submitted modpack is
+/// older than the stored one.
+const CLOUD_SYNC_NEWER_BODY: &str = "Cloud sync is newer";
 
 /// Owner information for a synced modpack.
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -39,6 +44,15 @@ pub struct SyncedModpack {
     pub modpack_id: String,
 }
 
+/// What the backend recorded for a submitted modpack.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SyncSubmission {
+    /// Cloud modpack identifier the submission is stored under, when known.
+    pub modpack_id: Option<String>,
+    /// Sync time the backend recorded, in seconds since the Unix epoch.
+    pub last_synced: i64,
+}
+
 /// Fetches synced modpacks visible to the current account.
 pub async fn get_synced_modpacks(
     secret_store: &impl SecretStore,
@@ -59,7 +73,7 @@ pub async fn get_synced_modpacks(
         client_id,
         client_secret,
         |token| {
-            reqwest::Client::new()
+            account_http_client()
                 .get(format!("{}/quadrant/sync/get", backend_base_url()))
                 .query(query.as_slice())
                 .bearer_auth(token)
@@ -68,6 +82,9 @@ pub async fn get_synced_modpacks(
         },
     )
     .await?;
+    if !response.status().is_success() {
+        return Err(anyhow::anyhow!(response.text().await?));
+    }
     Ok(response.json().await?)
 }
 
@@ -88,7 +105,7 @@ pub async fn kick_member(
         client_id,
         client_secret,
         |token| {
-            reqwest::Client::new()
+            account_http_client()
                 .delete(format!("{}/quadrant/sync/kick", backend_base_url()))
                 .bearer_auth(token)
                 .json(&body)
@@ -121,7 +138,7 @@ pub async fn invite_member(
         client_id,
         client_secret,
         |token| {
-            reqwest::Client::new()
+            account_http_client()
                 .post(format!("{}/quadrant/sync/invite", backend_base_url()))
                 .bearer_auth(token)
                 .json(&body)
@@ -152,7 +169,7 @@ pub async fn delete_synced_modpack(
         client_id,
         client_secret,
         |token| {
-            reqwest::Client::new()
+            account_http_client()
                 .delete(format!("{}/quadrant/sync/delete", backend_base_url()))
                 .bearer_auth(token)
                 .json(&body)
@@ -167,7 +184,10 @@ pub async fn delete_synced_modpack(
     Ok(())
 }
 
-/// Uploads local modpack state to Quadrant Sync and returns the sync timestamp used.
+/// Uploads local modpack state to Quadrant Sync and returns what the backend recorded.
+///
+/// The submitted `last_synced` is the pack's stored sync time, not the current
+/// clock: the backend compares it against the cloud copy to detect a conflict.
 pub async fn sync_modpack(
     secret_store: &impl SecretStore,
     user_agent: &str,
@@ -176,20 +196,22 @@ pub async fn sync_modpack(
     modpack: LocalModpack,
     overwrite: bool,
     connection_id: Option<&str>,
-) -> Result<i64> {
+) -> Result<SyncSubmission> {
     log::info!(
         "Syncing modpack \"{}\" (overwrite={overwrite})",
         modpack.name
     );
-    let timestamp = Utc::now().timestamp();
-    let body = json!({
+    let mut body = json!({
         "name": modpack.name,
         "mc_version": modpack.version,
         "mod_loader": modpack.mod_loader.to_string(),
         "overwrite": overwrite,
-        "mods": serde_json::to_string_pretty(&modpack.mods)?,
-        "last_synced": &timestamp,
+        "mods": serde_json::to_string(&modpack.mods)?,
+        "last_synced": modpack.last_synced / 1000,
     });
+    if let Some(modpack_id) = modpack.modpack_id.as_deref() {
+        body["modpack_id"] = json!(modpack_id);
+    }
     let connection_id = connection_id.filter(|value| !value.is_empty());
     let res = send_with_token_refresh(
         secret_store,
@@ -197,7 +219,7 @@ pub async fn sync_modpack(
         client_id,
         client_secret,
         |token| {
-            let mut request = reqwest::Client::new()
+            let mut request = account_http_client()
                 .post(format!("{}/quadrant/sync/submit", backend_base_url()))
                 .bearer_auth(token)
                 .json(&body)
@@ -209,10 +231,29 @@ pub async fn sync_modpack(
         },
     )
     .await?;
-    if res.status() != 200 {
-        return Err(anyhow::anyhow!(res.text().await?));
+    if !res.status().is_success() {
+        let body = res.text().await?;
+        if body.trim() == CLOUD_SYNC_NEWER_BODY {
+            return Err(ErrorCode::CloudSyncNewer.into());
+        }
+        return Err(anyhow::anyhow!(body));
     }
-    Ok(timestamp)
+
+    // The submission succeeded even if a server answers without the stored
+    // modpack; falling back keeps that sync from being reported as a failure.
+    Ok(match res.json::<SyncedModpack>().await {
+        Ok(synced) => SyncSubmission {
+            modpack_id: Some(synced.modpack_id),
+            last_synced: synced.last_synced,
+        },
+        Err(error) => {
+            log::warn!("Sync submit response was not a synced modpack: {error}");
+            SyncSubmission {
+                modpack_id: modpack.modpack_id,
+                last_synced: Utc::now().timestamp(),
+            }
+        }
+    })
 }
 
 /// Accepts or declines an invitation to a synced modpack.
@@ -232,7 +273,7 @@ pub async fn answer_invite(
         client_id,
         client_secret,
         |token| {
-            reqwest::Client::new()
+            account_http_client()
                 .post(format!("{}/quadrant/sync/respond", backend_base_url()))
                 .bearer_auth(token)
                 .json(&body)
@@ -249,9 +290,10 @@ pub async fn answer_invite(
 
 #[cfg(test)]
 mod tests {
-    use super::{get_synced_modpacks, sync_modpack};
+    use super::{SyncSubmission, get_synced_modpacks, sync_modpack};
     use crate::{
         Result,
+        error::is_cloud_sync_conflict,
         models::{InstalledMod, LocalModpack, ModLoader, ModSource},
         ports::SecretStore,
     };
@@ -259,6 +301,7 @@ mod tests {
         Method::{GET, POST},
         MockServer,
     };
+    use serde_json::json;
     use std::collections::HashMap;
     use std::sync::Mutex;
 
@@ -332,6 +375,32 @@ mod tests {
             last_synced: 0,
             modpack_id: Some("modpack-1".to_string()),
         }
+    }
+
+    /// The 200 body the backend answers a submit with: the modpack as stored.
+    fn synced_modpack_body(modpack_id: &str, last_synced: i64) -> serde_json::Value {
+        json!({
+            "name": "Better Create",
+            "minecraft_version": "1.20.1",
+            "mod_loader": "Fabric",
+            "mods": "[]",
+            "owners": [],
+            "last_synced": last_synced,
+            "modpack_id": modpack_id,
+        })
+    }
+
+    async fn submit(modpack: LocalModpack) -> Result<SyncSubmission> {
+        sync_modpack(
+            &MemorySecretStore,
+            "test-agent",
+            "test-client-id",
+            "test-client-secret",
+            modpack,
+            false,
+            None,
+        )
+        .await
     }
 
     #[tokio::test]
@@ -443,6 +512,190 @@ mod tests {
             "test-client-secret",
             local_modpack(),
             false,
+            None,
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(error.to_string(), "invalid token");
+    }
+
+    #[tokio::test]
+    async fn sync_modpack_submits_the_stored_sync_time_and_a_compact_mod_list() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+
+        let mut modpack = local_modpack();
+        modpack.last_synced = 1_700_000_000_000;
+        let mods = serde_json::to_string(&modpack.mods).unwrap();
+        assert!(!mods.contains('\n'), "mod list must be compact JSON");
+
+        // An exact body match: the backend compares the submitted seconds
+        // against its own copy, and a pretty mod list would not match either.
+        let request = server.mock(|when, then| {
+            when.method(POST)
+                .path("/quadrant/sync/submit")
+                .json_body(json!({
+                    "name": "Better Create",
+                    "mc_version": "1.20.1",
+                    "mod_loader": "Fabric",
+                    "overwrite": false,
+                    "mods": mods,
+                    "last_synced": 1_700_000_000_i64,
+                    "modpack_id": "modpack-1",
+                }));
+            then.status(200)
+                .json_body(synced_modpack_body("modpack-1", 1_700_000_500));
+        });
+
+        let submission = submit(modpack).await;
+        request.assert();
+        submission.unwrap();
+    }
+
+    #[tokio::test]
+    async fn sync_modpack_omits_modpack_id_when_the_pack_has_none() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+
+        let mut modpack = local_modpack();
+        modpack.modpack_id = None;
+        let mods = serde_json::to_string(&modpack.mods).unwrap();
+
+        let request = server.mock(|when, then| {
+            when.method(POST)
+                .path("/quadrant/sync/submit")
+                .json_body(json!({
+                    "name": "Better Create",
+                    "mc_version": "1.20.1",
+                    "mod_loader": "Fabric",
+                    "overwrite": false,
+                    "mods": mods,
+                    "last_synced": 0_i64,
+                }));
+            then.status(200)
+                .json_body(synced_modpack_body("assigned-by-server", 42));
+        });
+
+        let submission = submit(modpack).await;
+        request.assert();
+        assert_eq!(
+            submission.unwrap(),
+            SyncSubmission {
+                modpack_id: Some("assigned-by-server".to_string()),
+                last_synced: 42,
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn sync_modpack_reports_what_the_server_recorded() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+
+        let _mock = server.mock(|when, then| {
+            when.method(POST).path("/quadrant/sync/submit");
+            then.status(200)
+                .json_body(synced_modpack_body("cloud-9", 1_800_000_000));
+        });
+
+        // The server's id and clock win over the local pack's.
+        assert_eq!(
+            submit(local_modpack()).await.unwrap(),
+            SyncSubmission {
+                modpack_id: Some("cloud-9".to_string()),
+                last_synced: 1_800_000_000,
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn sync_modpack_falls_back_to_the_local_id_when_the_body_is_not_a_modpack() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+
+        let _mock = server.mock(|when, then| {
+            when.method(POST).path("/quadrant/sync/submit");
+            then.status(200).body("ok");
+        });
+
+        let submission = submit(local_modpack()).await.unwrap();
+        assert_eq!(submission.modpack_id.as_deref(), Some("modpack-1"));
+        assert!(submission.last_synced > 0);
+    }
+
+    #[tokio::test]
+    async fn sync_modpack_classifies_a_cloud_sync_conflict() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+
+        let _mock = server.mock(|when, then| {
+            when.method(POST).path("/quadrant/sync/submit");
+            then.status(400)
+                .header("content-type", "text/plain")
+                .body("Cloud sync is newer");
+        });
+
+        let error = submit(local_modpack()).await.unwrap_err();
+        assert!(is_cloud_sync_conflict(&error));
+        assert_eq!(error.to_string(), "errorCloudSyncNewer");
+    }
+
+    #[tokio::test]
+    async fn sync_modpack_leaves_other_rejections_unclassified() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+
+        let _mock = server.mock(|when, then| {
+            when.method(POST).path("/quadrant/sync/submit");
+            then.status(400)
+                .header("content-type", "text/plain")
+                .body("modpack name is too long");
+        });
+
+        let error = submit(local_modpack()).await.unwrap_err();
+        assert!(!is_cloud_sync_conflict(&error));
+        assert_eq!(error.to_string(), "modpack name is too long");
+    }
+
+    #[tokio::test]
+    async fn get_synced_modpacks_surfaces_a_failure_body() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", server.base_url());
+        }
+
+        let _mock = server.mock(|when, then| {
+            when.method(GET).path("/quadrant/sync/get");
+            then.status(403)
+                .header("content-type", "text/plain")
+                .body("invalid token");
+        });
+
+        let error = get_synced_modpacks(
+            &MemorySecretStore,
+            "test-agent",
+            "test-client-id",
+            "test-client-secret",
+            true,
             None,
         )
         .await

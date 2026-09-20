@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     Result,
-    account::{backend_base_url, send_with_token_refresh},
+    account::{account_http_client, backend_base_url, send_with_token_refresh},
     models::InstalledModpack,
     ports::{SecretStore, SettingsStore},
 };
@@ -117,7 +117,7 @@ pub async fn share_modpack_raw(
             client_id,
             client_secret,
             |token| {
-                reqwest::Client::new()
+                account_http_client()
                     .post(&url)
                     .header("User-Agent", user_agent)
                     .json(&submission)
@@ -127,7 +127,7 @@ pub async fn share_modpack_raw(
         )
         .await?
     } else {
-        reqwest::Client::new()
+        account_http_client()
             .post(&url)
             .header("User-Agent", user_agent)
             .json(&submission)
@@ -152,7 +152,7 @@ pub async fn get_quadrant_share_modpack(
 ) -> Result<InstalledModpack> {
     log::info!("Fetching shared modpack with code: {code}");
     let response: QuadrantShareResponse = parse_json_response(
-        reqwest::Client::new()
+        account_http_client()
             .get(format!("{}/quadrant/share/get", backend_base_url()))
             .query(&[("code", code)])
             .header("User-Agent", user_agent)
