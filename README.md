@@ -6,7 +6,7 @@
 
 > [!WARNING]
 >
-> The datacenter in Ukraine that was hosting the update server, API and everything else Quadrant-related got hit by a ru**ian drone. Until further notice Quadrant ID and related services remain unavailable as I'm a broke teenager who cannot afford to host another VPS for the time being (plus all of the backups and data are still there). Afaik the cooling system is the issue and the data there remains intact. Слава Україні and fuck putin and ru**ia.
+> The datacenter in Ukraine that was hosting the update server, API and everything else Quadrant-related got hit by a ru\**ian drone. Until further notice Quadrant ID and related services remain unavailable as I'm a broke teenager who cannot afford to host another VPS for the time being (plus all of the backups and data are still there). Afaik the cooling system is the issue and the data there remains intact. Слава Україні and fuck putin and ru\**ia.
 
 ## Desktop Runtime
 
