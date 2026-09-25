@@ -4,10 +4,6 @@
 
 > An easy way to manage your modpacks, written in React and Rust.
 
-> [!WARNING]
->
-> The datacenter in Ukraine that was hosting the update server, API and everything else Quadrant-related got hit by a ru\**ian drone. Until further notice Quadrant ID and related services remain unavailable as I'm a broke teenager who cannot afford to host another VPS for the time being (plus all of the backups and data are still there). Afaik the cooling system is the issue and the data there remains intact. Слава Україні and fuck putin and ru\**ia.
-
 ## Desktop Runtime
 
 Quadrant is a Tauri desktop app with a React renderer and Rust backend logic.
@@ -68,3 +64,8 @@ Quadrant is a Tauri desktop app with a React renderer and Rust backend logic.
 > [!WARNING]
 >
 > #### Before requesting to the delete the data collected by the app, please be sure that you are using the latest version.
+
+> [!WARNING]
+>
+> The datacenter in Ukraine that was hosting the update server, API and everything else Quadrant-related got hit by a ru\**ian drone. Until further notice Quadrant ID and related services remain unavailable as I'm a broke teenager who cannot afford to host another VPS for the time being (plus all of the backups and data are still there). Afaik the cooling system is the issue and the data there remains intact. Слава Україні and fuck putin and ru\**ia.
+> ### Update: We moved Quadrant IDs servers to Türkiye, Quadrant's website, API and etc should be back up now.
