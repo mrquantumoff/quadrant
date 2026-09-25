@@ -4,10 +4,6 @@
 
 > An easy way to manage your modpacks, written in React and Rust.
 
-## Desktop Runtime
-
-Quadrant is a Tauri desktop app with a React renderer and Rust backend logic.
-
 ### Installation guide:
 
 ##### The app is available on these stores:
