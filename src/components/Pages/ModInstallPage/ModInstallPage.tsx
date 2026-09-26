@@ -25,6 +25,7 @@ import {
   MdExtension,
   MdOpenInNew,
   MdPerson,
+  MdRefresh,
 } from "react-icons/md";
 import { animate, motion } from "motion/react";
 import { useTranslation } from "react-i18next";
@@ -46,6 +47,7 @@ import { loaderProvidersForSource } from "../../../modLoaders";
 import { findInstalledIn, isInstalledIn } from "../../../installedMods";
 import { isPackType, locationOptionLabel } from "../../../contentLocations";
 import { useReportError } from "../../../useReportError";
+import { describeError } from "../../../errors";
 
 export interface IModInstallPageProps {
   mod: IMod;
@@ -63,6 +65,11 @@ interface IModOwner {
   name: string;
   url: string;
 }
+
+type LoadState =
+  | { status: "loading" }
+  | { status: "ready" }
+  | { status: "failed"; error: unknown };
 
 const panelClass = "bg-slate-800 rounded-[28px] p-5 min-w-0";
 const labelClass = "block text-[13px] font-extrabold text-slate-400 mb-1.5";
@@ -125,7 +132,8 @@ export default function ModInstallPage(props: IModInstallPageProps) {
   const [modInstallProgress, setModInstallProgress] = useState<number>(0);
   const [modDownloadProgress, setModDownloadProgress] = useState<number>(0);
   const [isInstalling, setIsInstalling] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+  const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const installInFlightRef = useRef(false);
   const configRef = useRef(createDesktopStore("config.json"));
   const config = configRef.current;
@@ -185,7 +193,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
 
   useEffect(() => {
     let cancelled = false;
-    setIsReady(false);
+    setLoadState({ status: "loading" });
     const effect = async () => {
       // Only packs can be routed to a folder of the user's choosing; a mod
       // always follows its modpack.
@@ -259,13 +267,16 @@ export default function ModInstallPage(props: IModInstallPageProps) {
         (entry) => entry.id === openerLocation,
       );
       setContentLocation(opened?.id ?? fallbackLocation);
-      setIsReady(true);
+      setLoadState({ status: "ready" });
     };
-    effect().catch(console.error);
+    effect().catch((error: unknown) => {
+      console.error(error);
+      if (!cancelled) setLoadState({ status: "failed", error });
+    });
     return () => {
       cancelled = true;
     };
-  }, [config, mod.modType, installTargetName, openerLocation]);
+  }, [config, mod.modType, installTargetName, openerLocation, loadAttempt]);
 
   useEffect(() => {
     let cancelled = false;
@@ -341,7 +352,7 @@ export default function ModInstallPage(props: IModInstallPageProps) {
 
   // Never submit an empty version or a pack that is not in the list.
   const canInstall =
-    isReady &&
+    loadState.status === "ready" &&
     !isInstalling &&
     (!pickTargets || version !== "") &&
     (mod.modType !== ModType.Mod || modpack !== "");
@@ -514,117 +525,142 @@ export default function ModInstallPage(props: IModInstallPageProps) {
 
         <div data-expand-rest className="flex flex-col gap-3">
           <section className={panelClass + " flex flex-col gap-3"}>
-            {pickTargets && (
-              <label>
-                <span className={labelClass}>{t("chooseVersion")}</span>
-                <select
-                  className={selectClass}
-                  name="version"
-                  autoComplete="off"
-                  value={version}
-                  onChange={async (e) => {
-                    setVersion(e.target.value);
-                    await config.set("lastUsedVersion", e.target.value);
-                    await config.save();
-                  }}
+            {loadState.status === "failed" ? (
+              <div className="flex flex-col gap-3">
+                <div
+                  role="alert"
+                  className="text-sm font-bold leading-snug text-red-300 bg-red-900/25 border border-red-700/20 px-3 py-2 rounded-2xl"
                 >
-                  {version &&
-                    !versions.some((entry) => entry.version === version) && (
-                      <option value={version}>{version}</option>
-                    )}
-                  {versions.map((versionOption) => (
-                    <option
-                      value={versionOption.version}
-                      key={versionOption.version}
+                  {describeError(loadState.error, t)}
+                </div>
+                <Button
+                  onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+                  className={actionClass + " bg-slate-700 hover:bg-slate-600"}
+                >
+                  <MdRefresh className="size-5" />
+                  {t("retry")}
+                </Button>
+              </div>
+            ) : (
+              <>
+                {pickTargets && (
+                  <label>
+                    <span className={labelClass}>{t("chooseVersion")}</span>
+                    <select
+                      className={selectClass}
+                      name="version"
+                      autoComplete="off"
+                      value={version}
+                      onChange={async (e) => {
+                        setVersion(e.target.value);
+                        await config.set("lastUsedVersion", e.target.value);
+                        await config.save();
+                      }}
                     >
-                      {versionOption.version}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+                      {version &&
+                        !versions.some(
+                          (entry) => entry.version === version,
+                        ) && <option value={version}>{version}</option>}
+                      {versions.map((versionOption) => (
+                        <option
+                          value={versionOption.version}
+                          key={versionOption.version}
+                        >
+                          {versionOption.version}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
 
-            {mod.modType === ModType.Mod && pickTargets && (
-              <label>
-                <span className={labelClass}>{t("choosePreferredAPI")}</span>
-                <select
-                  className={selectClass}
-                  name="modLoader"
-                  autoComplete="off"
-                  value={loader}
-                  onChange={async (e) => {
-                    setLoader(e.target.value);
-                    await config.set("lastUsedAPI", e.target.value);
-                    await config.save();
-                  }}
-                >
-                  <LoaderOptions loader={loader} providers={loaderProviders} />
-                </select>
-              </label>
-            )}
+                {mod.modType === ModType.Mod && pickTargets && (
+                  <label>
+                    <span className={labelClass}>
+                      {t("choosePreferredAPI")}
+                    </span>
+                    <select
+                      className={selectClass}
+                      name="modLoader"
+                      autoComplete="off"
+                      value={loader}
+                      onChange={async (e) => {
+                        setLoader(e.target.value);
+                        await config.set("lastUsedAPI", e.target.value);
+                        await config.save();
+                      }}
+                    >
+                      <LoaderOptions
+                        loader={loader}
+                        providers={loaderProviders}
+                      />
+                    </select>
+                  </label>
+                )}
 
-            {mod.modType === ModType.Mod && (
-              <label>
-                <span className={labelClass}>{t("chooseModpack")}</span>
-                <select
-                  className={selectClass}
-                  name="modpack"
-                  autoComplete="off"
-                  value={modpack}
-                  onChange={async (e) => {
-                    const picked = modpacks.find(
-                      (i) => i.name === e.target.value,
-                    );
-                    setModpack(e.target.value);
-                    if (!picked) {
-                      return;
-                    }
-                    setLoader(picked.modLoader.toString());
-                    setVersion(picked.version);
-                    await config.set("lastUsedVersion", picked.version);
-                    await config.set(
-                      "lastUsedAPI",
-                      picked.modLoader.toString(),
-                    );
-                    await config.set("lastUsedModpack", picked.name);
-                    await config.save();
-                  }}
-                >
-                  {modpacks.map((option) => (
-                    <option key={option.name} value={option.name}>
-                      {option.name} · {option.modLoader} · {option.version}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+                {mod.modType === ModType.Mod && (
+                  <label>
+                    <span className={labelClass}>{t("chooseModpack")}</span>
+                    <select
+                      className={selectClass}
+                      name="modpack"
+                      autoComplete="off"
+                      value={modpack}
+                      onChange={async (e) => {
+                        const picked = modpacks.find(
+                          (i) => i.name === e.target.value,
+                        );
+                        setModpack(e.target.value);
+                        if (!picked) {
+                          return;
+                        }
+                        setLoader(picked.modLoader.toString());
+                        setVersion(picked.version);
+                        await config.set("lastUsedVersion", picked.version);
+                        await config.set(
+                          "lastUsedAPI",
+                          picked.modLoader.toString(),
+                        );
+                        await config.set("lastUsedModpack", picked.name);
+                        await config.save();
+                      }}
+                    >
+                      {modpacks.map((option) => (
+                        <option key={option.name} value={option.name}>
+                          {option.name} · {option.modLoader} · {option.version}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
 
-            {contentLocations.length > 1 && (
-              <label>
-                <span className={labelClass}>
-                  {t("installedContentInstallTo")}
-                </span>
-                <select
-                  className={selectClass}
-                  name="contentLocation"
-                  autoComplete="off"
-                  value={contentLocation}
-                  onChange={(e) => setContentLocation(e.target.value)}
-                >
-                  {hasInstallTarget && (
-                    <option value="">
-                      {t("installedContentInstallAutomatic", {
-                        modpack: installTargetName,
-                      })}
-                    </option>
-                  )}
-                  {contentLocations.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {locationOptionLabel(option, t)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                {contentLocations.length > 1 && (
+                  <label>
+                    <span className={labelClass}>
+                      {t("installedContentInstallTo")}
+                    </span>
+                    <select
+                      className={selectClass}
+                      name="contentLocation"
+                      autoComplete="off"
+                      value={contentLocation}
+                      onChange={(e) => setContentLocation(e.target.value)}
+                    >
+                      {hasInstallTarget && (
+                        <option value="">
+                          {t("installedContentInstallAutomatic", {
+                            modpack: installTargetName,
+                          })}
+                        </option>
+                      )}
+                      {contentLocations.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {locationOptionLabel(option, t)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </>
             )}
 
             {alreadyInstalled && (

@@ -298,6 +298,44 @@ describe("ModInstallPage", () => {
     await waitFor(() => expect(download).not.toBeDisabled());
   });
 
+  it("says why the install choices failed to load and offers a retry", async () => {
+    getVersions.mockRejectedValueOnce(new Error("errorNetwork"));
+    renderPage({ mod: mod({}) });
+
+    expect(
+      await screen.findByText(
+        "Couldn't reach the server. Check your internet connection and try again.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("combobox", { name: /Choose a Minecraft version/ }),
+    ).toBeNull();
+    expect(
+      screen.getAllByRole("button", { name: /Download/ })[0],
+    ).toBeDisabled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+
+    const picker = await screen.findByRole("combobox", {
+      name: /Choose a Minecraft version/,
+    });
+    await waitFor(() => expect(picker).toHaveValue("1.21"));
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+    expect(
+      screen.getAllByRole("button", { name: /Download/ })[0],
+    ).not.toBeDisabled();
+  });
+
+  it("lands in the failed state when the modpacks cannot be read", async () => {
+    getModpacks.mockRejectedValueOnce("no minecraft folder");
+    renderPage({ mod: mod({}) });
+
+    expect(
+      await screen.findByText("Something went wrong: no minecraft folder"),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Retry" })).toBeTruthy();
+  });
+
   it("keeps the download disabled when a mod has no modpack to install into", async () => {
     getModpacks.mockResolvedValue([]);
     storeGet.mockResolvedValue(undefined);

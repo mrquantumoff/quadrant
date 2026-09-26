@@ -226,6 +226,7 @@
   "modpackRequired": "Pick a modpack to install this into first.",
   "errorUnknown": "Something went wrong: {{details}}",
   "errorUnknownNoDetails": "Something went wrong. Please try again.",
+  "retry": "Retry",
   "errorDownloadRefused": "The download server refused this file. Open the mod in the browser to download it manually.",
   "errorInvalidRequest": "The provider didn't give a valid download link for this file.",
   "errorTimeout": "The server took too long to answer. Please try again.",

@@ -226,6 +226,7 @@
   "modpackRequired": "Önce bunun yükleneceği bir modpack seçin.",
   "errorUnknown": "Bir şeyler ters gitti: {{details}}",
   "errorUnknownNoDetails": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
+  "retry": "Tekrar dene",
   "errorDownloadRefused": "İndirme sunucusu bu dosyayı vermeyi reddetti. Elle indirmek için modu tarayıcıda açın.",
   "errorInvalidRequest": "Sağlayıcı bu dosya için geçerli bir indirme bağlantısı vermedi.",
   "errorTimeout": "Sunucu çok uzun süre yanıt vermedi. Lütfen tekrar deneyin.",
