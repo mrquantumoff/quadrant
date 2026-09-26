@@ -1,6 +1,6 @@
 {
   "name": "@quadrant/quadrant-napi",
-  "version": "26.9.1-preview.2",
+  "version": "26.10.0",
   "type": "module",
   "main": "index.js",
   "exports": {

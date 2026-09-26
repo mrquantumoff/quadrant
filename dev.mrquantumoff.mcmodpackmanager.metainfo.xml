@@ -49,6 +49,17 @@
 
   <releases>
 
+    <release date="2026-09-26" version="26.10.0">
+      <description>
+        <p>As a part of the experimental features, you can now apply modpacks to Prism Launcher instances</p>
+        <p>Added a page to view, copy and delete installed resource packs and shaders</p>
+        <p>Quadrant Sync now warns before overwriting a newer cloud copy and keeps renamed modpacks linked to their cloud version</p>
+        <p>Settings sync now starts working for accounts that have never synced settings before</p>
+        <p>Faster Quadrant Sync and account requests</p>
+        <p>Bug fixes and internal improvements</p>
+      </description>
+    </release>
+
     <release date="2026-09-20" version="26.9.1-preview.2" type="development">
       <description>
         <p>Quadrant Sync now warns before overwriting a newer cloud copy and keeps renamed modpacks linked to their cloud version</p>
