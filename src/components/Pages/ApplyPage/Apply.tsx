@@ -38,6 +38,7 @@ import SharedModpackView from "./SharedModpackView";
 import SyncedModpackComponent from "./SyncedModpack";
 import { useSyncedModpacks } from "./useSyncedModpacks";
 import { mergeModpacks } from "./mergeModpacks";
+import { describeError } from "../../../errors";
 import { useReportError } from "../../../useReportError";
 import { useReportSuccess } from "../../../useReportSuccess";
 
@@ -50,9 +51,11 @@ export default function ApplyPage() {
   const [modpacks, setModpacks] = useState<LocalModpack[]>([]);
   const [prismInstances, setPrismInstances] = useState<PrismInstance[]>([]);
   const {
+    status: cloudStatus,
     accountInfo,
     syncedModpacks,
     refresh: refreshSyncedModpacks,
+    retry: retryCloud,
   } = useSyncedModpacks();
 
   const { t } = useTranslation();
@@ -354,6 +357,25 @@ export default function ApplyPage() {
               onClick={openSharedModpack}
             >
               {isResolvingShareCode ? t("loadingMore") : t("download")}
+            </Button>
+          </div>
+        )}
+        {cloudStatus.status === "unreachable" && (
+          <div
+            role="status"
+            className="flex flex-row items-center gap-4 mx-8 mb-2 px-4 py-2 rounded-4xl bg-slate-800 text-sm"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="font-bold">{t("cloudModpacksUnreachable")}</p>
+              <p className="text-slate-400">
+                {describeError(cloudStatus.error, t)}
+              </p>
+            </div>
+            <Button
+              onClick={() => void retryCloud()}
+              className={toolbarActionClass + " bg-slate-700 hover:bg-slate-600"}
+            >
+              {t("retry")}
             </Button>
           </div>
         )}

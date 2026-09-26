@@ -141,6 +141,8 @@
   "loadingAccount": "Hesap yükleniyor",
   "loadingAccountDetails": "Quadrant ID bilgileriniz şimdi kontrol ediliyor.",
   "accountLoginFailed": "Hesap girişi başarısız oldu. Lütfen tekrar deneyin.",
+  "accountUnreachable": "Şu anda Quadrant ID'ye ulaşılamıyor. Oturumunuz hâlâ açık.",
+  "cloudModpacksUnreachable": "Şu anda Quadrant Sync'e ulaşılamıyor. Buluttaki mod paketleriniz bağlantı geri geldiğinde görünecek.",
   "signIn": "Giriş yap",
   "signInWithOAuth": "OAuth ile giriş yap",
   "emailAndPassword": "E-postanızı ve şifrenizi girin",

@@ -141,6 +141,8 @@
   "loadingAccount": "Loading account",
   "loadingAccountDetails": "Checking your Quadrant ID details now.",
   "accountLoginFailed": "Account login failed. Please try again.",
+  "accountUnreachable": "Can't reach Quadrant ID right now. You're still signed in.",
+  "cloudModpacksUnreachable": "Can't reach Quadrant Sync right now. Your cloud modpacks will show up once it's back.",
   "signIn": "Sign in",
   "signInWithOAuth": "Sign in via OAuth",
   "emailAndPassword": "Enter your email and password",

@@ -28,10 +28,11 @@ vi.mock("../../../desktop", () => ({
 }));
 
 import AccountPage from "./AccountPage";
+import en from "../../../locales/en.json";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getAccountInfo.mockResolvedValue(null);
+  getAccountInfo.mockRejectedValue("errorSignedOut");
   storeSet.mockResolvedValue(undefined);
   cancelOAuthServer.mockResolvedValue(undefined);
   onOAuthUrl.mockResolvedValue(() => {});
@@ -42,6 +43,41 @@ afterEach(() => {
 });
 
 describe("AccountPage", () => {
+  it("shows the sign-in screen when the backend reports no session", async () => {
+    render(<AccountPage />);
+
+    expect(
+      await screen.findByRole("button", { name: en.signInWithOAuth }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(en.accountUnreachable)).not.toBeInTheDocument();
+  });
+
+  it("keeps the session when Quadrant ID is unreachable, and retries into it", async () => {
+    getAccountInfo.mockRejectedValue("errorNetwork");
+    render(<AccountPage />);
+
+    expect(await screen.findByText(en.accountUnreachable)).toBeInTheDocument();
+    expect(screen.getByText(en.errorNetwork)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: en.signInWithOAuth }),
+    ).not.toBeInTheDocument();
+
+    getAccountInfo.mockResolvedValue({
+      name: "Steve",
+      email: "steve@example.com",
+      login: "steve",
+      quadrant_sync_limit: 5,
+      quadrant_share_limit: 5,
+      notifications: [],
+    });
+    fireEvent.click(screen.getByRole("button", { name: en.retry }));
+
+    expect(
+      await screen.findByText(en.hello.replace("{{name}}", "Steve")),
+    ).toBeInTheDocument();
+    expect(getAccountInfo).toHaveBeenCalledTimes(2);
+  });
+
   it("starts a single OAuth callback server when sign-in is clicked twice", async () => {
     let releaseServer!: (port: number) => void;
     startOAuthServer.mockReturnValue(
@@ -51,7 +87,7 @@ describe("AccountPage", () => {
     );
     render(<AccountPage />);
     const signIn = await screen.findByRole("button", {
-      name: /sign ?in ?with/i,
+      name: en.signInWithOAuth,
     });
 
     fireEvent.click(signIn);
@@ -70,7 +106,7 @@ describe("AccountPage", () => {
     startOAuthServer.mockRejectedValue(new Error("port busy"));
     render(<AccountPage />);
     const signIn = await screen.findByRole("button", {
-      name: /sign ?in ?with/i,
+      name: en.signInWithOAuth,
     });
 
     fireEvent.click(signIn);

@@ -11,6 +11,7 @@ use crate::{
         account_http_client, backend_base_url, get_account_token, get_refresh_token, set_secret,
         set_token_refresh_deadline,
     },
+    error::ErrorCode,
     ports::SecretStore,
 };
 
@@ -239,6 +240,19 @@ pub async fn try_refresh_token(
         .header("User-Agent", user_agent)
         .send()
         .await?;
+
+    // A refresh token the server no longer honours comes back as OAuth2
+    // `invalid_grant` (400) or as 401. Either way the session is over, which
+    // the user fixes by signing in again, not by retrying.
+    let status = response.status();
+    if matches!(status, StatusCode::BAD_REQUEST | StatusCode::UNAUTHORIZED) {
+        let body = response.text().await.unwrap_or_default();
+        return Err(anyhow::anyhow!(
+            "Token refresh rejected with {status}: {}",
+            response_preview(&body)
+        )
+        .context(ErrorCode::SignedOut));
+    }
 
     let res = parse_oauth_token_response(response, "Token refresh failed").await?;
     set_secret(secret_store, "accountToken", &res.access_token)?;
@@ -521,7 +535,7 @@ pub async fn read_notification(
 #[cfg(test)]
 mod tests {
     use super::{
-        Notification, NotificationCursor, NotificationWsFrame,
+        Notification, NotificationCursor, NotificationWsFrame, get_account_info_with_refresh,
         get_notification_history_all_since_with_refresh,
         get_notification_history_page_with_refresh, oauth2_login, try_refresh_token,
     };
@@ -634,6 +648,114 @@ mod tests {
             store.get_secret("refreshToken").unwrap().as_deref(),
             Some("current-account-refresh")
         );
+    }
+
+    fn signed_in_store() -> StatefulSecretStore {
+        let store = StatefulSecretStore::default();
+        store.set_secret("accountToken", "stale-access").unwrap();
+        store.set_secret("refreshToken", "stale-refresh").unwrap();
+        store
+    }
+
+    /// The error string the `get_account_info` host command hands the frontend.
+    async fn account_info_error(base_url: &str, store: &StatefulSecretStore) -> String {
+        unsafe {
+            std::env::set_var("QUADRANT_API_BASE_URL", base_url);
+        }
+        let error =
+            get_account_info_with_refresh(store, "test-agent", "client-id", "client-secret")
+                .await
+                .unwrap_err();
+        crate::error::user_facing(error).to_string()
+    }
+
+    #[tokio::test]
+    async fn account_info_without_a_stored_token_is_signed_out() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let server = MockServer::start();
+        let request = server.mock(|when, then| {
+            when.method(GET).path("/account/info/get");
+            then.status(200);
+        });
+
+        let shown = account_info_error(&server.base_url(), &StatefulSecretStore::default()).await;
+
+        assert_eq!(shown, "errorSignedOut");
+        request.assert_hits(0);
+    }
+
+    #[tokio::test]
+    async fn account_info_is_signed_out_when_the_refresh_token_is_rejected() {
+        for (status, body) in [
+            (400, r#"{"error":"invalid_grant"}"#),
+            (401, r#"{"error":"invalid_token"}"#),
+        ] {
+            let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+            let server = MockServer::start();
+            server.mock(|when, then| {
+                when.method(GET).path("/account/info/get");
+                then.status(401);
+            });
+            let refresh = server.mock(|when, then| {
+                when.method(POST).path("/oauth2/token");
+                then.status(status).body(body);
+            });
+
+            let shown = account_info_error(&server.base_url(), &signed_in_store()).await;
+
+            refresh.assert();
+            assert_eq!(shown, "errorSignedOut", "refresh answered {status}");
+        }
+    }
+
+    #[tokio::test]
+    async fn account_info_server_failures_are_not_signed_out() {
+        let cases = [
+            ("account info 503", 503, None, "errorServer"),
+            ("refresh 503", 401, Some(503), "errorServer"),
+        ];
+        for (name, info_status, refresh_status, expected) in cases {
+            let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+            let server = MockServer::start();
+            server.mock(|when, then| {
+                when.method(GET).path("/account/info/get");
+                then.status(info_status);
+            });
+            if let Some(refresh_status) = refresh_status {
+                server.mock(|when, then| {
+                    when.method(POST).path("/oauth2/token");
+                    then.status(refresh_status);
+                });
+            }
+            let store = signed_in_store();
+
+            let shown = account_info_error(&server.base_url(), &store).await;
+
+            assert_eq!(shown, expected, "{name}");
+            assert_eq!(
+                store.get_secret("refreshToken").unwrap().as_deref(),
+                Some("stale-refresh"),
+                "{name} kept the session"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn account_info_is_a_network_error_when_the_server_is_unreachable() {
+        let _guard = crate::account::ACCOUNT_ENV_TEST_MUTEX.lock().unwrap();
+        let closed_port = std::net::TcpListener::bind("127.0.0.1:0")
+            .unwrap()
+            .local_addr()
+            .unwrap()
+            .port();
+
+        let shown = account_info_error(
+            &format!("http://127.0.0.1:{closed_port}"),
+            &signed_in_store(),
+        )
+        .await;
+
+        assert_eq!(shown, "errorNetwork");
     }
 
     struct MemorySecretStore;

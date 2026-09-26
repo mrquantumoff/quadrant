@@ -141,6 +141,8 @@
   "loadingAccount": "Завантаження облікового запису",
   "loadingAccountDetails": "Зараз перевіряємо дані вашого Quadrant ID.",
   "accountLoginFailed": "Не вдалося виконати вхід до облікового запису. Спробуйте ще раз.",
+  "accountUnreachable": "Зараз не вдається зв'язатися з Quadrant ID. Ви все ще в обліковому записі.",
+  "cloudModpacksUnreachable": "Зараз не вдається зв'язатися з Quadrant Sync. Ваші хмарні модпаки з'являться, щойно зв'язок відновиться.",
   "signInWithOAuth": "Увійти через OAuth",
   "signIn": "Увійти",
   "emailAndPassword": "Введіть вашу електронну пошту та пароль",

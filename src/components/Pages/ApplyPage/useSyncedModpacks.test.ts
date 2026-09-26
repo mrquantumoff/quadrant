@@ -205,3 +205,95 @@ describe("useSyncedModpacks", () => {
     ]);
   });
 });
+
+describe("useSyncedModpacks account status", () => {
+  it.each([
+    ["signed out", () => getAccountInfo.mockRejectedValue("errorSignedOut")],
+    [
+      "without a Sync quota",
+      () => getAccountInfo.mockResolvedValue({ quadrant_sync_limit: 0 }),
+    ],
+  ])("turns the cloud off when %s", async (_name, arrange) => {
+    arrange();
+    const view = renderHook(() => useSyncedModpacks());
+
+    await waitFor(() =>
+      expect(view.result.current.status).toEqual({ status: "off" }),
+    );
+    expect(view.result.current.accountInfo).toBeNull();
+    expect(getSyncedModpacks).not.toHaveBeenCalled();
+  });
+
+  it("reports an unreachable account instead of signing out, and retries", async () => {
+    getAccountInfo.mockRejectedValue("errorNetwork");
+    const view = renderHook(() => useSyncedModpacks());
+
+    await waitFor(() =>
+      expect(view.result.current.status).toEqual({
+        status: "unreachable",
+        error: "errorNetwork",
+      }),
+    );
+    expect(getSyncedModpacks).not.toHaveBeenCalled();
+
+    getAccountInfo.mockResolvedValue({ login: "me", quadrant_sync_limit: 5 });
+    getSyncedModpacks.mockResolvedValue([cloudPack({ modpack_id: "a" })]);
+    await act(async () => view.result.current.retry());
+
+    await waitFor(() =>
+      expect(ids(view.result.current.syncedModpacks)).toEqual(["a"]),
+    );
+    expect(view.result.current.status).toEqual({ status: "ready" });
+  });
+
+  it("recovers an unreachable account on a refresh event", async () => {
+    getAccountInfo.mockRejectedValue("errorTimeout");
+    const view = renderHook(() => useSyncedModpacks());
+    await waitFor(() => expect(emit).toBeTypeOf("function"));
+
+    getAccountInfo.mockResolvedValue({ login: "me", quadrant_sync_limit: 5 });
+    getSyncedModpacks.mockResolvedValue([cloudPack({ modpack_id: "a" })]);
+    await act(async () => emit?.("a"));
+
+    await waitFor(() =>
+      expect(view.result.current.status).toEqual({ status: "ready" }),
+    );
+    expect(getSyncedModpacks).toHaveBeenLastCalledWith(true, undefined);
+    expect(ids(view.result.current.syncedModpacks)).toEqual(["a"]);
+  });
+
+  it("reports a failed list read as unreachable until a full read succeeds", async () => {
+    getSyncedModpacks.mockRejectedValue("errorServer");
+    const view = renderHook(() => useSyncedModpacks());
+
+    await waitFor(() =>
+      expect(view.result.current.status).toEqual({
+        status: "unreachable",
+        error: "errorServer",
+      }),
+    );
+    expect(view.result.current.accountInfo).toEqual({
+      login: "me",
+      quadrant_sync_limit: 5,
+    });
+
+    getSyncedModpacks.mockResolvedValue([cloudPack({ modpack_id: "a" })]);
+    await act(async () => emit?.(null));
+
+    expect(view.result.current.status).toEqual({ status: "ready" });
+    expect(ids(view.result.current.syncedModpacks)).toEqual(["a"]);
+  });
+
+  it("keeps the loaded list when a later read fails", async () => {
+    const view = await renderLoaded([cloudPack({ modpack_id: "a" })]);
+
+    getSyncedModpacks.mockRejectedValue("errorNetwork");
+    await act(async () => emit?.("a"));
+
+    expect(view.result.current.status).toEqual({
+      status: "unreachable",
+      error: "errorNetwork",
+    });
+    expect(ids(view.result.current.syncedModpacks)).toEqual(["a"]);
+  });
+});

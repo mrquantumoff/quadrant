@@ -134,7 +134,7 @@ beforeEach(() => {
   getModpacks.mockResolvedValue([]);
   getMinecraftFolder.mockResolvedValue("/mc");
   // Signed out by default: the cloud list stays empty.
-  getAccountInfo.mockRejectedValue(new Error("signed out"));
+  getAccountInfo.mockRejectedValue("errorSignedOut");
   getSyncedModpacks.mockResolvedValue([]);
   getQuadrantShareModpack.mockResolvedValue({
     name: "Shared Pack",
@@ -715,5 +715,32 @@ describe("ApplyPage", () => {
       }),
     );
     expect(getModpacks).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a retry notice while Quadrant Sync is unreachable", async () => {
+    getAccountInfo.mockRejectedValue("errorNetwork");
+    render(<ApplyPage />);
+
+    expect(
+      await screen.findByText(/can't reach quadrant sync/i),
+    ).toBeInTheDocument();
+
+    getAccountInfo.mockResolvedValue({ login: "me", quadrant_sync_limit: 5 });
+    getSyncedModpacks.mockResolvedValue([cloudPack({ name: "Back online" })]);
+    await userEvent.click(screen.getByRole("button", { name: /^retry$/i }));
+
+    expect(await screen.findByText("Back online")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/can't reach quadrant sync/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows no cloud notice when signed out", async () => {
+    render(<ApplyPage />);
+
+    await waitFor(() => expect(getAccountInfo).toHaveBeenCalled());
+    expect(
+      screen.queryByText(/can't reach quadrant sync/i),
+    ).not.toBeInTheDocument();
   });
 });

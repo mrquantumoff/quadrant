@@ -1,8 +1,9 @@
 /** @format */
 
 import { useContext, useEffect, useRef, useState } from "react";
-import { AccountInfo } from "../../../intefaces";
-import { clearAccountToken, getAccountInfo, openIn } from "../../../tools";
+import { clearAccountToken, openIn } from "../../../tools";
+import { AccountState, readAccountState } from "../../../accountState";
+import { describeError } from "../../../errors";
 import Button from "../../core/Button";
 import CircularProgress from "../../core/CircularProgress";
 import { useTranslation } from "react-i18next";
@@ -19,9 +20,7 @@ import {
 
 export default function AccountPage() {
   const { t } = useTranslation();
-  const [accountInfo, setAccountInfo] = useState<
-    AccountInfo | null | undefined
-  >(undefined);
+  const [account, setAccount] = useState<AccountState>({ status: "loading" });
   const [loginWarning, setLoginWarning] = useState<string | null>(null);
   const oauthCleanupRef = useRef<(() => Promise<void>) | null>(null);
   const loginStartingRef = useRef(false);
@@ -29,15 +28,12 @@ export default function AccountPage() {
 
   const updateAccountInfo = async (showLoader = true) => {
     if (showLoader) {
-      setAccountInfo(undefined);
+      setAccount({ status: "loading" });
     }
-    try {
-      const newAccountInfo = await getAccountInfo();
-      setAccountInfo(newAccountInfo);
+    const next = await readAccountState();
+    setAccount(next);
+    if (next.status === "signedIn") {
       setLoginWarning(null);
-    } catch (error) {
-      console.error("Failed to get account info", error);
-      setAccountInfo(null);
     }
   };
 
@@ -82,7 +78,7 @@ export default function AccountPage() {
     };
   }, []);
 
-  if (accountInfo === undefined) {
+  if (account.status === "loading") {
     return (
       <div className="flex flex-1 h-full w-full items-center justify-center">
         <div className="flex w-[75%] max-w-4xl flex-col items-center justify-center rounded-4xl bg-slate-800 px-6 py-10 text-center shadow-2xl">
@@ -98,24 +94,45 @@ export default function AccountPage() {
     );
   }
 
-  return accountInfo !== null ? (
+  if (account.status === "unreachable") {
+    return (
+      <div className="flex flex-1 h-full w-full items-center justify-center">
+        <div className="flex w-[75%] max-w-4xl flex-col items-center justify-center rounded-4xl bg-slate-800 px-6 py-10 text-center shadow-2xl">
+          <h1 className="text-2xl font-extrabold">
+            {t("accountUnreachable")}
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg text-slate-400">
+            {describeError(account.error, t)}
+          </p>
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 mt-6 w-full max-w-xs"
+            onClick={() => void updateAccountInfo()}
+          >
+            {t("retry")}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return account.status === "signedIn" ? (
     <>
       <div className="flex flex-col items-center justify-center align-middle flex-1 h-full">
         <h1 className="font-extrabold text-2xl">
-          {t("hello", { name: accountInfo.name })}
+          {t("hello", { name: account.info.name })}
         </h1>
         <div className="w-[50%] items-center justify-center text-center font-bold">
           <h2 className="bg-slate-800 p-2 rounded-4xl my-4">
-            {t("email")}: {accountInfo.email}
+            {t("email")}: {account.info.email}
           </h2>
           <h2 className="bg-slate-800 p-2 rounded-4xl my-4">
-            {t("username")}: {accountInfo.login}
+            {t("username")}: {account.info.login}
           </h2>
           <h2 className="bg-slate-800 p-2 rounded-4xl my-4">
-            {t("syncLimit")}: {accountInfo.quadrant_sync_limit}
+            {t("syncLimit")}: {account.info.quadrant_sync_limit}
           </h2>
           <h2 className="bg-slate-800 p-2 rounded-4xl my-4">
-            {t("shareLimit")}: {accountInfo.quadrant_share_limit}
+            {t("shareLimit")}: {account.info.quadrant_share_limit}
           </h2>
         </div>
         <div className="flex flex-row w-[75%] items-center justify-center mt-4">
@@ -233,14 +250,14 @@ export default function AccountPage() {
                     if (code === null) {
                       throw new Error("Missing OAuth code");
                     }
-                    setAccountInfo(undefined);
+                    setAccount({ status: "loading" });
                     await invoke("oauth2_login", {
                       code: code,
                       redirectUri: redirectUri,
                     });
                   } catch (error) {
                     console.error(error);
-                    setAccountInfo(null);
+                    setAccount({ status: "signedOut" });
                     showLoginFailureWarning();
                   } finally {
                     await oauthCleanupRef.current?.();

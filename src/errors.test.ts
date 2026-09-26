@@ -1,7 +1,11 @@
 /** @format */
 
 import { describe, expect, it } from "vitest";
-import { describeError, isCloudSyncNewerError } from "./errors";
+import {
+  describeError,
+  isCloudSyncNewerError,
+  isSignedOutError,
+} from "./errors";
 import quadrantLocale from "./i18n";
 import en from "./locales/en.json";
 
@@ -99,5 +103,26 @@ describe("isCloudSyncNewerError", () => {
     42,
   ])("does not mistake %o for the conflict", (raw) => {
     expect(isCloudSyncNewerError(raw)).toBe(false);
+  });
+});
+
+describe("isSignedOutError", () => {
+  it.each(["errorSignedOut", "  errorSignedOut  "])("recognizes %s", (raw) => {
+    expect(isSignedOutError(raw)).toBe(true);
+    expect(isSignedOutError(new Error(raw))).toBe(true);
+  });
+
+  it.each([
+    "errorNetwork",
+    "errorTimeout",
+    "errorServer",
+    "errorBadResponse",
+    "errorForbidden",
+    "Token refresh failed with 400 Bad Request",
+    "",
+    null,
+    undefined,
+  ])("treats %o as the server being unreachable", (raw) => {
+    expect(isSignedOutError(raw)).toBe(false);
   });
 });
