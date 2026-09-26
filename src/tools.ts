@@ -427,6 +427,20 @@ export const exportModpack = async (name: string) => {
   });
 };
 
+/** Resolves to the imported modpack's name, or null if the picker was cancelled. */
+export const importModpack = async (): Promise<string | null> => {
+  const archive = await openDialog({
+    mode: "open",
+    multiple: false,
+    title: "Import Modpack",
+    filters: [{ name: "Quadrant Export", extensions: ["zip"] }],
+  });
+  if (typeof archive !== "string" || archive.length === 0) {
+    return null;
+  }
+  return await invoke<string>("import_modpack_from", { archive });
+};
+
 export const identifyUnknownMods = async (
   modpack: string,
 ): Promise<IdentifiedMod[]> => {

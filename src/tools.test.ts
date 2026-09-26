@@ -35,6 +35,7 @@ import {
   getModpacks,
   getPrismInstances,
   getPrismSyncPlans,
+  importModpack,
   installMod,
   openContentFolder,
   shareModpack,
@@ -189,6 +190,30 @@ describe("exportModpack", () => {
     expect(invoke).toHaveBeenCalledWith("export_modpack_to", {
       modpack: "pack",
       destination: "/tmp/pack.zip",
+    });
+  });
+});
+
+describe("importModpack", () => {
+  it("returns null without invoking when the picker is cancelled", async () => {
+    openDialog.mockResolvedValue(null);
+    expect(await importModpack()).toBeNull();
+    expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("imports the chosen archive and returns the new modpack's name", async () => {
+    openDialog.mockResolvedValue("/tmp/pack.quadrantExport.zip");
+    invoke.mockResolvedValue("pack");
+    expect(await importModpack()).toBe("pack");
+    expect(openDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "open",
+        multiple: false,
+        filters: [{ name: "Quadrant Export", extensions: ["zip"] }],
+      }),
+    );
+    expect(invoke).toHaveBeenCalledWith("import_modpack_from", {
+      archive: "/tmp/pack.quadrantExport.zip",
     });
   });
 });

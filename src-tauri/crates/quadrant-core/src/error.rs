@@ -24,6 +24,7 @@ pub enum ErrorCode {
     ModpackMissing,
     ModpackExists,
     InvalidModpackName,
+    InvalidModpackArchive,
     ModAlreadyRegistered,
     ContentMissing,
     FileAccess,
@@ -40,7 +41,7 @@ pub enum ErrorCode {
 }
 
 impl ErrorCode {
-    pub const ALL: [ErrorCode; 29] = [
+    pub const ALL: [ErrorCode; 30] = [
         Self::ThirdPartyDownloadDisabled,
         Self::DownloadRefused,
         Self::InvalidRequest,
@@ -57,6 +58,7 @@ impl ErrorCode {
         Self::ModpackMissing,
         Self::ModpackExists,
         Self::InvalidModpackName,
+        Self::InvalidModpackArchive,
         Self::ModAlreadyRegistered,
         Self::ContentMissing,
         Self::FileAccess,
@@ -90,6 +92,7 @@ impl ErrorCode {
             Self::ModpackMissing => "errorModpackMissing",
             Self::ModpackExists => "errorModpackExists",
             Self::InvalidModpackName => "errorInvalidModpackName",
+            Self::InvalidModpackArchive => "errorInvalidModpackArchive",
             Self::ModAlreadyRegistered => "errorModAlreadyRegistered",
             Self::ContentMissing => "errorContentMissing",
             Self::FileAccess => "errorFileAccess",

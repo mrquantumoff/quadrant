@@ -16,6 +16,7 @@ export const HOST_COMMANDS = [
   "register_mod",
   "install_modpack",
   "export_modpack_to",
+  "import_modpack_from",
   "set_modpack_sync_date",
   "get_news",
   "get_minecraft_folder",
@@ -110,6 +111,13 @@ export interface DesktopDialogOptions {
   recursive?: boolean;
   title?: string;
   defaultPath?: string;
+  filters?: DesktopDialogFilter[];
+}
+
+export interface DesktopDialogFilter {
+  name: string;
+  /** Extensions without the leading dot, e.g. `"zip"`. */
+  extensions: string[];
 }
 
 export interface DesktopWatchOptions {

@@ -86,3 +86,11 @@ pub async fn export_modpack_to(
         .await
         .map_err(crate::command_error)
 }
+
+#[tauri::command]
+pub async fn import_modpack_from(archive: String, app: AppHandle) -> Result<String, tauri::Error> {
+    app.state::<QuadrantHost>()
+        .import_modpack_from(archive.into())
+        .await
+        .map_err(crate::command_error)
+}

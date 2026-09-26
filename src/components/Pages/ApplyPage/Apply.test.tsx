@@ -15,6 +15,7 @@ const getSyncedModpacks = vi.fn();
 const syncModpack = vi.fn();
 const installModpack = vi.fn();
 const getPrismInstances = vi.fn();
+const importModpack = vi.fn();
 const invoke = vi.fn();
 
 const storeGet = vi.fn();
@@ -37,6 +38,7 @@ vi.mock("../../../tools", () => ({
   getPrismInstances: (...a: unknown[]) => getPrismInstances(...a),
   getQuadrantShareModpack: (...a: unknown[]) => getQuadrantShareModpack(...a),
   getVersions: (...a: unknown[]) => getVersions(...a),
+  importModpack: (...a: unknown[]) => importModpack(...a),
   installModpack: (...a: unknown[]) => installModpack(...a),
   openModpacksFolder: vi.fn(),
   shareModpack: vi.fn(),
@@ -649,5 +651,69 @@ describe("ApplyPage", () => {
     await act(async () => resolveOld([cloudPack({ name: "Stale" })]));
     expect(await screen.findByText("Latest")).toBeInTheDocument();
     expect(screen.queryByText("Stale")).not.toBeInTheDocument();
+  });
+
+  it("imports a modpack file, refreshes the list, and confirms by name", async () => {
+    importModpack.mockResolvedValue("Imported Pack");
+    render(
+      <SpiedContent>
+        <ApplyPage />
+      </SpiedContent>,
+    );
+    await waitFor(() => expect(getModpacks).toHaveBeenCalledTimes(1));
+
+    getModpacks.mockResolvedValue([pack({ name: "Imported Pack" })]);
+    await userEvent.click(
+      screen.getByRole("button", { name: /^import a modpack$/i }),
+    );
+
+    expect(importModpack).toHaveBeenCalledOnce();
+    expect(await screen.findByText("Imported Pack")).toBeInTheDocument();
+    const snackbar = setSnackbar.mock.lastCall?.[0];
+    expect(snackbar.className).toBe("bg-emerald-600 rounded-4xl");
+    render(snackbar.message);
+    expect(screen.getByText("Imported Imported Pack")).toBeInTheDocument();
+  });
+
+  it("does nothing when the import picker is cancelled", async () => {
+    importModpack.mockResolvedValue(null);
+    render(
+      <SpiedContent>
+        <ApplyPage />
+      </SpiedContent>,
+    );
+    await waitFor(() => expect(getModpacks).toHaveBeenCalledTimes(1));
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /^import a modpack$/i }),
+    );
+
+    expect(importModpack).toHaveBeenCalledOnce();
+    expect(getModpacks).toHaveBeenCalledTimes(1);
+    expect(setSnackbar).not.toHaveBeenCalled();
+  });
+
+  it("reports a rejected import archive", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    importModpack.mockRejectedValue("errorInvalidModpackArchive");
+    render(
+      <SpiedContent>
+        <ApplyPage />
+      </SpiedContent>,
+    );
+    await waitFor(() => expect(getModpacks).toHaveBeenCalledTimes(1));
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /^import a modpack$/i }),
+    );
+
+    await waitFor(() =>
+      expect(setSnackbar).toHaveBeenCalledWith({
+        message: "That file isn't a Quadrant modpack export, or it's damaged.",
+        className: "bg-red-700",
+        timeout: 5000,
+      }),
+    );
+    expect(getModpacks).toHaveBeenCalledTimes(1);
   });
 });

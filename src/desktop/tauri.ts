@@ -199,6 +199,7 @@ export const tauriRuntime: RuntimeAdapter = {
       return saveDialog({
         title: options.title,
         defaultPath: options.defaultPath,
+        filters: options.filters,
       });
     }
 
@@ -208,6 +209,7 @@ export const tauriRuntime: RuntimeAdapter = {
       recursive: options?.recursive,
       title: options?.title,
       defaultPath: options?.defaultPath,
+      filters: options?.filters,
     });
   },
   async openExternal(url: string) {

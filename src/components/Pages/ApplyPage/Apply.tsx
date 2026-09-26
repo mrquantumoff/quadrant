@@ -17,13 +17,14 @@ import {
   getPrismInstances,
   getQuadrantShareModpack,
   getVersions,
+  importModpack,
   openModpacksFolder,
 } from "../../../tools";
 import { useTranslation } from "react-i18next";
 import Button from "../../core/Button";
 import { AnimatePresence, motion } from "motion/react";
 import "./Apply.css";
-import { MdAdd, MdCheck, MdClear, MdFolder } from "react-icons/md";
+import { MdAdd, MdCheck, MdClear, MdFolder, MdUnarchive } from "react-icons/md";
 import { ContentContext } from "../../../intefaces";
 import LocalModpackCard from "./LocalModpackCard";
 import ModpackEditDialog from "./ModpackEditDialog";
@@ -37,6 +38,8 @@ import SharedModpackView from "./SharedModpackView";
 import SyncedModpackComponent from "./SyncedModpack";
 import { useSyncedModpacks } from "./useSyncedModpacks";
 import { mergeModpacks } from "./mergeModpacks";
+import { useReportError } from "../../../useReportError";
+import { useReportSuccess } from "../../../useReportSuccess";
 
 const toolbarActionClass =
   "flex shrink-0 items-center justify-center gap-2 h-10 px-4 rounded-full text-sm text-white whitespace-nowrap";
@@ -82,6 +85,8 @@ export default function ApplyPage() {
     loaderProvidersFromSettings(true, true),
   );
   const context = useContext(ContentContext);
+  const reportError = useReportError();
+  const reportSuccess = useReportSuccess();
 
   // Get the modpacks for the first time and listen for changes to the Minecraft folder from the backend
   useEffect(() => {
@@ -220,6 +225,19 @@ export default function ApplyPage() {
     setModpacks(newModpacks);
   };
 
+  const importFromFile = async () => {
+    try {
+      const name = await importModpack();
+      if (name === null) {
+        return;
+      }
+      await updateModpacks();
+      reportSuccess(t("modpackImported", { name }));
+    } catch (error) {
+      reportError(error);
+    }
+  };
+
   const shareCode = parseShareCode(searchQuery);
   const rows = mergeModpacks(modpacks, syncedModpacks, searchQuery);
 
@@ -282,6 +300,14 @@ export default function ApplyPage() {
           >
             <MdAdd aria-hidden="true" className="w-5 h-5" />
             {t("createModpack")}
+          </Button>
+          <Button
+            onClick={importFromFile}
+            className={toolbarIconClass + " hover:bg-slate-600"}
+            title={t("importMods")}
+            aria-label={t("importMods")}
+          >
+            <MdUnarchive aria-hidden="true" className="w-5 h-5" />
           </Button>
           <Button
             onClick={async () => {

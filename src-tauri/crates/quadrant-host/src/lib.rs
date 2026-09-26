@@ -44,7 +44,7 @@ use quadrant_core::{
     models::{Article, InstalledMod, InstalledModpack, LocalModpack, ModLoader, ModSource},
     modpacks::{
         apply_modpack, create_modpack, delete_mod, delete_modpack, export_modpack_to, get_modpacks,
-        install_modpack, register_mod, set_modpack_sync_date, update_modpack,
+        import_modpack_from, install_modpack, register_mod, set_modpack_sync_date, update_modpack,
     },
     ports::{EventSink, SecretStore, SettingsStore},
     prism::{self, PrismInstance, PrismSyncPlan},
@@ -900,6 +900,10 @@ impl QuadrantHost {
         )
     }
 
+    pub async fn import_modpack_from(&self, archive: PathBuf) -> Result<String> {
+        import_modpack_from(&self.get_minecraft_folder()?, &archive)
+    }
+
     pub fn set_modpack_sync_date(
         &self,
         time: u64,
@@ -1351,6 +1355,7 @@ impl QuadrantHost {
             "register_mod",
             "install_modpack",
             "export_modpack_to",
+            "import_modpack_from",
             "set_modpack_sync_date",
             "get_news",
             "get_minecraft_folder",
@@ -1487,6 +1492,13 @@ impl QuadrantHost {
                 self.export_modpack_to(args.modpack, PathBuf::from(args.destination))
                     .await?;
                 Ok(Value::Null)
+            }
+            "import_modpack_from" => {
+                let args: ImportModpackArgs = from_value(payload)?;
+                to_value(
+                    self.import_modpack_from(PathBuf::from(args.archive))
+                        .await?,
+                )
             }
             "set_modpack_sync_date" => {
                 let args: SetModpackSyncDateArgs = from_value(payload)?;
@@ -2556,6 +2568,11 @@ struct InstallModpackArgs {
 struct ExportModpackArgs {
     modpack: String,
     destination: String,
+}
+
+#[derive(Deserialize)]
+struct ImportModpackArgs {
+    archive: String,
 }
 
 #[derive(Deserialize)]

@@ -10,12 +10,12 @@ use crate::{
     },
     ports::{EventSink, SettingsStore},
 };
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use chrono::Utc;
 use futures::StreamExt;
 use std::{
     collections::HashSet,
-    io::Write,
+    io::{Read, Write},
     path::{Component, Path, PathBuf},
     sync::Arc,
 };
@@ -133,7 +133,12 @@ pub async fn get_modpacks(mc_folder: &Path, hide_free: bool) -> Result<Vec<Local
         // macOS drops `.DS_Store` files into directories, and calling
         // `read_dir` on a file errors out — which previously failed the whole
         // modpack listing on macOS.
-        if !path.is_dir() {
+        if !path.is_dir()
+            || entry
+                .file_name()
+                .to_string_lossy()
+                .starts_with(IMPORT_STAGING_PREFIX)
+        {
             continue;
         }
 
@@ -833,6 +838,70 @@ fn write_export_archive(
     Ok(())
 }
 
+/// Prefix of the folder an import extracts into before it is renamed into
+/// place. [`get_modpacks`] skips it, so a crash mid-import never lists a pack.
+const IMPORT_STAGING_PREFIX: &str = ".quadrant-import-";
+
+/// Imports a Quadrant export archive as a new local modpack and returns its name.
+///
+/// The name comes from the archive's manifest. Every file entry must sit at the
+/// archive root; an archive with any other entry is rejected before the pack
+/// appears.
+pub fn import_modpack_from(mc_folder: &Path, archive: &Path) -> Result<String> {
+    let invalid_archive = || anyhow::Error::from(crate::error::ErrorCode::InvalidModpackArchive);
+    let mut zip = zip::ZipArchive::new(std::fs::File::open(archive)?)
+        .context(crate::error::ErrorCode::InvalidModpackArchive)?;
+    let manifest = ["modConfigV2.json", "modConfig.json"]
+        .into_iter()
+        .find_map(|name| {
+            let mut raw = String::new();
+            zip.by_name(name).ok()?.read_to_string(&mut raw).ok()?;
+            serde_json::from_str::<InstalledModpack>(&raw).ok()
+        })
+        .ok_or_else(invalid_archive)?;
+    let name = manifest.name;
+    validate_modpack_name(&name)?;
+    log::info!("Importing modpack \"{name}\" from {}", archive.display());
+
+    let destination = modpack_path(mc_folder, &name);
+    if destination.exists() {
+        return Err(anyhow::Error::from(crate::error::ErrorCode::ModpackExists));
+    }
+    let modpacks_folder = mc_folder.join("modpacks");
+    std::fs::create_dir_all(&modpacks_folder)?;
+    let staging = modpacks_folder.join(format!("{IMPORT_STAGING_PREFIX}{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir(&staging)?;
+
+    let extract = |zip: &mut zip::ZipArchive<std::fs::File>| -> Result<()> {
+        for index in 0..zip.len() {
+            let mut entry = zip.by_index(index)?;
+            if entry.is_dir() {
+                continue;
+            }
+            let entry_name = entry.name().to_string();
+            if entry.enclosed_name().is_none() || !is_single_path_component(&entry_name) {
+                return Err(invalid_archive());
+            }
+            // The import is a new local pack. Keeping the original's cloud id
+            // would pair two folders with one synced modpack.
+            if entry_name == "quadrantSync.json" {
+                continue;
+            }
+            let mut file = std::fs::File::create(staging.join(&entry_name))?;
+            std::io::copy(&mut entry, &mut file)?;
+        }
+        std::fs::rename(&staging, &destination)?;
+        Ok(())
+    };
+    if let Err(error) = extract(&mut zip) {
+        let _ = std::fs::remove_dir_all(&staging);
+        return Err(error);
+    }
+
+    log::info!("Modpack import complete");
+    Ok(name)
+}
+
 async fn download_mod_concurrently(
     mod_: InstalledMod,
     file: PathBuf,
@@ -1069,6 +1138,170 @@ mod tests {
         let mut contents = String::new();
         file.read_to_string(&mut contents).unwrap();
         assert_eq!(contents, "jar");
+    }
+
+    fn write_zip(path: &Path, entries: &[(&str, &str)]) {
+        let mut zip = zip::ZipWriter::new(std::fs::File::create(path).unwrap());
+        for (name, contents) in entries {
+            zip.start_file(*name, zip::write::SimpleFileOptions::default())
+                .unwrap();
+            zip.write_all(contents.as_bytes()).unwrap();
+        }
+        zip.finish().unwrap();
+    }
+
+    fn manifest_json(name: &str) -> String {
+        serde_json::to_string(&InstalledModpack {
+            mod_config_version: String::new(),
+            quadrant_version: String::new(),
+            name: name.to_string(),
+            version: "1.20.1".to_string(),
+            mod_loader: ModLoader::Fabric,
+            mods: Vec::new(),
+        })
+        .unwrap()
+    }
+
+    fn error_code(error: anyhow::Error) -> Option<crate::error::ErrorCode> {
+        error.downcast_ref::<crate::error::ErrorCode>().copied()
+    }
+
+    fn folder_entries(folder: &Path) -> Vec<String> {
+        let mut names = std::fs::read_dir(folder)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().to_string_lossy().to_string())
+            .collect::<Vec<_>>();
+        names.sort();
+        names
+    }
+
+    #[tokio::test]
+    async fn import_modpack_from_reproduces_an_export_without_its_sync_metadata() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        create_modpack(&mc_folder, &[], "alpha", "1.20.1", ModLoader::Fabric).unwrap();
+        let source = modpack_path(&mc_folder, "alpha");
+        std::fs::write(source.join("sample.jar"), "jar").unwrap();
+        set_modpack_sync_date(&mc_folder, 42, "alpha", Some("cloud-id")).unwrap();
+        let archive = mc_folder.join("alpha.quadrantExport.zip");
+        export_modpack_to(&mc_folder, "alpha", &archive, &CollectingEvents::default()).unwrap();
+
+        let target = tempdir().unwrap();
+        let target_mc = target.path().join(".minecraft");
+        let name = import_modpack_from(&target_mc, &archive).unwrap();
+
+        assert_eq!(name, "alpha");
+        let imported = modpack_path(&target_mc, "alpha");
+        assert_eq!(
+            folder_entries(&imported),
+            ["modConfigV2.json", "sample.jar"]
+        );
+        for file in ["modConfigV2.json", "sample.jar"] {
+            assert_eq!(
+                std::fs::read(imported.join(file)).unwrap(),
+                std::fs::read(source.join(file)).unwrap()
+            );
+        }
+        let listed = get_modpacks(&target_mc, false).await.unwrap();
+        assert_eq!(listed.len(), 1);
+        assert_eq!(listed[0].modpack_id, None);
+        assert_eq!(folder_entries(&target_mc.join("modpacks")), ["alpha"]);
+    }
+
+    #[test]
+    fn import_modpack_from_refuses_an_existing_name() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        create_modpack(&mc_folder, &[], "alpha", "1.20.1", ModLoader::Fabric).unwrap();
+        let archive = mc_folder.join("alpha.quadrantExport.zip");
+        export_modpack_to(&mc_folder, "alpha", &archive, &CollectingEvents::default()).unwrap();
+
+        let error = import_modpack_from(&mc_folder, &archive).unwrap_err();
+
+        assert_eq!(
+            error_code(error),
+            Some(crate::error::ErrorCode::ModpackExists)
+        );
+        assert_eq!(folder_entries(&mc_folder.join("modpacks")), ["alpha"]);
+    }
+
+    #[test]
+    fn import_modpack_from_rejects_entries_outside_the_archive_root() {
+        for hostile in ["../evil.jar", "nested/evil.jar", "/evil.jar"] {
+            let (_dir, mc_folder) = setup_mc_folder();
+            let archive = mc_folder.join("hostile.zip");
+            // The manifest and a legitimate file come first, so the staging
+            // folder already holds files when the hostile entry is reached.
+            write_zip(
+                &archive,
+                &[
+                    ("modConfigV2.json", &manifest_json("alpha")),
+                    ("good.jar", "jar"),
+                    (hostile, "evil"),
+                ],
+            );
+
+            let error = import_modpack_from(&mc_folder, &archive).unwrap_err();
+
+            assert_eq!(
+                error_code(error),
+                Some(crate::error::ErrorCode::InvalidModpackArchive),
+                "{hostile}"
+            );
+            assert!(
+                folder_entries(&mc_folder.join("modpacks")).is_empty(),
+                "{hostile} left files behind"
+            );
+            assert!(!mc_folder.join("evil.jar").exists());
+        }
+    }
+
+    #[test]
+    fn import_modpack_from_requires_a_readable_manifest() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        let no_manifest = mc_folder.join("no-manifest.zip");
+        write_zip(&no_manifest, &[("sample.jar", "jar")]);
+        let bad_manifest = mc_folder.join("bad-manifest.zip");
+        write_zip(&bad_manifest, &[("modConfigV2.json", "{not json")]);
+        let not_a_zip = mc_folder.join("not-a-zip.zip");
+        std::fs::write(&not_a_zip, "plain text").unwrap();
+
+        for archive in [no_manifest, bad_manifest, not_a_zip] {
+            let error = import_modpack_from(&mc_folder, &archive).unwrap_err();
+            assert_eq!(
+                error_code(error),
+                Some(crate::error::ErrorCode::InvalidModpackArchive),
+                "{}",
+                archive.display()
+            );
+        }
+        assert!(folder_entries(&mc_folder.join("modpacks")).is_empty());
+    }
+
+    #[test]
+    fn import_modpack_from_reads_a_legacy_manifest() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        let archive = mc_folder.join("legacy.zip");
+        write_zip(
+            &archive,
+            &[("modConfig.json", &manifest_json("legacy")), ("a.jar", "a")],
+        );
+
+        assert_eq!(import_modpack_from(&mc_folder, &archive).unwrap(), "legacy");
+        assert_eq!(
+            folder_entries(&modpack_path(&mc_folder, "legacy")),
+            ["a.jar", "modConfig.json"]
+        );
+    }
+
+    #[tokio::test]
+    async fn get_modpacks_skips_a_leftover_import_staging_folder() {
+        let (_dir, mc_folder) = setup_mc_folder();
+        let staging = mc_folder
+            .join("modpacks")
+            .join(format!("{IMPORT_STAGING_PREFIX}leftover"));
+        std::fs::create_dir(&staging).unwrap();
+        std::fs::write(staging.join("modConfigV2.json"), manifest_json("alpha")).unwrap();
+
+        assert!(get_modpacks(&mc_folder, false).await.unwrap().is_empty());
     }
 
     #[tokio::test]
