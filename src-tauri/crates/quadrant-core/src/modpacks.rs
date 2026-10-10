@@ -1596,7 +1596,14 @@ mod tests {
         let mut archive = zip::ZipArchive::new(std::fs::File::open(&destination).unwrap()).unwrap();
         let mut names = Vec::new();
         for index in 0..archive.len() {
-            names.push(archive.by_index(index).unwrap().name().to_string());
+            names.push(
+                archive
+                    .by_index(index)
+                    .unwrap()
+                    .name()
+                    .unwrap()
+                    .into_owned(),
+            );
         }
         assert_eq!(names, ["modConfigV2.json", "sample.jar"]);
         assert!(!mc_folder.join("alpha.quadrantExport.zip.part").exists());
